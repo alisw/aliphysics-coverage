@@ -1,0 +1,1271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - MUON/MUONrec/AliMUONClusterFinderPeakFit.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">MUON/MUONrec</a> - AliMUONClusterFinderPeakFit.cxx<span style="font-size: 80%;"> (source / <a href="AliMUONClusterFinderPeakFit.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">586</td>
+            <td class="headerCovTableEntryLo">0.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">29</td>
+            <td class="headerCovTableEntryLo">10.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      19 </span>            : /// \class AliMUONClusterFinderPeakFit
+<span class="lineNum">      20 </span>            : /// 
+<span class="lineNum">      21 </span>            : /// Clusterizer class based on simple peak finder
+<span class="lineNum">      22 </span>            : ///
+<span class="lineNum">      23 </span>            : /// Pre-clustering is handled by AliMUONPreClusterFinder
+<span class="lineNum">      24 </span>            : /// From a precluster a pixel array is built, and its local maxima are used
+<span class="lineNum">      25 </span>            : /// to get pads and make the fit with up to 3 hit candidates or compute pad 
+<span class="lineNum">      26 </span>            : /// centers of gravity for larger number of peaks.
+<span class="lineNum">      27 </span>            : ///
+<span class="lineNum">      28 </span>            : /// \author Laurent Aphecetche (for the &quot;new&quot; C++ structure) and 
+<span class="lineNum">      29 </span>            : /// Alexander Zinchenko, JINR Dubna, for the hardcore of it ;-)
+<span class="lineNum">      30 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;AliMUONClusterFinderPeakFit.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliMUONCluster.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliMUONConstants.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliMUONPad.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliMUONMathieson.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &quot;AliMpDEManager.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliMpPad.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliMpVSegmentation.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliMpEncodePair.h&quot;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;AliRunLoader.h&quot;
+<span class="lineNum">      45 </span>            : //#include &quot;AliCodeTimer.h&quot;
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      48 </span>            : #include &lt;TH2.h&gt;
+<span class="lineNum">      49 </span>            : #include &lt;TVirtualFitter.h&gt;
+<span class="lineNum">      50 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      51 </span>            : //#include &lt;TCanvas.h&gt;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : using std::endl;
+<a name="54"><span class="lineNum">      54 </span>            : using std::cout;</a>
+<span class="lineNum">      55 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      56 </span><span class="lineCov">         18 : ClassImp(AliMUONClusterFinderPeakFit)</span>
+<span class="lineNum">      57 </span>            : /// \endcond
+<span class="lineNum">      58 </span>            :  
+<span class="lineNum">      59 </span>            : const Double_t AliMUONClusterFinderPeakFit::fgkZeroSuppression = 6; // average zero suppression value
+<a name="60"><span class="lineNum">      60 </span>            : //const Double_t AliMUONClusterFinderMLEM::fgkDistancePrecision = 1e-6; // (cm) used to check overlaps and so on</a>
+<a name="61"><span class="lineNum">      61 </span>            : const Double_t AliMUONClusterFinderPeakFit::fgkDistancePrecision = 1e-3; // (cm) used to check overlaps and so on</a>
+<span class="lineNum">      62 </span><span class="lineCov">         18 : const TVector2 AliMUONClusterFinderPeakFit::fgkIncreaseSize(-AliMUONClusterFinderPeakFit::fgkDistancePrecision,-AliMUONClusterFinderPeakFit::fgkDistancePrecision);</span>
+<span class="lineNum">      63 </span><span class="lineCov">         18 : const TVector2 AliMUONClusterFinderPeakFit::fgkDecreaseSize(AliMUONClusterFinderPeakFit::fgkDistancePrecision,AliMUONClusterFinderPeakFit::fgkDistancePrecision);</span>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : // Status flags for pads
+<span class="lineNum">      66 </span>            : const Int_t AliMUONClusterFinderPeakFit::fgkZero = 0x0; ///&lt; pad &quot;basic&quot; state
+<span class="lineNum">      67 </span>            : const Int_t AliMUONClusterFinderPeakFit::fgkMustKeep = 0x1; ///&lt; do not kill (for pixels)
+<span class="lineNum">      68 </span>            : const Int_t AliMUONClusterFinderPeakFit::fgkUseForFit = 0x10; ///&lt; should be used for fit
+<span class="lineNum">      69 </span>            : const Int_t AliMUONClusterFinderPeakFit::fgkOver = 0x100; ///&lt; processing is over
+<span class="lineNum">      70 </span>            : const Int_t AliMUONClusterFinderPeakFit::fgkModified = 0x1000; ///&lt; modified pad charge 
+<span class="lineNum">      71 </span>            : const Int_t AliMUONClusterFinderPeakFit::fgkCoupled = 0x10000; ///&lt; coupled pad  
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : namespace
+<a name="74"><span class="lineNum">      74 </span>            : {</a>
+<span class="lineNum">      75 </span>            :   //_____________________________________________________________________________
+<span class="lineNum">      76 </span>            :   Double_t Param2Coef(Int_t icand, Double_t coef, Double_t *par, Int_t nHits)
+<span class="lineNum">      77 </span>            :   {
+<span class="lineNum">      78 </span>            :     /// Extract hit contribution scale factor from fit parameters
+<span class="lineNum">      79 </span>            :   
+<span class="lineNum">      80 </span>            :     //Int_t nHits = TMath::Nint(par[8]);
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     if (nHits == 1) return 1.;</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     if (nHits == 2) return icand==0 ? par[2] : TMath::Max(1.-par[2],0.);</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     if (icand == 0) return par[2];</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     if (icand == 1) return TMath::Max((1.-par[2])*par[5], 0.);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     return TMath::Max(1.-par[2]-coef,0.);</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      87 </span>            : 
+<a name="88"><span class="lineNum">      88 </span>            :   //___________________________________________________________________________</a>
+<span class="lineNum">      89 </span>            :   void 
+<span class="lineNum">      90 </span>            :   FitFunction(Int_t&amp; /*notused*/, Double_t* /*notused*/, 
+<span class="lineNum">      91 </span>            :               Double_t&amp; f, Double_t* par, 
+<span class="lineNum">      92 </span>            :               Int_t /*notused*/)
+<span class="lineNum">      93 </span>            :   {
+<span class="lineNum">      94 </span>            :     /// Chi2 Function to minimize: Mathieson charge distribution in 2 dimensions
+<span class="lineNum">      95 </span>            :     
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     TObjArray* userObjects = static_cast&lt;TObjArray*&gt;(TVirtualFitter::GetFitter()-&gt;GetObjectFit());</span>
+<span class="lineNum">      97 </span>            :     
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     AliMUONCluster* cluster = static_cast&lt;AliMUONCluster*&gt;(userObjects-&gt;At(0));</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     AliMUONMathieson* mathieson = static_cast&lt;AliMUONMathieson*&gt;(userObjects-&gt;At(1));</span>
+<span class="lineNum">     100 </span>            :     AliMUONClusterFinderPeakFit* finder = 
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :       static_cast&lt;AliMUONClusterFinderPeakFit*&gt;(userObjects-&gt;At(2));</span>
+<span class="lineNum">     102 </span>            :     
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     f = 0.0;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     Int_t nHits = finder-&gt;GetNMax(), npads = cluster-&gt;Multiplicity();</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     Double_t qTot = cluster-&gt;Charge(), coef = 0;</span>
+<span class="lineNum">     106 </span>            :     //if (cluster-&gt;Multiplicity(0) == 0 || cluster-&gt;Multiplicity(1) == 0) qTot *= 2.;
+<span class="lineNum">     107 </span>            :     
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0 ; i &lt; npads; ++i )</span>
+<span class="lineNum">     109 </span>            :     {
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     111 </span>            :       // skip pads w/ saturation or other problem(s)
+<span class="lineNum">     112 </span>            :       //if ( pad-&gt;Status() ) continue; 
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :       if ( pad-&gt;IsSaturated() ) continue; </span>
+<span class="lineNum">     114 </span>            :       Double_t charge = 0.;
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :       for (Int_t j = 0; j &lt; nHits; ++j) {</span>
+<span class="lineNum">     116 </span>            :         // Sum over hits
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         Int_t indx = 3 * j;</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         TVector2 lowerLeft = TVector2(par[indx],par[indx+1]) - pad-&gt;Position() - pad-&gt;Dimensions();</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         TVector2 upperRight(lowerLeft + pad-&gt;Dimensions()*2.0);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         Double_t estimatedCharge = mathieson-&gt;IntXY(lowerLeft.X(),lowerLeft.Y(),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :                                                     upperRight.X(),upperRight.Y());</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         coef = Param2Coef(j, coef, par, nHits);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         charge += estimatedCharge * coef;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :       charge *= qTot;</span>
+<span class="lineNum">     126 </span>            :       
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :       Double_t delta = charge - pad-&gt;Charge();</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :       delta *= delta;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :       delta /= pad-&gt;Charge();    </span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :       f += delta;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     f /= (qTot/npads);</span>
+<span class="lineNum">     133 </span>            :     //cout &lt;&lt; qTot &lt;&lt; &quot; &quot; &lt;&lt; par[0] &lt;&lt; &quot; &quot; &lt;&lt; par[1] &lt;&lt; &quot; &quot; &lt;&lt; f &lt;&lt; endl;
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     135 </span>            : }
+<a name="136"><span class="lineNum">     136 </span>            : </a>
+<span class="lineNum">     137 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     138 </span>            : AliMUONClusterFinderPeakFit::AliMUONClusterFinderPeakFit(Bool_t plot, AliMUONVClusterFinder* clusterFinder)
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   : AliMUONVClusterFinder(),</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 : fPreClusterFinder(clusterFinder),</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 : fPreCluster(0x0),</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : fClusterList(),</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 : fMathieson(0x0),</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 : fEventNumber(0),</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : fDetElemId(-1),</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 : fClusterNumber(0),</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 : fNMax(0),</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 : fHistAnode(0x0),</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 : fPixArray(new TObjArray(20)),</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 : fDebug(0),</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 : fPlot(plot),</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 : fNClusters(0),</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 : fNAddVirtualPads(0)</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     155 </span>            :   /// Constructor
+<span class="lineNum">     156 </span>            :  
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   fkSegmentation[1] = fkSegmentation[0] = 0x0; </span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   if (fPlot) fDebug = 1;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 : }</span>
+<a name="161"><span class="lineNum">     161 </span>            : </a>
+<span class="lineNum">     162 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     163 </span>            : AliMUONClusterFinderPeakFit::~AliMUONClusterFinderPeakFit()
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     165 </span>            : /// Destructor
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   delete fPixArray; fPixArray = 0;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   delete fPreClusterFinder;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Total clusters %d AddVirtualPad needed %d&quot;,</span>
+<span class="lineNum">     169 </span>            :                fNClusters,fNAddVirtualPads));
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   delete fMathieson;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     172 </span>            : 
+<a name="173"><span class="lineNum">     173 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     174 </span>            : Bool_t 
+<span class="lineNum">     175 </span>            : AliMUONClusterFinderPeakFit::Prepare(Int_t detElemId, TObjArray* pads[2],
+<span class="lineNum">     176 </span>            :                                      const AliMpArea&amp; area, 
+<span class="lineNum">     177 </span>            :                                      const AliMpVSegmentation* seg[2])
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span>            :   /// Prepare for clustering
+<span class="lineNum">     180 </span>            : //  AliCodeTimerAuto(&quot;&quot;,0)
+<span class="lineNum">     181 </span>            :   
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; 2; ++i )</span>
+<span class="lineNum">     183 </span>            :   {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     fkSegmentation[i] = seg[i];</span>
+<span class="lineNum">     185 </span>            :   }
+<span class="lineNum">     186 </span>            :   
+<span class="lineNum">     187 </span>            :   // Find out the DetElemId
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   fDetElemId = detElemId;</span>
+<span class="lineNum">     189 </span>            :   
+<span class="lineNum">     190 </span>            :   // find out current event number, and reset the cluster number
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   AliRunLoader *runLoader = AliRunLoader::Instance();</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   fEventNumber = runLoader ? runLoader-&gt;GetEventNumber() : 0;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   fClusterNumber = -1;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   fClusterList.Delete();</span>
+<span class="lineNum">     195 </span>            :   
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   AliDebug(3,Form(&quot;EVT %d DE %d&quot;,fEventNumber,fDetElemId));</span>
+<span class="lineNum">     197 </span>            :   
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   AliMq::Station12Type stationType = AliMpDEManager::GetStation12Type(fDetElemId);</span>
+<span class="lineNum">     199 </span>            :   
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   Float_t kx3 = AliMUONConstants::SqrtKx3();</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   Float_t ky3 = AliMUONConstants::SqrtKy3();</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   Float_t pitch = AliMUONConstants::Pitch();</span>
+<span class="lineNum">     203 </span>            :   
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   if ( stationType == AliMq::kStation1 )</span>
+<span class="lineNum">     205 </span>            :   {
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     kx3 = AliMUONConstants::SqrtKx3St1();</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     ky3 = AliMUONConstants::SqrtKy3St1();</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     pitch = AliMUONConstants::PitchSt1();</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     210 </span>            :   
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   delete fMathieson;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   fMathieson = new AliMUONMathieson;</span>
+<span class="lineNum">     213 </span>            :   
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   fMathieson-&gt;SetPitch(pitch);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   fMathieson-&gt;SetSqrtKx3AndDeriveKx2Kx4(kx3);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   fMathieson-&gt;SetSqrtKy3AndDeriveKy2Ky4(ky3);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   if ( fPreClusterFinder-&gt;NeedSegmentation() )</span>
+<span class="lineNum">     219 </span>            :   {
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     return fPreClusterFinder-&gt;Prepare(detElemId,pads,area,seg);</span>
+<span class="lineNum">     221 </span>            :   }
+<span class="lineNum">     222 </span>            :   else
+<span class="lineNum">     223 </span>            :   {
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     return fPreClusterFinder-&gt;Prepare(detElemId,pads,area);</span>
+<span class="lineNum">     225 </span>            :   }
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     227 </span>            : 
+<a name="228"><span class="lineNum">     228 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     229 </span>            : AliMUONCluster* 
+<span class="lineNum">     230 </span>            : AliMUONClusterFinderPeakFit::NextCluster()
+<span class="lineNum">     231 </span>            : {
+<span class="lineNum">     232 </span>            :   /// Return next cluster
+<span class="lineNum">     233 </span>            : //  AliCodeTimerAuto(&quot;&quot;,0)
+<span class="lineNum">     234 </span>            :   
+<span class="lineNum">     235 </span>            :   // if the list of clusters is not void, pick one from there
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   TObject* o = fClusterList.At(++fClusterNumber);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   if ( o != 0x0 ) return static_cast&lt;AliMUONCluster*&gt;(o);</span>
+<span class="lineNum">     238 </span>            :   
+<span class="lineNum">     239 </span>            :   //FIXME : at this point, must check whether we've used all the digits
+<span class="lineNum">     240 </span>            :   //from precluster : if not, let the preclustering know about those unused
+<span class="lineNum">     241 </span>            :   //digits, so it can reuse them
+<span class="lineNum">     242 </span>            :   
+<span class="lineNum">     243 </span>            :   // if the cluster list is exhausted, we need to go to the next
+<span class="lineNum">     244 </span>            :   // pre-cluster and treat it
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   fClusterList.Delete(); // reset the list of clusters for this pre-cluster</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   fClusterNumber = -1; </span>
+<span class="lineNum">     248 </span>            :     
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   fPreCluster = fPreClusterFinder-&gt;NextCluster();</span>
+<span class="lineNum">     250 </span>            :   
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   if (!fPreCluster)</span>
+<span class="lineNum">     252 </span>            :   {
+<span class="lineNum">     253 </span>            :     // we are done
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     return 0x0;</span>
+<span class="lineNum">     255 </span>            :   }
+<span class="lineNum">     256 </span>            :     
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   WorkOnPreCluster();</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :   // WorkOnPreCluster may have used only part of the pads, so we check that
+<span class="lineNum">     260 </span>            :   // now, and let the unused pads be reused by the preclustering...
+<span class="lineNum">     261 </span>            :   
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   Int_t mult = fPreCluster-&gt;Multiplicity();</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     264 </span>            :   {
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     AliMUONPad* pad = fPreCluster-&gt;Pad(i);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     if ( !pad-&gt;IsUsed() )</span>
+<span class="lineNum">     267 </span>            :     {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :       fPreClusterFinder-&gt;UsePad(*pad);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     270 </span>            :   }
+<span class="lineNum">     271 </span>            :   
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   return NextCluster();</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     274 </span>            : 
+<a name="275"><span class="lineNum">     275 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     276 </span>            : Bool_t
+<span class="lineNum">     277 </span>            : AliMUONClusterFinderPeakFit::WorkOnPreCluster()
+<span class="lineNum">     278 </span>            : {
+<span class="lineNum">     279 </span>            :   /// Starting from a precluster, builds a pixel array, and then
+<span class="lineNum">     280 </span>            :   /// extract clusters from this array
+<span class="lineNum">     281 </span>            :   
+<span class="lineNum">     282 </span>            :   //  AliCodeTimerAuto(&quot;&quot;,0)  
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   if (fDebug) {</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot; *** Event # &quot; &lt;&lt; fEventNumber</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :          &lt;&lt; &quot; det. elem.: &quot; &lt;&lt; fDetElemId &lt;&lt; endl;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     for (Int_t j = 0; j &lt; fPreCluster-&gt;Multiplicity(); ++j) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = fPreCluster-&gt;Pad(j);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :       printf(&quot; bbb %3d %1d %8.4f %8.4f %8.4f %8.4f %6.1f %3d %3d %2d %1d %1d \n&quot;,</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :              j, pad-&gt;Cathode(), pad-&gt;Coord(0), pad-&gt;Coord(1), pad-&gt;DX()*2, pad-&gt;DY()*2,</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :              pad-&gt;Charge(), pad-&gt;Ix(), pad-&gt;Iy(), pad-&gt;Status(), pad-&gt;IsReal(), pad-&gt;IsSaturated());</span>
+<span class="lineNum">     292 </span>            :     }
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :   AliMUONCluster* cluster = CheckPrecluster(*fPreCluster);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :   if (!cluster) return kFALSE;</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   BuildPixArray(*cluster);</span>
+<span class="lineNum">     299 </span>            :   
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   if ( fPixArray-&gt;GetLast() &lt; 0 )</span>
+<span class="lineNum">     301 </span>            :   {
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     AliDebug(1,&quot;No pixel for the above cluster&quot;);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     delete cluster;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     305 </span>            :   }
+<span class="lineNum">     306 </span>            :   
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   Int_t nMax = 1, localMax[100], maxPos[100] = {0};</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :   Double_t maxVal[100];</span>
+<span class="lineNum">     309 </span>            :   
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :   nMax = FindLocalMaxima(fPixArray, localMax, maxVal); // find local maxima</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   if (nMax &gt; 1) TMath::Sort(nMax, maxVal, maxPos, kTRUE); // in descending order</span>
+<span class="lineNum">     313 </span>            :   
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   if (nMax &lt;= 3) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     FindClusterFit(*cluster, localMax, maxPos, nMax);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     for (Int_t i = 0; i &lt; nMax; ++i) </span>
+<span class="lineNum">     318 </span>            :       {
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         FindClusterCOG(*cluster, localMax, maxPos[i]);</span>
+<span class="lineNum">     320 </span>            :       }
+<span class="lineNum">     321 </span>            :   }
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   delete cluster;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   if (fPlot == 0) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     delete fHistAnode;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     fHistAnode = 0x0;</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     328 </span>            :   return kTRUE;
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     330 </span>            : 
+<a name="331"><span class="lineNum">     331 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     332 </span>            : Bool_t 
+<span class="lineNum">     333 </span>            : AliMUONClusterFinderPeakFit::Overlap(const AliMUONPad&amp; pad, const AliMUONPad&amp; pixel)
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span>            :   /// Check if the pad and the pixel overlaps
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            :   // make a fake pad from the pixel
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   AliMUONPad tmp(pad.DetElemId(),pad.Cathode(),pad.Ix(),pad.Iy(),</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                  pixel.Coord(0),pixel.Coord(1),</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                  pixel.Size(0),pixel.Size(1),0);</span>
+<span class="lineNum">     341 </span>            :   
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   return AliMUONPad::AreOverlapping(pad,tmp,fgkDecreaseSize);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     344 </span>            : 
+<a name="345"><span class="lineNum">     345 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     346 </span>            : AliMUONCluster* 
+<span class="lineNum">     347 </span>            : AliMUONClusterFinderPeakFit::CheckPrecluster(const AliMUONCluster&amp; origCluster)
+<span class="lineNum">     348 </span>            : {
+<span class="lineNum">     349 </span>            :   /// Check precluster in order to attempt to simplify it (mostly for
+<span class="lineNum">     350 </span>            :   /// two-cathode preclusters)
+<span class="lineNum">     351 </span>            :     
+<span class="lineNum">     352 </span>            :   //  AliCodeTimerAuto(&quot;&quot;,0)
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :   // Disregard small clusters (leftovers from splitting or noise)
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :   if ((origCluster.Multiplicity()==1 || origCluster.Multiplicity()==2) &amp;&amp;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :       origCluster.Charge(0)+origCluster.Charge(1) &lt; 1.525) // JC: adc -&gt; fc</span>
+<span class="lineNum">     357 </span>            :   { 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     return 0x0;</span>
+<span class="lineNum">     359 </span>            :   }
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :   AliMUONCluster* cluster = new AliMUONCluster(origCluster);</span>
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :   AliDebug(2,&quot;Start of CheckPreCluster=&quot;);</span>
+<span class="lineNum">     364 </span>            :   //StdoutToAliDebug(2,cluster-&gt;Print(&quot;full&quot;));
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :   AliMUONCluster* rv(0x0);
+<span class="lineNum">     367 </span>            :   
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :   if (cluster-&gt;Multiplicity(0) &amp;&amp; cluster-&gt;Multiplicity(1))</span>
+<span class="lineNum">     369 </span>            :   { 
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     rv = CheckPreclusterTwoCathodes(cluster);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     372 </span>            :   else
+<span class="lineNum">     373 </span>            :   {
+<span class="lineNum">     374 </span>            :     rv = cluster;
+<span class="lineNum">     375 </span>            :   }
+<span class="lineNum">     376 </span>            :   return rv;
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     378 </span>            : 
+<a name="379"><span class="lineNum">     379 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     380 </span>            : AliMUONCluster*
+<span class="lineNum">     381 </span>            : AliMUONClusterFinderPeakFit::CheckPreclusterTwoCathodes(AliMUONCluster* cluster)
+<span class="lineNum">     382 </span>            : {
+<span class="lineNum">     383 </span>            :   /// Check two-cathode cluster
+<span class="lineNum">     384 </span>            :   
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   Int_t npad = cluster-&gt;Multiplicity();</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :   Int_t* flags = new Int_t[npad];</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   for (Int_t j = 0; j &lt; npad; ++j) flags[j] = 0;</span>
+<span class="lineNum">     388 </span>            :   
+<span class="lineNum">     389 </span>            :   // Check pad overlaps
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">     391 </span>            :   {
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     AliMUONPad* padi = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     if ( padi-&gt;Cathode() != 0 ) continue;</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     for (Int_t j = i+1; j &lt; npad; ++j) </span>
+<span class="lineNum">     395 </span>            :     {
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :       AliMUONPad* padj = cluster-&gt;Pad(j);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :       if ( padj-&gt;Cathode() != 1 ) continue;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :       if ( !AliMUONPad::AreOverlapping(*padi,*padj,fgkDecreaseSize) ) continue;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :       flags[i] = flags[j] = 1; // mark overlapped pads</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     } </span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     402 </span>            :   
+<span class="lineNum">     403 </span>            :   // Check if all pads overlap
+<span class="lineNum">     404 </span>            :   Int_t nFlags=0;
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">     406 </span>            :   {
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     if (!flags[i]) ++nFlags;</span>
+<span class="lineNum">     408 </span>            :   }
+<span class="lineNum">     409 </span>            :   
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   if (nFlags &gt; 0) </span>
+<span class="lineNum">     411 </span>            :   {
+<span class="lineNum">     412 </span>            :     // not all pads overlap.
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if (fDebug) cout &lt;&lt; &quot; nFlags: &quot; &lt;&lt; nFlags &lt;&lt; endl;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     TObjArray toBeRemoved;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     for (Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">     416 </span>            :     {
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       if (flags[i]) continue;</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       Int_t cath = pad-&gt;Cathode();</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :       Int_t cath1 = TMath::Even(cath);</span>
+<span class="lineNum">     421 </span>            :       // Check for edge effect (missing pads on the _other_ cathode)
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       AliMpPad mpPad </span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         = fkSegmentation[cath1]-&gt;PadByPosition(pad-&gt;Position().X(),pad-&gt;Position().Y(),kFALSE);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :       if (!mpPad.IsValid()) continue;</span>
+<span class="lineNum">     425 </span>            :       //if (nFlags == 1 &amp;&amp; pad-&gt;Charge() &lt; fgkZeroSuppression * 3) continue;
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :       if (nFlags == 1 &amp;&amp; pad-&gt;Charge() &lt; 3.05) continue;  // JC: adc -&gt; fc</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :       AliDebug(2,Form(&quot;Releasing the following pad : de,cath,ix,iy %d,%d,%d,%d charge %e&quot;,</span>
+<span class="lineNum">     428 </span>            :                       fDetElemId,pad-&gt;Cathode(),pad-&gt;Ix(),pad-&gt;Iy(),pad-&gt;Charge()));
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :       toBeRemoved.AddLast(pad);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :       fPreCluster-&gt;Pad(i)-&gt;Release();</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     Int_t nRemove = toBeRemoved.GetEntriesFast();</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; nRemove; ++i )</span>
+<span class="lineNum">     434 </span>            :     {
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       cluster-&gt;RemovePad(static_cast&lt;AliMUONPad*&gt;(toBeRemoved.UncheckedAt(i)));</span>
+<span class="lineNum">     436 </span>            :     }
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     438 </span>            :   
+<span class="lineNum">     439 </span>            :   // Check correlations of cathode charges
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :   if ( !cluster-&gt;IsSaturated() &amp;&amp; cluster-&gt;ChargeAsymmetry() &gt; 1 )</span>
+<span class="lineNum">     441 </span>            :   {
+<span class="lineNum">     442 </span>            :     // big difference
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     Int_t cathode = cluster-&gt;MaxRawChargeCathode();</span>
+<span class="lineNum">     444 </span>            :     Int_t imin(-1);
+<span class="lineNum">     445 </span>            :     Int_t imax(-1);
+<span class="lineNum">     446 </span>            :     Double_t cmax(0);
+<span class="lineNum">     447 </span>            :     Double_t cmin(1E9);
+<span class="lineNum">     448 </span>            :     
+<span class="lineNum">     449 </span>            :     // get min and max pad charges on the cathode opposite to the 
+<span class="lineNum">     450 </span>            :     // max pad (given by MaxRawChargeCathode())
+<span class="lineNum">     451 </span>            :     //
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     Int_t mult = cluster-&gt;Multiplicity();</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     454 </span>            :     {
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Cathode() != cathode || !pad-&gt;IsReal() )</span>
+<span class="lineNum">     457 </span>            :       {
+<span class="lineNum">     458 </span>            :         // only consider pads in the opposite cathode, and
+<span class="lineNum">     459 </span>            :         // only consider real pads (i.e. exclude the virtual ones)
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     461 </span>            :       }
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Charge() &lt; cmin )</span>
+<span class="lineNum">     463 </span>            :       {
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :         cmin = pad-&gt;Charge();</span>
+<span class="lineNum">     465 </span>            :         imin = i;
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         if (imax &lt; 0) {</span>
+<span class="lineNum">     467 </span>            :           imax = imin;
+<span class="lineNum">     468 </span>            :           cmax = cmin;
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     470 </span>            :       }
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :       else if ( pad-&gt;Charge() &gt; cmax )</span>
+<span class="lineNum">     472 </span>            :       {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         cmax = pad-&gt;Charge();</span>
+<span class="lineNum">     474 </span>            :         imax = i;
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Pad imin,imax %d,%d cmin,cmax %e,%e&quot;,</span>
+<span class="lineNum">     478 </span>            :                     imin,imax,cmin,cmax));
+<span class="lineNum">     479 </span>            :     //
+<span class="lineNum">     480 </span>            :     // arrange pads according to their distance to the max, normalized
+<span class="lineNum">     481 </span>            :     // to the pad size
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     Double_t* dist = new Double_t[mult];</span>
+<span class="lineNum">     483 </span>            :     Double_t dxMin(1E9);
+<span class="lineNum">     484 </span>            :     Double_t dyMin(1E9);
+<span class="lineNum">     485 </span>            :     Double_t dmin(0);
+<span class="lineNum">     486 </span>            :     
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     AliMUONPad* padmax = cluster-&gt;Pad(imax);</span>
+<span class="lineNum">     488 </span>            :     
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     490 </span>            :     {
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :       dist[i] = 0.0;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :       if ( i == imax) continue;</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Cathode() != cathode || !pad-&gt;IsReal() ) continue;</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :       Double_t dx = (pad-&gt;X()-padmax-&gt;X())/padmax-&gt;DX()/2.0;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :       Double_t dy = (pad-&gt;Y()-padmax-&gt;Y())/padmax-&gt;DY()/2.0;</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :       dist[i] = TMath::Sqrt(dx*dx+dy*dy);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :       if ( i == imin )</span>
+<span class="lineNum">     499 </span>            :       {
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         dmin = dist[i] + 1E-3; // distance to the pad with minimum charge</span>
+<span class="lineNum">     501 </span>            :         dxMin = dx;
+<span class="lineNum">     502 </span>            :         dyMin = dy;
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     505 </span>            :     
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     TMath::Sort(mult,dist,flags,kFALSE); // in ascending order</span>
+<span class="lineNum">     507 </span>            :     Double_t xmax(-1), distPrev(999);
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     TObjArray toBeRemoved;</span>
+<span class="lineNum">     509 </span>            :     
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     511 </span>            :     {
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :       Int_t indx = flags[i];</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(indx);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Cathode() != cathode || !pad-&gt;IsReal() ) continue;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :       if ( dist[indx] &gt; dmin )</span>
+<span class="lineNum">     516 </span>            :       {
+<span class="lineNum">     517 </span>            :         // farther than the minimum pad
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :         Double_t dx = (pad-&gt;X()-padmax-&gt;X())/padmax-&gt;DX()/2.0;</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         Double_t dy = (pad-&gt;Y()-padmax-&gt;Y())/padmax-&gt;DY()/2.0;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         dx *= dxMin;</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         dy *= dyMin;</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         if (dx &gt;= 0 &amp;&amp; dy &gt;= 0) continue;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dx) &gt; TMath::Abs(dy) &amp;&amp; dx &gt;= 0) continue;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dy) &gt; TMath::Abs(dx) &amp;&amp; dy &gt;= 0) continue;        </span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :       if (dist[indx] &gt; distPrev + 1) break; // overstepping empty pads</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Charge() &lt;= cmax || TMath::Abs(dist[indx]-xmax) &lt; 1E-3 )</span>
+<span class="lineNum">     528 </span>            :       {
+<span class="lineNum">     529 </span>            :         // release pad
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dist[indx]-xmax) &lt; 1.e-3) </span>
+<span class="lineNum">     531 </span>            :         {
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :           cmax = TMath::Max(pad-&gt;Charge(),cmax);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     534 </span>            :         else
+<span class="lineNum">     535 </span>            :         {
+<span class="lineNum">     536 </span>            :           cmax = pad-&gt;Charge();
+<span class="lineNum">     537 </span>            :         }
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :         xmax = dist[indx];</span>
+<span class="lineNum">     539 </span>            :         distPrev = dist[indx];
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :         AliDebug(2,Form(&quot;Releasing the following pad : de,cath,ix,iy %d,%d,%d,%d charge %e&quot;,</span>
+<span class="lineNum">     541 </span>            :                         fDetElemId,pad-&gt;Cathode(),pad-&gt;Ix(),pad-&gt;Iy(),
+<span class="lineNum">     542 </span>            :                         pad-&gt;Charge()));
+<span class="lineNum">     543 </span>            :   
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         toBeRemoved.AddLast(pad);</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :         fPreCluster-&gt;Pad(indx)-&gt;Release();</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     Int_t nRemove = toBeRemoved.GetEntriesFast();</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; nRemove; ++i )</span>
+<span class="lineNum">     550 </span>            :     {
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :       cluster-&gt;RemovePad(static_cast&lt;AliMUONPad*&gt;(toBeRemoved.UncheckedAt(i)));</span>
+<span class="lineNum">     552 </span>            :     }    
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     delete[] dist;</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :   } // if ( !cluster-&gt;IsSaturated() &amp;&amp; </span>
+<span class="lineNum">     555 </span>            :   
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :   delete[] flags;</span>
+<span class="lineNum">     557 </span>            :   
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :   AliDebug(2,&quot;End of CheckPreClusterTwoCathodes=&quot;);</span>
+<span class="lineNum">     559 </span>            :   //StdoutToAliDebug(2,cluster-&gt;Print(&quot;full&quot;));
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   return cluster;    </span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     563 </span>            : 
+<a name="564"><span class="lineNum">     564 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     565 </span>            : void
+<span class="lineNum">     566 </span>            : AliMUONClusterFinderPeakFit::CheckOverlaps()
+<span class="lineNum">     567 </span>            : {
+<span class="lineNum">     568 </span>            :   /// For debug only : check if some pixels overlap...
+<span class="lineNum">     569 </span>            :   
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :   Int_t nPix = fPixArray-&gt;GetLast()+1;</span>
+<span class="lineNum">     571 </span>            :   Int_t dummy(0);
+<span class="lineNum">     572 </span>            :   
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; nPix; ++i )</span>
+<span class="lineNum">     574 </span>            :   {
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     AliMUONPad* pixelI = Pixel(i);</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     AliMUONPad pi(dummy,dummy,dummy,dummy,</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :                   pixelI-&gt;Coord(0),pixelI-&gt;Coord(1),</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :                   pixelI-&gt;Size(0),pixelI-&gt;Size(1),0.0);</span>
+<span class="lineNum">     579 </span>            :     
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     for ( Int_t j = i+1; j &lt; nPix; ++j )</span>
+<span class="lineNum">     581 </span>            :     {
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :       AliMUONPad* pixelJ = Pixel(j);</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :       AliMUONPad pj(dummy,dummy,dummy,dummy,</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                     pixelJ-&gt;Coord(0),pixelJ-&gt;Coord(1),</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :                     pixelJ-&gt;Size(0),pixelJ-&gt;Size(1),0.0);  </span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :       AliMpArea area;</span>
+<span class="lineNum">     587 </span>            :       
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :       if ( AliMUONPad::AreOverlapping(pi,pj,fgkDecreaseSize,area) )</span>
+<span class="lineNum">     589 </span>            :       {
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :         AliInfo(Form(&quot;The following 2 pixels (%d and %d) overlap !&quot;,i,j));</span>
+<span class="lineNum">     591 </span>            :         /*
+<span class="lineNum">     592 </span>            :         StdoutToAliInfo(pixelI-&gt;Print();
+<span class="lineNum">     593 </span>            :                         cout &lt;&lt; &quot; Surface = &quot; &lt;&lt; pixelI-&gt;Size(0)*pixelI-&gt;Size(1)*4 &lt;&lt; endl;
+<span class="lineNum">     594 </span>            :                         pixelJ-&gt;Print();
+<span class="lineNum">     595 </span>            :                         cout &lt;&lt; &quot; Surface = &quot; &lt;&lt; pixelJ-&gt;Size(0)*pixelJ-&gt;Size(1)*4 &lt;&lt; endl;
+<span class="lineNum">     596 </span>            :                         cout &lt;&lt; &quot; Area surface = &quot; &lt;&lt; area.Dimensions().X()*area.Dimensions().Y()*4 &lt;&lt; endl;
+<span class="lineNum">     597 </span>            :                         cout &lt;&lt; &quot;-------&quot; &lt;&lt; endl;
+<span class="lineNum">     598 </span>            :                         );
+<span class="lineNum">     599 </span>            :         */        
+<span class="lineNum">     600 </span>            :       }
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     }    </span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 : }</span>
+<a name="604"><span class="lineNum">     604 </span>            : </a>
+<span class="lineNum">     605 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     606 </span>            : void AliMUONClusterFinderPeakFit::BuildPixArray(AliMUONCluster&amp; cluster)
+<span class="lineNum">     607 </span>            : {
+<span class="lineNum">     608 </span>            :   /// Build pixel array 
+<span class="lineNum">     609 </span>            :   
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   Int_t npad = cluster.Multiplicity();</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :   if (npad&lt;=0) </span>
+<span class="lineNum">     612 </span>            :   {
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     AliWarning(&quot;Got no pad at all ?!&quot;);</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     615 </span>            :   
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   fPixArray-&gt;Delete();</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :   BuildPixArrayOneCathode(cluster);</span>
+<span class="lineNum">     618 </span>            :   
+<span class="lineNum">     619 </span>            : //  StdoutToAliDebug(2,cout &lt;&lt; &quot;End of BuildPixelArray:&quot; &lt;&lt; endl;
+<span class="lineNum">     620 </span>            : //                   fPixArray-&gt;Print(););
+<span class="lineNum">     621 </span>            :   //CheckOverlaps();//FIXME : this is for debug only. Remove it.
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 : }</span>
+<a name="623"><span class="lineNum">     623 </span>            : </a>
+<span class="lineNum">     624 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     625 </span>            : void AliMUONClusterFinderPeakFit::BuildPixArrayOneCathode(AliMUONCluster&amp; cluster)
+<span class="lineNum">     626 </span>            : {
+<span class="lineNum">     627 </span>            :   /// Build the pixel array
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span>            : //  AliDebug(2,Form(&quot;cluster.Multiplicity=%d&quot;,cluster.Multiplicity()));
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :   TVector2 dim = cluster.MinPadDimensions (-1, kFALSE);</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :   Double_t width[2] = {dim.X(), dim.Y()}, xy0[2] = { 0.0, 0.0 };</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :   Int_t found[2] = {0}, mult = cluster.Multiplicity();</span>
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; mult; ++i) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     for (Int_t j = 0; j &lt; 2; ++j) {</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :       if (found[j] == 0 &amp;&amp; TMath::Abs(pad-&gt;Size(j)-width[j]) &lt; fgkDistancePrecision) { </span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :         xy0[j] = pad-&gt;Coord(j);</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :         found[j] = 1;</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     642 </span>            :     }
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :     if (found[0] &amp;&amp; found[1]) break;</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :   Double_t min[2], max[2];</span>
+<span class="lineNum">     647 </span>            :   Int_t cath0 = 0, cath1 = 1;
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :   if (cluster.Multiplicity(0) == 0) cath0 = 1;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :   else if (cluster.Multiplicity(1) == 0) cath1 = 0;</span>
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :   Double_t leftDownX, leftDownY;</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :   cluster.Area(cath0).LeftDownCorner(leftDownX, leftDownY);</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :   Double_t rightUpX, rightUpY; </span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   cluster.Area(cath0).RightUpCorner(rightUpX, rightUpY);</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :   min[0] = leftDownX;</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :   min[1] = leftDownY;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :   max[0] = rightUpX;</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :   max[1] = rightUpY;</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :   if (cath1 != cath0) {</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     cluster.Area(cath1).LeftDownCorner(leftDownX, leftDownY);</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     cluster.Area(cath1).RightUpCorner(rightUpX, rightUpY);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     min[0] = TMath::Max (min[0], leftDownX);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     min[1] = TMath::Max (min[1], leftDownY);</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     max[0] = TMath::Min (max[0], rightUpX);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     max[1] = TMath::Min (max[1], rightUpY);</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span>            :   // Adjust limits
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   if (cath0 != cath1) {</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     TVector2 dim0 = cluster.MinPadDimensions (0, -1, kFALSE);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :     TVector2 dim1 = cluster.MinPadDimensions (1, -1, kFALSE);</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     if (TMath::Abs(dim0.Y()-dim1.Y()) &lt; fgkDistancePrecision) {</span>
+<span class="lineNum">     673 </span>            :       // The same size of pads on both cathodes - check position
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :       AliMUONPad* pad0 = cluster.Pad(0);</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :       for ( Int_t i = 1; i &lt; mult; ++i) {</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :         AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :         if (pad-&gt;Cathode() == pad0-&gt;Cathode()) continue;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :         Double_t dist = TMath::Abs (pad0-&gt;Coord(1) - pad-&gt;Coord(1));</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :         Double_t dd = dist - Int_t(dist/width[1]/2.) * width[1] * 2.;</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dd/width[1]/2.-0.5) &lt; fgkDistancePrecision) { </span>
+<span class="lineNum">     681 </span>            :           // Half pad shift between cathodes
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :           width[0] /= 2.; </span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :           width[1] /= 2.;</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     685 </span>            :         break;
+<span class="lineNum">     686 </span>            :       }
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :   Int_t nbins[2];</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 2; ++i) {</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     Double_t dist = (min[i] - xy0[i]) / width[i] / 2;</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     if (TMath::Abs(dist) &lt; 1.e-6) dist = -1.e-6;</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     min[i] = xy0[i] + (TMath::Nint(dist-TMath::Sign(1.e-6,dist)) </span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :                        + TMath::Sign(0.5,dist)) * width[i] * 2;</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     nbins[i] = TMath::Nint ((max[i] - min[i]) / width[i] / 2);</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     if (nbins[i] == 0) ++nbins[i];</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     max[i] = min[i] + nbins[i] * width[i] * 2;</span>
+<span class="lineNum">     699 </span>            :     //cout &lt;&lt; dist &lt;&lt; &quot; &quot; &lt;&lt; min[i] &lt;&lt; &quot; &quot; &lt;&lt; max[i] &lt;&lt; &quot; &quot; &lt;&lt; nbins[i] &lt;&lt; endl;
+<span class="lineNum">     700 </span>            :   }
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span>            :   // Book histogram
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :   TH2D *hist1 = new TH2D (&quot;Grid&quot;, &quot;&quot;, nbins[0], min[0], max[0], nbins[1], min[1], max[1]);</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :   TH2D *hist2 = new TH2D (&quot;Entries&quot;, &quot;&quot;, nbins[0], min[0], max[0], nbins[1], min[1], max[1]);</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :   TAxis *xaxis = hist1-&gt;GetXaxis();</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   TAxis *yaxis = hist1-&gt;GetYaxis();</span>
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            :   // Fill histogram
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; mult; ++i) {</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     Int_t ix0 = xaxis-&gt;FindBin(pad-&gt;X());</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     Int_t iy0 = yaxis-&gt;FindBin(pad-&gt;Y());</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     PadOverHist(0, ix0, iy0, pad, hist1, hist2);</span>
+<span class="lineNum">     714 </span>            :   }
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span>            :   // Store pixels
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :   for (Int_t i = 1; i &lt;= nbins[0]; ++i) {</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     Double_t x = xaxis-&gt;GetBinCenter(i);</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     for (Int_t j = 1; j &lt;= nbins[1]; ++j) {</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :       if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(i,j)) &lt; 0.01525) continue; // JC: adc -&gt; fc</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :       if (cath0 != cath1) {</span>
+<span class="lineNum">     722 </span>            :         // Two-sided cluster
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :         Double_t cont = hist2-&gt;GetBinContent(hist2-&gt;GetBin(i,j));</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :         if (cont &lt; 999.) continue;</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :         if (cont-Int_t(cont/1000.)*1000. &lt; 0.07625) continue; // JC: adc -&gt; fc</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     727 </span>            :       //if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(i,j)) &lt; 1.1 &amp;&amp; cluster.Multiplicity(0) &amp;&amp; 
+<span class="lineNum">     728 </span>            :       //  cluster.Multiplicity(1)) continue;
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :       Double_t y = yaxis-&gt;GetBinCenter(j);</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :       Double_t charge = hist1-&gt;GetBinContent(hist1-&gt;GetBin(i,j));</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :       AliMUONPad* pixPtr = new AliMUONPad(x, y, width[0], width[1], charge);</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :       fPixArray-&gt;Add(pixPtr);</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     }  </span>
+<span class="lineNum">     734 </span>            :   }
+<span class="lineNum">     735 </span>            :   /*
+<span class="lineNum">     736 </span>            :   if (fPixArray-&gt;GetEntriesFast() == 1) {
+<span class="lineNum">     737 </span>            :     // Split pixel into 2
+<span class="lineNum">     738 </span>            :     AliMUONPad* pixPtr = static_cast&lt;AliMUONPad*&gt; (fPixArray-&gt;UncheckedAt(0));
+<span class="lineNum">     739 </span>            :     pixPtr-&gt;SetSize(0,width[0]/2.);
+<span class="lineNum">     740 </span>            :     pixPtr-&gt;Shift(0,-width[0]/4.);
+<span class="lineNum">     741 </span>            :     pixPtr = new AliMUONPad(pixPtr-&gt;X()+width[0], pixPtr-&gt;Y(), width[0]/2., width[1], pixPtr-&gt;Charge());
+<span class="lineNum">     742 </span>            :     fPixArray-&gt;Add(pixPtr);
+<span class="lineNum">     743 </span>            :   }
+<span class="lineNum">     744 </span>            :   */
+<span class="lineNum">     745 </span>            :   //fPixArray-&gt;Print();
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :   delete hist1;</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :   delete hist2;</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 : }</span>
+<a name="749"><span class="lineNum">     749 </span>            : </a>
+<span class="lineNum">     750 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     751 </span>            : void AliMUONClusterFinderPeakFit::PadOverHist(Int_t idir, Int_t ix0, Int_t iy0, AliMUONPad *pad,
+<span class="lineNum">     752 </span>            :                                               TH2D *hist1, TH2D *hist2)
+<span class="lineNum">     753 </span>            : {
+<span class="lineNum">     754 </span>            :   /// &quot;Span&quot; pad over histogram in the direction idir
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :   TAxis *axis = idir == 0 ? hist1-&gt;GetXaxis() : hist1-&gt;GetYaxis();</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   Int_t nbins = axis-&gt;GetNbins(), cath = pad-&gt;Cathode();</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   Double_t bin = axis-&gt;GetBinWidth(1), amask = TMath::Power(1000.,cath*1.);</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :   Int_t nbinPad = (Int_t)(pad-&gt;Size(idir)/bin*2+fgkDistancePrecision) + 1; // number of bins covered by pad</span>
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; nbinPad; ++i) {</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     Int_t ixy = idir == 0 ? ix0 + i : iy0 + i;</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     if (ixy &gt; nbins) break;</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     Double_t lowEdge = axis-&gt;GetBinLowEdge(ixy);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     if (lowEdge + fgkDistancePrecision &gt; pad-&gt;Coord(idir) + pad-&gt;Size(idir)) break;</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     if (idir == 0) PadOverHist(1, ixy, iy0, pad, hist1, hist2); // span in the other direction</span>
+<span class="lineNum">     768 </span>            :     else {
+<span class="lineNum">     769 </span>            :       // Fill histogram
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :       Double_t cont = pad-&gt;Charge();</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :       if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy)) &gt; 0.01525) // JC: adc -&gt; fc</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :         cont = TMath::Min (hist1-&gt;GetBinContent(hist1-&gt;GetBin(ix0, ixy)), cont) </span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :           + TMath::Min (TMath::Max(hist1-&gt;GetBinContent(hist1-&gt;GetBin(ix0, ixy)),cont)*0.1, 1.525); // JC: adc -&gt; fc</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :       hist1-&gt;SetBinContent(hist1-&gt;GetBin(ix0, ixy), cont);</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       hist2-&gt;SetBinContent(hist2-&gt;GetBin(ix0, ixy), hist2-&gt;GetBinContent( hist2-&gt;GetBin(ix0, ixy))+amask);</span>
+<span class="lineNum">     776 </span>            :     }
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :   for (Int_t i = -1; i &gt; -nbinPad; --i) {</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     Int_t ixy = idir == 0 ? ix0 + i : iy0 + i;</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     if (ixy &lt; 1) break;</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     Double_t upEdge = axis-&gt;GetBinUpEdge(ixy);</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     if (upEdge - fgkDistancePrecision &lt; pad-&gt;Coord(idir) - pad-&gt;Size(idir)) break;</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     if (idir == 0) PadOverHist(1, ixy, iy0, pad, hist1, hist2); // span in the other direction</span>
+<span class="lineNum">     785 </span>            :     else {
+<span class="lineNum">     786 </span>            :       // Fill histogram
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :       Double_t cont = pad-&gt;Charge();</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :       if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy)) &gt; 0.01525) // JC: adc -&gt; fc </span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         cont = TMath::Min (hist1-&gt;GetBinContent(hist1-&gt;GetBin(ix0, ixy)), cont)</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :           + TMath::Min (TMath::Max(hist1-&gt;GetBinContent(hist1-&gt;GetBin(ix0, ixy)),cont)*0.1,1.525); // JC: adc -&gt; fc</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :       hist1-&gt;SetBinContent(hist1-&gt;GetBin(ix0, ixy), cont);</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :       hist2-&gt;SetBinContent(hist2-&gt;GetBin(ix0, ixy), hist2-&gt;GetBinContent( hist2-&gt;GetBin(ix0, ixy))+amask);</span>
+<span class="lineNum">     793 </span>            :     }
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 : }</span>
+<a name="796"><span class="lineNum">     796 </span>            : </a>
+<span class="lineNum">     797 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     798 </span>            : Int_t AliMUONClusterFinderPeakFit::FindLocalMaxima(TObjArray *pixArray, Int_t *localMax, Double_t *maxVal)
+<span class="lineNum">     799 </span>            : {
+<span class="lineNum">     800 </span>            : /// Find local maxima in pixel space 
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :   AliDebug(1,Form(&quot;nPix=%d&quot;,pixArray-&gt;GetLast()+1));</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span>            :   //TH2D *hist = NULL;
+<span class="lineNum">     805 </span>            :   //delete ((TH2D*) gROOT-&gt;FindObject(&quot;anode&quot;));
+<span class="lineNum">     806 </span>            :   //if (pixArray == fPixArray) hist = (TH2D*) gROOT-&gt;FindObject(&quot;anode&quot;);
+<span class="lineNum">     807 </span>            :   //else { hist = (TH2D*) gROOT-&gt;FindObject(&quot;anode1&quot;); cout &lt;&lt; hist &lt;&lt; endl; }
+<span class="lineNum">     808 </span>            :   //if (hist) hist-&gt;Delete();
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   delete fHistAnode;</span>
+<span class="lineNum">     810 </span>            :  
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   Double_t xylim[4] = {999, 999, 999, 999};</span>
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :   Int_t nPix = pixArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">     814 </span>            :   
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :   if ( nPix &lt;= 0 ) return 0;</span>
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span>            :   AliMUONPad *pixPtr = 0;
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :   for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) {</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :     pixPtr = (AliMUONPad*) pixArray-&gt;UncheckedAt(ipix);</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :     for (Int_t i = 0; i &lt; 4; ++i) </span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :          xylim[i] = TMath::Min (xylim[i], (i%2 ? -1 : 1)*pixPtr-&gt;Coord(i/2));</span>
+<span class="lineNum">     822 </span>            :   }
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 4; ++i) xylim[i] -= pixPtr-&gt;Size(i/2); </span>
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :   Int_t nx = TMath::Nint ((-xylim[1]-xylim[0])/pixPtr-&gt;Size(0)/2);</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   Int_t ny = TMath::Nint ((-xylim[3]-xylim[2])/pixPtr-&gt;Size(1)/2);</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   if (pixArray == fPixArray) fHistAnode = new TH2D(&quot;anode&quot;,&quot;anode&quot;,nx,xylim[0],-xylim[1],ny,xylim[2],-xylim[3]);</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :   else fHistAnode = new TH2D(&quot;anode1&quot;,&quot;anode1&quot;,nx,xylim[0],-xylim[1],ny,xylim[2],-xylim[3]);</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :   for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) {</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :     pixPtr = (AliMUONPad*) pixArray-&gt;UncheckedAt(ipix);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     fHistAnode-&gt;Fill(pixPtr-&gt;Coord(0), pixPtr-&gt;Coord(1), pixPtr-&gt;Charge());</span>
+<span class="lineNum">     832 </span>            :   }
+<span class="lineNum">     833 </span>            : //  if (fDraw &amp;&amp; pixArray == fPixArray) fDraw-&gt;DrawHist(&quot;c2&quot;, hist);
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :   Int_t nMax = 0, indx, nxy = ny * nx;</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :   Int_t *isLocalMax = new Int_t[nxy];</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; nxy; ++i) isLocalMax[i] = 0; </span>
+<span class="lineNum">     838 </span>            : 
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :   for (Int_t i = 1; i &lt;= ny; ++i) {</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :     indx = (i-1) * nx;</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :     for (Int_t j = 1; j &lt;= nx; ++j) {</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :       if (fHistAnode-&gt;GetBinContent(fHistAnode-&gt;GetBin(j,i)) &lt; 0.07625) continue;  // JC: adc -&gt; fc</span>
+<span class="lineNum">     843 </span>            :       //if (isLocalMax[indx+j-1] &lt; 0) continue;
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :       if (isLocalMax[indx+j-1] != 0) continue;</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :       FlagLocalMax(fHistAnode, i, j, isLocalMax);</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     847 </span>            :   }
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :   for (Int_t i = 1; i &lt;= ny; ++i) {</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :     indx = (i-1) * nx;</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :     for (Int_t j = 1; j &lt;= nx; ++j) {</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :       if (isLocalMax[indx+j-1] &gt; 0) { </span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :         localMax[nMax] = indx + j - 1; </span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :         maxVal[nMax++] = fHistAnode-&gt;GetBinContent(fHistAnode-&gt;GetBin(j,i));</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :         if (nMax &gt; 99) break;</span>
+<span class="lineNum">     856 </span>            :       }
+<span class="lineNum">     857 </span>            :     }
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :     if (nMax &gt; 99) {</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :       AliError(&quot; Too many local maxima !!!&quot;);</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     861 </span>            :     }
+<span class="lineNum">     862 </span>            :   }
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :   if (fDebug) cout &lt;&lt; &quot; Local max: &quot; &lt;&lt; nMax &lt;&lt; endl;</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :   delete [] isLocalMax; </span>
+<span class="lineNum">     865 </span>            :   return nMax;
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 : }</span>
+<a name="867"><span class="lineNum">     867 </span>            : </a>
+<span class="lineNum">     868 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     869 </span>            : void AliMUONClusterFinderPeakFit::FlagLocalMax(TH2D *hist, Int_t i, Int_t j, Int_t *isLocalMax)
+<span class="lineNum">     870 </span>            : {
+<span class="lineNum">     871 </span>            : /// Flag pixels (whether or not local maxima)
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :   Int_t nx = hist-&gt;GetNbinsX();</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :   Int_t ny = hist-&gt;GetNbinsY();</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :   Int_t cont = TMath::Nint (hist-&gt;GetBinContent(hist-&gt;GetBin(j,i)));</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :   Int_t cont1 = 0, indx = (i-1)*nx+j-1, indx1 = 0, indx2 = 0;</span>
+<span class="lineNum">     877 </span>            : 
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :   Int_t ie = i + 2, je = j + 2;</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :   for (Int_t i1 = i-1; i1 &lt; ie; ++i1) {</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :     if (i1 &lt; 1 || i1 &gt; ny) continue;</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :     indx1 = (i1 - 1) * nx;</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     for (Int_t j1 = j-1; j1 &lt; je; ++j1) {</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :       if (j1 &lt; 1 || j1 &gt; nx) continue;</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :       if (i == i1 &amp;&amp; j == j1) continue;</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :       indx2 = indx1 + j1 - 1;</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :       cont1 = TMath::Nint (hist-&gt;GetBinContent(hist-&gt;GetBin(j1,i1)));</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :       if (cont &lt; cont1) { isLocalMax[indx] = -1; return; }</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :       else if (cont &gt; cont1) isLocalMax[indx2] = -1;</span>
+<span class="lineNum">     889 </span>            :       else { // the same charge
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :         isLocalMax[indx] = 1; </span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :         if (isLocalMax[indx2] == 0) {</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :           FlagLocalMax(hist, i1, j1, isLocalMax);</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :           if (isLocalMax[indx2] &lt; 0) { isLocalMax[indx] = -1; return; }</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :           else isLocalMax[indx2] = -1;</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     896 </span>            :       } 
+<span class="lineNum">     897 </span>            :     }
+<span class="lineNum">     898 </span>            :   }
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :   isLocalMax[indx] = 1; // local maximum</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 : }</span>
+<a name="901"><span class="lineNum">     901 </span>            : </a>
+<span class="lineNum">     902 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     903 </span>            : void AliMUONClusterFinderPeakFit::FindClusterFit(AliMUONCluster&amp; cluster, const Int_t *localMax, 
+<span class="lineNum">     904 </span>            :                                                  const Int_t *maxPos, Int_t nMax)
+<span class="lineNum">     905 </span>            : {
+<span class="lineNum">     906 </span>            : /// Fit pad charge distribution with nMax hit hypothesis
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span>            :   //if (cluster.Multiplicity(0) == 0 || cluster.Multiplicity(1) == 0) cout &lt;&lt; cluster.Multiplicity(0) &lt;&lt; &quot; &quot; &lt;&lt; cluster.Multiplicity(1) &lt;&lt; &quot; &quot; &lt;&lt; cluster.Charge() &lt;&lt; &quot; &quot; &lt;&lt; cluster.Charge(0) &lt;&lt; &quot; &quot; &lt;&lt; cluster.Charge(1) &lt;&lt; &quot; &quot; &lt;&lt; endl;
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span>            :   //TH2D *hist = (TH2D*) gROOT-&gt;FindObject(&quot;anode&quot;);
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :   Int_t nx = fHistAnode-&gt;GetNbinsX();</span>
+<span class="lineNum">     912 </span>            :   //Int_t ny = hist-&gt;GetNbinsY();
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :   Double_t xmin = fHistAnode-&gt;GetXaxis()-&gt;GetXmin(); //- hist-&gt;GetXaxis()-&gt;GetBinWidth(1);</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :   Double_t xmax = fHistAnode-&gt;GetXaxis()-&gt;GetXmax(); //+ hist-&gt;GetXaxis()-&gt;GetBinWidth(1);</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :   Double_t ymin = fHistAnode-&gt;GetYaxis()-&gt;GetXmin(); //- hist-&gt;GetYaxis()-&gt;GetBinWidth(1);</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :   Double_t ymax = fHistAnode-&gt;GetYaxis()-&gt;GetXmax(); //+ hist-&gt;GetYaxis()-&gt;GetBinWidth(1);</span>
+<span class="lineNum">     917 </span>            : 
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :   TVirtualFitter* fitter = TVirtualFitter::Fitter(0,nMax*3);</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :   fitter-&gt;Clear(&quot;&quot;);</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :   fitter-&gt;SetFCN(FitFunction);</span>
+<span class="lineNum">     921 </span>            : 
+<span class="lineNum">     922 </span>            :   Float_t stepX = 0.01; // cm
+<span class="lineNum">     923 </span>            :   Float_t stepY = 0.01; // cm
+<span class="lineNum">     924 </span>            :   Float_t stepQ = 0.01; // 
+<span class="lineNum">     925 </span>            :   
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :   Double_t args[10] = {-1.}; // disable printout</span>
+<span class="lineNum">     927 </span>            :   
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :   fitter-&gt;ExecuteCommand(&quot;SET PRINT&quot;,args,1);</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :   fitter-&gt;ExecuteCommand(&quot;SET NOW&quot;,args,0); // no warnings</span>
+<span class="lineNum">     930 </span>            :   
+<span class="lineNum">     931 </span>            :   Int_t indx = 0;
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :   fNMax = nMax;</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; nMax; ++i) {</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :     Int_t ic = localMax[maxPos[i]] / nx + 1;</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :     Int_t jc = localMax[maxPos[i]] % nx + 1;</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :     Double_t yc = fHistAnode-&gt;GetYaxis()-&gt;GetBinCenter(ic);</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     Double_t xc = fHistAnode-&gt;GetXaxis()-&gt;GetBinCenter(jc);</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :     indx = 3 * i;</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :     fitter-&gt;SetParameter(indx,&quot;Hit X position&quot;,xc,stepX,xmin,xmax);</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :     fitter-&gt;SetParameter(indx+1,&quot;Hit Y position&quot;,yc,stepY,ymin,ymax);</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     fitter-&gt;SetParameter(indx+2,&quot;Hit contribution&quot;,0.6,stepQ,0.,1.);</span>
+<span class="lineNum">     942 </span>            :   }
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :   fitter-&gt;SetParameter(indx+2,&quot;Hit contribution&quot;,0.,0.,0,0);</span>
+<span class="lineNum">     944 </span>            :   //fitter-&gt;SetParameter(8,&quot;Number of hits&quot;,nMax,0.,0,0);
+<span class="lineNum">     945 </span>            : 
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :   TObjArray userObjects;</span>
+<span class="lineNum">     947 </span>            :   
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :   userObjects.Add(&amp;cluster);</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :   userObjects.Add(fMathieson);</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :   userObjects.Add(this);</span>
+<span class="lineNum">     951 </span>            :   
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :   fitter-&gt;SetObjectFit(&amp;userObjects);</span>
+<span class="lineNum">     953 </span>            :   
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :   args[0] = 500.;</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :   args[1] = 1.;</span>
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :   /*Int_t stat =*/ fitter-&gt;ExecuteCommand(&quot;MIGRAD&quot;,args,2);</span>
+<span class="lineNum">     957 </span>            :   //if (stat) { cout &lt;&lt; &quot; stat = &quot; &lt;&lt; stat &lt;&lt; &quot; &quot; &lt;&lt; fDetElemId &lt;&lt; endl; /*exit(0);*/ }
+<span class="lineNum">     958 </span>            :   //Int_t nvpar, nparx;
+<span class="lineNum">     959 </span>            :   //Double_t amin, edm, errdef; 
+<span class="lineNum">     960 </span>            :   //fitter-&gt;GetStats(amin, edm, errdef, nvpar, nparx);
+<span class="lineNum">     961 </span>            :   //cout &lt;&lt; amin &lt;&lt; endl;
+<span class="lineNum">     962 </span>            : 
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :   Double_t qTot = cluster.Charge(), par[9] = {0.}, err[9] = {0.}, coef = 0.;</span>
+<span class="lineNum">     964 </span>            :   //par[8] = nMax;
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :   for (Int_t j = 0; j &lt; nMax; ++j) {</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :     indx = 3 * j;</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :     par[indx+2] = fitter-&gt;GetParameter(indx+2);</span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :     coef = Param2Coef(j, coef, par, nMax);</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :     par[indx] = fitter-&gt;GetParameter(indx);</span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :     par[indx+1] = fitter-&gt;GetParameter(indx+1);</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     err[indx] = fitter-&gt;GetParError(indx);</span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :     err[indx+1] = fitter-&gt;GetParError(indx+1);</span>
+<span class="lineNum">     973 </span>            :       
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     if ( coef*qTot &gt;= 2.135 ) // JC: adc -&gt; fc</span>
+<span class="lineNum">     975 </span>            :     {
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :       AliMUONCluster* cluster1 = new AliMUONCluster(cluster);</span>
+<span class="lineNum">     977 </span>            :       
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :       cluster1-&gt;SetCharge(coef*qTot,coef*qTot);</span>
+<span class="lineNum">     979 </span>            :       
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :       cluster1-&gt;SetPosition(TVector2(par[indx],par[indx+1]),TVector2(err[indx],err[indx+1]));</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :       cluster1-&gt;SetChi2(0.);</span>
+<span class="lineNum">     982 </span>            :       
+<span class="lineNum">     983 </span>            :       // FIXME: we miss some information in this cluster, as compared to 
+<span class="lineNum">     984 </span>            :       // the original AddRawCluster code.
+<span class="lineNum">     985 </span>            :       
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :       AliDebug(2,Form(&quot;Adding RawCluster detElemId %4d mult %2d charge %5d (xl,yl)=(%9.6g,%9.6g)&quot;,</span>
+<span class="lineNum">     987 </span>            :                       fDetElemId,cluster1-&gt;Multiplicity(),(Int_t)cluster1-&gt;Charge(),
+<span class="lineNum">     988 </span>            :                       cluster1-&gt;Position().X(),cluster1-&gt;Position().Y()));
+<span class="lineNum">     989 </span>            :         
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :       fClusterList.Add(cluster1);</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     992 </span>            :   }
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 : }</span>
+<a name="994"><span class="lineNum">     994 </span>            : </a>
+<span class="lineNum">     995 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     996 </span>            : void AliMUONClusterFinderPeakFit::FindClusterCOG(AliMUONCluster&amp; cluster, 
+<span class="lineNum">     997 </span>            :                                                  const Int_t *localMax, Int_t iMax)
+<span class="lineNum">     998 </span>            : {
+<span class="lineNum">     999 </span>            : /// Find COG of pad charge distribution around local maximum \a iMax 
+<span class="lineNum">    1000 </span>            : 
+<span class="lineNum">    1001 </span>            :   //TH2D *hist = (TH2D*) gROOT-&gt;FindObject(&quot;anode&quot;);
+<span class="lineNum">    1002 </span>            :   /* Just for check
+<span class="lineNum">    1003 </span>            :   TCanvas* c = new TCanvas(&quot;Anode&quot;,&quot;Anode&quot;,800,600);
+<span class="lineNum">    1004 </span>            :   c-&gt;cd();
+<span class="lineNum">    1005 </span>            :   hist-&gt;Draw(&quot;lego1Fb&quot;); // debug
+<span class="lineNum">    1006 </span>            :   c-&gt;Update();
+<span class="lineNum">    1007 </span>            :   Int_t tmp;
+<span class="lineNum">    1008 </span>            :   cin &gt;&gt; tmp;
+<span class="lineNum">    1009 </span>            :   */
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :   Int_t nx = fHistAnode-&gt;GetNbinsX();</span>
+<span class="lineNum">    1011 </span>            :   //Int_t ny = hist-&gt;GetNbinsY();
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :   Int_t ic = localMax[iMax] / nx + 1;</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :   Int_t jc = localMax[iMax] % nx + 1;</span>
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            :   // Get min pad dimensions for the precluster
+<span class="lineNum">    1016 </span>            :   Int_t nSides = 2;
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :   if (cluster.Multiplicity(0) == 0 || cluster.Multiplicity(1) == 0) nSides = 1;</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :   TVector2 dim0 = cluster.MinPadDimensions(0, -1, kFALSE);</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :   TVector2 dim1 = cluster.MinPadDimensions(1, -1, kFALSE);</span>
+<span class="lineNum">    1020 </span>            :   //Double_t width[2][2] = {{dim0.X(), dim0.Y()},{dim1.X(),dim1.Y()}};
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :   Int_t nonb[2] = {1, 0}; // coordinate index vs cathode</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :   if (nSides == 1 || dim0.X() &lt; dim1.X() - fgkDistancePrecision) {</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     nonb[0] = 0;</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     nonb[1] = 1;</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1026 </span>            : 
+<span class="lineNum">    1027 </span>            :   // Drop all pixels from the array - pick up only the ones from the cluster
+<span class="lineNum">    1028 </span>            :   //fPixArray-&gt;Delete();
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :   Double_t wx = fHistAnode-&gt;GetXaxis()-&gt;GetBinWidth(1)/2; </span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :   Double_t wy = fHistAnode-&gt;GetYaxis()-&gt;GetBinWidth(1)/2;  </span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :   Double_t yc = fHistAnode-&gt;GetYaxis()-&gt;GetBinCenter(ic);</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :   Double_t xc = fHistAnode-&gt;GetXaxis()-&gt;GetBinCenter(jc);</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :   Double_t cont = fHistAnode-&gt;GetBinContent(fHistAnode-&gt;GetBin(jc,ic));</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :   AliMUONPad pixel(xc, yc, wx, wy, cont);</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :   if (fDebug) pixel.Print(&quot;full&quot;); </span>
+<span class="lineNum">    1037 </span>            : 
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :   Int_t npad = cluster.Multiplicity();</span>
+<span class="lineNum">    1039 </span>            :   
+<span class="lineNum">    1040 </span>            :   // Pick up pads which overlap with the maximum pixel and find pads with the max signal
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :   Double_t qMax[2] = {0}; </span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :   AliMUONPad *matrix[2][3] = {{0x0,0x0,0x0},{0x0,0x0,0x0}};</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :   for (Int_t j = 0; j &lt; npad; ++j) </span>
+<span class="lineNum">    1044 </span>            :   {
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :     AliMUONPad* pad = cluster.Pad(j);</span>
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :     if ( Overlap(*pad,pixel) )</span>
+<span class="lineNum">    1047 </span>            :     {
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :       if (fDebug) { cout &lt;&lt; j &lt;&lt; &quot; &quot;; pad-&gt;Print(&quot;full&quot;); }</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :       if (pad-&gt;Charge() &gt; qMax[pad-&gt;Cathode()]) {</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :         qMax[pad-&gt;Cathode()] = pad-&gt;Charge();</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :         matrix[pad-&gt;Cathode()][1] = pad;</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :         if (nSides == 1) matrix[!pad-&gt;Cathode()][1] = pad;</span>
+<span class="lineNum">    1053 </span>            :       }
+<span class="lineNum">    1054 </span>            :     }
+<span class="lineNum">    1055 </span>            :   }
+<span class="lineNum">    1056 </span>            :   //if (nSides == 2 &amp;&amp; (matrix[0][1] == 0x0 || matrix[1][1] == 0x0)) return; // ???
+<span class="lineNum">    1057 </span>            : 
+<span class="lineNum">    1058 </span>            :   // Find neighbours of maxima to have 3 pads per direction (if possible)
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :   for (Int_t j = 0; j &lt; npad; ++j) </span>
+<span class="lineNum">    1060 </span>            :   {
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :     AliMUONPad* pad = cluster.Pad(j);</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :     Int_t cath = pad-&gt;Cathode();</span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :     if (pad == matrix[cath][1]) continue;</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :     Int_t nLoops = 3 - nSides;</span>
+<span class="lineNum">    1065 </span>            : 
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :     for (Int_t k = 0; k &lt; nLoops; ++k) {</span>
+<span class="lineNum">    1067 </span>            :       Int_t cath1 = cath;
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :       if (k) cath1 = !cath;</span>
+<span class="lineNum">    1069 </span>            : 
+<span class="lineNum">    1070 </span>            :       // Check the coordinate corresponding to the cathode (bending or non-bending case)
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :       Double_t dist = pad-&gt;Coord(nonb[cath1]) - matrix[cath][1]-&gt;Coord(nonb[cath1]);</span>
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :       Double_t dir = TMath::Sign (1., dist);</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :       dist = TMath::Abs(dist) - pad-&gt;Size(nonb[cath1]) - matrix[cath][1]-&gt;Size(nonb[cath1]);</span>
+<span class="lineNum">    1074 </span>            : 
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :       if (TMath::Abs(dist) &lt; fgkDistancePrecision) {</span>
+<span class="lineNum">    1076 </span>            :         // Check the other coordinate
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :         dist = pad-&gt;Coord(!nonb[cath1]) - matrix[cath1][1]-&gt;Coord(!nonb[cath1]);</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dist) &gt; </span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :             TMath::Max(pad-&gt;Size(!nonb[cath1]), matrix[cath1][1]-&gt;Size(!nonb[cath1])) - fgkDistancePrecision) break;</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :         Int_t idir = TMath::Nint (dir);</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :         if (matrix[cath1][1+idir] == 0x0) matrix[cath1][1+idir] = pad;</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :         else if (pad-&gt;Charge() &gt; matrix[cath1][1+idir]-&gt;Charge()) matrix[cath1][1+idir] = pad; // diff. segmentation</span>
+<span class="lineNum">    1083 </span>            :         //cout &lt;&lt; pad-&gt;Coord(nonb[cath1]) &lt;&lt; &quot; &quot; &lt;&lt; pad-&gt;Coord(!nonb[cath1]) &lt;&lt; &quot; &quot; &lt;&lt; pad-&gt;Size(nonb[cath1]) &lt;&lt; &quot; &quot; &lt;&lt; pad-&gt;Size(!nonb[cath1]) &lt;&lt; &quot; &quot; &lt;&lt; pad-&gt;Charge() &lt;&lt; endl ;
+<span class="lineNum">    1084 </span>            :         break;
+<span class="lineNum">    1085 </span>            :       }
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1088 </span>            : 
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :   Double_t coord[2] = {0.}, qAver = 0.;</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 2; ++i) {</span>
+<span class="lineNum">    1091 </span>            :     Double_t q = 0.;
+<span class="lineNum">    1092 </span>            :     Double_t coordQ = 0.;
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :     Int_t cath = matrix[i][1]-&gt;Cathode();</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     if (i &amp;&amp; nSides == 1) cath = !cath;</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :     for (Int_t j = 0; j &lt; 3; ++j) {</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :       if (matrix[i][j] == 0x0) continue;</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :       Double_t dq = matrix[i][j]-&gt;Charge();</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :       q += dq;</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :       coordQ += dq * matrix[i][j]-&gt;Coord(nonb[cath]);</span>
+<span class="lineNum">    1100 </span>            :       //coordQ += (matrix[i][j]-&gt;Charge() * matrix[i][j]-&gt;Coord(nonb[cath]));
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     coord[cath] = coordQ / q;</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     qAver = TMath::Max (qAver, q);</span>
+<span class="lineNum">    1104 </span>            :   }
+<span class="lineNum">    1105 </span>            : 
+<span class="lineNum">    1106 </span>            :   //qAver = TMath::Sqrt(qAver);
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :   if ( qAver &gt;= 2.135 ) // JC: adc -&gt; fc</span>
+<span class="lineNum">    1108 </span>            :   {
+<span class="lineNum">    1109 </span>            :     
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :     AliMUONCluster* cluster1 = new AliMUONCluster(cluster);</span>
+<span class="lineNum">    1111 </span>            :       
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :     cluster1-&gt;SetCharge(qAver,qAver);</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :     if (nonb[0] == 1) </span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :       cluster1-&gt;SetPosition(TVector2(coord[1],coord[0]),TVector2(0.,0.));</span>
+<span class="lineNum">    1115 </span>            :     else 
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :       cluster1-&gt;SetPosition(TVector2(coord[0],coord[1]),TVector2(0.,0.));</span>
+<span class="lineNum">    1117 </span>            : 
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :     cluster1-&gt;SetChi2(0.);</span>
+<span class="lineNum">    1119 </span>            :       
+<span class="lineNum">    1120 </span>            :     // FIXME: we miss some information in this cluster, as compared to 
+<span class="lineNum">    1121 </span>            :     // the original AddRawCluster code.
+<span class="lineNum">    1122 </span>            :       
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Adding RawCluster detElemId %4d mult %2d charge %5d (xl,yl)=(%9.6g,%9.6g)&quot;,</span>
+<span class="lineNum">    1124 </span>            :                     fDetElemId,cluster1-&gt;Multiplicity(),(Int_t)cluster1-&gt;Charge(),
+<span class="lineNum">    1125 </span>            :                     cluster1-&gt;Position().X(),cluster1-&gt;Position().Y()));
+<span class="lineNum">    1126 </span>            :         
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :     fClusterList.Add(cluster1);</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1130 </span>            : 
+<a name="1131"><span class="lineNum">    1131 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1132 </span>            : AliMUONClusterFinderPeakFit&amp;  
+<span class="lineNum">    1133 </span>            : AliMUONClusterFinderPeakFit::operator=(const AliMUONClusterFinderPeakFit&amp; rhs)
+<span class="lineNum">    1134 </span>            : {
+<span class="lineNum">    1135 </span>            : /// Protected assignement operator
+<span class="lineNum">    1136 </span>            : 
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :   if (this == &amp;rhs) return *this;</span>
+<span class="lineNum">    1138 </span>            : 
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :   AliFatal(&quot;Not implemented.&quot;);</span>
+<span class="lineNum">    1140 </span>            :     
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :   return *this;  </span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 : }    </span>
+<a name="1143"><span class="lineNum">    1143 </span>            : </a>
+<span class="lineNum">    1144 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1145 </span>            : void AliMUONClusterFinderPeakFit::PadsInXandY(AliMUONCluster&amp; cluster,
+<span class="lineNum">    1146 </span>            :                                            Int_t &amp;nInX, Int_t &amp;nInY) const
+<span class="lineNum">    1147 </span>            : {
+<span class="lineNum">    1148 </span>            :   /// Find number of pads in X and Y-directions (excluding virtual ones and
+<span class="lineNum">    1149 </span>            :   /// overflows)
+<span class="lineNum">    1150 </span>            : 
+<span class="lineNum">    1151 </span>            :   //Int_t statusToTest = 1;
+<span class="lineNum">    1152 </span>            :   Int_t statusToTest = fgkUseForFit;
+<span class="lineNum">    1153 </span>            :   
+<span class="lineNum">    1154 </span>            :   //if ( nInX &lt; 0 ) statusToTest = 0;
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :   if ( nInX &lt; 0 ) statusToTest = fgkZero;</span>
+<span class="lineNum">    1156 </span>            :        
+<span class="lineNum">    1157 </span>            :   Bool_t mustMatch(kTRUE);
+<span class="lineNum">    1158 </span>            : 
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :   Long_t cn = cluster.NofPads(statusToTest,mustMatch);</span>
+<span class="lineNum">    1160 </span>            :   
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :   nInX = AliMp::PairFirst(cn);</span>
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :   nInY = AliMp::PairSecond(cn);</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 : }</span>
+<a name="1164"><span class="lineNum">    1164 </span>            : </a>
+<span class="lineNum">    1165 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1166 </span>            : void AliMUONClusterFinderPeakFit::RemovePixel(Int_t i)
+<span class="lineNum">    1167 </span>            : {
+<span class="lineNum">    1168 </span>            :   /// Remove pixel at index i
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :   AliMUONPad* pixPtr = Pixel(i);</span>
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :   fPixArray-&gt;RemoveAt(i); </span>
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :   delete pixPtr;</span>
+<span class="lineNum">    1172 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1173 </span>            : 
+<a name="1174"><span class="lineNum">    1174 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1175 </span>            : AliMUONPad* 
+<span class="lineNum">    1176 </span>            : AliMUONClusterFinderPeakFit::Pixel(Int_t i) const
+<span class="lineNum">    1177 </span>            : {
+<span class="lineNum">    1178 </span>            :   /// Returns pixel at index i
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :   return static_cast&lt;AliMUONPad*&gt;(fPixArray-&gt;UncheckedAt(i));</span>
+<span class="lineNum">    1180 </span>            : }
+<span class="lineNum">    1181 </span>            : 
+<a name="1182"><span class="lineNum">    1182 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1183 </span>            : void 
+<span class="lineNum">    1184 </span>            : AliMUONClusterFinderPeakFit::Print(Option_t* what) const
+<span class="lineNum">    1185 </span>            : {
+<span class="lineNum">    1186 </span>            :   /// printout
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :   TString swhat(what);</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :   swhat.ToLower();</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :   if ( swhat.Contains(&quot;precluster&quot;) )</span>
+<span class="lineNum">    1190 </span>            :   {
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :     if ( fPreCluster) fPreCluster-&gt;Print();</span>
+<span class="lineNum">    1192 </span>            :   }
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1194 </span>            : 
+<span class="lineNum">    1195 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,573 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - MUON/MUONmapping/AliMpSlat.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">MUON/MUONmapping</a> - AliMpSlat.cxx<span style="font-size: 80%;"> (source / <a href="AliMpSlat.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">99</td>
+            <td class="headerCovTableEntry">168</td>
+            <td class="headerCovTableEntryLo">58.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntryLo">73.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            : * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            : *                                                                        *
+<span class="lineNum">       4 </span>            : * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            : * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            : *                                                                        *
+<span class="lineNum">       7 </span>            : * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            : * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            : * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            : * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            : * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            : * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            : * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            : **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : // $Id$
+<span class="lineNum">      17 </span>            : // $MpId: AliMpSlat.cxx,v 1.6 2006/05/24 13:58:50 ivana Exp $
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &quot;AliMpSlat.h&quot;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;AliMpExMapIterator.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliMpMotifPosition.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;AliMpPCB.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;Riostream.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;TArrayI.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      33 </span>            : /// Representation of a slat cathode (bending or non-bending).
+<span class="lineNum">      34 </span>            : ///
+<span class="lineNum">      35 </span>            : /// A slat can be viewed as a &quot;collection&quot; of PCBs of various densities
+<span class="lineNum">      36 </span>            : /// (the density is defined by the size of the pads composing the PCB).
+<span class="lineNum">      37 </span>            : ///
+<span class="lineNum">      38 </span>            : /// All the PCBs have a least the same height, if not the same width. In most
+<span class="lineNum">      39 </span>            : /// of the case, height=width=40 cm, at least for St345 (for trigger,
+<span class="lineNum">      40 </span>            : /// width varies)
+<span class="lineNum">      41 </span>            : // 
+<span class="lineNum">      42 </span>            : /// \author Laurent Aphecetche
+<span class="lineNum">      43 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : using std::cout;
+<a name="46"><span class="lineNum">      46 </span>            : using std::endl;</a>
+<span class="lineNum">      47 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      48 </span><span class="lineCov">         18 : ClassImp(AliMpSlat)</span>
+<span class="lineNum">      49 </span>            : /// \endcond
+<a name="50"><span class="lineNum">      50 </span>            : </a>
+<span class="lineNum">      51 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      52 </span>            : AliMpSlat::AliMpSlat(TRootIOCtor* ioCtor) 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : : TObject(), </span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   fId(&quot;&quot;), </span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   fPlaneType(AliMp::kNonBendingPlane),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fDX(0), </span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fDY(0),</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   fNofPadsX(0), </span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fMaxNofPadsY(0),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   fManuMap(ioCtor),</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   fPCBs(),</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   fPositionX(0.),</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   fPositionY(0.),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   fNofPads(0)</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      66 </span>            :     ///
+<span class="lineNum">      67 </span>            :     /// Empty ctor.
+<span class="lineNum">      68 </span>            :     ///
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   AliDebug(1,Form(&quot;this=%p Empty ctor&quot;,this));</span>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     fPCBs.SetOwner(kTRUE);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     fManuMap.SetOwner(kFALSE);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : }</span>
+<a name="74"><span class="lineNum">      74 </span>            : </a>
+<span class="lineNum">      75 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      76 </span>            : AliMpSlat::AliMpSlat(const char* id, AliMp::PlaneType bendingOrNonBending)
+<span class="lineNum">      77 </span><span class="lineCov">        858 : : TObject(), </span>
+<span class="lineNum">      78 </span><span class="lineCov">        858 :   fId(id), </span>
+<span class="lineNum">      79 </span><span class="lineCov">        858 :   fPlaneType(bendingOrNonBending),</span>
+<span class="lineNum">      80 </span><span class="lineCov">        858 :   fDX(0), </span>
+<span class="lineNum">      81 </span><span class="lineCov">        858 :   fDY(0),</span>
+<span class="lineNum">      82 </span><span class="lineCov">        858 :   fNofPadsX(0), </span>
+<span class="lineNum">      83 </span><span class="lineCov">        858 :   fMaxNofPadsY(0),</span>
+<span class="lineNum">      84 </span><span class="lineCov">        858 :   fManuMap(),</span>
+<span class="lineNum">      85 </span><span class="lineCov">        858 :   fPCBs(),</span>
+<span class="lineNum">      86 </span><span class="lineCov">        858 :   fPositionX(0.),</span>
+<span class="lineNum">      87 </span><span class="lineCov">        858 :   fPositionY(0.),</span>
+<span class="lineNum">      88 </span><span class="lineCov">        858 :   fNofPads(0)</span>
+<span class="lineNum">      89 </span><span class="lineCov">       4290 : {</span>
+<span class="lineNum">      90 </span>            :     ///
+<span class="lineNum">      91 </span>            :     /// Normal ctor
+<span class="lineNum">      92 </span>            :     ///
+<span class="lineNum">      93 </span><span class="lineCov">       4290 :   AliDebug(1,Form(&quot;this=%p id=%s&quot;,this,id));                  </span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">        858 :     fPCBs.SetOwner(kTRUE);</span>
+<span class="lineNum">      96 </span><span class="lineCov">        858 :     fManuMap.SetOwner(kFALSE);</span>
+<span class="lineNum">      97 </span><span class="lineCov">       1716 : }</span>
+<a name="98"><span class="lineNum">      98 </span>            : </a>
+<span class="lineNum">      99 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     100 </span>            : AliMpSlat::~AliMpSlat()
+<span class="lineNum">     101 </span><span class="lineCov">       3432 : {</span>
+<span class="lineNum">     102 </span>            :   ///
+<span class="lineNum">     103 </span>            :   /// Dtor.
+<span class="lineNum">     104 </span>            :   ///
+<span class="lineNum">     105 </span><span class="lineCov">       2860 :   AliDebug(1,Form(&quot;this=%p fId=%s&quot;,this,fId.Data()));                 </span>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineCov">        572 :   fPCBs.Delete();</span>
+<span class="lineNum">     108 </span><span class="lineCov">       1716 : }</span>
+<span class="lineNum">     109 </span>            : 
+<a name="110"><span class="lineNum">     110 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     111 </span>            : void
+<span class="lineNum">     112 </span>            : AliMpSlat::Add(const AliMpPCB&amp; pcbType, const TArrayI&amp; manuList) 
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            :   ///
+<span class="lineNum">     115 </span>            :   /// Adds a PCB to this slat. The manuList specifies the ids of the manu
+<span class="lineNum">     116 </span>            :   /// that compose the PCB. The manuList ordering is important, as the 
+<span class="lineNum">     117 </span>            :   /// assumption is that it's ordered counter-clockwise, starting from
+<span class="lineNum">     118 </span>            :   /// the lower-left of the PCB.
+<span class="lineNum">     119 </span>            :   ///
+<span class="lineNum">     120 </span>            :   Int_t ixOffset = 0;
+<span class="lineNum">     121 </span><span class="lineCov">       9552 :   if ( GetSize() )</span>
+<span class="lineNum">     122 </span>            :         {
+<span class="lineNum">     123 </span><span class="lineCov">       3918 :                 ixOffset = GetPCB(GetSize()-1)-&gt;Ixmax()+1;</span>
+<span class="lineNum">     124 </span><span class="lineCov">       3918 :         }</span>
+<span class="lineNum">     125 </span>            :   else
+<span class="lineNum">     126 </span>            :   {
+<span class="lineNum">     127 </span><span class="lineCov">        858 :     ixOffset = pcbType.Ixmin();</span>
+<span class="lineNum">     128 </span>            :   }
+<span class="lineNum">     129 </span><span class="lineCov">       4776 :   Double_t xOffset = DX()*2;</span>
+<span class="lineNum">     130 </span><span class="lineCov">       4776 :   AliMpPCB* pcb = pcbType.Clone(manuList,ixOffset,xOffset);</span>
+<span class="lineNum">     131 </span><span class="lineCov">       4776 :   fPCBs.AddLast(pcb);</span>
+<span class="lineNum">     132 </span><span class="lineCov">       4776 :   fDY = TMath::Max(pcb-&gt;DY(),fDY);</span>
+<span class="lineNum">     133 </span><span class="lineCov">       4776 :   fDX += pcb-&gt;DX();</span>
+<span class="lineNum">     134 </span><span class="lineCov">       4776 :   fNofPadsX += pcb-&gt;GetNofPadsX();</span>
+<span class="lineNum">     135 </span><span class="lineCov">       4776 :   fMaxNofPadsY = TMath::Max(fMaxNofPadsY,pcb-&gt;GetNofPadsY());</span>
+<span class="lineNum">     136 </span>            :   Int_t n(0);
+<span class="lineNum">     137 </span><span class="lineCov">      29010 :   for ( Int_t i = 0; i &lt; pcb-&gt;GetSize(); ++i )</span>
+<span class="lineNum">     138 </span>            :         {
+<span class="lineNum">     139 </span><span class="lineCov">       9729 :                 AliMpMotifPosition* mp = pcb-&gt;GetMotifPosition(i);</span>
+<span class="lineNum">     140 </span><span class="lineCov">       9729 :                 Int_t manuID = mp-&gt;GetID();</span>
+<span class="lineNum">     141 </span>            :     // Before inserting a new key, check if it's already there
+<span class="lineNum">     142 </span><span class="lineCov">       9729 :     TObject* there = fManuMap.GetValue(manuID);</span>
+<span class="lineNum">     143 </span><span class="lineCov">       9729 :     if ( there == 0 )</span>
+<span class="lineNum">     144 </span>            :     {
+<span class="lineNum">     145 </span><span class="lineCov">       9729 :       ++n;</span>
+<span class="lineNum">     146 </span><span class="lineCov">      29187 :       AliDebug(1,Form(&quot;Adding %d-th manuId=%d (%d) to ManuMap (size=%d)&quot;,n,manuID,mp-&gt;GetID(),fManuMap.GetSize()));</span>
+<span class="lineNum">     147 </span><span class="lineCov">       9729 :       fManuMap.Add(manuID,(TObject*)mp);</span>
+<span class="lineNum">     148 </span><span class="lineCov">       9729 :     }</span>
+<span class="lineNum">     149 </span>            :     else
+<span class="lineNum">     150 </span>            :     {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :       AliError(Form(&quot;ManuID %d is duplicated for PCB %s&quot;,manuID,pcbType.GetID()));      </span>
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            :   }
+<span class="lineNum">     154 </span><span class="lineCov">       4776 :   fPositionX = DX();</span>
+<span class="lineNum">     155 </span><span class="lineCov">       4776 :   fPositionY = DY();</span>
+<span class="lineNum">     156 </span><span class="lineCov">       4776 :   fNofPads += pcb-&gt;NofPads();</span>
+<span class="lineNum">     157 </span><span class="lineCov">       4776 : }</span>
+<span class="lineNum">     158 </span>            : 
+<a name="159"><span class="lineNum">     159 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     160 </span>            : Double_t
+<span class="lineNum">     161 </span>            : AliMpSlat::DX() const
+<span class="lineNum">     162 </span>            : {
+<span class="lineNum">     163 </span>            :   ///
+<span class="lineNum">     164 </span>            :   /// Returns the x-half-size of the slat.
+<span class="lineNum">     165 </span>            :   ///
+<span class="lineNum">     166 </span><span class="lineCov">      23264 :   return fDX;</span>
+<span class="lineNum">     167 </span>            : }
+<span class="lineNum">     168 </span>            : 
+<a name="169"><span class="lineNum">     169 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     170 </span>            : Double_t
+<span class="lineNum">     171 </span>            : AliMpSlat::DY() const
+<span class="lineNum">     172 </span>            : {
+<span class="lineNum">     173 </span>            :   ///
+<span class="lineNum">     174 </span>            :   /// Returns the y-half-size of the slat.
+<span class="lineNum">     175 </span>            :   ///
+<span class="lineNum">     176 </span><span class="lineCov">      13712 :   return fDY;</span>
+<span class="lineNum">     177 </span>            : }
+<span class="lineNum">     178 </span>            : 
+<a name="179"><span class="lineNum">     179 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     180 </span>            : AliMpMotifPosition*
+<span class="lineNum">     181 </span>            : AliMpSlat::FindMotifPosition(Int_t manuID) const
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span>            :   ///
+<span class="lineNum">     184 </span>            :   /// Returns the motifPosition referenced by it manuID
+<span class="lineNum">     185 </span>            :   ///
+<span class="lineNum">     186 </span><span class="lineCov">    1886430 :   return static_cast&lt;AliMpMotifPosition*&gt;(fManuMap.GetValue(manuID));</span>
+<span class="lineNum">     187 </span>            : }
+<span class="lineNum">     188 </span>            : 
+<a name="189"><span class="lineNum">     189 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     190 </span>            : AliMpMotifPosition*
+<span class="lineNum">     191 </span>            : AliMpSlat::FindMotifPosition(Int_t ix, Int_t iy) const
+<span class="lineNum">     192 </span>            : {
+<span class="lineNum">     193 </span>            :   ///
+<span class="lineNum">     194 </span>            :   /// - 1. Find the PCB containing ix (iy not needed for this)
+<span class="lineNum">     195 </span>            :   /// - 2. Forward the request to the PCB, using pcb local indices.
+<span class="lineNum">     196 </span>            :         //
+<span class="lineNum">     197 </span><span class="lineCov">    1849244 :   const AliMpPCB* pcb = FindPCB(ix);</span>
+<span class="lineNum">     198 </span><span class="lineCov">     924622 :   if ( pcb )</span>
+<span class="lineNum">     199 </span>            :         {
+<span class="lineNum">     200 </span><span class="lineCov">     811188 :                 return pcb-&gt;FindMotifPosition(ix,iy);</span>
+<span class="lineNum">     201 </span>            :         }
+<span class="lineNum">     202 </span>            :   else
+<span class="lineNum">     203 </span>            :         {
+<span class="lineNum">     204 </span><span class="lineCov">     113434 :                 return 0;</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span><span class="lineCov">     924622 : }</span>
+<span class="lineNum">     207 </span>            : 
+<a name="208"><span class="lineNum">     208 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     209 </span>            : AliMpMotifPosition*
+<span class="lineNum">     210 </span>            : AliMpSlat::FindMotifPosition(Double_t x, Double_t y) const
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :   ///
+<span class="lineNum">     213 </span>            :   /// Returns the motifPosition containing position (x,y)
+<span class="lineNum">     214 </span>            :   ///
+<span class="lineNum">     215 </span><span class="lineCov">       1814 :   const AliMpPCB* pcb = FindPCB(x,y);</span>
+<span class="lineNum">     216 </span><span class="lineCov">        907 :   if (pcb)</span>
+<span class="lineNum">     217 </span>            :         {
+<span class="lineNum">     218 </span><span class="lineCov">        905 :                 return pcb-&gt;FindMotifPosition(x,y);</span>
+<span class="lineNum">     219 </span>            :         }
+<span class="lineNum">     220 </span>            :   else
+<span class="lineNum">     221 </span>            :         {
+<span class="lineNum">     222 </span><span class="lineCov">          2 :                 return 0;</span>
+<span class="lineNum">     223 </span>            :         }
+<span class="lineNum">     224 </span><span class="lineCov">        907 : }</span>
+<span class="lineNum">     225 </span>            : 
+<a name="226"><span class="lineNum">     226 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     227 </span>            : AliMpPCB*
+<span class="lineNum">     228 </span>            : AliMpSlat::FindPCB(Int_t ix) const
+<span class="lineNum">     229 </span>            : {
+<span class="lineNum">     230 </span>            :   ///
+<span class="lineNum">     231 </span>            :   /// Returns the PCB containing x-integer-position ix
+<span class="lineNum">     232 </span>            :   ///
+<span class="lineNum">     233 </span><span class="lineCov">    7270010 :   for ( Int_t i = 0; i &lt; GetSize(); ++i ) </span>
+<span class="lineNum">     234 </span>            :         {
+<span class="lineNum">     235 </span><span class="lineCov">    3002543 :                 AliMpPCB* pcb = GetPCB(i);</span>
+<span class="lineNum">     236 </span><span class="lineCov">    5981278 :                 if ( ix &gt;= pcb-&gt;Ixmin() &amp;&amp; ix &lt;= pcb-&gt;Ixmax() )</span>
+<span class="lineNum">     237 </span>            :                 {
+<span class="lineNum">     238 </span><span class="lineCov">     811188 :                         return pcb;</span>
+<span class="lineNum">     239 </span>            :                 }
+<span class="lineNum">     240 </span><span class="lineCov">    2191355 :         }</span>
+<span class="lineNum">     241 </span><span class="lineCov">     113434 :   return 0;</span>
+<span class="lineNum">     242 </span><span class="lineCov">     924622 : }</span>
+<span class="lineNum">     243 </span>            : 
+<a name="244"><span class="lineNum">     244 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     245 </span>            : Int_t
+<span class="lineNum">     246 </span>            : AliMpSlat::FindPCBIndex(Int_t ix) const
+<span class="lineNum">     247 </span>            : {
+<span class="lineNum">     248 </span>            :   ///
+<span class="lineNum">     249 </span>            :   /// Returns the index of the PCB containing x-integer-position ix.
+<span class="lineNum">     250 </span>            :   ///
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; GetSize(); ++i ) </span>
+<span class="lineNum">     252 </span>            :         {
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :                 AliMpPCB* pcb = GetPCB(i);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                 if ( ix &gt;= pcb-&gt;Ixmin() &amp;&amp; ix &lt;= pcb-&gt;Ixmax() )</span>
+<span class="lineNum">     255 </span>            :                 {
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                         return i;</span>
+<span class="lineNum">     257 </span>            :                 }
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   return -1;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     261 </span>            : 
+<a name="262"><span class="lineNum">     262 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     263 </span>            : AliMpPCB*
+<span class="lineNum">     264 </span>            : AliMpSlat::FindPCB(Double_t x, Double_t y) const
+<span class="lineNum">     265 </span>            : {
+<span class="lineNum">     266 </span>            :   ///
+<span class="lineNum">     267 </span>            :   /// Returns the PCB containing position (x,y)
+<span class="lineNum">     268 </span>            :   ///
+<span class="lineNum">     269 </span><span class="lineCov">       8289 :   for ( Int_t i = 0; i &lt; GetSize(); ++i ) </span>
+<span class="lineNum">     270 </span>            :         {
+<span class="lineNum">     271 </span><span class="lineCov">       3578 :                 AliMpPCB* pcb = GetPCB(i);</span>
+<span class="lineNum">     272 </span>            : //              if ( x &gt;= pcb-&gt;Xmin() &amp;&amp; x &lt; pcb-&gt;Xmax() &amp;&amp;
+<span class="lineNum">     273 </span>            : //                               y &gt;= pcb-&gt;Ymin() &amp;&amp; y &lt; pcb-&gt;Ymax() )
+<span class="lineNum">     274 </span>            : //              {
+<span class="lineNum">     275 </span>            : //                      return pcb;
+<span class="lineNum">     276 </span>            : //              }
+<span class="lineNum">     277 </span><span class="lineCov">       8279 :     if ( x &lt; pcb-&gt;Xmin() || x &gt;= pcb-&gt;Xmax() ||</span>
+<span class="lineNum">     278 </span><span class="lineCov">       2252 :          y &lt; pcb-&gt;Ymin() || y &gt;= pcb-&gt;Ymax() )</span>
+<span class="lineNum">     279 </span>            :     {
+<span class="lineNum">     280 </span><span class="lineCov">       2453 :       continue;</span>
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span><span class="lineCov">       1125 :     return pcb;</span>
+<span class="lineNum">     283 </span>            :         }
+<span class="lineNum">     284 </span><span class="lineCov">          2 :   return 0;</span>
+<span class="lineNum">     285 </span><span class="lineCov">       1127 : }</span>
+<span class="lineNum">     286 </span>            : 
+<a name="287"><span class="lineNum">     287 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     288 </span>            : Int_t
+<span class="lineNum">     289 </span>            : AliMpSlat::FindPCBIndex(Double_t x, Double_t y) const
+<span class="lineNum">     290 </span>            : {
+<span class="lineNum">     291 </span>            :   ///
+<span class="lineNum">     292 </span>            :   /// Returns the index of the PCB containing position (x,y)
+<span class="lineNum">     293 </span>            :   ///
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; GetSize(); ++i ) </span>
+<span class="lineNum">     295 </span>            :         {
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                 AliMpPCB* pcb = GetPCB(i);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                 if ( x &gt;= pcb-&gt;Xmin() &amp;&amp; x &lt; pcb-&gt;Xmax() &amp;&amp;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                                  y &gt;= pcb-&gt;Ymin() &amp;&amp; y &lt; pcb-&gt;Ymax() )</span>
+<span class="lineNum">     299 </span>            :                 {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                         return i;</span>
+<span class="lineNum">     301 </span>            :                 }
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   return -1;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     305 </span>            : 
+<a name="306"><span class="lineNum">     306 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     307 </span>            : Int_t 
+<span class="lineNum">     308 </span>            : AliMpSlat::FindPCBIndexByMotifPositionID(Int_t manuId) const
+<span class="lineNum">     309 </span>            : {
+<span class="lineNum">     310 </span>            :   /// Find the index of the PCB containing a given manu
+<span class="lineNum">     311 </span><span class="lineCov">     322636 :   for ( Int_t i = 0; i&lt; GetSize(); ++i )</span>
+<span class="lineNum">     312 </span>            :   {
+<span class="lineNum">     313 </span><span class="lineCov">     136528 :     AliMpPCB* pcb = GetPCB(i);</span>
+<span class="lineNum">     314 </span><span class="lineCov">     186108 :     if ( pcb-&gt;HasMotifPositionID(manuId) ) return i;</span>
+<span class="lineNum">     315 </span><span class="lineCov">      86948 :   }</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   return -1;</span>
+<span class="lineNum">     317 </span><span class="lineCov">      49580 : }</span>
+<span class="lineNum">     318 </span>            : 
+<a name="319"><span class="lineNum">     319 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     320 </span>            : void
+<span class="lineNum">     321 </span>            : AliMpSlat::ForcePosition(Double_t x, Double_t y)
+<span class="lineNum">     322 </span>            : {
+<span class="lineNum">     323 </span>            :   ///
+<span class="lineNum">     324 </span>            :   /// Force the position to be different from (DX(),DY()).
+<span class="lineNum">     325 </span>            :   /// Normally only used by triggerSlats (for layers).
+<span class="lineNum">     326 </span>            :   /// Beware that this method must be called once all PCB have been added,
+<span class="lineNum">     327 </span>            :   /// as the Add() method resets the position.
+<span class="lineNum">     328 </span>            :   ///
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   fPositionX = x;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   fPositionY = y;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     332 </span>            : 
+<a name="333"><span class="lineNum">     333 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     334 </span>            : void
+<span class="lineNum">     335 </span>            : AliMpSlat::GetAllMotifPositionsIDs(TArrayI&amp; ecn) const
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span>            :   ///
+<span class="lineNum">     338 </span>            :   /// Return all the manuIds (=MotifPositionIDs) of this slat
+<span class="lineNum">     339 </span>            :   ///
+<span class="lineNum">     340 </span><span class="lineCov">       5268 :   Int_t nofElectronicCards(GetNofElectronicCards());</span>
+<span class="lineNum">     341 </span><span class="lineCov">       2634 :   assert(nofElectronicCards&gt;0);</span>
+<span class="lineNum">     342 </span><span class="lineCov">       2634 :   ecn.Set(nofElectronicCards);</span>
+<span class="lineNum">     343 </span><span class="lineCov">       2634 :   TIter next(fManuMap.CreateIterator());</span>
+<span class="lineNum">     344 </span>            :   AliMpMotifPosition* mp;
+<span class="lineNum">     345 </span>            :   Int_t n(0);
+<span class="lineNum">     346 </span><span class="lineCov">     281493 :   while ( ( mp = static_cast&lt;AliMpMotifPosition*&gt;(next()) ) )</span>
+<span class="lineNum">     347 </span>            :   {
+<span class="lineNum">     348 </span><span class="lineCov">      91197 :     ecn.AddAt(mp-&gt;GetID(),n);</span>
+<span class="lineNum">     349 </span><span class="lineCov">      91197 :     ++n;</span>
+<span class="lineNum">     350 </span>            :   }
+<span class="lineNum">     351 </span><span class="lineCov">       2634 :   assert(n==nofElectronicCards);</span>
+<span class="lineNum">     352 </span><span class="lineCov">       2634 : }</span>
+<span class="lineNum">     353 </span>            : 
+<a name="354"><span class="lineNum">     354 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     355 </span>            : const char*
+<span class="lineNum">     356 </span>            : AliMpSlat::GetID() const
+<span class="lineNum">     357 </span>            : {
+<span class="lineNum">     358 </span>            :   ///
+<span class="lineNum">     359 </span>            :   /// Returns the name of this slat.
+<span class="lineNum">     360 </span>            :   ///
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :   return fId.Data();</span>
+<span class="lineNum">     362 </span>            : }
+<span class="lineNum">     363 </span>            : 
+<a name="364"><span class="lineNum">     364 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     365 </span>            : Int_t 
+<span class="lineNum">     366 </span>            : AliMpSlat::GetMaxNofPadsY() const
+<span class="lineNum">     367 </span>            : {
+<span class="lineNum">     368 </span>            :   ///
+<span class="lineNum">     369 </span>            :   /// Returns the maximum number of pads to be found in this slat y-direction.
+<span class="lineNum">     370 </span>            :   /// 
+<span class="lineNum">     371 </span><span class="lineCov">       3728 :   return fMaxNofPadsY;</span>
+<span class="lineNum">     372 </span>            : }
+<span class="lineNum">     373 </span>            : 
+<a name="374"><span class="lineNum">     374 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     375 </span>            : Int_t 
+<span class="lineNum">     376 </span>            : AliMpSlat::GetMaxPadIndexX() const
+<span class="lineNum">     377 </span>            : {
+<span class="lineNum">     378 </span>            :   ///
+<span class="lineNum">     379 </span>            :   /// Returns the max ix that is valid for this slat.
+<span class="lineNum">     380 </span>            :   ///
+<span class="lineNum">     381 </span><span class="lineCov">       2240 :   AliMpPCB* last = GetPCB(GetSize()-1);</span>
+<span class="lineNum">     382 </span><span class="lineCov">       1120 :   if (last)</span>
+<span class="lineNum">     383 </span>            :   {
+<span class="lineNum">     384 </span><span class="lineCov">       1120 :     return last-&gt;Ixmax();</span>
+<span class="lineNum">     385 </span>            :   }
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     387 </span><span class="lineCov">       1120 : }</span>
+<span class="lineNum">     388 </span>            : 
+<a name="389"><span class="lineNum">     389 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     390 </span>            : const char*
+<span class="lineNum">     391 </span>            : AliMpSlat::GetName() const
+<span class="lineNum">     392 </span>            : {
+<span class="lineNum">     393 </span>            :   ///
+<span class="lineNum">     394 </span>            :   /// Returns the name of this slat, which is composed of its ID with
+<span class="lineNum">     395 </span>            :   /// the plane type as a suffix.
+<span class="lineNum">     396 </span>            :   ///
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   TString name(GetID());</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   if ( fPlaneType == AliMp::kBendingPlane )</span>
+<span class="lineNum">     399 </span>            :   {
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     name += &quot;.Bending&quot;;</span>
+<span class="lineNum">     401 </span>            :   }
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   else if ( fPlaneType == AliMp::kNonBendingPlane )</span>
+<span class="lineNum">     403 </span>            :   {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     name += &quot;.NonBending&quot;;</span>
+<span class="lineNum">     405 </span>            :   }
+<span class="lineNum">     406 </span>            :   else
+<span class="lineNum">     407 </span>            :   {
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     name += &quot;.Invalid&quot;;</span>
+<span class="lineNum">     409 </span>            :   }
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   return name.Data();  </span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     412 </span>            : 
+<a name="413"><span class="lineNum">     413 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     414 </span>            : Int_t
+<span class="lineNum">     415 </span>            : AliMpSlat::GetNofElectronicCards() const
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            :   ///
+<span class="lineNum">     418 </span>            :   /// Returns the number of manus that compose the readout of this slat.
+<span class="lineNum">     419 </span>            :   ///
+<span class="lineNum">     420 </span><span class="lineCov">       5268 :   return fManuMap.GetSize();</span>
+<span class="lineNum">     421 </span>            : }
+<span class="lineNum">     422 </span>            : 
+<a name="423"><span class="lineNum">     423 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     424 </span>            : Int_t
+<span class="lineNum">     425 </span>            : AliMpSlat::GetNofPadsX() const
+<span class="lineNum">     426 </span>            : {
+<span class="lineNum">     427 </span>            :   ///
+<span class="lineNum">     428 </span>            :   /// Returns the number of pad in x-direction.
+<span class="lineNum">     429 </span>            :   ///
+<span class="lineNum">     430 </span><span class="lineCov">      39936 :   return fNofPadsX;</span>
+<span class="lineNum">     431 </span>            : }
+<span class="lineNum">     432 </span>            : 
+<a name="433"><span class="lineNum">     433 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     434 </span>            : AliMpPCB*
+<span class="lineNum">     435 </span>            : AliMpSlat::GetPCB(Int_t i) const
+<span class="lineNum">     436 </span>            : {
+<span class="lineNum">     437 </span>            :   ///
+<span class="lineNum">     438 </span>            :   /// Returns the i-th PCB of this slat.
+<span class="lineNum">     439 </span>            :   ///
+<span class="lineNum">     440 </span><span class="lineCov">    6355818 :   if ( i &gt;= fPCBs.GetEntriesFast() ) return 0;</span>
+<span class="lineNum">     441 </span><span class="lineCov">    3177909 :   return (AliMpPCB*)fPCBs[i];</span>
+<span class="lineNum">     442 </span><span class="lineCov">    3177909 : }</span>
+<span class="lineNum">     443 </span>            : 
+<a name="444"><span class="lineNum">     444 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     445 </span>            : Int_t
+<span class="lineNum">     446 </span>            : AliMpSlat::GetSize() const
+<span class="lineNum">     447 </span>            : {
+<span class="lineNum">     448 </span>            :   ///
+<span class="lineNum">     449 </span>            :   /// Returns the number of PCB in this slat.
+<span class="lineNum">     450 </span>            :   ///
+<span class="lineNum">     451 </span><span class="lineCov">    6535422 :   return fPCBs.GetEntriesFast();</span>
+<span class="lineNum">     452 </span>            : }
+<span class="lineNum">     453 </span>            : 
+<a name="454"><span class="lineNum">     454 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     455 </span>            : void
+<span class="lineNum">     456 </span>            : AliMpSlat::Print(Option_t* option) const
+<span class="lineNum">     457 </span>            : {
+<span class="lineNum">     458 </span>            :   ///
+<span class="lineNum">     459 </span>            :   /// Prints the slat characteristics.
+<span class="lineNum">     460 </span>            :   ///
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;SLAT &quot; &lt;&lt; GetID() &lt;&lt;  &quot; 1/2 DIM = (&quot; &lt;&lt; DX() &lt;&lt; &quot;,&quot; &lt;&lt; DY() &lt;&lt; &quot;)&quot;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   &lt;&lt; &quot; POS = &quot; &lt;&lt; GetPositionX() &lt;&lt; &quot;,&quot; &lt;&lt; GetPositionY()</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :         &lt;&lt; &quot; NPADSX = &quot; &lt;&lt; GetNofPadsX() </span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   &lt;&lt; &quot; MAXNPADSY = &quot; &lt;&lt; GetMaxNofPadsY()</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   &lt;&lt; &quot; NPCBs=&quot; &lt;&lt; GetSize() &lt;&lt; endl;</span>
+<span class="lineNum">     466 </span>            :   
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   TString soption(option);</span>
+<span class="lineNum">     468 </span>            :   
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   if ( soption.Contains(&quot;P&quot;) )</span>
+<span class="lineNum">     470 </span>            :         {
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; GetSize() ; ++i )</span>
+<span class="lineNum">     472 </span>            :                 {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :       cout &lt;&lt; &quot;    &quot;;</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                         if ( option )</span>
+<span class="lineNum">     475 </span>            :             {
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                                 fPCBs[i]-&gt;Print(option+1);</span>
+<span class="lineNum">     477 </span>            :             }
+<span class="lineNum">     478 </span>            :                         else
+<span class="lineNum">     479 </span>            :             {
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :               fPCBs[i]-&gt;Print();</span>
+<span class="lineNum">     481 </span>            :             }
+<span class="lineNum">     482 </span>            :                 }
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     484 </span>            :   
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   if ( soption.Contains(&quot;M&quot;) || soption.Contains(&quot;L&quot;) )</span>
+<span class="lineNum">     486 </span>            :   {
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     cout &lt;&lt; fManuMap.GetSize() &lt;&lt; &quot; &quot;;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Electronic card (manu or local board) Ids : &quot;;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     TIter next(fManuMap.CreateIterator());</span>
+<span class="lineNum">     490 </span>            :     AliMpMotifPosition* mp;
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     while ( ( mp = static_cast&lt;AliMpMotifPosition*&gt;(next())) )</span>
+<span class="lineNum">     492 </span>            :     {
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       cout &lt;&lt; mp-&gt;GetID() &lt;&lt; &quot; &quot;;</span>
+<span class="lineNum">     494 </span>            :     }
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     cout &lt;&lt; endl;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

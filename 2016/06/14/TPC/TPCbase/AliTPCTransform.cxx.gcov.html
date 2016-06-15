@@ -1,0 +1,1161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCbase/AliTPCTransform.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCbase</a> - AliTPCTransform.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCTransform.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">199</td>
+            <td class="headerCovTableEntry">608</td>
+            <td class="headerCovTableEntryLo">32.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">32</td>
+            <td class="headerCovTableEntryLo">43.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /// \class AliTPCTransform
+<span class="lineNum">      17 </span>            : /// \brief Implementation of the TPC transformation class
+<span class="lineNum">      18 </span>            : ///
+<span class="lineNum">      19 </span>            : /// Class for tranformation of the coordinate frame
+<span class="lineNum">      20 </span>            : /// Transformation
+<span class="lineNum">      21 </span>            : /// local coordinate frame (sector, padrow, pad, timebine) ==&gt;
+<span class="lineNum">      22 </span>            : /// rotated global (tracking) cooridnate frame (sector, lx,ly,lz)
+<span class="lineNum">      23 </span>            : ///
+<span class="lineNum">      24 </span>            : /// Unisochronity  - (substract time0 - pad by pad)
+<span class="lineNum">      25 </span>            : /// Drift velocity - Currently common drift velocity - functionality of AliTPCParam
+<span class="lineNum">      26 </span>            : /// ExB effect     -
+<span class="lineNum">      27 </span>            : ///
+<span class="lineNum">      28 </span>            : /// Time of flight correction -
+<span class="lineNum">      29 </span>            : /// - Depends on the vertex position
+<span class="lineNum">      30 </span>            : /// - by default
+<span class="lineNum">      31 </span>            : ///
+<span class="lineNum">      32 </span>            : /// Usage:
+<span class="lineNum">      33 </span>            : ///
+<span class="lineNum">      34 </span>            : /// ~~~{.cxx}
+<span class="lineNum">      35 </span>            : /// AliTPCclusterer::AddCluster
+<span class="lineNum">      36 </span>            : /// AliTPCtracker::Transform
+<span class="lineNum">      37 </span>            : /// ~~~
+<span class="lineNum">      38 </span>            : ///
+<span class="lineNum">      39 </span>            : /// To test it:
+<span class="lineNum">      40 </span>            : ///
+<span class="lineNum">      41 </span>            : /// ~~~{.cxx}
+<span class="lineNum">      42 </span>            : /// cdb=AliCDBManager::Instance()
+<span class="lineNum">      43 </span>            : /// cdb-&gt;SetDefaultStorage(&quot;local:///u/mmager/mycalib1&quot;)
+<span class="lineNum">      44 </span>            : /// c=AliTPCcalibDB::Instance()
+<span class="lineNum">      45 </span>            : /// c-&gt;SetRun(0)
+<span class="lineNum">      46 </span>            : /// Double_t x[]={1.0,2.0,3.0}
+<span class="lineNum">      47 </span>            : /// Int_t i[]={4}
+<span class="lineNum">      48 </span>            : /// AliTPCTransform trafo
+<span class="lineNum">      49 </span>            : /// trafo.Transform(x,i,0,1)
+<span class="lineNum">      50 </span>            : /// ~~~
+<span class="lineNum">      51 </span>            : ///
+<span class="lineNum">      52 </span>            : /// \author Magnus Mager, Marian Ivanov
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #include &quot;AliTPCROC.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;AliTPCCalPad.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliTPCCalROC.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;AliTPCcalibDB.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;AliTPCParam.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;AliTPCExB.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;AliTPCCorrection.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;TGeoMatrix.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;AliTPCRecoParam.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;AliTPCCalibVdrift.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;AliTPCTransform.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;AliMagF.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;TGeoGlobalMagField.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;AliTracker.h&quot;
+<span class="lineNum">      70 </span>            : #include &lt;AliCTPTimeParams.h&gt;
+<span class="lineNum">      71 </span>            : #include &quot;AliTPCChebCorr.h&quot;
+<span class="lineNum">      72 </span>            : #include &quot;AliTPCChebDist.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      74 </span>            : #include &quot;AliCDBEntry.h&quot;
+<span class="lineNum">      75 </span>            : #include &quot;TTreeStream.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;AliLumiTools.h&quot;
+<span class="lineNum">      77 </span>            : #include &quot;AliTPCclusterMI.h&quot;
+<span class="lineNum">      78 </span>            : #include &lt;TGraph.h&gt;
+<a name="79"><span class="lineNum">      79 </span>            : </a>
+<span class="lineNum">      80 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      81 </span><span class="lineCov">         24 : ClassImp(AliTPCTransform)</span>
+<span class="lineNum">      82 </span>            : /// \endcond
+<a name="83"><span class="lineNum">      83 </span>            : </a>
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<a name="85"><span class="lineNum">      85 </span><span class="lineCov">         24 : const Double_t AliTPCTransform::fgkSin20 = TMath::Sin(TMath::Pi()/9);       // sin(20)</span></a>
+<span class="lineNum">      86 </span><span class="lineCov">         24 : const Double_t AliTPCTransform::fgkCos20 = TMath::Cos(TMath::Pi()/9);       // cos(20)</span>
+<span class="lineNum">      87 </span><span class="lineCov">         24 : const Double_t AliTPCTransform::fgkMaxY2X = TMath::Tan(TMath::Pi()/18);      // tg(10)</span>
+<span class="lineNum">      88 </span>            : 
+<a name="89"><span class="lineNum">      89 </span>            : </a>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : AliTPCTransform::AliTPCTransform():
+<span class="lineNum">      92 </span><span class="lineCov">          3 :   AliTransform(),</span>
+<span class="lineNum">      93 </span><span class="lineCov">          3 :   fCurrentRecoParam(0),       //! current reconstruction parameters</span>
+<span class="lineNum">      94 </span><span class="lineCov">          3 :   fCorrMapCacheRef(0),</span>
+<span class="lineNum">      95 </span><span class="lineCov">          3 :   fCorrMapCache0(0),</span>
+<span class="lineNum">      96 </span><span class="lineCov">          3 :   fCorrMapCache1(0),</span>
+<span class="lineNum">      97 </span><span class="lineCov">          3 :   fCurrentMapScaling(1.0),</span>
+<span class="lineNum">      98 </span><span class="lineCov">          3 :   fCorrMapLumiCOG(0.0),</span>
+<span class="lineNum">      99 </span><span class="lineCov">          3 :   fLumiGraphRun(0),</span>
+<span class="lineNum">     100 </span><span class="lineCov">          3 :   fLumiGraphMap(0),</span>
+<span class="lineNum">     101 </span><span class="lineCov">          3 :   fCurrentRun(0),             //! current run</span>
+<span class="lineNum">     102 </span><span class="lineCov">          3 :   fCurrentTimeStamp(0),       //! current time stamp</span>
+<span class="lineNum">     103 </span><span class="lineCov">          3 :   fTimeDependentUpdated(kFALSE),</span>
+<span class="lineNum">     104 </span><span class="lineCov">          3 :   fDebugStreamer(0)</span>
+<span class="lineNum">     105 </span><span class="lineCov">         15 : {</span>
+<span class="lineNum">     106 </span>            :   //
+<span class="lineNum">     107 </span>            :   // Speed it up a bit!
+<span class="lineNum">     108 </span>            :   //
+<span class="lineNum">     109 </span><span class="lineCov">        114 :   for (Int_t i=0;i&lt;18;++i) {</span>
+<span class="lineNum">     110 </span><span class="lineCov">         54 :     Double_t alpha=TMath::DegToRad()*(10.+20.*(i%18));</span>
+<span class="lineNum">     111 </span><span class="lineCov">         54 :     fSins[i]=TMath::Sin(alpha);</span>
+<span class="lineNum">     112 </span><span class="lineCov">         54 :     fCoss[i]=TMath::Cos(alpha);</span>
+<span class="lineNum">     113 </span>            :   }
+<span class="lineNum">     114 </span><span class="lineCov">          3 :   fPrimVtx[0]=0;</span>
+<span class="lineNum">     115 </span><span class="lineCov">          3 :   fPrimVtx[1]=0;</span>
+<span class="lineNum">     116 </span><span class="lineCov">          3 :   fPrimVtx[2]=0;</span>
+<span class="lineNum">     117 </span><span class="lineCov">         30 :   for (int i=0;i&lt;4;i++) {fLastCorr[i] = fLastCorrRef[i] = 0.0f;}</span>
+<a name="118"><span class="lineNum">     118 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : AliTPCTransform::AliTPCTransform(const AliTPCTransform&amp; transform):
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   AliTransform(transform),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   fCurrentRecoParam(transform.fCurrentRecoParam),       //! current reconstruction parameters</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   fCorrMapCacheRef(transform.fCorrMapCacheRef),</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   fCorrMapCache0(transform.fCorrMapCache0),</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   fCorrMapCache1(transform.fCorrMapCache1),</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   fLumiGraphRun(transform.fLumiGraphRun ? new TGraph(*transform.fLumiGraphRun) : 0),</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   fLumiGraphMap(transform.fLumiGraphMap ? new TGraph(*transform.fLumiGraphMap) : 0),</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   fCurrentRun(transform.fCurrentRun),             //! current run</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   fCurrentTimeStamp(transform.fCurrentTimeStamp),       //! current time stamp</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   fTimeDependentUpdated(transform.fTimeDependentUpdated),</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   fDebugStreamer(0)</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     133 </span>            :   /// Speed it up a bit!
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;18;++i) {</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     Double_t alpha=TMath::DegToRad()*(10.+20.*(i%18));</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     fSins[i]=TMath::Sin(alpha);</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     fCoss[i]=TMath::Cos(alpha);</span>
+<span class="lineNum">     139 </span>            :   }
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   fPrimVtx[0]=0;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   fPrimVtx[1]=0;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   fPrimVtx[2]=0;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;4;i++) {fLastCorr[i] = fLastCorrRef[i] = 0.0f;}</span>
+<a name="144"><span class="lineNum">     144 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 : AliTPCTransform::~AliTPCTransform() {</span>
+<span class="lineNum">     147 </span>            :   /// Destructor
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   delete fLumiGraphRun; // own copy should be attached</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   delete fLumiGraphMap; // own copy should be attached</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   delete fCorrMapCacheRef;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   delete fCorrMapCache0;</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   delete fCorrMapCache1;</span>
+<a name="153"><span class="lineNum">     153 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : void AliTPCTransform::SetPrimVertex(Double_t *vtx){
+<span class="lineNum">     156 </span>            :   ///
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   fPrimVtx[0]=vtx[0];</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   fPrimVtx[1]=vtx[1];</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   fPrimVtx[2]=vtx[2];</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 : }</span>
+<a name="162"><span class="lineNum">     162 </span>            : </a>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            : void AliTPCTransform::Transform(Double_t *x,Int_t *i,UInt_t /*time*/,
+<span class="lineNum">     165 </span>            :                                 Int_t /*coordinateType*/) {
+<span class="lineNum">     166 </span>            :   /// input: x[0] - pad row
+<span class="lineNum">     167 </span>            :   ///        x[1] - pad
+<span class="lineNum">     168 </span>            :   ///        x[2] - time in us
+<span class="lineNum">     169 </span>            :   ///        i[0] - sector
+<span class="lineNum">     170 </span>            :   /// output: x[0] - x (all in the rotated global coordinate frame)
+<span class="lineNum">     171 </span>            :   /// x[1] - y
+<span class="lineNum">     172 </span>            :   /// x[2] - z
+<span class="lineNum">     173 </span>            :   ///
+<span class="lineNum">     174 </span>            :   ///  primvtx     - position of the primary vertex
+<span class="lineNum">     175 </span>            :   /// used for the TOF correction
+<span class="lineNum">     176 </span>            :   /// TOF of particle calculated assuming the speed-of-light and
+<span class="lineNum">     177 </span>            :   /// line approximation
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">     259792 :   if (!fCurrentRecoParam) return;</span>
+<span class="lineNum">     180 </span><span class="lineCov">     129896 :   Int_t row=TMath::Nint(x[0]);</span>
+<span class="lineNum">     181 </span><span class="lineCov">     129896 :   Int_t pad=TMath::Nint(x[1]);</span>
+<span class="lineNum">     182 </span><span class="lineCov">     129896 :   Int_t sector=i[0];</span>
+<span class="lineNum">     183 </span><span class="lineCov">     129896 :   AliTPCcalibDB*  calib=AliTPCcalibDB::Instance();</span>
+<span class="lineNum">     184 </span>            :   //
+<span class="lineNum">     185 </span><span class="lineCov">     129896 :   AliMagF* magF= (AliMagF*)TGeoGlobalMagField::Instance()-&gt;GetField();</span>
+<span class="lineNum">     186 </span><span class="lineCov">     129896 :   Double_t bzField = magF-&gt;SolenoidField(); //field in kGaus</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineCov">     129896 :   AliTPCCalPad * time0TPC = calib-&gt;GetPadTime0();</span>
+<span class="lineNum">     189 </span><span class="lineCov">     129896 :   AliTPCParam  * param    = calib-&gt;GetParameters();</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineCov">     129896 :   if (!param){</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     AliFatal(&quot;Parameters missing&quot;);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     return; // make coverity happy</span>
+<span class="lineNum">     194 </span>            :   }
+<span class="lineNum">     195 </span><span class="lineCov">     129896 :   if (!time0TPC){</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     AliFatal(&quot;Time unisochronity missing&quot;);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     return ; // make coverity happy</span>
+<span class="lineNum">     198 </span>            :   }
+<span class="lineNum">     199 </span>            :   
+<span class="lineNum">     200 </span>            :   // Apply Time0 correction - Pad by pad fluctuation
+<span class="lineNum">     201 </span><span class="lineCov">     259792 :   if (!calib-&gt;HasAlignmentOCDB()) x[2]-=time0TPC-&gt;GetCalROC(sector)-&gt;GetValue(row,pad);</span>
+<span class="lineNum">     202 </span>            :   //
+<span class="lineNum">     203 </span>            :   // Tranform from pad - time coordinate system to the rotated global (tracking) system
+<span class="lineNum">     204 </span><span class="lineCov">     129896 :   Local2RotatedGlobal(sector,x);</span>
+<span class="lineNum">     205 </span>            :   Bool_t isInRotated = kTRUE;
+<span class="lineNum">     206 </span>            :   //
+<span class="lineNum">     207 </span>            :   //
+<span class="lineNum">     208 </span><span class="lineCov">     129896 :   if (fCurrentRecoParam-&gt;GetUseCorrectionMap()) ApplyCorrectionMap(sector, row, x);</span>
+<span class="lineNum">     209 </span>            :   // Alignment
+<span class="lineNum">     210 </span>            :   //TODO:  calib-&gt;GetParameters()-&gt;GetClusterMatrix(sector)-&gt;LocalToMaster(x,xx);
+<span class="lineNum">     211 </span>            :   //
+<span class="lineNum">     212 </span><span class="lineCov">     129896 :   if(fCurrentRecoParam-&gt;GetUseExBCorrection()) {</span>
+<span class="lineNum">     213 </span><span class="lineCov">     129896 :     RotatedGlobal2Global(sector,x);</span>
+<span class="lineNum">     214 </span>            :     isInRotated = kFALSE;    
+<span class="lineNum">     215 </span><span class="lineCov">     129896 :     Double_t xx[3];</span>
+<span class="lineNum">     216 </span><span class="lineCov">     129896 :     calib-&gt;GetExB()-&gt;Correct(x,xx);   // old ExB correction</span>
+<span class="lineNum">     217 </span><span class="lineCov">    1039168 :     for (int i=3;i--;) x[i] = xx[i];</span>
+<span class="lineNum">     218 </span><span class="lineCov">     129896 :   }</span>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :   //
+<span class="lineNum">     221 </span>            :   // new composed  correction  - will replace soon ExB correction
+<span class="lineNum">     222 </span>            :   //
+<span class="lineNum">     223 </span><span class="lineCov">     129896 :   if(fCurrentRecoParam-&gt;GetUseComposedCorrection()) {</span>
+<span class="lineNum">     224 </span>            :     //
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     if (isInRotated) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :       RotatedGlobal2Global(sector,x);</span>
+<span class="lineNum">     227 </span>            :       isInRotated = kFALSE;          
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     AliTPCCorrection * correction = calib-&gt;GetTPCComposedCorrection();   // first user defined correction  // if does not exist  try to get it from calibDB array</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     if (!correction) correction = calib-&gt;GetTPCComposedCorrection(bzField);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     AliTPCCorrection * correctionDelta = calib-&gt;GetTPCComposedCorrectionDelta();</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     if (correction) {</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :       Float_t distPoint[3]={static_cast&lt;Float_t&gt;(x[0]),static_cast&lt;Float_t&gt;(x[1]),static_cast&lt;Float_t&gt;(x[2])};</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :       correction-&gt;CorrectPoint(distPoint, sector);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :       for (int i=3;i--;) x[i]=distPoint[i];</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :       if (correctionDelta&amp;&amp;fCurrentRecoParam-&gt;GetUseAlignmentTime()){  // appply time dependent correction if available and enabled</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         Float_t distPointDelta[3]={static_cast&lt;Float_t&gt;(x[0]),static_cast&lt;Float_t&gt;(x[1]),static_cast&lt;Float_t&gt;(x[2])};</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         correctionDelta-&gt;CorrectPoint(distPointDelta, sector);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         for (int i=3;i--;) x[i]=distPointDelta[i];</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     243 </span>            :   
+<span class="lineNum">     244 </span>            :   //
+<span class="lineNum">     245 </span>            :   // Time of flight correction
+<span class="lineNum">     246 </span>            :   //
+<span class="lineNum">     247 </span><span class="lineCov">     129896 :   if (fCurrentRecoParam-&gt;GetUseTOFCorrection()){</span>
+<span class="lineNum">     248 </span><span class="lineCov">     129896 :     const Int_t kNIS=param-&gt;GetNInnerSector(), kNOS=param-&gt;GetNOuterSector();</span>
+<span class="lineNum">     249 </span>            :     Float_t sign=1;
+<span class="lineNum">     250 </span><span class="lineCov">     129896 :     if (sector &lt; kNIS) {</span>
+<span class="lineNum">     251 </span><span class="lineCov">      92200 :       sign = (sector &lt; kNIS/2) ? 1 : -1;</span>
+<span class="lineNum">     252 </span><span class="lineCov">      92200 :     } else {</span>
+<span class="lineNum">     253 </span><span class="lineCov">      37696 :       sign = ((sector-kNIS) &lt; kNOS/2) ? 1 : -1;</span>
+<span class="lineNum">     254 </span>            :     }
+<span class="lineNum">     255 </span>            :     Float_t deltaDr =0;
+<span class="lineNum">     256 </span>            :     Float_t dist=0;
+<span class="lineNum">     257 </span><span class="lineCov">     129896 :     dist+=x[0]*x[0];  // (fPrimVtx[0]-x[0])*(fPrimVtx[0]-x[0]); // RS the vertex is anyway close to 0</span>
+<span class="lineNum">     258 </span><span class="lineCov">     129896 :     dist+=x[1]*x[1];  // (fPrimVtx[1]-x[1])*(fPrimVtx[1]-x[1]);</span>
+<span class="lineNum">     259 </span><span class="lineCov">     129896 :     dist+=(fPrimVtx[2]-x[2])*(fPrimVtx[2]-x[2]);</span>
+<span class="lineNum">     260 </span><span class="lineCov">     129896 :     dist = TMath::Sqrt(dist);</span>
+<span class="lineNum">     261 </span>            :     // drift length correction because of TOF
+<span class="lineNum">     262 </span>            :     // the drift velocity is in cm/s therefore multiplication by 0.01
+<span class="lineNum">     263 </span><span class="lineCov">     129896 :     deltaDr = (dist*(0.01*param-&gt;GetDriftV()))/TMath::C();</span>
+<span class="lineNum">     264 </span><span class="lineCov">     129896 :     x[2]+=sign*deltaDr;</span>
+<span class="lineNum">     265 </span><span class="lineCov">     129896 :   }</span>
+<span class="lineNum">     266 </span>            :   //
+<span class="lineNum">     267 </span>            :   //
+<span class="lineNum">     268 </span><span class="lineCov">     129896 :   if (!isInRotated) {</span>
+<span class="lineNum">     269 </span><span class="lineCov">     129896 :     Global2RotatedGlobal(sector,x);</span>
+<span class="lineNum">     270 </span>            :     isInRotated = kTRUE;
+<span class="lineNum">     271 </span><span class="lineCov">     129896 :   }</span>
+<span class="lineNum">     272 </span>            :   //
+<span class="lineNum">     273 </span>            :   // Apply non linear distortion correction
+<span class="lineNum">     274 </span>            :   //
+<span class="lineNum">     275 </span><span class="lineCov">     129896 :   int useFieldCorr = fCurrentRecoParam-&gt;GetUseFieldCorrection();</span>
+<span class="lineNum">     276 </span><span class="lineCov">     129896 :   if (useFieldCorr&amp;(0x2|0x4|0x8)) {</span>
+<span class="lineNum">     277 </span>            :     AliTPCCalPad * distortionMapY=0,*distortionMapZ=0,*distortionMapR=0;
+<span class="lineNum">     278 </span>            :     //
+<span class="lineNum">     279 </span>            :     // wt - to get it form the OCDB
+<span class="lineNum">     280 </span>            :     // ignore T1 and T2
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     Double_t vdrift = param-&gt;GetDriftV()/1000000.; // [cm/us]   // From dataBase: to be updated: per second (ideally)</span>
+<span class="lineNum">     282 </span>            :     Double_t ezField = 400; // [V/cm]   // to be updated: never (hopefully)
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     if (sector%36&lt;18) ezField*=-1;</span>
+<span class="lineNum">     284 </span>            :     //    Double_t wt = -10.0 * (bzField*10) * vdrift / ezField ;
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     Double_t wt = -10.0 * (bzField) * vdrift / ezField ; // RS: field is already in kGauss</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     Double_t c0=1./(1.+wt*wt);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     Double_t c1=wt/c0;</span>
+<span class="lineNum">     288 </span>            :     
+<span class="lineNum">     289 </span>            :     //can be switch on for each dimension separatelly
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     if (useFieldCorr&amp;0x2 &amp;&amp; (distortionMapY=calib-&gt;GetDistortionMap(0))) {</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :       x[1]-= c0*distortionMapY-&gt;GetCalROC(sector)-&gt;GetValue(row,pad);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       x[0]-= c1*distortionMapY-&gt;GetCalROC(sector)-&gt;GetValue(row,pad);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     if (useFieldCorr&amp;0x4 &amp;&amp; (distortionMapZ=calib-&gt;GetDistortionMap(1))) {</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :       x[2]-=distortionMapZ-&gt;GetCalROC(sector)-&gt;GetValue(row,pad);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     if (useFieldCorr&amp;0x8 &amp;&amp; (distortionMapR=calib-&gt;GetDistortionMap(2))) {</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :       x[0]-= c0*distortionMapR-&gt;GetCalROC(sector)-&gt;GetValue(row,pad);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :       x[1]-=-c1*distortionMapR-&gt;GetCalROC(sector)-&gt;GetValue(row,pad)*wt;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     301 </span>            :     //
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     303 </span>            :   //
+<a name="304"><span class="lineNum">     304 </span><span class="lineCov">     259792 : }</span></a>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            : void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
+<span class="lineNum">     307 </span>            :   /// Tranform coordinate from
+<span class="lineNum">     308 </span>            :   /// row, pad, time to x,y,z
+<span class="lineNum">     309 </span>            :   ///
+<span class="lineNum">     310 </span>            :   /// Drift Velocity
+<span class="lineNum">     311 </span>            :   /// Current implementation - common drift velocity - for full chamber
+<span class="lineNum">     312 </span>            :   /// TODO: use a map or parametrisation!
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineCov">     259792 :   if (!fCurrentRecoParam) return;</span>
+<span class="lineNum">     315 </span>            :   const  Int_t kMax =60;  // cache for 60 seconds
+<span class="lineNum">     316 </span>            :   static time_t lastStamp=-1;  //cached values
+<span class="lineNum">     317 </span>            :   static Double_t lastCorr = 1;
+<span class="lineNum">     318 </span>            :   //
+<span class="lineNum">     319 </span><span class="lineCov">     129896 :   AliTPCcalibDB*  calib=AliTPCcalibDB::Instance();</span>
+<span class="lineNum">     320 </span><span class="lineCov">     129896 :   AliTPCParam  * param    = calib-&gt;GetParameters();</span>
+<span class="lineNum">     321 </span><span class="lineCov">     129896 :   AliTPCCalibVdrift *driftCalib = AliTPCcalibDB::Instance()-&gt;GetVdrift(fCurrentRun);</span>
+<span class="lineNum">     322 </span><span class="lineCov">     129896 :   Double_t driftCorr = 1.;</span>
+<span class="lineNum">     323 </span><span class="lineCov">     129896 :   if (driftCalib){</span>
+<span class="lineNum">     324 </span>            :     //
+<span class="lineNum">     325 </span>            :     // caching drift correction - temp. fix
+<span class="lineNum">     326 </span>            :     // Extremally slow procedure
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     if ( TMath::Abs(Int_t(lastStamp)-Int_t(fCurrentTimeStamp))&lt;kMax){</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :       driftCorr = lastCorr;</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     }else{</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :       driftCorr = 1.+(driftCalib-&gt;GetPTRelative(fCurrentTimeStamp,0)+ driftCalib-&gt;GetPTRelative(fCurrentTimeStamp,1))*0.5;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :       lastCorr=driftCorr;</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       lastStamp=fCurrentTimeStamp;</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            :     }
+<span class="lineNum">     335 </span>            :   }
+<span class="lineNum">     336 </span>            :   //
+<span class="lineNum">     337 </span>            :   // simple caching non thread save
+<span class="lineNum">     338 </span>            :   static Double_t vdcorrectionTime=1;
+<span class="lineNum">     339 </span>            :   static Double_t vdcorrectionTimeGY=0;
+<span class="lineNum">     340 </span>            :   static Double_t time0corrTime=0;
+<span class="lineNum">     341 </span>            :   static Double_t deltaZcorrTime=0;
+<span class="lineNum">     342 </span>            :   static time_t    lastStampT=-1;
+<span class="lineNum">     343 </span>            :   //
+<span class="lineNum">     344 </span><span class="lineCov">     129896 :   Bool_t isChange=(lastStampT!=(Int_t)fCurrentTimeStamp)||lastStamp&lt;0;</span>
+<span class="lineNum">     345 </span><span class="lineCov">     129896 :   if (lastStampT!=(Int_t)fCurrentTimeStamp){</span>
+<span class="lineNum">     346 </span><span class="lineCov">          2 :     lastStampT=fCurrentTimeStamp;</span>
+<span class="lineNum">     347 </span><span class="lineCov">          2 :     if(fCurrentRecoParam-&gt;GetUseDriftCorrectionTime()&gt;0) {</span>
+<span class="lineNum">     348 </span><span class="lineCov">          4 :       vdcorrectionTime = (1+AliTPCcalibDB::Instance()-&gt;</span>
+<span class="lineNum">     349 </span><span class="lineCov">          2 :                           GetVDriftCorrectionTime(fCurrentTimeStamp,</span>
+<span class="lineNum">     350 </span><span class="lineCov">          2 :                                                   fCurrentRun,</span>
+<span class="lineNum">     351 </span><span class="lineCov">          2 :                                                   sector%36&gt;=18,</span>
+<span class="lineNum">     352 </span><span class="lineCov">          2 :                                                   fCurrentRecoParam-&gt;GetUseDriftCorrectionTime()));</span>
+<span class="lineNum">     353 </span><span class="lineCov">          4 :       time0corrTime= AliTPCcalibDB::Instance()-&gt;</span>
+<span class="lineNum">     354 </span><span class="lineCov">          2 :         GetTime0CorrectionTime(fCurrentTimeStamp,</span>
+<span class="lineNum">     355 </span><span class="lineCov">          2 :                                fCurrentRun,</span>
+<span class="lineNum">     356 </span>            :                                sector%36&gt;=18,
+<span class="lineNum">     357 </span><span class="lineCov">          2 :                                fCurrentRecoParam-&gt;GetUseDriftCorrectionTime());</span>
+<span class="lineNum">     358 </span>            :       //
+<span class="lineNum">     359 </span><span class="lineCov">          4 :       deltaZcorrTime= AliTPCcalibDB::Instance()-&gt;</span>
+<span class="lineNum">     360 </span><span class="lineCov">          2 :         GetVDriftCorrectionDeltaZ(fCurrentTimeStamp,</span>
+<span class="lineNum">     361 </span><span class="lineCov">          2 :                                fCurrentRun,</span>
+<span class="lineNum">     362 </span>            :                                sector%36&gt;=18,
+<span class="lineNum">     363 </span>            :                                0);
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     366 </span>            :     //
+<span class="lineNum">     367 </span><span class="lineCov">          2 :     if(fCurrentRecoParam-&gt;GetUseDriftCorrectionGY()&gt;0) {</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineCov">          4 :       Double_t corrGy= AliTPCcalibDB::Instance()-&gt;</span>
+<span class="lineNum">     370 </span><span class="lineCov">          2 :                         GetVDriftCorrectionGy(fCurrentTimeStamp,</span>
+<span class="lineNum">     371 </span><span class="lineCov">          2 :                                               AliTPCcalibDB::Instance()-&gt;GetRun(),</span>
+<span class="lineNum">     372 </span><span class="lineCov">          2 :                                               sector%36&gt;=18,</span>
+<span class="lineNum">     373 </span><span class="lineCov">          2 :                                               fCurrentRecoParam-&gt;GetUseDriftCorrectionGY());</span>
+<span class="lineNum">     374 </span><span class="lineCov">          2 :       vdcorrectionTimeGY = corrGy;</span>
+<span class="lineNum">     375 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     376 </span>            :   }
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineCov">     129896 :   if (!param){</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     AliFatal(&quot;Parameters missing&quot;);</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     return; // make coverity happy</span>
+<span class="lineNum">     382 </span>            :   }
+<span class="lineNum">     383 </span><span class="lineCov">     129896 :   Int_t row=TMath::Nint(x[0]);</span>
+<span class="lineNum">     384 </span>            :   //  Int_t pad=TMath::Nint(x[1]);
+<span class="lineNum">     385 </span>            :   //
+<span class="lineNum">     386 </span><span class="lineCov">     129896 :   const Int_t kNIS=param-&gt;GetNInnerSector(), kNOS=param-&gt;GetNOuterSector();</span>
+<span class="lineNum">     387 </span>            :   Double_t sign = 1.;
+<span class="lineNum">     388 </span><span class="lineCov">     129896 :   Double_t zwidth    = param-&gt;GetZWidth()*driftCorr;</span>
+<span class="lineNum">     389 </span><span class="lineCov">     129896 :   Float_t xyzPad[3];</span>
+<span class="lineNum">     390 </span><span class="lineCov">     129896 :   AliTPCROC::Instance()-&gt;GetPositionGlobal(sector, TMath::Nint(x[0]) ,TMath::Nint(x[1]), xyzPad);</span>
+<span class="lineNum">     391 </span><span class="lineCov">     259792 :   if (AliTPCRecoParam:: GetUseTimeCalibration()) zwidth*=vdcorrectionTime*(1+xyzPad[1]*vdcorrectionTimeGY);</span>
+<span class="lineNum">     392 </span>            :   Double_t padWidth  = 0;
+<span class="lineNum">     393 </span>            :   Double_t padLength = 0;
+<span class="lineNum">     394 </span>            :   Double_t    maxPad    = 0;
+<span class="lineNum">     395 </span>            :   //
+<span class="lineNum">     396 </span><span class="lineCov">     129896 :   if (sector &lt; kNIS) {</span>
+<span class="lineNum">     397 </span><span class="lineCov">      92200 :     maxPad = param-&gt;GetNPadsLow(row);</span>
+<span class="lineNum">     398 </span><span class="lineCov">      92200 :     sign = (sector &lt; kNIS/2) ? 1 : -1;</span>
+<span class="lineNum">     399 </span><span class="lineCov">      92200 :     padLength = param-&gt;GetPadPitchLength(sector,row);</span>
+<span class="lineNum">     400 </span><span class="lineCov">      92200 :     padWidth = param-&gt;GetPadPitchWidth(sector);</span>
+<span class="lineNum">     401 </span><span class="lineCov">      92200 :   } else {</span>
+<span class="lineNum">     402 </span><span class="lineCov">      37696 :     maxPad = param-&gt;GetNPadsUp(row);</span>
+<span class="lineNum">     403 </span><span class="lineCov">      37696 :     sign = ((sector-kNIS) &lt; kNOS/2) ? 1 : -1;</span>
+<span class="lineNum">     404 </span><span class="lineCov">      37696 :     padLength = param-&gt;GetPadPitchLength(sector,row);</span>
+<span class="lineNum">     405 </span><span class="lineCov">      37696 :     padWidth  = param-&gt;GetPadPitchWidth(sector);</span>
+<span class="lineNum">     406 </span>            :   }
+<span class="lineNum">     407 </span>            :   //
+<span class="lineNum">     408 </span>            :   // X coordinate
+<span class="lineNum">     409 </span><span class="lineCov">     129896 :   x[0] = param-&gt;GetPadRowRadii(sector,row);  // padrow X position - ideal</span>
+<span class="lineNum">     410 </span>            :   //
+<span class="lineNum">     411 </span>            :   // Y coordinate
+<span class="lineNum">     412 </span>            :   //
+<span class="lineNum">     413 </span><span class="lineCov">     129896 :   x[1]=(x[1]-0.5*maxPad)*padWidth;</span>
+<span class="lineNum">     414 </span>            :   // pads are mirrorred on C-side
+<span class="lineNum">     415 </span><span class="lineCov">     129896 :   if (sector%36&gt;17){</span>
+<span class="lineNum">     416 </span><span class="lineCov">      62556 :     x[1]*=-1;</span>
+<span class="lineNum">     417 </span><span class="lineCov">      62556 :   }</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :   //
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            :   //
+<span class="lineNum">     422 </span>            :   // Z coordinate
+<span class="lineNum">     423 </span>            :   //
+<span class="lineNum">     424 </span><span class="lineCov">     129896 :   Double_t delay=0;</span>
+<span class="lineNum">     425 </span><span class="lineCov">     129896 :   if (AliTPCcalibDB::Instance()-&gt;IsTrgL0()){</span>
+<span class="lineNum">     426 </span>            :     // by defualt we assume L1 trigger is used - make a correction in case of  L0
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     AliCTPTimeParams* ctp = AliTPCcalibDB::Instance()-&gt;GetCTPTimeParams();</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     if (ctp){</span>
+<span class="lineNum">     429 </span>            :       //for TPC standalone runs no ctp info
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :       delay = ctp-&gt;GetDelayL1L0()*0.000000025;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :       delay/=param-&gt;GetTSample();</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :       x[2]-=delay;</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     435 </span><span class="lineCov">     259792 :   if (isChange &amp;&amp; fDebugStreamer!=NULL){</span>
+<span class="lineNum">     436 </span>            :     //
+<span class="lineNum">     437 </span>            :     //
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     Double_t zwidth=param-&gt;GetZWidth();</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     Double_t binsL1=param-&gt;GetNTBinsL1();</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     Double_t zsigma=param-&gt;GetZSigma();</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     (*fDebugStreamer)&lt;&lt;&quot;transformDump&quot;&lt;&lt;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       &quot;fCurrentTimeStamp=&quot;&lt;&lt;lastStampT&lt;&lt;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :       &quot;zwidth=&quot;&lt;&lt;zwidth&lt;&lt;                                      // nominal z drift</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :       &quot;delay=&quot;&lt;&lt;delay&lt;&lt;                                           // trigger delay</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :       &quot;binsL1=&quot;&lt;&lt;binsL1&lt;&lt;                                       // L1 delay</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :       &quot;zsigma=&quot;&lt;&lt;zsigma&lt;&lt;                                     // z sigma</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :       &quot;driftCorr=&quot;&lt;&lt;driftCorr&lt;&lt;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :       &quot;vdcorrectionTime=&quot;&lt;&lt;vdcorrectionTime&lt;&lt;</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :       &quot;time0corrTime=&quot;&lt;&lt;time0corrTime&lt;&lt;</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :       &quot;deltaZcorrTime=&quot;&lt;&lt;deltaZcorrTime&lt;&lt;</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       &quot;vdcorrectionTimeGY=&quot;&lt;&lt;vdcorrectionTimeGY&lt;&lt;</span>
+<span class="lineNum">     452 </span>            :       &quot;\n&quot;;
+<span class="lineNum">     453 </span>            :       
+<span class="lineNum">     454 </span>            :       
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     456 </span><span class="lineCov">     129896 :   x[2]-= param-&gt;GetNTBinsL1();</span>
+<span class="lineNum">     457 </span><span class="lineCov">     129896 :   x[2]*= zwidth;  // tranform time bin to the distance to the ROC</span>
+<span class="lineNum">     458 </span><span class="lineCov">     129896 :   x[2]-= 3.*param-&gt;GetZSigma() + time0corrTime;</span>
+<span class="lineNum">     459 </span>            :   // subtract the time offsets
+<span class="lineNum">     460 </span><span class="lineCov">     129896 :   x[2] = sign*( param-&gt;GetZLength(sector) - x[2]);</span>
+<span class="lineNum">     461 </span><span class="lineCov">     129896 :   x[2]-=deltaZcorrTime;   // subtrack time dependent z shift (calibrated together with the drift velocity and T0)</span>
+<a name="462"><span class="lineNum">     462 </span><span class="lineCov">     389688 : }</span></a>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            : void AliTPCTransform::RotatedGlobal2Global(Int_t sector,Double_t *x) const {
+<span class="lineNum">     465 </span>            :   /// transform possition rotated global to the global
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineCov">     259792 :   Double_t cos,sin;</span>
+<span class="lineNum">     468 </span><span class="lineCov">     129896 :   GetCosAndSin(sector,cos,sin);</span>
+<span class="lineNum">     469 </span><span class="lineCov">     129896 :   Double_t tmp=x[0];</span>
+<span class="lineNum">     470 </span><span class="lineCov">     129896 :   x[0]= cos*tmp-sin*x[1];</span>
+<span class="lineNum">     471 </span><span class="lineCov">     129896 :   x[1]=+sin*tmp+cos*x[1];</span>
+<a name="472"><span class="lineNum">     472 </span><span class="lineCov">     129896 : }</span></a>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span>            : void AliTPCTransform::Global2RotatedGlobal(Int_t sector,Double_t *x) const {
+<span class="lineNum">     475 </span>            :   /// tranform possition Global2RotatedGlobal
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineCov">     259792 :   Double_t cos,sin;</span>
+<span class="lineNum">     478 </span><span class="lineCov">     129896 :   GetCosAndSin(sector,cos,sin);</span>
+<span class="lineNum">     479 </span><span class="lineCov">     129896 :   Double_t tmp=x[0];</span>
+<span class="lineNum">     480 </span><span class="lineCov">     129896 :   x[0]= cos*tmp+sin*x[1];</span>
+<span class="lineNum">     481 </span><span class="lineCov">     129896 :   x[1]= -sin*tmp+cos*x[1];</span>
+<a name="482"><span class="lineNum">     482 </span><span class="lineCov">     129896 : }</span></a>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            : void AliTPCTransform::GetCosAndSin(Int_t sector,Double_t &amp;cos,
+<span class="lineNum">     485 </span>            :                                           Double_t &amp;sin) const {
+<span class="lineNum">     486 </span><span class="lineCov">     519584 :   cos=fCoss[sector%18];</span>
+<span class="lineNum">     487 </span><span class="lineCov">     259792 :   sin=fSins[sector%18];</span>
+<span class="lineNum">     488 </span><span class="lineCov">     259792 : }</span>
+<a name="489"><span class="lineNum">     489 </span>            : </a>
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span>            : void AliTPCTransform::ApplyTransformations(Double_t */*xyz*/, Int_t /*volID*/){
+<span class="lineNum">     492 </span>            :   /// Modify global position
+<span class="lineNum">     493 </span>            :   /// xyz    - global xyz position
+<span class="lineNum">     494 </span>            :   /// volID  - volID of detector (sector number)
+<span class="lineNum">     495 </span>            : 
+<a name="496"><span class="lineNum">     496 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : void AliTPCTransform::SetCurrentTimeStamp(time_t timeStamp) 
+<span class="lineNum">     499 </span>            : {
+<span class="lineNum">     500 </span>            :   // set event time stamp and if needed, upload caches
+<span class="lineNum">     501 </span><span class="lineCov">         42 :   fCurrentTimeStamp = timeStamp;</span>
+<span class="lineNum">     502 </span><span class="lineCov">         21 :   fTimeDependentUpdated = kFALSE;</span>
+<span class="lineNum">     503 </span><span class="lineCov">         21 :   UpdateTimeDependentCache();</span>
+<a name="504"><span class="lineNum">     504 </span><span class="lineCov">         21 : }</span></a>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span>            : Bool_t AliTPCTransform::UpdateTimeDependentCache()
+<span class="lineNum">     507 </span>            : {
+<span class="lineNum">     508 </span>            :   // update cache for time-dependent parameters
+<span class="lineNum">     509 </span>            :   //
+<span class="lineNum">     510 </span>            :   static time_t lastTimeStamp = -1;
+<span class="lineNum">     511 </span><span class="lineCov">         42 :   fTimeDependentUpdated = kFALSE;</span>
+<span class="lineNum">     512 </span>            :   //
+<span class="lineNum">     513 </span><span class="lineCov">         21 :   Bool_t timeChanged = lastTimeStamp!=fCurrentTimeStamp;</span>
+<span class="lineNum">     514 </span><span class="lineCov">         21 :   if (!fCurrentRecoParam) {</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     AliWarning(&quot;RecoParam is not set, do nothing&quot;);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     return fTimeDependentUpdated;</span>
+<span class="lineNum">     517 </span>            :   }
+<span class="lineNum">     518 </span><span class="lineCov">         21 :   while (fCurrentRecoParam-&gt;GetUseCorrectionMap()) {</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     if (!fCorrMapCacheRef) fCorrMapCacheRef = LoadFieldDependendStaticCorrectionMap(kTRUE); // need to load the reference correction map</span>
+<span class="lineNum">     520 </span>            :     //
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     int mapTimeDepMethod = fCurrentRecoParam-&gt;GetCorrMapTimeDepMethod();</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     Bool_t needToLoad = timeChanged;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     if (fCorrMapCache0 &amp;&amp; timeChanged) { // do we need to update already loaded maps?</span>
+<span class="lineNum">     524 </span>            :       // 1: easiest case: map is already cached, it is either time-static or there is 
+<span class="lineNum">     525 </span>            :       // no other map to follow
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :       if (!fCorrMapCache0-&gt;GetTimeDependent()) needToLoad = kFALSE;   // maps are not time dependent, no update needed</span>
+<span class="lineNum">     527 </span>            :       //
+<span class="lineNum">     528 </span>            :       // 2: still easy: time dependent in interpolation mode but we have in memory all what we need
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :       if (fCorrMapCache1 &amp;&amp; // interpolation method already triggered loading of 2nd map</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :           ( (fCurrentTimeStamp&gt;=fCorrMapCache0-&gt;GetTimeStampCenter()&amp;&amp; // still covered by already loaded</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :              fCurrentTimeStamp&lt;=fCorrMapCache1-&gt;GetTimeStampCenter()) // interpolation region</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :             ||</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :             (fCurrentTimeStamp&lt;fCorrMapCache0-&gt;GetTimeStampEnd()&amp;&amp;fCorrMapCache0-&gt;IsFirst()) // no earlier object</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :             ||</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :             (fCurrentTimeStamp&gt;fCorrMapCache1-&gt;GetTimeStampStart()&amp;&amp;fCorrMapCache1-&gt;IsLast()) // no later object</span>
+<span class="lineNum">     536 </span>            :             ) ) {
+<span class="lineNum">     537 </span>            :         needToLoad = kFALSE; // no update needed
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     539 </span>            :       // 3: still easy: time depenedent but only 1 map needed (no interpolation)
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       if ( (mapTimeDepMethod!=AliTPCRecoParam::kCorrMapInterpolation) </span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :            &amp;&amp;</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :            ((fCurrentTimeStamp&lt;=fCorrMapCache0-&gt;GetTimeStampEnd() &amp;&amp; </span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :              (fCurrentTimeStamp&gt;=fCorrMapCache0-&gt;GetTimeStampStart()||fCorrMapCache0-&gt;IsFirst()))</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :             ||</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :             (fCurrentTimeStamp&gt;=fCorrMapCache0-&gt;GetTimeStampStart() &amp;&amp; </span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :              (fCurrentTimeStamp&lt;=fCorrMapCache0-&gt;GetTimeStampEnd()||fCorrMapCache0-&gt;IsLast()))</span>
+<span class="lineNum">     547 </span>            :             )) {
+<span class="lineNum">     548 </span>            :         needToLoad = kFALSE; // still covered by existing map or no other map to load
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     550 </span>            :     }
+<span class="lineNum">     551 </span>            :     //
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (needToLoad) { // need to upload correction maps, potentially time dependent</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :       TObjArray* mapsArr = LoadCorrectionMaps(kFALSE);</span>
+<span class="lineNum">     554 </span>            :       // are these time-static maps?
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :       if (!((AliTPCChebCorr*)mapsArr-&gt;UncheckedAt(0))-&gt;GetTimeDependent()) {</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         fCorrMapCache0 = LoadFieldDependendStaticCorrectionMap(kFALSE,mapsArr); // static maps are field-dependent</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     558 </span>            :       else {
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :         LoadCorrectionMapsForTimeBin(mapsArr); // load maps matching to time stamp</span>
+<span class="lineNum">     560 </span>            :       }
+<span class="lineNum">     561 </span>            :       // clean unneeded object to save the memory
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :       mapsArr-&gt;Remove((TObject*)fCorrMapCache0);</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :       if (fCorrMapCache1) mapsArr-&gt;Remove((TObject*)fCorrMapCache1);</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :       mapsArr-&gt;SetOwner(kTRUE);</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :       delete mapsArr;</span>
+<span class="lineNum">     566 </span>            :       //
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :       if (fCorrMapCache0 &amp;&amp; !fCorrMapCache0-&gt;IsCorrection()) </span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :         AliFatalF(&quot;Uploaded map is not correction: %s&quot;,fCorrMapCache0-&gt;IsA()-&gt;GetName());</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :       if (fCorrMapCache1 &amp;&amp; !fCorrMapCache1-&gt;IsCorrection()) </span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :         AliFatalF(&quot;Uploaded map is not correction: %s&quot;,fCorrMapCache1-&gt;IsA()-&gt;GetName());</span>
+<span class="lineNum">     571 </span>            :       
+<span class="lineNum">     572 </span>            :       // check time stamps
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :       if (fCorrMapCache0 &amp;&amp; fCorrMapCache0-&gt;GetTimeStampStart()&gt;fCurrentTimeStamp) {</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :         AliWarningF(&quot;Event timestamp %ld &lt; map0 beginning %ld&quot;,fCurrentTimeStamp,fCorrMapCache0-&gt;GetTimeStampStart());</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :       if (fCorrMapCache1) {</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         if (fCorrMapCache1-&gt;GetTimeStampEnd()&lt;fCurrentTimeStamp) {</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :           AliWarningF(&quot;Event timestamp %ld &gt; map1 end %ld&quot;,fCurrentTimeStamp,fCorrMapCache1-&gt;GetTimeStampEnd());</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     580 </span>            :       } 
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :       else if (fCorrMapCache0-&gt;GetTimeStampEnd()&lt;fCurrentTimeStamp) {</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         AliWarningF(&quot;Event timestamp %ld &gt; map0 end %ld&quot;,fCurrentTimeStamp,fCorrMapCache0-&gt;GetTimeStampEnd());</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     585 </span>            :     // do we need to update luminosity scaling params?
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     if (timeChanged) { </span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :       switch(mapTimeDepMethod) {</span>
+<span class="lineNum">     588 </span>            :       case AliTPCRecoParam::kCorrMapInterpolation :
+<span class="lineNum">     589 </span>            :       case AliTPCRecoParam::kCorrMapNoScaling     : break;
+<span class="lineNum">     590 </span>            :       case AliTPCRecoParam::kCorrMapGlobalScalingLumi: 
+<span class="lineNum">     591 </span>            :         // load lumi graph used for map (run may be different from current one if the map is default one)
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :         if (!fLumiGraphMap) {</span>
+<span class="lineNum">     593 </span>            :           //if (!fLumiGraphMap || fLumiGraphMap-&gt;GetUniqueID()!=fCorrMapCache0-&gt;GetRun()) {
+<span class="lineNum">     594 </span>            :           //if (fLumiGraphMap) delete fLumiGraphMap;
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :           int runMap = fCorrMapCache0-&gt;GetRun();</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :           if (runMap&lt;0) AliErrorF(&quot;CorrectionMap Lumi scaling requested but run is not set, current %d will be used&quot;,fCurrentRun);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :           fLumiGraphMap = AliLumiTools::GetLumiGraph(fCurrentRecoParam-&gt;GetUseLumiType(),runMap);</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :           if (!fLumiGraphMap) AliFatalF(&quot;Failed to load CorrectionMapluminosity lumi graph of type %d&quot;,fCurrentRecoParam-&gt;GetUseLumiType());</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     600 </span>            :         // load lumi graph for this run
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         if (!fLumiGraphRun) {</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :           fLumiGraphRun = AliLumiTools::GetLumiGraph(fCurrentRecoParam-&gt;GetUseLumiType(),fCurrentRun);</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :           if (!fLumiGraphRun) AliFatalF(&quot;Failed to load run lumi graph of type %d&quot;,fCurrentRecoParam-&gt;GetUseLumiType());</span>
+<span class="lineNum">     604 </span>            :         }
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         if (needToLoad) {  // calculate average luminosity used for current corr. map</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :           fCorrMapLumiCOG = fCorrMapCache0-&gt;GetLuminosityCOG(fLumiGraphMap); // recalculate lumi for new map</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :           if (!fCorrMapLumiCOG) AliError(&quot;Correction map rescaling with luminosity cannot be done, will use constant map&quot;);</span>
+<span class="lineNum">     608 </span>            :         }
+<span class="lineNum">     609 </span>            :         //
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         fCurrentMapScaling = 1.0;</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :         if (fCorrMapLumiCOG&gt;0) {</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :           double lumi = fLumiGraphRun-&gt;Eval(fCurrentTimeStamp);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :           fCurrentMapScaling = lumi/fCorrMapLumiCOG;</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :           AliInfoF(&quot;Luminosity scaling factor %.3f will be used for time %ld (Lumi: current: %.2e COG:%.2e)&quot;,</span>
+<span class="lineNum">     615 </span>            :                    fCurrentMapScaling,fCurrentTimeStamp,lumi,fCorrMapLumiCOG);
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     617 </span>            :         //
+<span class="lineNum">     618 </span>            :         break;
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :       default: AliFatalF(&quot;Unknown corrections time-evolution mode %d&quot;,mapTimeDepMethod);</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :       };</span>
+<span class="lineNum">     621 </span>            :     }
+<span class="lineNum">     622 </span>            :     //
+<span class="lineNum">     623 </span>            :     break;
+<span class="lineNum">     624 </span>            :   } // loading of correction maps
+<span class="lineNum">     625 </span>            :   //
+<span class="lineNum">     626 </span>            :   // other time dependent stuff if needed
+<span class="lineNum">     627 </span>            :   //
+<span class="lineNum">     628 </span><span class="lineCov">         21 :   lastTimeStamp = fCurrentTimeStamp;</span>
+<span class="lineNum">     629 </span><span class="lineCov">         21 :   fTimeDependentUpdated = kTRUE;</span>
+<span class="lineNum">     630 </span><span class="lineCov">         21 :   return fTimeDependentUpdated;</span>
+<span class="lineNum">     631 </span><span class="lineCov">         21 : }</span>
+<a name="632"><span class="lineNum">     632 </span>            : </a>
+<span class="lineNum">     633 </span>            : //______________________________________________________
+<span class="lineNum">     634 </span>            : void AliTPCTransform::LoadCorrectionMapsForTimeBin(TObjArray* mapsArrProvided)
+<span class="lineNum">     635 </span>            : {
+<span class="lineNum">     636 </span>            :   // loads time-independent correction map for given time bin
+<span class="lineNum">     637 </span>            :   // 
+<span class="lineNum">     638 </span>            :   TObjArray* mapsArr = mapsArrProvided;
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :   if (!mapsArr) mapsArr = LoadCorrectionMaps(kFALSE);</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :   int entries = mapsArr-&gt;GetEntriesFast();</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :   delete fCorrMapCache0;</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :   delete fCorrMapCache1;</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :   fCorrMapCache0 = fCorrMapCache1 = 0;</span>
+<span class="lineNum">     644 </span>            :   //1) choose map covering current time stamp.
+<span class="lineNum">     645 </span>            :   int selID=0;
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :   for (selID=0;selID&lt;entries;selID++) { // maps are ordered in time</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :     fCorrMapCache0 = (AliTPCChebCorr*)mapsArr-&gt;UncheckedAt(selID);</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     if (fCurrentTimeStamp &gt; fCorrMapCache0-&gt;GetTimeStampEnd()) { </span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :       if (selID==entries-1) break; // in case the maps end limit &lt; timestamp close to EOR</span>
+<span class="lineNum">     650 </span>            :     }
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     else if (fCurrentTimeStamp &lt; fCorrMapCache0-&gt;GetTimeStampStart()) {</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :       if (!selID) break; // in case the maps start limit &gt; timestamp close to SOR</span>
+<span class="lineNum">     653 </span>            :     }
+<span class="lineNum">     654 </span>            :     else break;  // exact match
+<span class="lineNum">     655 </span>            :   }
+<span class="lineNum">     656 </span>            :   // this should not happen
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :   if (!fCorrMapCache0) AliFatalF(&quot;Did not find map matching to timestamp %ld&quot;,fCurrentTimeStamp);</span>
+<span class="lineNum">     658 </span>            :   //
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :   if (!selID) fCorrMapCache0-&gt;SetFirst(); // flag if there are maps before/after</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :   if (selID==entries-1) fCorrMapCache0-&gt;SetLast();</span>
+<span class="lineNum">     661 </span>            :   //
+<span class="lineNum">     662 </span>            :   // if we are in the interpolation mode, load 2nd closest map
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   if (fCurrentRecoParam-&gt;GetCorrMapTimeDepMethod()==AliTPCRecoParam::kCorrMapInterpolation) {</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     if (fCurrentTimeStamp&lt;=fCorrMapCache0-&gt;GetTimeStampCenter()) { // load map before or closest, if any</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :       if (selID) fCorrMapCache1 = (AliTPCChebCorr*)mapsArr-&gt;UncheckedAt(--selID);</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :       else if (selID&lt;entries-1) fCorrMapCache1 = (AliTPCChebCorr*)mapsArr-&gt;UncheckedAt(++selID);</span>
+<span class="lineNum">     667 </span>            :     }
+<span class="lineNum">     668 </span>            :     else { // load map after or closest, if any
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :       if (selID&lt;entries-1) fCorrMapCache1 = (AliTPCChebCorr*)mapsArr-&gt;UncheckedAt(++selID);</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :       else if (selID) fCorrMapCache1 = (AliTPCChebCorr*)mapsArr-&gt;UncheckedAt(--selID);</span>
+<span class="lineNum">     671 </span>            :     }
+<span class="lineNum">     672 </span>            :     //
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :     if (fCorrMapCache1) {</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :       if (!selID) fCorrMapCache1-&gt;SetFirst(); // flag if there are maps before/after</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :       if (selID==entries-1) fCorrMapCache0-&gt;SetLast();</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :       if (fCorrMapCache1-&gt;GetTimeStampStart()&lt;fCorrMapCache0-&gt;GetTimeStampStart()) {</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :         AliTPCChebCorr* tmp = fCorrMapCache1; // swap to order in time</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :         fCorrMapCache1 = fCorrMapCache0;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :         fCorrMapCache0 = tmp;</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     681 </span>            :     }
+<span class="lineNum">     682 </span>            :     //
+<span class="lineNum">     683 </span>            :   }
+<span class="lineNum">     684 </span>            :   //
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :   AliInfoF(&quot;Loaded %d maps for time stamp %ld&quot;,fCorrMapCache1?2:1,fCurrentTimeStamp);</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :   fCorrMapCache0-&gt;Print();</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   if (fCorrMapCache1) fCorrMapCache1-&gt;Print();</span>
+<span class="lineNum">     688 </span>            :   //
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   if (!mapsArrProvided) { // if loaded locally, clean unnecessary stuff</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     mapsArr-&gt;Remove((TObject*)fCorrMapCache0);</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     if (fCorrMapCache1) mapsArr-&gt;Remove((TObject*)fCorrMapCache1);</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     mapsArr-&gt;SetOwner(kTRUE);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     delete mapsArr;</span>
+<span class="lineNum">     694 </span>            :   }
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 : }</span>
+<a name="696"><span class="lineNum">     696 </span>            : </a>
+<span class="lineNum">     697 </span>            : //______________________________________________________
+<span class="lineNum">     698 </span>            : AliTPCChebCorr* AliTPCTransform::LoadFieldDependendStaticCorrectionMap(Bool_t ref, TObjArray* mapsArrProvided)
+<span class="lineNum">     699 </span>            : {
+<span class="lineNum">     700 </span>            :   // loads time-independent correction map for relevan field polarity. If ref is true, then the
+<span class="lineNum">     701 </span>            :   // reference map is loaded
+<span class="lineNum">     702 </span>            :   // 
+<span class="lineNum">     703 </span>            :   const float kZeroField = 0.1;
+<span class="lineNum">     704 </span>            :   TObjArray* mapsArr = mapsArrProvided;
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :   if (!mapsArr) mapsArr = LoadCorrectionMaps(ref);</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   int entries = mapsArr-&gt;GetEntriesFast();</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :   AliMagF* magF= (AliMagF*)TGeoGlobalMagField::Instance()-&gt;GetField(); // think on extracting field once only</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :   Double_t bzField = magF-&gt;SolenoidField(); //field in kGaus</span>
+<span class="lineNum">     709 </span>            :   Char_t expectType = AliTPCChebCorr::kFieldZero;
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :   if      (bzField&lt;-kZeroField) expectType = AliTPCChebCorr::kFieldNeg;</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :   else if (bzField&gt; kZeroField) expectType = AliTPCChebCorr::kFieldPos;</span>
+<span class="lineNum">     712 </span>            :   //
+<span class="lineNum">     713 </span>            :   AliTPCChebCorr* cormap = 0;
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;entries;i++) {</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     AliTPCChebCorr* map = (AliTPCChebCorr*)mapsArr-&gt;At(i); if (!map) continue;</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     if (!map-&gt;IsCorrection()) continue;</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     Char_t mtp = map-&gt;GetFieldType();</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     if (mtp==expectType || mtp==AliTPCChebCorr::kFieldAny) cormap = map;</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     if (mtp==expectType) break;</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :   if (!cormap) AliFatalGeneralF(&quot;AliTPCTransform&quot;,&quot;Did not find %s correction map&quot;,ref ? &quot;reference&quot;:&quot;&quot;);</span>
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   AliInfoGeneralF(&quot;AliTPCTransform&quot;,&quot;Loaded  %s correction map&quot;,ref ? &quot;reference&quot;:&quot;&quot;);</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :   cormap-&gt;Print();</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   if (cormap-&gt;GetFieldType() == AliTPCChebCorr::kFieldAny) {</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     AliWarningGeneralF(&quot;AliTPCTransform&quot;,&quot;ATTENTION: no map for field %+.1f was found, placeholder map is used&quot;,bzField);</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     728 </span>            :   //
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :   cormap-&gt;SetFirst(); // flag absence of maps before</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :   cormap-&gt;SetLast();  // and after</span>
+<span class="lineNum">     731 </span>            :   //
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :   if (!mapsArrProvided) { // if loaded locally, clean unnecessary stuff</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     mapsArr-&gt;Remove((TObject*)cormap);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :     mapsArr-&gt;SetOwner(kTRUE);</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     delete mapsArr;</span>
+<span class="lineNum">     736 </span>            :   }
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :   return cormap;</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 : }</span>
+<a name="739"><span class="lineNum">     739 </span>            : </a>
+<span class="lineNum">     740 </span>            : //______________________________________________________
+<span class="lineNum">     741 </span>            : TObjArray* AliTPCTransform::LoadCorrectionMaps(Bool_t refMap)
+<span class="lineNum">     742 </span>            : {
+<span class="lineNum">     743 </span>            :   // TPC fast Chebyshev correction map, loaded on demand, not handler by calibDB
+<span class="lineNum">     744 </span>            :   const char* kNameRef = &quot;TPC/Calib/CorrectionMapsRef&quot;;
+<span class="lineNum">     745 </span>            :   const char* kNameRun = &quot;TPC/Calib/CorrectionMaps&quot;;
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :   const char* mapTypeName = refMap ? kNameRef : kNameRun;</span>
+<span class="lineNum">     747 </span>            :   //
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :   AliCDBManager* man = AliCDBManager::Instance();</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = man-&gt;Get(mapTypeName);</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :   TObjArray* correctionMaps = (TObjArray*)entry-&gt;GetObject();</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :   for (int i=correctionMaps-&gt;GetEntriesFast();i--;) {</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     AliTPCChebCorr* map = (AliTPCChebCorr*)correctionMaps-&gt;At(i);</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     map-&gt;Init();</span>
+<span class="lineNum">     754 </span>            :   }
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :   entry-&gt;SetOwner(0);</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :   entry-&gt;SetObject(0);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   man-&gt;UnloadFromCache(mapTypeName);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   return correctionMaps;</span>
+<span class="lineNum">     759 </span>            :   //
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 : }</span>
+<a name="761"><span class="lineNum">     761 </span>            : </a>
+<span class="lineNum">     762 </span>            : //______________________________________________________
+<span class="lineNum">     763 </span>            : void AliTPCTransform::ApplyCorrectionMap(int roc, int row, double xyzSect[3])
+<span class="lineNum">     764 </span>            : {
+<span class="lineNum">     765 </span>            :   // apply correction from the map to a point at given ROC and row (IROC/OROC convention)
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :   EvalCorrectionMap(roc, row, xyzSect, fLastCorrRef, kTRUE);</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :   EvalCorrectionMap(roc, row, xyzSect, fLastCorr, kFALSE);</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :   if (fLastCorr[3]&lt;1e-6) { // run specific map had no parameterization for this region, override by default</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     for (int i=3;i--;) fLastCorr[i] = fLastCorrRef[i];</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :     fLastCorr[3] = 0.f;</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     772 </span>            :   else {
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :     fLastCorr[3] = fLastCorr[3]&gt;fLastCorrRef[3] ? TMath::Sqrt(fLastCorr[3]*fLastCorr[3] - fLastCorrRef[3]*fLastCorrRef[3]) : 0;</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     if (fCurrentMapScaling!=1.0f) {</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       for (int i=3;i--;) fLastCorr[i] = (fLastCorr[i]-fLastCorrRef[i])*fCurrentMapScaling + fLastCorrRef[i];</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :       fLastCorr[3] *= fCurrentMapScaling;</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     778 </span>            :   }
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :   for (int i=3;i--;) xyzSect[i] += fLastCorr[i];</span>
+<span class="lineNum">     780 </span>            :   //
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 : }</span>
+<a name="782"><span class="lineNum">     782 </span>            : </a>
+<span class="lineNum">     783 </span>            : //______________________________________________________
+<span class="lineNum">     784 </span>            : Float_t AliTPCTransform::GetCorrMapComponent(int roc, int row, const double xyz[3], int dimOut)
+<span class="lineNum">     785 </span>            : {
+<span class="lineNum">     786 </span>            :   // calculate final correction component from the map
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   float corr = EvalCorrectionMap(roc, row, xyz, dimOut, kFALSE); // run specific correction</span>
+<span class="lineNum">     788 </span>            :   // do we need to rescale?
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :   if (fCurrentMapScaling!=1.0f) {</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :     float corrRef =  EvalCorrectionMap(roc, row, xyz, dimOut, kTRUE); // ref correction</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     if (dimOut&lt;3) corr = (corr-corrRef)*fCurrentMapScaling + corrRef;    // rescale with lumi</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :   return corr;</span>
+<span class="lineNum">     794 </span>            : }
+<a name="795"><span class="lineNum">     795 </span>            : </a>
+<span class="lineNum">     796 </span>            : //______________________________________________________
+<span class="lineNum">     797 </span>            : void AliTPCTransform::EvalCorrectionMap(int roc, int row, const double xyz[3], float *res, Bool_t ref)
+<span class="lineNum">     798 </span>            : {
+<span class="lineNum">     799 </span>            :   // get correction from the map for a point at given ROC and row (IROC/OROC convention)
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :   if (!fTimeDependentUpdated &amp;&amp; !UpdateTimeDependentCache()) AliFatal(&quot;Failed to update time-dependent cache&quot;);</span>
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :   AliTPCChebCorr* map = ref ? fCorrMapCacheRef : fCorrMapCache0;</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :   float y2x=xyz[1]/xyz[0], z2x = map-&gt;GetUseZ2R() ? xyz[2]/xyz[0] : xyz[2];</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   map-&gt;Eval(roc,row,y2x,z2x,res);</span>
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   if (ref) return; // this was time-independent ref.map query request</span>
+<span class="lineNum">     807 </span>            :   // 
+<span class="lineNum">     808 </span>            :   // for time dependent correction need to evaluate 2 maps, assuming linear dependence
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   if (fCorrMapCache1) {</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :     float delta1[4]={0};</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     fCorrMapCache1-&gt;Eval(roc,row,y2x,z2x,delta1);   </span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     UInt_t t0 = fCorrMapCache0-&gt;GetTimeStampCenter();</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     UInt_t t1 = fCorrMapCache1-&gt;GetTimeStampCenter();</span>
+<span class="lineNum">     814 </span>            :       // possible division by 0 is checked at upload of maps
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     double dtScale = (fCurrentTimeStamp-t0)/double(t1-t0);</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :     for (int i=4;i--;) res[i] += (delta1[i]-res[i])*dtScale;</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     818 </span>            :   //
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 : }</span>
+<a name="820"><span class="lineNum">     820 </span>            : </a>
+<span class="lineNum">     821 </span>            : //______________________________________________________
+<span class="lineNum">     822 </span>            : Float_t AliTPCTransform::EvalCorrectionMap(int roc, int row, const double xyz[3], int dimOut, Bool_t ref)
+<span class="lineNum">     823 </span>            : {
+<span class="lineNum">     824 </span>            :   // get correction for dimOut-th dimension from the map for a point at given ROC and row (IROC/OROC convention)
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :   if (!fTimeDependentUpdated &amp;&amp; !UpdateTimeDependentCache()) AliFatal(&quot;Failed to update time-dependent cache&quot;);</span>
+<span class="lineNum">     826 </span>            : 
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   AliTPCChebCorr* map = ref ? fCorrMapCacheRef : fCorrMapCache0;</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :   float y2x=xyz[1]/xyz[0], z2x = map-&gt;GetUseZ2R() ? xyz[2]/xyz[0] : xyz[2];</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :   float corr = map-&gt;Eval(roc,row,y2x,z2x,dimOut);</span>
+<span class="lineNum">     830 </span>            :   // 
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :   if (ref) return corr; // this was time-independent query request</span>
+<span class="lineNum">     832 </span>            :   //
+<span class="lineNum">     833 </span>            :   // for time dependent correction need to evaluate 2 maps, assuming linear dependence
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :   if (fCorrMapCache1) {</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     float corr1 = fCorrMapCache1-&gt;Eval(roc,row,y2x,z2x,dimOut);   </span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :     UInt_t t0 = fCorrMapCache0-&gt;GetTimeStampCenter();</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :     UInt_t t1 = fCorrMapCache1-&gt;GetTimeStampCenter();</span>
+<span class="lineNum">     838 </span>            :       // possible division by 0 is checked at upload of maps
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :     double dtScale = (t1-fCurrentTimeStamp)/double(t1-t0);</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :     corr += (corr1-corr)*dtScale;</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     842 </span>            :   //
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :   return corr;</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 : }</span>
+<a name="845"><span class="lineNum">     845 </span>            : </a>
+<span class="lineNum">     846 </span>            : //______________________________________________________
+<span class="lineNum">     847 </span>            : void AliTPCTransform::EvalDistortionMap(int roc, const double xyzSector[3], float *res)
+<span class="lineNum">     848 </span>            : {
+<span class="lineNum">     849 </span>            :   // get distortions from the map for a point at given ROC
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   if (!fTimeDependentUpdated &amp;&amp; !UpdateTimeDependentCache()) AliFatal(&quot;Failed to update time-dependent cache&quot;);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :   if (!fCorrMapCache0-&gt;IsDistortion()) AliFatalF(&quot;Uploaded map is not distortion: %s&quot;,fCorrMapCache0-&gt;IsA()-&gt;GetName());</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   float y2x=xyzSector[1]/xyzSector[0], z2x = fCorrMapCache0-&gt;GetUseZ2R() ? xyzSector[2]/xyzSector[0] : xyzSector[2];</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :   ((AliTPCChebDist*)fCorrMapCache0)-&gt;Eval(roc,xyzSector[0],y2x,z2x,res);</span>
+<span class="lineNum">     854 </span>            :   // 
+<span class="lineNum">     855 </span>            :   // for time dependent correction need to evaluate 2 maps, assuming linear dependence
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :   if (fCorrMapCache1) {</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :     float delta1[4] = {0.0f};</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :     ((AliTPCChebDist*)fCorrMapCache1)-&gt;Eval(roc,xyzSector[0],y2x,z2x,res);</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :     UInt_t t0 = fCorrMapCache0-&gt;GetTimeStampCenter();</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :     UInt_t t1 = fCorrMapCache1-&gt;GetTimeStampCenter();</span>
+<span class="lineNum">     861 </span>            :       // possible division by 0 is checked at upload of maps
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :     double dtScale = (t1-fCurrentTimeStamp)/double(t1-t0);</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     for (int i=4;i--;) res[i] += (delta1[i]-res[i])*dtScale;</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     865 </span>            :   //
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 : }</span>
+<a name="867"><span class="lineNum">     867 </span>            : </a>
+<span class="lineNum">     868 </span>            : //______________________________________________________
+<span class="lineNum">     869 </span>            : void AliTPCTransform::ApplyDistortionMap(int roc, double xyzLab[3])
+<span class="lineNum">     870 </span>            : {
+<span class="lineNum">     871 </span>            :   // apply distortion from the map to a point provided in LAB coordinate 
+<span class="lineNum">     872 </span>            :   // at given ROC and row (IROC/OROC convention)
+<span class="lineNum">     873 </span>            :   double xyzSect[3];
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :   float  res[3];</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :   Global2RotatedGlobal(roc,xyzLab);</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :   EvalDistortionMap(roc, xyzLab, res); // now we are in sector coordinates</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :   for (int i=3;i--;) xyzLab[i] += res[i];</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :   RotatedGlobal2Global(roc,xyzLab);</span>
+<span class="lineNum">     879 </span>            :   //
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 : }</span>
+<a name="881"><span class="lineNum">     881 </span>            : </a>
+<span class="lineNum">     882 </span>            : //_____________________________________________________________________________________
+<span class="lineNum">     883 </span>            : void AliTPCTransform::ErrY2Z2Syst(const AliTPCclusterMI * cl, const double tgPhi, const double tgLam,
+<span class="lineNum">     884 </span>            :                                   double &amp;serry2, double &amp;serrz2)
+<span class="lineNum">     885 </span>            : {
+<span class="lineNum">     886 </span>            :   // static function to calculate systematic errorY^2 on the cluster with current reco param
+<span class="lineNum">     887 </span>            :   // Must be static to be used also by external routines
+<span class="lineNum">     888 </span>            :   // tgPhi is the ab.tg(inclination wrt padrow), tgLam is tg of dip angle 
+<span class="lineNum">     889 </span>            :   const float kEpsZBoundary = 1.e-6; // to disentangle A,C and A+C-common regions
+<span class="lineNum">     890 </span>            :   const float kMaxExpArg = 9.; // limit r-dumped error to this exp. argument
+<span class="lineNum">     891 </span><span class="lineCov">     209276 :   const float kMaxExpArgZ = TMath::Sqrt(2.*kMaxExpArg);</span>
+<span class="lineNum">     892 </span><span class="lineCov">     104638 :   serry2 = serrz2 = 0;</span>
+<span class="lineNum">     893 </span>            :   double sysErrY = 0, sysErrZ = 0;
+<span class="lineNum">     894 </span>            :   //
+<span class="lineNum">     895 </span>            :   // error on particular TPC subvolume (charging up)
+<span class="lineNum">     896 </span><span class="lineCov">     104638 :   const Double_t *errInner = fCurrentRecoParam-&gt;GetSystematicErrorClusterInner();</span>
+<span class="lineNum">     897 </span><span class="lineCov">     104638 :   if (errInner[0]&gt;0) {</span>
+<span class="lineNum">     898 </span>            :     //
+<span class="lineNum">     899 </span><span class="lineCov">     104638 :     double dr = TMath::Abs(cl-&gt;GetX()-85.);</span>
+<span class="lineNum">     900 </span><span class="lineCov">     104638 :     float argExp = dr/errInner[1];     // is the Z-range limited ?</span>
+<span class="lineNum">     901 </span><span class="lineCov">     104638 :     if (argExp&lt;kMaxExpArg) {</span>
+<span class="lineNum">     902 </span><span class="lineCov">      38342 :       const TVectorF* zranges = fCurrentRecoParam-&gt;GetSystErrClInnerRegZ(); // is the Z-range of dumped error defined?</span>
+<span class="lineNum">     903 </span>            :       int nz;
+<span class="lineNum">     904 </span><span class="lineCov">      38342 :       if (zranges &amp;&amp; (nz=zranges-&gt;GetNoElements())) {</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :         Bool_t sideC = (cl-&gt;GetDetector()/18)&amp;0x1; // is this C-side cluster</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :         const TVectorF* zrangesSigI = fCurrentRecoParam-&gt;GetSystErrClInnerRegZSigInv();</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :         float zcl = cl-&gt;GetZ(); // chose the closest range within 3 sigma</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :         const float* zr = zranges-&gt;GetMatrixArray();</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :         const float* zsi= zrangesSigI-&gt;GetMatrixArray();</span>
+<span class="lineNum">     910 </span>            :         float dzarg = 999.;
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :         for (int i=nz;i--;) { // find closest region</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :           if      (zr[i]&lt;-kEpsZBoundary &amp;&amp; !sideC) continue; // don't apply to A-side clusters if the Z-boundary is for C-region</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :           else if (zr[i]&gt;kEpsZBoundary  &amp;&amp;  sideC) continue; // don't apply to C-side clusters if the Z-boundary is for A-region</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :           float dz = TMath::Abs( (zr[i]-zcl)*zsi[i] );</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :           if (dz&lt;dzarg) dzarg = dz;</span>
+<span class="lineNum">     916 </span>            :         }
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :         if (dzarg&lt;kMaxExpArgZ) { // is it small enough to call exp?</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :           argExp += 0.5*dzarg*dzarg;</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :           if (argExp&lt;kMaxExpArg) sysErrY = sysErrZ = errInner[0]*TMath::Exp(-argExp);</span>
+<span class="lineNum">     920 </span>            :         }       
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     922 </span><span class="lineCov">      38342 :       else sysErrY = sysErrZ = errInner[0]*TMath::Exp(-argExp); // no condition on Z</span>
+<span class="lineNum">     923 </span><span class="lineCov">      38342 :     }</span>
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span><span class="lineCov">     104638 :   }</span>
+<span class="lineNum">     926 </span><span class="lineCov">     104638 :   serry2 += sysErrY*sysErrY;</span>
+<span class="lineNum">     927 </span><span class="lineCov">     104638 :   serrz2 += sysErrZ*sysErrZ;</span>
+<span class="lineNum">     928 </span>            :   //
+<span class="lineNum">     929 </span><span class="lineCov">     418552 :   sysErrY = fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom() ?  </span>
+<span class="lineNum">     930 </span><span class="lineCov">     209276 :     fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom()[0] : fCurrentRecoParam-&gt;GetSystematicErrorCluster()[0];</span>
+<span class="lineNum">     931 </span><span class="lineCov">     418552 :   sysErrZ = fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom() ?  </span>
+<span class="lineNum">     932 </span><span class="lineCov">     209276 :     fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom()[1] : fCurrentRecoParam-&gt;GetSystematicErrorCluster()[1];</span>
+<span class="lineNum">     933 </span><span class="lineCov">     104638 :   if (sysErrY) serry2 += sysErrY*sysErrY;  // common syst error</span>
+<span class="lineNum">     934 </span><span class="lineCov">     104638 :   if (sysErrZ) serrz2 += sysErrZ*sysErrZ;  // common syst error</span>
+<span class="lineNum">     935 </span>            :   //
+<span class="lineNum">     936 </span><span class="lineCov">     104638 :   double useDistY = fCurrentRecoParam-&gt;GetUseDistortionFractionAsErrorY();</span>
+<span class="lineNum">     937 </span><span class="lineCov">     104638 :   if (useDistY&gt;0) {</span>
+<span class="lineNum">     938 </span><span class="lineCov">     104638 :     float dstY = cl-&gt;GetDistortionY()*useDistY;</span>
+<span class="lineNum">     939 </span><span class="lineCov">     104638 :     float dstX = cl-&gt;GetDistortionX()*useDistY*tgPhi;</span>
+<span class="lineNum">     940 </span><span class="lineCov">     104638 :     serry2 += dstY*dstY + dstX*dstX;</span>
+<span class="lineNum">     941 </span><span class="lineCov">     104638 :   }</span>
+<span class="lineNum">     942 </span><span class="lineCov">     104638 :   double useDispY = fCurrentRecoParam-&gt;GetUseDistDispFractionAsErrorY();</span>
+<span class="lineNum">     943 </span><span class="lineCov">     104638 :   if (useDispY&gt;0) {</span>
+<span class="lineNum">     944 </span><span class="lineCov">     104638 :     useDispY *= cl-&gt;GetDistortionDispersion();</span>
+<span class="lineNum">     945 </span><span class="lineCov">     104638 :     serry2 += useDispY*useDispY;</span>
+<span class="lineNum">     946 </span><span class="lineCov">     104638 :   }</span>
+<span class="lineNum">     947 </span>            :   //
+<span class="lineNum">     948 </span><span class="lineCov">     104638 :   double useDistZ = fCurrentRecoParam-&gt;GetUseDistortionFractionAsErrorZ();</span>
+<span class="lineNum">     949 </span><span class="lineCov">     104638 :   if (useDistZ&gt;0) {</span>
+<span class="lineNum">     950 </span><span class="lineCov">     104638 :     float dstZ = cl-&gt;GetDistortionZ()*useDistZ;</span>
+<span class="lineNum">     951 </span><span class="lineCov">     104638 :     float dstX = cl-&gt;GetDistortionX()*useDistZ*tgLam;</span>
+<span class="lineNum">     952 </span><span class="lineCov">     104638 :     serrz2 += dstZ*dstZ + dstX*dstX;</span>
+<span class="lineNum">     953 </span><span class="lineCov">     104638 :   }</span>
+<span class="lineNum">     954 </span><span class="lineCov">     104638 :   double useDispZ = fCurrentRecoParam-&gt;GetUseDistDispFractionAsErrorZ();</span>
+<span class="lineNum">     955 </span><span class="lineCov">     104638 :   if (useDispZ&gt;0) {</span>
+<span class="lineNum">     956 </span><span class="lineCov">     104638 :     useDispZ *= cl-&gt;GetDistortionDispersion();</span>
+<span class="lineNum">     957 </span><span class="lineCov">     104638 :     serrz2 += useDispZ*useDispZ;</span>
+<span class="lineNum">     958 </span><span class="lineCov">     104638 :   }</span>
+<span class="lineNum">     959 </span>            :   //
+<span class="lineNum">     960 </span><span class="lineCov">     104638 : }</span>
+<a name="961"><span class="lineNum">     961 </span>            : </a>
+<span class="lineNum">     962 </span>            : //_____________________________________________________________________________________
+<span class="lineNum">     963 </span>            : Double_t AliTPCTransform::ErrY2Syst(const AliTPCclusterMI * cl, const double tgAng)
+<span class="lineNum">     964 </span>            : {
+<span class="lineNum">     965 </span>            :   // static function to calculate systematic errorY^2 on the cluster with current reco param
+<span class="lineNum">     966 </span>            :   // Must be static to be used also by external routines
+<span class="lineNum">     967 </span>            :   // tgAng is the ab.tg(inclination wrt padrow)
+<span class="lineNum">     968 </span>            :   const float kEpsZBoundary = 1.e-6; // to disentangle A,C and A+C-common regions
+<span class="lineNum">     969 </span>            :   const float kMaxExpArg = 9.; // limit r-dumped error to this exp. argument
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :   const float kMaxExpArgZ = TMath::Sqrt(2.*kMaxExpArg);</span>
+<span class="lineNum">     971 </span>            :   double sysErr2 = 0., sysErr = 0.;
+<span class="lineNum">     972 </span>            :   //
+<span class="lineNum">     973 </span>            :   // error on particular TPC subvolume (charging up)
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :   const Double_t *errInner = fCurrentRecoParam-&gt;GetSystematicErrorClusterInner();</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :   if (errInner[0]&gt;0) {</span>
+<span class="lineNum">     976 </span>            :     //
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     double dr = TMath::Abs(cl-&gt;GetX()-85.);</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     float argExp = dr/errInner[1];     // is the Z-range limited ?</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     if (argExp&lt;kMaxExpArg) {</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :       const TVectorF* zranges = fCurrentRecoParam-&gt;GetSystErrClInnerRegZ(); // is the Z-range of dumped error defined?</span>
+<span class="lineNum">     981 </span>            :       int nz;
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :       if (zranges &amp;&amp; (nz=zranges-&gt;GetNoElements())) {</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :         Bool_t sideC = (cl-&gt;GetDetector()/18)&amp;0x1; // is this C-side cluster</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :         const TVectorF* zrangesSigI = fCurrentRecoParam-&gt;GetSystErrClInnerRegZSigInv();</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :         float zcl = cl-&gt;GetZ(); // chose the closest range within 3 sigma</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :         const float* zr = zranges-&gt;GetMatrixArray();</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :         const float* zsi= zrangesSigI-&gt;GetMatrixArray();</span>
+<span class="lineNum">     988 </span>            :         float dzarg = 999.;
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :         for (int i=nz;i--;) { // find closest region</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :           if      (zr[i]&lt;-kEpsZBoundary &amp;&amp; !sideC) continue; // don't apply to A-side clusters if the Z-boundary is for C-region</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :           else if (zr[i]&gt;kEpsZBoundary  &amp;&amp;  sideC) continue; // don't apply to C-side clusters if the Z-boundary is for A-region</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :           float dz = TMath::Abs( (zr[i]-zcl)*zsi[i] );</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :           if (dz&lt;dzarg) dzarg = dz;</span>
+<span class="lineNum">     994 </span>            :         }
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :         if (dzarg&lt;kMaxExpArgZ) { // is it small enough to call exp?</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :           argExp += 0.5*dzarg*dzarg;</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :           if (argExp&lt;kMaxExpArg) sysErr = errInner[0]*TMath::Exp(-argExp);</span>
+<span class="lineNum">     998 </span>            :         }       
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :       else sysErr = errInner[0]*TMath::Exp(-argExp); // no condition on Z</span>
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1002 </span>            : 
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :   sysErr2 += sysErr*sysErr;</span>
+<span class="lineNum">    1005 </span>            :   //
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :   sysErr = fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom() ?  </span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom()[0] : fCurrentRecoParam-&gt;GetSystematicErrorCluster()[0];</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :   if (sysErr) sysErr2 += sysErr*sysErr;  // common syst error</span>
+<span class="lineNum">    1009 </span>            :   //
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :   double useDist = fCurrentRecoParam-&gt;GetUseDistortionFractionAsErrorY();</span>
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :   if (useDist&gt;0) {</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :     float dstY = cl-&gt;GetDistortionY()*useDist;</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :     float dstX = cl-&gt;GetDistortionX()*useDist*tgAng;</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :     sysErr2 += dstY*dstY + dstX*dstX;</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :   double useDisp = fCurrentRecoParam-&gt;GetUseDistDispFractionAsErrorY();</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :   if (useDisp&gt;0) {</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :     useDisp *= cl-&gt;GetDistortionDispersion();</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :     sysErr2 += useDisp*useDisp;</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :   return sysErr2;</span>
+<span class="lineNum">    1022 </span>            : }
+<a name="1023"><span class="lineNum">    1023 </span>            : </a>
+<span class="lineNum">    1024 </span>            : //_____________________________________________________________________________________
+<span class="lineNum">    1025 </span>            : Double_t AliTPCTransform::ErrZ2Syst(const AliTPCclusterMI * cl, const double tgAng)
+<span class="lineNum">    1026 </span>            : {
+<span class="lineNum">    1027 </span>            :   // static function to calculate systematic errorY^2 on the cluster with current reco param
+<span class="lineNum">    1028 </span>            :   // Must be static to be used also by external routines
+<span class="lineNum">    1029 </span>            :   // tgAng is the ab.tg(lambda)
+<span class="lineNum">    1030 </span>            :   const float kEpsZBoundary = 1.e-6; // to disentangle A,C and A+C-common regions
+<span class="lineNum">    1031 </span>            :   const float kMaxExpArg = 9.; // limit r-dumped error to this exp. argument
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :   const float kMaxExpArgZ = TMath::Sqrt(2.*kMaxExpArg);</span>
+<span class="lineNum">    1033 </span>            :   double sysErr2 = 0., sysErr = 0.;
+<span class="lineNum">    1034 </span>            :   //
+<span class="lineNum">    1035 </span>            :   // error on particular TPC subvolume (charging up)
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :   const Double_t *errInner = fCurrentRecoParam-&gt;GetSystematicErrorClusterInner();</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :   if (errInner[0]&gt;0) {</span>
+<span class="lineNum">    1038 </span>            :     //
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :     double dr = TMath::Abs(cl-&gt;GetX()-85.);</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :     float argExp = dr/errInner[1];     // is the Z-range limited ?</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :     if (argExp&lt;kMaxExpArg) {</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :       const TVectorF* zranges = fCurrentRecoParam-&gt;GetSystErrClInnerRegZ(); // is the Z-range of dumped error defined?</span>
+<span class="lineNum">    1043 </span>            :       int nz;
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :       if (zranges &amp;&amp; (nz=zranges-&gt;GetNoElements())) {</span>
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :         Bool_t sideC = (cl-&gt;GetDetector()/18)&amp;0x1; // is this C-side cluster</span>
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :         const TVectorF* zrangesSigI = fCurrentRecoParam-&gt;GetSystErrClInnerRegZSigInv();</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :         float zcl = cl-&gt;GetZ(); // chose the closest range within 3 sigma</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :         const float* zr = zranges-&gt;GetMatrixArray();</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :         const float* zsi= zrangesSigI-&gt;GetMatrixArray();</span>
+<span class="lineNum">    1050 </span>            :         float dzarg = 999.;
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :         for (int i=nz;i--;) { // find closest region</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :           if      (zr[i]&lt;-kEpsZBoundary &amp;&amp; !sideC) continue; // don't apply to A-side clusters if the Z-boundary is for C-region</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :           else if (zr[i]&gt;kEpsZBoundary  &amp;&amp;  sideC) continue; // don't apply to C-side clusters if the Z-boundary is for A-region</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :           float dz = TMath::Abs( (zr[i]-zcl)*zsi[i] );</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :           if (dz&lt;dzarg) dzarg = dz;</span>
+<span class="lineNum">    1056 </span>            :         }
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :         if (dzarg&lt;kMaxExpArgZ) { // is it small enough to call exp?</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :           argExp += 0.5*dzarg*dzarg;</span>
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :           if (argExp&lt;kMaxExpArg) sysErr = errInner[0]*TMath::Exp(-argExp);</span>
+<span class="lineNum">    1060 </span>            :         }       
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :       else sysErr = errInner[0]*TMath::Exp(-argExp); // no condition on Z</span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1064 </span>            : 
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :   sysErr2 += sysErr*sysErr;</span>
+<span class="lineNum">    1067 </span>            :   //
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :   sysErr = fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom() ?  </span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :     fCurrentRecoParam-&gt;GetSystematicErrorClusterCustom()[1] : fCurrentRecoParam-&gt;GetSystematicErrorCluster()[1];</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :   if (sysErr) sysErr2 += sysErr*sysErr;  // common syst error</span>
+<span class="lineNum">    1071 </span>            :   //
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :   double useDist = fCurrentRecoParam-&gt;GetUseDistortionFractionAsErrorZ();</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :   if (useDist&gt;0) {</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :     float dstZ = cl-&gt;GetDistortionZ()*useDist;</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :     float dstX = cl-&gt;GetDistortionX()*useDist*tgAng;</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :     sysErr2 += dstZ*dstZ + dstX*dstX;</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :   double useDisp = fCurrentRecoParam-&gt;GetUseDistDispFractionAsErrorZ();</span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :   if (useDisp&gt;0) {</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     useDisp *= cl-&gt;GetDistortionDispersion();</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :     sysErr2 += useDisp*useDisp;</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   return sysErr2;</span>
+<span class="lineNum">    1084 </span>            : }
+<span class="lineNum">    1085 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

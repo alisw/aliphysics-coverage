@@ -1,0 +1,624 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCbase/AliTPCROCVoltError3D.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCbase</a> - AliTPCROCVoltError3D.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCROCVoltError3D.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">247</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">6.2 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /// \class AliTPCROCVoltError3D
+<span class="lineNum">      17 </span>            : /// \brief The class calculates the space point distortions due to z offsets of the
+<span class="lineNum">      18 </span>            : ///
+<span class="lineNum">      19 </span>            : /// ROCs via the residual voltage technique (Poisson relaxation) in 3D.
+<span class="lineNum">      20 </span>            : /// Since the GG (part of the ROCs) represents the closure of the FC in z direction,
+<span class="lineNum">      21 </span>            : /// every misalignment in z produces not only dz distortions but also electrical
+<span class="lineNum">      22 </span>            : /// field inhomogeneities throughout the volume, which produces additional dr and rd$\phi$ distortions.
+<span class="lineNum">      23 </span>            : ///
+<span class="lineNum">      24 </span>            : /// Each ROC can be misaligned (in z direction) in three ways. A general z0 offset,
+<span class="lineNum">      25 </span>            : /// an inclination along the x and an inclination along the y axis. The z-misalignment's
+<span class="lineNum">      26 </span>            : /// can be set via the function SetROCData(TMatrixD *mat) for each single chamber (ROC).
+<span class="lineNum">      27 </span>            : /// The array size has to be (72,3) representing the 72 chambers according to the
+<span class="lineNum">      28 </span>            : /// offline numbering scheme (IROC: roc$&lt;$36; OROC: roc$\geq$36) and the three misalignment's
+<span class="lineNum">      29 </span>            : /// (see the source code for further details).
+<span class="lineNum">      30 </span>            : ///
+<span class="lineNum">      31 </span>            : /// Internally, these z offsets (unit is cm)  are recalculated into residual voltage
+<span class="lineNum">      32 </span>            : /// equivalents in order to make use of the relaxation technique.
+<span class="lineNum">      33 </span>            : ///
+<span class="lineNum">      34 </span>            : /// One has two possibilities when calculating the $dz$ distortions. The resulting
+<span class="lineNum">      35 </span>            : /// distortions are purely due to the change of the drift velocity (along with the
+<span class="lineNum">      36 </span>            : /// change of the drift field) when the SetROCDisplacement is FALSE.
+<span class="lineNum">      37 </span>            : /// For this class, this is a rather unphysical setting and should be avoided.
+<span class="lineNum">      38 </span>            : /// When the flag is set to TRUE, the corresponding offset in z is added to the dz
+<span class="lineNum">      39 </span>            : /// calculation of the outer ROCs.
+<span class="lineNum">      40 </span>            : /// For the Alice TPC gas, both effects are of similar magnitude. This means, if the
+<span class="lineNum">      41 </span>            : /// drift length is sufficiently large, a z-offset of a chamber appears to have (approx.)
+<span class="lineNum">      42 </span>            : /// twice the magnitude when one looks at the actual dz distortions.
+<span class="lineNum">      43 </span>            : ///
+<span class="lineNum">      44 </span>            : /// In addition, this class allows a correction regarding the different arrival times
+<span class="lineNum">      45 </span>            : /// of the electrons due to the geometrical difference of the inner and outer chambers.
+<span class="lineNum">      46 </span>            : /// The impact was simulated via Garfield. If the flag is set via the
+<span class="lineNum">      47 </span>            : /// function SetElectronArrivalCorrection, the electron-arrival correction is added to the dz calculation.
+<span class="lineNum">      48 </span>            : /// ![Picture from ROOT macro](AliTPCROCVoltError3D_cxx_99b6733.png)
+<span class="lineNum">      49 </span>            : ///
+<span class="lineNum">      50 </span>            : /// \author Jim Thomas, Stefan Rossegger
+<span class="lineNum">      51 </span>            : /// \date 08/08/2010
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #include &quot;AliMagF.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;TGeoGlobalMagField.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliTPCcalibDB.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;AliTPCParam.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;TMatrixD.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;TFile.h&quot;
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;AliTPCROC.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;AliTPCROCVoltError3D.h&quot;
+<a name="65"><span class="lineNum">      65 </span>            : </a>
+<span class="lineNum">      66 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      67 </span><span class="lineCov">         24 : ClassImp(AliTPCROCVoltError3D)</span>
+<a name="68"><span class="lineNum">      68 </span>            : /// \endcond</a>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : AliTPCROCVoltError3D::AliTPCROCVoltError3D()
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   : AliTPCCorrection(&quot;ROCVoltErrors&quot;,&quot;ROC z alignment Errors&quot;),</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     fC0(0.),fC1(0.),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     fROCdisplacement(kTRUE),</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     fElectronArrivalCorrection(kTRUE),</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     fInitLookUp(kFALSE),</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     fROCDataFileName(&quot;&quot;),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     fdzDataLinFit(0)</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      79 </span>            :   //
+<span class="lineNum">      80 </span>            :   // default constructor
+<span class="lineNum">      81 </span>            :   //
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :   // Array which will contain the solution according to the setted boundary conditions
+<span class="lineNum">      84 </span>            :   // main input: z alignment of the Read Out chambers
+<span class="lineNum">      85 </span>            :   // see InitROCVoltError3D() function
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   for ( Int_t k = 0 ; k &lt; kNPhi ; k++ ) {</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     fLookUpErOverEz[k]   =  new TMatrixF(kNR,kNZ);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     fLookUpEphiOverEz[k] =  new TMatrixF(kNR,kNZ);</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     fLookUpDeltaEz[k]    =  new TMatrixF(kNR,kNZ);</span>
+<span class="lineNum">      90 </span>            :   }
+<span class="lineNum">      91 </span>            :   //  fROCDataFileName=&quot;$ALICE_ROOT/TPC/Calib/maps/TPCROCdzSurvey.root&quot;;
+<span class="lineNum">      92 </span>            :   //  SetROCDataFileName(fROCDataFileName.Data()); // initialization of fdzDataLinFit is included
+<span class="lineNum">      93 </span>            : 
+<a name="94"><span class="lineNum">      94 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : AliTPCROCVoltError3D::~AliTPCROCVoltError3D() {</span>
+<span class="lineNum">      97 </span>            :   /// destructor
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   for ( Int_t k = 0 ; k &lt; kNPhi ; k++ ) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     delete fLookUpErOverEz[k];</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     delete fLookUpEphiOverEz[k];</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     delete fLookUpDeltaEz[k];</span>
+<span class="lineNum">     103 </span>            :   }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   delete fdzDataLinFit;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     107 </span>            : 
+<a name="108"><span class="lineNum">     108 </span>            : </a>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : Bool_t AliTPCROCVoltError3D::AddCorrectionCompact(AliTPCCorrection* corr, Double_t weight){
+<span class="lineNum">     111 </span>            :   /// Add correction  and make them compact
+<span class="lineNum">     112 </span>            :   /// Assumptions:
+<span class="lineNum">     113 </span>            :   ///  - origin of distortion/correction are additive
+<span class="lineNum">     114 </span>            :   ///  - only correction ot the same type supported ()
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   if (corr==NULL) {</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     AliError(&quot;Zerro pointer - correction&quot;);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     119 </span>            :   }
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   AliTPCROCVoltError3D * corrC = dynamic_cast&lt;AliTPCROCVoltError3D *&gt;(corr);</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   if (corrC == NULL) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     AliError(TString::Format(&quot;Inconsistent class types: %s\%s&quot;,IsA()-&gt;GetName(),corr-&gt;IsA()-&gt;GetName()).Data());</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     124 </span>            :   }
+<span class="lineNum">     125 </span>            :   //
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   TMatrixD matrixDz=*(corrC-&gt;fdzDataLinFit);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   matrixDz*=weight;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   if (fdzDataLinFit==NULL) {</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     fdzDataLinFit=new TMatrixD(matrixDz);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     fROCdisplacement=corrC-&gt;fROCdisplacement;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     fElectronArrivalCorrection=corrC-&gt;fElectronArrivalCorrection;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     133 </span>            :   else{
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     (*fdzDataLinFit)+=matrixDz;</span>
+<span class="lineNum">     135 </span>            :   }
+<span class="lineNum">     136 </span>            :   return kTRUE;
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : 
+<a name="141"><span class="lineNum">     141 </span>            : </a>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            : void AliTPCROCVoltError3D::SetROCData(TMatrixD * matrix){
+<span class="lineNum">     144 </span>            :   /// Set a z alignment map of the chambers not via a file, but
+<span class="lineNum">     145 </span>            :   /// directly via a TMatrix(72,3), where dz = p0 + p1*(lx-133.4) + p2*ly (all in cm)
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   if (!fdzDataLinFit) fdzDataLinFit=new TMatrixD(*matrix);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   else *fdzDataLinFit = *matrix;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 : }</span>
+<a name="150"><span class="lineNum">     150 </span>            : </a>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            : void AliTPCROCVoltError3D::Init() {
+<span class="lineNum">     153 </span>            :   /// Initialization funtion
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   AliMagF* magF= (AliMagF*)TGeoGlobalMagField::Instance()-&gt;GetField();</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   if (!magF) AliError(&quot;Magneticd field - not initialized&quot;);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   Double_t bzField = magF-&gt;SolenoidField()/10.; //field in T</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   AliTPCParam *param= AliTPCcalibDB::Instance()-&gt;GetParameters();</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   if (!param) AliError(&quot;Parameters - not initialized&quot;);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   Double_t vdrift = param-&gt;GetDriftV()/1000000.; // [cm/us]   // From dataBase: to be updated: per second (ideally)</span>
+<span class="lineNum">     161 </span>            :   Double_t ezField = 400; // [V/cm]   // to be updated: never (hopefully)
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   Double_t wt = -10.0 * (bzField*10) * vdrift / ezField ;</span>
+<span class="lineNum">     163 </span>            :   // Correction Terms for effective omegaTau; obtained by a laser calibration run
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   SetOmegaTauT1T2(wt,fT1,fT2);</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   if (!fInitLookUp) InitROCVoltError3D();</span>
+<a name="167"><span class="lineNum">     167 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            : void AliTPCROCVoltError3D::Update(const TTimeStamp &amp;/*timeStamp*/) {
+<span class="lineNum">     170 </span>            :   /// Update function
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   AliMagF* magF= (AliMagF*)TGeoGlobalMagField::Instance()-&gt;GetField();</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   if (!magF) AliError(&quot;Magneticd field - not initialized&quot;);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   Double_t bzField = magF-&gt;SolenoidField()/10.; //field in T</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   AliTPCParam *param= AliTPCcalibDB::Instance()-&gt;GetParameters();</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   if (!param) AliError(&quot;Parameters - not initialized&quot;);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   Double_t vdrift = param-&gt;GetDriftV()/1000000.; // [cm/us]  // From dataBase: to be updated: per second (ideally)</span>
+<span class="lineNum">     178 </span>            :   Double_t ezField = 400; // [V/cm]   // to be updated: never (hopefully)
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   Double_t wt = -10.0 * (bzField*10) * vdrift / ezField ;</span>
+<span class="lineNum">     180 </span>            :   // Correction Terms for effective omegaTau; obtained by a laser calibration run
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   SetOmegaTauT1T2(wt,fT1,fT2);</span>
+<span class="lineNum">     182 </span>            : 
+<a name="183"><span class="lineNum">     183 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : void  AliTPCROCVoltError3D::SetROCDataFileName(const char * fname) {
+<span class="lineNum">     186 </span>            :   /// Set / load the ROC data (linear fit of ROC misalignments)
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   fROCDataFileName = fname;</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   TFile f(fROCDataFileName.Data(),&quot;READ&quot;);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   TMatrixD *m = (TMatrixD*) f.Get(&quot;dzSurveyLinFitData&quot;);</span>
+<span class="lineNum">     192 </span>            :   TMatrixD &amp;mf = *m;
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :   // prepare some space
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   if (fdzDataLinFit) delete fdzDataLinFit;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   fdzDataLinFit = new TMatrixD(72,3);</span>
+<span class="lineNum">     198 </span>            :   TMatrixD &amp;dataIntern = *fdzDataLinFit;
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   for (Int_t iroc=0;iroc&lt;72;iroc++) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     dataIntern(iroc,0) = mf(iroc,0);  // z0 offset</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     dataIntern(iroc,1) = mf(iroc,1);  // slope in x</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     dataIntern(iroc,2) = mf(iroc,2);  // slope in y</span>
+<span class="lineNum">     204 </span>            :   }
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   f.Close();</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   fInitLookUp = kFALSE;</span>
+<span class="lineNum">     209 </span>            : 
+<a name="210"><span class="lineNum">     210 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            : void AliTPCROCVoltError3D::GetCorrection(const Float_t x[],const Short_t roc,Float_t dx[]) {
+<span class="lineNum">     213 </span>            :   /// Calculates the correction due e.g. residual voltage errors on the TPC boundaries
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :   const Double_t kEpsilon=Double_t(FLT_MIN);
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   if (!fInitLookUp) {</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     AliInfo(&quot;Lookup table was not initialized! Perform the inizialisation now ...&quot;);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     InitROCVoltError3D();</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     220 </span>            :   static Bool_t forceInit=kTRUE; //temporary needed for back compatibility with old OCDB entries
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   if (forceInit&amp;&amp;fLookUpErOverEz[0]){</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     if (TMath::Abs(fLookUpErOverEz[0]-&gt;Sum())&lt;kEpsilon){//temporary needed for back compatibility with old OCDB entries</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :       ForceInitROCVoltError3D();</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     forceInit=kFALSE;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :   Int_t   order     = 1 ;    // FIXME: hardcoded? Linear interpolation = 1, Quadratic = 2
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            :   Float_t intEr, intEphi, intDeltaEz;
+<span class="lineNum">     232 </span>            :   Double_t r, phi, z ;
+<span class="lineNum">     233 </span>            :   Int_t    sign;
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   r      =  TMath::Sqrt( x[0]*x[0] + x[1]*x[1] ) ;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   phi    =  TMath::ATan2(x[1],x[0]) ;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   if ( phi &lt; 0 ) phi += TMath::TwoPi() ;                   // Table uses phi from 0 to 2*Pi</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   z      =  x[2] ;                                         // Create temporary copy of x[2]</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   if ( (roc%36) &lt; 18 ) {</span>
+<span class="lineNum">     241 </span>            :     sign =  1;       // (TPC A side)
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     243 </span>            :     sign = -1;       // (TPC C side)
+<span class="lineNum">     244 </span>            :   }
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   if ( sign==1  &amp;&amp; z &lt;  fgkZOffSet ) z =  fgkZOffSet;    // Protect against discontinuity at CE</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   if ( sign==-1 &amp;&amp; z &gt; -fgkZOffSet ) z = -fgkZOffSet;    // Protect against discontinuity at CE</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   if ( (sign==1 &amp;&amp; z&lt;0) || (sign==-1 &amp;&amp; z&gt;0) ) // just a consistency check</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     AliError(&quot;ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!&quot;);</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :   // Get the Er and Ephi field integrals plus the integral over DeltaEz
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   intEr      = Interpolate3DTable(order, r, z, phi, kNR, kNZ, kNPhi,</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                                   fgkRList, fgkZList, fgkPhiList, fLookUpErOverEz  );</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :   intEphi    = Interpolate3DTable(order, r, z, phi, kNR, kNZ, kNPhi,</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                                   fgkRList, fgkZList, fgkPhiList, fLookUpEphiOverEz);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   intDeltaEz = Interpolate3DTable(order, r, z, phi, kNR, kNZ, kNPhi,</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                                   fgkRList, fgkZList, fgkPhiList, fLookUpDeltaEz   );</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :   //  printf(&quot;%lf %lf %lf\n&quot;,intEr,intEphi,intDeltaEz);
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :   // Calculate distorted position
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   if ( r &gt; 0.0 ) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     phi =  phi + ( fC0*intEphi - fC1*intEr ) / r;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     r   =  r   + ( fC0*intEr   + fC1*intEphi );</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            :   // Calculate correction in cartesian coordinates
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   dx[0] = r * TMath::Cos(phi) - x[0];</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   dx[1] = r * TMath::Sin(phi) - x[1];</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   dx[2] = intDeltaEz;  // z distortion - (internally scaled with driftvelocity dependency</span>
+<span class="lineNum">     273 </span>            :                        // on the Ez field plus the actual ROC misalignment (if set TRUE)
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   if (fElectronArrivalCorrection) {</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            :     // correction for the OROC (in average, a 0.014usec longer drift time
+<span class="lineNum">     279 </span>            :     // due to different position of the anode wires) -&gt; vd*dt -&gt; 2.64*0.014 = 0.0369 cm
+<span class="lineNum">     280 </span>            :     // FIXME: correction are token from Magboltz simulations
+<span class="lineNum">     281 </span>            :     //        should be loaded from a database
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     AliTPCROC * rocInfo = AliTPCROC::Instance();</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     Double_t rCrossingROC  =  (rocInfo-&gt;GetPadRowRadii(0,62)+rocInfo-&gt;GetPadRowRadii(36,0))/2;</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     if (r&gt;rCrossingROC) {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :       if (sign==1)</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         dx[2] += 0.0369; // A side - negative correction</span>
+<span class="lineNum">     289 </span>            :       else
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         dx[2] -= 0.0369; // C side - positive correction</span>
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     294 </span>            : 
+<a name="295"><span class="lineNum">     295 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : void AliTPCROCVoltError3D::InitROCVoltError3D() {
+<span class="lineNum">     298 </span>            :   /// Initialization of the Lookup table which contains the solutions of the
+<span class="lineNum">     299 </span>            :   /// Dirichlet boundary problem
+<span class="lineNum">     300 </span>            :   /// Calculation of the single 3D-Poisson solver is done just if needed
+<span class="lineNum">     301 </span>            :   /// (see basic lookup tables in header file)
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :   const Int_t   order       =    1  ;  // Linear interpolation = 1, Quadratic = 2
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   const Float_t gridSizeR   =  (fgkOFCRadius-fgkIFCRadius) / (kRows-1) ;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   const Float_t gridSizeZ   =  fgkTPCZ0 / (kColumns-1) ;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   const Float_t gridSizePhi =  TMath::TwoPi() / ( 18.0 * kPhiSlicesPerSector);</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            :   // temporary arrays to create the boundary conditions
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :   TMatrixD *arrayofArrayV[kPhiSlices], *arrayofCharge[kPhiSlices] ;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :   TMatrixD *arrayofEroverEz[kPhiSlices], *arrayofEphioverEz[kPhiSlices], *arrayofDeltaEz[kPhiSlices] ;</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   for ( Int_t k = 0 ; k &lt; kPhiSlices ; k++ ) {</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     arrayofArrayV[k]     =   new TMatrixD(kRows,kColumns) ;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     arrayofCharge[k]     =   new TMatrixD(kRows,kColumns) ;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     arrayofEroverEz[k]   =   new TMatrixD(kRows,kColumns) ;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     arrayofEphioverEz[k] =   new TMatrixD(kRows,kColumns) ;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     arrayofDeltaEz[k]    =   new TMatrixD(kRows,kColumns) ;</span>
+<span class="lineNum">     318 </span>            :   }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :   // list of point as used in the poisson relation and the interpolation (during sum up)
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   Double_t  rlist[kRows], zedlist[kColumns] , philist[kPhiSlices];</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   for ( Int_t k = 0 ; k &lt; kPhiSlices ; k++ ) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     philist[k] =  gridSizePhi * k;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0 ; i &lt; kRows ; i++ )    {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :       rlist[i] = fgkIFCRadius + i*gridSizeR ;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :       for ( Int_t j = 0 ; j &lt; kColumns ; j++ ) { // Fill Vmatrix with Boundary Conditions</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         zedlist[j]  = j * gridSizeZ ;</span>
+<span class="lineNum">     328 </span>            :       }
+<span class="lineNum">     329 </span>            :     }
+<span class="lineNum">     330 </span>            :   }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            :   // ==========================================================================
+<span class="lineNum">     333 </span>            :   // Solve Poisson's equation in 3D cylindrical coordinates by relaxation technique
+<span class="lineNum">     334 </span>            :   // Allow for different size grid spacing in R and Z directions
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            :   const Int_t   symmetry = 0;
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span>            :   // Set bondaries and solve Poisson's equation --------------------------
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :   if ( !fInitLookUp ) {</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Solving the poisson equation (~ %d sec)&quot;,2*10*(int)(kPhiSlices/10)));</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     for ( Int_t side = 0 ; side &lt; 2 ; side++ ) {  // Solve Poisson3D twice; once for +Z and once for -Z</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :       for ( Int_t k = 0 ; k &lt; kPhiSlices ; k++ )  {</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         TMatrixD &amp;arrayV    =  *arrayofArrayV[k] ;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         TMatrixD &amp;charge    =  *arrayofCharge[k] ;</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :         //Fill arrays with initial conditions.  V on the boundary and Charge in the volume.
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         for ( Int_t i = 0 ; i &lt; kRows ; i++ ) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :           for ( Int_t j = 0 ; j &lt; kColumns ; j++ ) {  // Fill Vmatrix with Boundary Conditions</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :             arrayV(i,j) = 0.0 ;</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             charge(i,j) = 0.0 ;</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             Float_t radius0 = rlist[i] ;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :             Float_t phi0    = gridSizePhi * k ;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            :             // To avoid problems at sector boundaries, use an average of +- 1 degree from actual phi location
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             if ( j == (kColumns-1) ) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :               arrayV(i,j) = 0.5*  ( GetROCVoltOffset( side, radius0, phi0+0.02 ) + GetROCVoltOffset( side, radius0, phi0-0.02 ) ) ;</span>
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :               if (side==1) // C side</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                 arrayV(i,j) = -arrayV(i,j); // minus sign on the C side to allow a consistent usage of global z when setting the boundaries</span>
+<span class="lineNum">     365 </span>            :             }
+<span class="lineNum">     366 </span>            :           }
+<span class="lineNum">     367 </span>            :         }
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         for ( Int_t i = 1 ; i &lt; kRows-1 ; i++ ) {</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :           for ( Int_t j = 1 ; j &lt; kColumns-1 ; j++ ) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             charge(i,j)  =  0.0 ;</span>
+<span class="lineNum">     372 </span>            :           }
+<span class="lineNum">     373 </span>            :         }
+<span class="lineNum">     374 </span>            :       }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :       // Solve Poisson's equation in 3D cylindrical coordinates by relaxation technique
+<span class="lineNum">     377 </span>            :       // Allow for different size grid spacing in R and Z directions
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :       PoissonRelaxation3D( arrayofArrayV, arrayofCharge,</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                            arrayofEroverEz, arrayofEphioverEz, arrayofDeltaEz,</span>
+<span class="lineNum">     381 </span>            :                            kRows, kColumns, kPhiSlices, gridSizePhi, kIterations,
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :                            symmetry, fROCdisplacement) ;</span>
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :       //Interpolate results onto a custom grid which is used just for these calculations.
+<span class="lineNum">     386 </span>            :       Double_t  r, phi, z ;
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       for ( Int_t k = 0 ; k &lt; kNPhi ; k++ ) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         phi = fgkPhiList[k] ;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         TMatrixF &amp;erOverEz   =  *fLookUpErOverEz[k]  ;</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         TMatrixF &amp;ephiOverEz =  *fLookUpEphiOverEz[k];</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         TMatrixF &amp;deltaEz    =  *fLookUpDeltaEz[k]   ;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         for ( Int_t j = 0 ; j &lt; kNZ ; j++ ) {</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :           z = TMath::Abs(fgkZList[j]) ;  // Symmetric solution in Z that depends only on ABS(Z)</span>
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :           if ( side == 0 &amp;&amp;  fgkZList[j] &lt; 0 ) continue; // Skip rest of this loop if on the wrong side</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :           if ( side == 1 &amp;&amp;  fgkZList[j] &gt; 0 ) continue; // Skip rest of this loop if on the wrong side</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :           for ( Int_t i = 0 ; i &lt; kNR ; i++ ) {</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             r = fgkRList[i] ;</span>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            :             // Interpolate basicLookup tables; once for each rod, then sum the results
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             erOverEz(i,j)   = Interpolate3DTable(order, r, z, phi, kRows, kColumns, kPhiSlices,</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                                                  rlist, zedlist, philist, arrayofEroverEz  );</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             ephiOverEz(i,j) = Interpolate3DTable(order, r, z, phi, kRows, kColumns, kPhiSlices,</span>
+<span class="lineNum">     408 </span>            :                                                  rlist, zedlist, philist, arrayofEphioverEz);
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             deltaEz(i,j)    = Interpolate3DTable(order, r, z, phi, kRows, kColumns, kPhiSlices,</span>
+<span class="lineNum">     410 </span>            :                                                  rlist, zedlist, philist, arrayofDeltaEz  );
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :             if (side == 1)  deltaEz(i,j) = -  deltaEz(i,j); // negative coordinate system on C side</span>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            :           } // end r loop
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         }// end z loop</span>
+<span class="lineNum">     416 </span>            :       }// end phi loop
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       if ( side == 0 ) AliInfo(&quot; A side done&quot;);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       if ( side == 1 ) AliInfo(&quot; C side done&quot;);</span>
+<span class="lineNum">     420 </span>            :     } // end side loop
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            :   // clear the temporary arrays lists
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   for ( Int_t k = 0 ; k &lt; kPhiSlices ; k++ )  {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     delete arrayofArrayV[k];</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     delete arrayofCharge[k];</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     delete arrayofEroverEz[k];</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     delete arrayofEphioverEz[k];</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     delete arrayofDeltaEz[k];</span>
+<span class="lineNum">     430 </span>            :   }
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   fInitLookUp = kTRUE;</span>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 : }</span>
+<a name="436"><span class="lineNum">     436 </span>            : </a>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            : Float_t AliTPCROCVoltError3D::GetROCVoltOffset(Int_t side, Float_t r0, Float_t phi0) {
+<span class="lineNum">     439 </span>            :   /// Returns the dz alignment data (in voltage equivalents) at
+<span class="lineNum">     440 </span>            :   /// the given position
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   Float_t xp = r0*TMath::Cos(phi0);</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   Float_t yp = r0*TMath::Sin(phi0);</span>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span>            :   // phi0 should be between 0 and 2pi
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :   if (phi0&lt;0) phi0+=TMath::TwoPi();</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   Int_t roc = (Int_t)TMath::Floor((TMath::RadToDeg()*phi0)/20);</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   if (side==1) roc+=18; // C side</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   if (r0&gt;132) roc+=36;  // OROC</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span>            :   // linear-plane data:  z = z0 + kx*lx + ky*ly (rotation in local coordinates)
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   TMatrixD &amp;fitData = *fdzDataLinFit;</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :   // local coordinates
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :   Double_t secAlpha = TMath::DegToRad()*(10.+20.*(((Int_t)roc)%18));</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :   Float_t lx = xp*TMath::Cos(secAlpha)+yp*TMath::Sin(secAlpha);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   Float_t ly = yp*TMath::Cos(secAlpha)-xp*TMath::Sin(secAlpha);</span>
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span>            :   // reference of rotation in lx is at the intersection between OROC and IROC
+<span class="lineNum">     460 </span>            :   // necessary, since the Fitprozedure is otherwise useless
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   AliTPCROC * rocInfo = AliTPCROC::Instance();</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   Double_t lxRef  = (rocInfo-&gt;GetPadRowRadii(0,62)+rocInfo-&gt;GetPadRowRadii(36,0))/2;</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   Float_t dz = fitData(roc,0)+fitData(roc,1)*(lx-lxRef) + fitData(roc,2)*ly; // value in cm</span>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            :   // aproximated Voltage-offset-aquivalent to the z misalignment
+<span class="lineNum">     468 </span>            :   // (linearly scaled with the z position)
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   Double_t ezField = (fgkCathodeV-fgkGG)/fgkTPCZ0; // = ALICE Electric Field (V/cm) Magnitude ~ -400 V/cm;</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   Float_t voltOff = dz*ezField;            // values in &quot;Volt equivalents&quot;</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   return voltOff;</span>
+<a name="473"><span class="lineNum">     473 </span>            : }</a>
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            : TH2F * AliTPCROCVoltError3D::CreateHistoOfZAlignment(Int_t side, Int_t nx, Int_t ny) {
+<span class="lineNum">     476 </span>            :   /// return a simple histogramm containing the input to the poisson solver
+<span class="lineNum">     477 </span>            :   /// (z positions of the Read-out chambers, linearly interpolated)
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :   char hname[100];</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   if (side==0) snprintf(hname,100,&quot;survey_dz_Aside&quot;);</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   if (side==1) snprintf(hname,100,&quot;survey_dz_Cside&quot;);</span>
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   TH2F *h = new TH2F(hname,hname,nx,-250.,250.,ny,-250.,250.);</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   for (Int_t iy=1;iy&lt;=ny;++iy) {</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     Double_t yp = h-&gt;GetYaxis()-&gt;GetBinCenter(iy);</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     for (Int_t ix=1;ix&lt;=nx;++ix) {</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :       Double_t xp = h-&gt;GetXaxis()-&gt;GetBinCenter(ix);</span>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :       Float_t r0 = TMath::Sqrt(xp*xp+yp*yp);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :       Float_t phi0 = TMath::ATan2(yp,xp);</span>
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       Float_t dz = GetROCVoltOffset(side,r0,phi0); // in [volt]</span>
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :       Double_t ezField = (fgkCathodeV-fgkGG)/fgkTPCZ0; // = ALICE Electric Field (V/cm) Magnitude ~ -400 V/cm;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :       dz = dz/ezField;    // in [cm]</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :       if (85.&lt;=r0 &amp;&amp; r0&lt;=245.) {</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         h-&gt;SetBinContent(ix,iy,dz);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :         h-&gt;SetBinContent(ix,iy,0.);</span>
+<span class="lineNum">     502 </span>            :       }
+<span class="lineNum">     503 </span>            :     }
+<span class="lineNum">     504 </span>            :   }
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   h-&gt;GetXaxis()-&gt;SetTitle(&quot;x [cm]&quot;);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   h-&gt;GetYaxis()-&gt;SetTitle(&quot;y [cm]&quot;);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :   h-&gt;GetZaxis()-&gt;SetTitle(&quot;dz [cm]&quot;);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   h-&gt;SetStats(0);</span>
+<span class="lineNum">     510 </span>            :   //  h-&gt;DrawCopy(&quot;colz&quot;);
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   return h;</span>
+<a name="513"><span class="lineNum">     513 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            : void AliTPCROCVoltError3D::Print(const Option_t* option) const {
+<span class="lineNum">     516 </span>            :   /// Print function to check the settings of the Rod shifts and the rotated clips
+<span class="lineNum">     517 </span>            :   /// option==&quot;a&quot; prints the C0 and C1 coefficents for calibration purposes
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   TString opt = option; opt.ToLower();</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   printf(&quot;%s\n&quot;,GetTitle());</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :   printf(&quot; - z aligmnet of the TPC Read-Out chambers \n&quot;);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   printf(&quot;   (linear interpolation within the chamber:  dz = z0 + kx*(lx-133) + ky*ly [cm] ) \n&quot;);</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   printf(&quot;   Info: Check the following data-file for more details: %s \n&quot;,fROCDataFileName.Data());</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   printf(&quot;   fROCdisplacement: %s\n&quot;, fROCdisplacement ? &quot;kTRUE&quot; : &quot;kFALSE&quot;);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :   printf(&quot;   fElectronArrivalCorrection: %s\n&quot;, fElectronArrivalCorrection ? &quot;kTRUE&quot; : &quot;kFALSE&quot;);</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   if (opt.Contains(&quot;a&quot;)) { // Print all details</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     TMatrixD &amp;fitData = *fdzDataLinFit;</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     printf(&quot; A side:  IROC   ROCX=(z0,kx,ky): \n&quot;);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     for (Int_t roc = 0; roc&lt;18; roc++)</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :       printf(&quot;ROC%d:(%.2e,%.2e,%.2e) &quot;,roc,fitData(roc,0),fitData(roc,1),fitData(roc,2));</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     printf(&quot;\n A side:  OROC   ROCX=(z0,kx,ky): \n&quot;);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     for (Int_t roc = 36; roc&lt;54; roc++)</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :       printf(&quot;ROC%d:(%.2e,%.2e,%.2e) &quot;,roc,fitData(roc,0),fitData(roc,1),fitData(roc,2));</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     printf(&quot;\n C side:  IROC   ROCX=(z0,kx,ky): \n&quot;);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     for (Int_t roc = 18; roc&lt;36; roc++)</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :       printf(&quot;ROC%d:(%.2e,%.2e,%.2e) &quot;,roc,fitData(roc,0),fitData(roc,1),fitData(roc,2));</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     printf(&quot;\n C side:  OROC   ROCX=(z0,kx,ky): \n&quot;);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     for (Int_t roc = 54; roc&lt;72; roc++)</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       printf(&quot;ROC%d:(%.2e,%.2e,%.2e) &quot;,roc,fitData(roc,0),fitData(roc,1),fitData(roc,2));</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     printf(&quot;\n\n&quot;);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     printf(&quot; - T1: %1.4f, T2: %1.4f \n&quot;,fT1,fT2);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     printf(&quot; - C1: %1.4f, C0: %1.4f \n&quot;,fC1,fC0);</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :   if (!fInitLookUp) AliError(&quot;Lookup table was not initialized! You should do InitROCVoltError3D() ...&quot;);</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

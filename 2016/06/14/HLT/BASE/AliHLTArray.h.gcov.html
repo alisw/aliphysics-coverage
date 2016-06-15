@@ -1,0 +1,779 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/BASE/AliHLTArray.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">HLT/BASE</a> - AliHLTArray.h<span style="font-size: 80%;"> (source / <a href="AliHLTArray.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">78</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : //-*- Mode: C++ -*-</a>
+<span class="lineNum">       2 </span>            : // $Id$
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : // ****************************************************************************
+<span class="lineNum">       5 </span>            : // * This file is property of and copyright by the ALICE HLT Project          *
+<span class="lineNum">       6 </span>            : // * ALICE Experiment at CERN, All rights reserved.                           *
+<span class="lineNum">       7 </span>            : // *                                                                          *
+<span class="lineNum">       8 </span>            : // * Copyright (C) 2009 Matthias Kretz &lt;kretz@kde.org&gt;                        *
+<span class="lineNum">       9 </span>            : // *               for The ALICE HLT Project.                                 *
+<span class="lineNum">      10 </span>            : // *                                                                          *
+<span class="lineNum">      11 </span>            : // * Permission to use, copy, modify and distribute this software and its     *
+<span class="lineNum">      12 </span>            : // * documentation strictly for non-commercial purposes is hereby granted     *
+<span class="lineNum">      13 </span>            : // * without fee, provided that the above copyright notice appears in all     *
+<span class="lineNum">      14 </span>            : // * copies and that both the copyright notice and this permission notice     *
+<span class="lineNum">      15 </span>            : // * appear in the supporting documentation. The authors make no claims       *
+<span class="lineNum">      16 </span>            : // * about the suitability of this software for any purpose. It is            *
+<span class="lineNum">      17 </span>            : // * provided &quot;as is&quot; without express or implied warranty.                    *
+<span class="lineNum">      18 </span>            : // ****************************************************************************
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : /**
+<span class="lineNum">      21 </span>            :  * \file AliHLTArray.h
+<span class="lineNum">      22 </span>            :  * \author Matthias Kretz &lt;kretz@kde.org&gt;
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  * This file contains the classes AliHLTResizableArray and AliHLTFixedArray with AliHLTArray as base
+<span class="lineNum">      25 </span>            :  * class. It's a drop-in replacement for C-Arrays. It makes it easy to use variable sized arrays on
+<span class="lineNum">      26 </span>            :  * the stack and pass arrays as arguments to other functions with an optional bounds-checking
+<span class="lineNum">      27 </span>            :  * enabled for the whole time.
+<span class="lineNum">      28 </span>            :  */
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #ifndef ALIHLTARRAY_H
+<span class="lineNum">      31 </span>            : #define ALIHLTARRAY_H
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #ifndef assert
+<span class="lineNum">      34 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #if (defined(__MMX__) || defined(__SSE__))
+<span class="lineNum">      38 </span>            : #if defined(__GNUC__)
+<span class="lineNum">      39 </span>            : #if __GNUC__ &gt; 3
+<span class="lineNum">      40 </span>            : #define USE_MM_MALLOC
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : #else // not gcc, assume it can use _mm_malloc since it supports MMX/SSE
+<span class="lineNum">      43 </span>            : #define USE_MM_MALLOC
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : #endif
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #ifdef USE_MM_MALLOC
+<span class="lineNum">      48 </span>            : #include &lt;mm_malloc.h&gt;
+<span class="lineNum">      49 </span>            : #else
+<span class="lineNum">      50 </span>            : #include &lt;cstdlib&gt;
+<span class="lineNum">      51 </span>            : #endif
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : enum {
+<span class="lineNum">      54 </span>            :   kAliHLTFullyCacheLineAligned = -1
+<span class="lineNum">      55 </span>            : };
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : #if defined(__CUDACC__) &amp; 0
+<span class="lineNum">      58 </span>            : #define ALIHLTARRAY_STATIC_ASSERT(a, b)
+<span class="lineNum">      59 </span>            : #define ALIHLTARRAY_STATIC_ASSERT_NC(a, b)
+<span class="lineNum">      60 </span>            : #else
+<span class="lineNum">      61 </span>            : namespace AliHLTArrayInternal
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span>            :   template&lt;bool&gt; class AliHLTStaticAssertFailure;
+<span class="lineNum">      64 </span>            :   template&lt;&gt; class AliHLTStaticAssertFailure&lt;true&gt; {};
+<span class="lineNum">      65 </span>            : }
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : #define ALIHLTARRAY_STATIC_ASSERT_CONCAT_HELPER(a, b) a##b
+<span class="lineNum">      68 </span>            : #define ALIHLTARRAY_STATIC_ASSERT_CONCAT(a, b) ALIHLTARRAY_STATIC_ASSERT_CONCAT_HELPER(a, b)
+<span class="lineNum">      69 </span>            : #define ALIHLTARRAY_STATIC_ASSERT_NC(cond, msg) \
+<span class="lineNum">      70 </span>            :   typedef AliHLTArrayInternal::AliHLTStaticAssertFailure&lt;cond&gt; ALIHLTARRAY_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__); \
+<span class="lineNum">      71 </span>            :   ALIHLTARRAY_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__) Error_##msg
+<span class="lineNum">      72 </span>            : #define ALIHLTARRAY_STATIC_ASSERT(cond, msg) ALIHLTARRAY_STATIC_ASSERT_NC(cond, msg); (void) Error_##msg
+<span class="lineNum">      73 </span>            : #endif
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            : template&lt;typename T, int Dim&gt; class AliHLTArray;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : namespace AliHLTInternal
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            :   template&lt;unsigned int Size&gt; struct Padding { char fPadding[Size]; };
+<span class="lineNum">      80 </span>            :   template&lt;&gt; struct Padding&lt;0&gt; {};
+<span class="lineNum">      81 </span>            :   template&lt;typename T&gt; struct AliHLTCacheLineSizeHelperData { T fData; };
+<span class="lineNum">      82 </span>            :   template&lt;typename T&gt; struct AliHLTCacheLineSizeHelperEnums {
+<span class="lineNum">      83 </span>            :     enum {
+<span class="lineNum">      84 </span>            :       CacheLineSize = 64,
+<span class="lineNum">      85 </span>            :       MaskedSize = sizeof( T ) &amp; ( CacheLineSize - 1 ),
+<span class="lineNum">      86 </span>            :       RequiredSize = MaskedSize == 0 ? sizeof( T ) : sizeof( T ) + CacheLineSize - MaskedSize,
+<span class="lineNum">      87 </span>            :       PaddingSize = RequiredSize - sizeof( T )
+<span class="lineNum">      88 </span>            :     };
+<span class="lineNum">      89 </span>            :   };
+<span class="lineNum">      90 </span>            :   template&lt;typename T&gt; class AliCacheLineSizeHelper : private AliHLTCacheLineSizeHelperData&lt;T&gt;, private Padding&lt;AliHLTCacheLineSizeHelperEnums&lt;T&gt;::PaddingSize&gt;
+<span class="lineNum">      91 </span>            :   {
+<span class="lineNum">      92 </span>            :     public:
+<span class="lineNum">      93 </span>            :       operator T &amp;() { return AliHLTCacheLineSizeHelperData&lt;T&gt;::fData; }
+<span class="lineNum">      94 </span>            :       operator const T &amp;() const { return AliHLTCacheLineSizeHelperData&lt;T&gt;::fData; }
+<span class="lineNum">      95 </span>            :       //const T &amp;operator=( const T &amp;rhs ) { AliHLTCacheLineSizeHelperData&lt;T&gt;::fData = rhs; }
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :     private:
+<span class="lineNum">      98 </span>            :   };
+<span class="lineNum">      99 </span>            :   template&lt;typename T, int alignment&gt; struct TypeForAlignmentHelper { typedef T Type; };
+<span class="lineNum">     100 </span>            :   template&lt;typename T&gt; struct TypeForAlignmentHelper&lt;T, kAliHLTFullyCacheLineAligned&gt; { typedef AliCacheLineSizeHelper&lt;T&gt; Type; };
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :   // XXX
+<span class="lineNum">     103 </span>            :   // The AliArrayBoundsCheck and AliAllocator classes implement a virtual destructor only in order to
+<span class="lineNum">     104 </span>            :   // silence the -Weffc++ warning. It really is not required for these classes to have a virtual
+<span class="lineNum">     105 </span>            :   // dtor since polymorphism is not used (AliHLTResizableArray and AliHLTFixedArray are allocated on
+<span class="lineNum">     106 </span>            :   // the stack only). The virtual dtor only adds an unnecessary vtable to the code.
+<span class="lineNum">     107 </span>            : #ifndef ENABLE_ARRAY_BOUNDS_CHECKING
+<span class="lineNum">     108 </span>            :   /**
+<a name="109"><span class="lineNum">     109 </span>            :    * no-op implementation that for no-bounds-checking</a>
+<span class="lineNum">     110 </span>            :    */
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   class AliArrayBoundsCheck</span>
+<a name="112"><span class="lineNum">     112 </span>            :   {</a>
+<span class="lineNum">     113 </span>            :     protected:
+<a name="114"><span class="lineNum">     114 </span><span class="lineNoCov">          0 :       virtual inline ~AliArrayBoundsCheck() {}</span></a>
+<a name="115"><span class="lineNum">     115 </span>            :       inline bool IsInBounds( int ) const { return true; }</a>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       inline void SetBounds( int, int ) const {}</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :       inline void MoveBounds( int ) const {}</span>
+<span class="lineNum">     118 </span>            :       inline void ReinterpretCast( const AliArrayBoundsCheck &amp;, int, int ) const {}
+<span class="lineNum">     119 </span>            :   };
+<span class="lineNum">     120 </span>            : #define BOUNDS_CHECK(x, y)
+<span class="lineNum">     121 </span>            : #else
+<span class="lineNum">     122 </span>            :   /**
+<span class="lineNum">     123 </span>            :    * implementation for bounds-checking.
+<span class="lineNum">     124 </span>            :    */
+<span class="lineNum">     125 </span>            :   class AliArrayBoundsCheck
+<span class="lineNum">     126 </span>            :   {
+<span class="lineNum">     127 </span>            :     protected:
+<span class="lineNum">     128 </span>            :       virtual inline ~AliArrayBoundsCheck() {}
+<span class="lineNum">     129 </span>            :       /**
+<span class="lineNum">     130 </span>            :        * checks whether the given offset is valid
+<span class="lineNum">     131 </span>            :        */
+<span class="lineNum">     132 </span>            :       inline bool IsInBounds( int x ) const;
+<span class="lineNum">     133 </span>            :       /**
+<span class="lineNum">     134 </span>            :        * set the start and end offsets that are still valid
+<span class="lineNum">     135 </span>            :        */
+<span class="lineNum">     136 </span>            :       inline void SetBounds( int start, int end ) { fStart = start; fEnd = end; }
+<span class="lineNum">     137 </span>            :       /**
+<span class="lineNum">     138 </span>            :        * move the start and end offsets by the same amount
+<span class="lineNum">     139 </span>            :        */
+<span class="lineNum">     140 </span>            :       inline void MoveBounds( int d ) { fStart += d; fEnd += d; }
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :       inline void ReinterpretCast( const AliArrayBoundsCheck &amp;other, int sizeofOld, int sizeofNew ) {
+<span class="lineNum">     143 </span>            :         fStart = other.fStart * sizeofNew / sizeofOld;
+<span class="lineNum">     144 </span>            :         fEnd = other.fEnd * sizeofNew / sizeofOld;
+<span class="lineNum">     145 </span>            :       }
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     private:
+<span class="lineNum">     148 </span>            :       int fStart; // start
+<span class="lineNum">     149 </span>            :       int fEnd;   // end
+<span class="lineNum">     150 </span>            :   };
+<span class="lineNum">     151 </span>            : #define BOUNDS_CHECK(x, y) if (AliHLTInternal::AliArrayBoundsCheck::IsInBounds(x)) {} else return y
+<span class="lineNum">     152 </span>            : #endif
+<span class="lineNum">     153 </span>            :   template&lt;typename T, int alignment&gt; class AliAllocator
+<span class="lineNum">     154 </span>            :   {
+<span class="lineNum">     155 </span>            :     public:
+<span class="lineNum">     156 </span>            : #ifdef USE_MM_MALLOC
+<span class="lineNum">     157 </span>            :       static inline T *Alloc( int s ) { T *p = reinterpret_cast&lt;T *&gt;( _mm_malloc( s * sizeof( T ), alignment ) ); return new( p ) T[s]; }
+<span class="lineNum">     158 </span>            :       static inline void Free( T *const p, int size ) {
+<span class="lineNum">     159 </span>            :         for ( int i = 0; i &lt; size; ++i ) p[i].~T();        
+<span class="lineNum">     160 </span>            :         _mm_free( p );
+<span class="lineNum">     161 </span>            :       }
+<span class="lineNum">     162 </span>            : #else
+<span class="lineNum">     163 </span>            :       static inline T *Alloc( int s ) { T *p; posix_memalign( &amp;p, alignment, s * sizeof( T ) ); return new( p ) T[s]; }
+<span class="lineNum">     164 </span>            :       static inline void Free( T *const p, int size ) {
+<span class="lineNum">     165 </span>            :         for ( int i = 0; i &lt; size; ++i ) p[i].~T();        
+<span class="lineNum">     166 </span>            :         std::free( p );
+<span class="lineNum">     167 </span>            :       }
+<span class="lineNum">     168 </span>            : #endif
+<span class="lineNum">     169 </span>            :   };
+<span class="lineNum">     170 </span>            :   template&lt;typename T&gt; class AliAllocator&lt;T, kAliHLTFullyCacheLineAligned&gt;
+<span class="lineNum">     171 </span>            :   {
+<span class="lineNum">     172 </span>            :     public:
+<span class="lineNum">     173 </span>            :       typedef AliCacheLineSizeHelper&lt;T&gt; T2;
+<span class="lineNum">     174 </span>            : #ifdef USE_MM_MALLOC
+<span class="lineNum">     175 </span>            :       static inline T2 *Alloc( int s ) { T2 *p = reinterpret_cast&lt;T2 *&gt;( _mm_malloc( s * sizeof( T2 ), 128 ) ); return new( p ) T2[s]; }
+<span class="lineNum">     176 </span>            :       static inline void Free( T2 *const p, int size ) {
+<span class="lineNum">     177 </span>            :         for ( int i = 0; i &lt; size; ++i ) p[i].~T2();        
+<span class="lineNum">     178 </span>            :         _mm_free( p );
+<span class="lineNum">     179 </span>            :       }
+<span class="lineNum">     180 </span>            : #else
+<span class="lineNum">     181 </span>            :       static inline T2 *Alloc( int s ) { T2 *p; posix_memalign( &amp;p, 128, s * sizeof( T2 ) ); return new( p ) T2[s]; }
+<span class="lineNum">     182 </span>            :       static inline void Free( T2 *const p, int size ) {
+<span class="lineNum">     183 </span>            :         for ( int i = 0; i &lt; size; ++i ) p[i].~T2();
+<span class="lineNum">     184 </span>            :         std::free( p );
+<span class="lineNum">     185 </span>            :       }
+<span class="lineNum">     186 </span>            : #endif
+<span class="lineNum">     187 </span>            :   };
+<span class="lineNum">     188 </span>            :   template&lt;typename T&gt; class AliAllocator&lt;T, 0&gt;
+<a name="189"><span class="lineNum">     189 </span>            :   {</a>
+<a name="190"><span class="lineNum">     190 </span>            :     public:</a>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :       static inline T *Alloc( int s ) { return new T[s]; }</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :       static inline void Free( const T *const p, int ) { delete[] p; }</span>
+<span class="lineNum">     193 </span>            :   };
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :   template&lt;typename T&gt; struct ReturnTypeHelper { typedef T Type; };
+<span class="lineNum">     196 </span>            :   template&lt;typename T&gt; struct ReturnTypeHelper&lt;AliCacheLineSizeHelper&lt;T&gt; &gt; { typedef T Type; };
+<span class="lineNum">     197 </span>            :   /**
+<a name="198"><span class="lineNum">     198 </span>            :    * Array base class for dimension dependent behavior</a>
+<span class="lineNum">     199 </span>            :    */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   template&lt;typename T, int Dim&gt; class AliHLTArrayBase;</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :   /**
+<span class="lineNum">     203 </span>            :    * 1-dim arrays only have operator[]
+<span class="lineNum">     204 </span>            :    */
+<span class="lineNum">     205 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     206 </span>            :   class AliHLTArrayBase&lt;T, 1&gt; : public AliArrayBoundsCheck
+<span class="lineNum">     207 </span>            :   {
+<a name="208"><span class="lineNum">     208 </span>            :     friend class AliHLTArrayBase&lt;T, 2&gt;; // declare friend </a>
+<a name="209"><span class="lineNum">     209 </span>            :     public:</a>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :       AliHLTArrayBase() : fData( 0 ), fSize( 0 ) {} // XXX really shouldn't be done. But -Weffc++ wants it so</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       AliHLTArrayBase( const AliHLTArrayBase &amp;rhs ) : AliArrayBoundsCheck( rhs ), fData( rhs.fData ), fSize( rhs.fSize ) {} // XXX</span>
+<span class="lineNum">     212 </span>            :       AliHLTArrayBase &amp;operator=( const AliHLTArrayBase &amp;rhs ) { AliArrayBoundsCheck::operator=( rhs ); fData = rhs.fData; return *this; } // XXX
+<span class="lineNum">     213 </span>            :       typedef typename ReturnTypeHelper&lt;T&gt;::Type R;
+<span class="lineNum">     214 </span>            :       /**
+<a name="215"><span class="lineNum">     215 </span>            :        * return a reference to the value at the given index</a>
+<span class="lineNum">     216 </span>            :        */
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :       inline R &amp;operator[]( int x ) { BOUNDS_CHECK( x, fData[0] ); return fData[x]; }</span>
+<span class="lineNum">     218 </span>            :       /**
+<a name="219"><span class="lineNum">     219 </span>            :        * return a const reference to the value at the given index</a>
+<span class="lineNum">     220 </span>            :        */
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :       inline const R &amp;operator[]( int x ) const { BOUNDS_CHECK( x, fData[0] ); return fData[x]; }</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :     protected:
+<a name="224"><span class="lineNum">     224 </span>            :       T *fData;  // actual data</a>
+<span class="lineNum">     225 </span>            :       int fSize; // data size
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :       inline void SetSize( int x, int, int ) { fSize = x; }</span>
+<span class="lineNum">     227 </span>            :   };
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :   /**
+<span class="lineNum">     230 </span>            :    * 2-dim arrays should use operator(int, int)
+<span class="lineNum">     231 </span>            :    * operator[] can be used to return a 1-dim array
+<span class="lineNum">     232 </span>            :    */
+<span class="lineNum">     233 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     234 </span>            :   class AliHLTArrayBase&lt;T, 2&gt; : public AliArrayBoundsCheck
+<span class="lineNum">     235 </span>            :   {
+<span class="lineNum">     236 </span>            :     friend class AliHLTArrayBase&lt;T, 3&gt;; // declare friend
+<span class="lineNum">     237 </span>            :     public:
+<span class="lineNum">     238 </span>            :       AliHLTArrayBase() : fData( 0 ), fSize( 0 ), fStride( 0 ) {} // XXX really shouldn't be done. But -Weffc++ wants it so
+<span class="lineNum">     239 </span>            :       AliHLTArrayBase( const AliHLTArrayBase &amp;rhs ) : AliArrayBoundsCheck( rhs ), fData( rhs.fData ), fSize( rhs.fSize ), fStride( rhs.fStride ) {} // XXX
+<span class="lineNum">     240 </span>            :       AliHLTArrayBase &amp;operator=( const AliHLTArrayBase &amp;rhs ) { AliArrayBoundsCheck::operator=( rhs ); fData = rhs.fData; fSize = rhs.fSize; fStride = rhs.fStride; return *this; } // XXX
+<span class="lineNum">     241 </span>            :       typedef typename ReturnTypeHelper&lt;T&gt;::Type R;
+<span class="lineNum">     242 </span>            :       /**
+<span class="lineNum">     243 </span>            :        * return a reference to the value at the given indexes
+<span class="lineNum">     244 </span>            :        */
+<span class="lineNum">     245 </span>            :       inline R &amp;operator()( int x, int y ) { BOUNDS_CHECK( x * fStride + y, fData[0] ); return fData[x * fStride + y]; }
+<span class="lineNum">     246 </span>            :       /**
+<span class="lineNum">     247 </span>            :        * return a const reference to the value at the given indexes
+<span class="lineNum">     248 </span>            :        */
+<span class="lineNum">     249 </span>            :       inline const R &amp;operator()( int x, int y ) const { BOUNDS_CHECK( x * fStride + y, fData[0] ); return fData[x * fStride + y]; }
+<span class="lineNum">     250 </span>            :       /**
+<span class="lineNum">     251 </span>            :        * return a 1-dim array at the given index. This makes it behave like a 2-dim C-Array.
+<span class="lineNum">     252 </span>            :        */
+<span class="lineNum">     253 </span>            :       inline AliHLTArray&lt;T, 1&gt; operator[]( int x );
+<span class="lineNum">     254 </span>            :       /**
+<span class="lineNum">     255 </span>            :        * return a const 1-dim array at the given index. This makes it behave like a 2-dim C-Array.
+<span class="lineNum">     256 </span>            :        */
+<span class="lineNum">     257 </span>            :       inline const AliHLTArray&lt;T, 1&gt; operator[]( int x ) const;
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :     protected:
+<span class="lineNum">     260 </span>            :       T *fData;    // actual data
+<span class="lineNum">     261 </span>            :       int fSize;   // data size
+<span class="lineNum">     262 </span>            :       int fStride; // stride
+<span class="lineNum">     263 </span>            :       inline void SetSize( int x, int y, int ) { fStride = y; fSize = x * y; }
+<span class="lineNum">     264 </span>            :   };
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            :   /**
+<span class="lineNum">     267 </span>            :    * 3-dim arrays should use operator(int, int, int)
+<span class="lineNum">     268 </span>            :    * operator[] can be used to return a 2-dim array
+<span class="lineNum">     269 </span>            :    */
+<span class="lineNum">     270 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     271 </span>            :   class AliHLTArrayBase&lt;T, 3&gt; : public AliArrayBoundsCheck
+<span class="lineNum">     272 </span>            :   {
+<span class="lineNum">     273 </span>            :     public:
+<span class="lineNum">     274 </span>            :       AliHLTArrayBase() : fData( 0 ), fSize( 0 ), fStrideX( 0 ), fStrideY( 0 ) {} // XXX really shouldn't be done. But -Weffc++ wants it so
+<span class="lineNum">     275 </span>            :       AliHLTArrayBase( const AliHLTArrayBase &amp;rhs ) : AliArrayBoundsCheck( rhs ), fData( rhs.fData ), fSize( rhs.fSize ), fStrideX( rhs.fStrideX ), fStrideY( rhs.fStrideY ) {} // XXX
+<span class="lineNum">     276 </span>            :       AliHLTArrayBase &amp;operator=( const AliHLTArrayBase &amp;rhs ) { AliArrayBoundsCheck::operator=( rhs ); fData = rhs.fData; fSize = rhs.fSize; fStrideX = rhs.fStrideX; fStrideY = rhs.fStrideY; return *this; } // XXX
+<span class="lineNum">     277 </span>            :       // Stopped working on GCC 4.5.0
+<span class="lineNum">     278 </span>            :       //typedef typename ReturnTypeHelper&lt;T&gt;::Type R;
+<span class="lineNum">     279 </span>            :       /**
+<span class="lineNum">     280 </span>            :        * return a reference to the value at the given indexes
+<span class="lineNum">     281 </span>            :        */
+<span class="lineNum">     282 </span>            :       inline typename ReturnTypeHelper&lt;T&gt;::Type &amp;operator()( int x, int y, int z );
+<span class="lineNum">     283 </span>            :       /**
+<span class="lineNum">     284 </span>            :        * return a const reference to the value at the given indexes
+<span class="lineNum">     285 </span>            :        */
+<span class="lineNum">     286 </span>            :       inline const typename ReturnTypeHelper&lt;T&gt;::Type &amp;operator()( int x, int y, int z ) const;
+<span class="lineNum">     287 </span>            :       /**
+<span class="lineNum">     288 </span>            :        * return a 2-dim array at the given index. This makes it behave like a 3-dim C-Array.
+<span class="lineNum">     289 </span>            :        */
+<span class="lineNum">     290 </span>            :       inline AliHLTArray&lt;T, 2&gt; operator[]( int x );
+<span class="lineNum">     291 </span>            :       /**
+<span class="lineNum">     292 </span>            :        * return a const 2-dim array at the given index. This makes it behave like a 3-dim C-Array.
+<span class="lineNum">     293 </span>            :        */
+<span class="lineNum">     294 </span>            :       inline const AliHLTArray&lt;T, 2&gt; operator[]( int x ) const;
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            :     protected:
+<span class="lineNum">     297 </span>            :       T *fData;     // actual data
+<span class="lineNum">     298 </span>            :       int fSize;    // data size
+<span class="lineNum">     299 </span>            :       int fStrideX; // stride X
+<span class="lineNum">     300 </span>            :       int fStrideY; // stride Y
+<span class="lineNum">     301 </span>            :       inline void SetSize( int x, int y, int z ) { fStrideX = y * z; fStrideY = z; fSize = fStrideX * x; }
+<span class="lineNum">     302 </span>            :   };
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            :   template&lt;typename T, unsigned int Size, int _alignment&gt; class AlignedData
+<span class="lineNum">     305 </span>            :   {
+<span class="lineNum">     306 </span>            :     public:
+<span class="lineNum">     307 </span>            :       T *ConstructAlignedData() {
+<span class="lineNum">     308 </span>            :         const int offset = reinterpret_cast&lt;unsigned long&gt;( &amp;fUnalignedArray[0] ) &amp; ( Alignment - 1 );
+<span class="lineNum">     309 </span>            :         void *mem = &amp;fUnalignedArray[0] + ( Alignment - offset );
+<span class="lineNum">     310 </span>            :         return new( mem ) T[Size];
+<span class="lineNum">     311 </span>            :       }
+<span class="lineNum">     312 </span>            :       ~AlignedData() {
+<span class="lineNum">     313 </span>            :         const int offset = reinterpret_cast&lt;unsigned long&gt;( &amp;fUnalignedArray[0] ) &amp; ( Alignment - 1 );
+<span class="lineNum">     314 </span>            :         T *mem = reinterpret_cast&lt;T *&gt;( &amp;fUnalignedArray[0] + ( Alignment - offset ) );
+<span class="lineNum">     315 </span>            :         for ( unsigned int i = 0; i &lt; Size; ++i ) mem[i].~T();        
+<span class="lineNum">     316 </span>            :       }
+<span class="lineNum">     317 </span>            :     private:
+<span class="lineNum">     318 </span>            :       enum {
+<span class="lineNum">     319 </span>            :         Alignment = _alignment == kAliHLTFullyCacheLineAligned ? 128 : _alignment,
+<span class="lineNum">     320 </span>            :         PaddedSize = Size * sizeof( T ) + Alignment
+<span class="lineNum">     321 </span>            :       };
+<span class="lineNum">     322 </span>            :       ALIHLTARRAY_STATIC_ASSERT_NC( ( Alignment &amp; ( Alignment - 1 ) ) == 0, alignment_needs_to_be_a_multiple_of_2 );
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :       char fUnalignedArray[PaddedSize]; // data array
+<span class="lineNum">     325 </span>            :   };
+<span class="lineNum">     326 </span>            :   template&lt;typename T, unsigned int Size&gt; class AlignedData&lt;T, Size, 0&gt;
+<span class="lineNum">     327 </span>            :   {
+<span class="lineNum">     328 </span>            :     public:
+<span class="lineNum">     329 </span>            :       T *ConstructAlignedData() { return &amp;fArray[0]; }
+<span class="lineNum">     330 </span>            :     private:
+<span class="lineNum">     331 </span>            :       T fArray[Size]; // data array
+<span class="lineNum">     332 </span>            :   };
+<span class="lineNum">     333 </span>            : } // namespace AliHLTInternal
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            : /**
+<span class="lineNum">     336 </span>            :  * C-Array like class with the dimension dependent behavior defined in the AliHLTArrayBase class
+<a name="337"><span class="lineNum">     337 </span>            :  */</a>
+<span class="lineNum">     338 </span>            : template &lt; typename T, int Dim = 1 &gt;
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 : class AliHLTArray : public AliHLTInternal::AliHLTArrayBase&lt;T, Dim&gt;</span>
+<span class="lineNum">     340 </span>            : {
+<span class="lineNum">     341 </span>            :   public:
+<span class="lineNum">     342 </span>            :     typedef AliHLTInternal::AliHLTArrayBase&lt;T, Dim&gt; Parent;
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            :     /**
+<span class="lineNum">     345 </span>            :      * Returns the number of elements in the array. If it is a multi-dimensional array the size is
+<span class="lineNum">     346 </span>            :      * the multiplication of the dimensions ( e.g. a 10 x 20 array returns 200 as its size ).
+<span class="lineNum">     347 </span>            :      */
+<span class="lineNum">     348 </span>            :     inline int Size() const { return Parent::fSize; }
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :     /**
+<span class="lineNum">     351 </span>            :      * allows you to check for validity of the array by casting to bool
+<span class="lineNum">     352 </span>            :      */
+<span class="lineNum">     353 </span>            :     inline operator bool() const { return Parent::fData != 0; }
+<span class="lineNum">     354 </span>            :     /**
+<span class="lineNum">     355 </span>            :      * allows you to check for validity of the array
+<span class="lineNum">     356 </span>            :      */
+<span class="lineNum">     357 </span>            :     inline bool IsValid() const { return Parent::fData != 0; }
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            :     /**
+<span class="lineNum">     360 </span>            :      * returns a reference to the data at index 0
+<span class="lineNum">     361 </span>            :      */
+<span class="lineNum">     362 </span>            :     inline T &amp;operator*() { BOUNDS_CHECK( 0, Parent::fData[0] ); return *Parent::fData; }
+<span class="lineNum">     363 </span>            :     /**
+<span class="lineNum">     364 </span>            :      * returns a const reference to the data at index 0
+<span class="lineNum">     365 </span>            :      */
+<span class="lineNum">     366 </span>            :     inline const T &amp;operator*() const { BOUNDS_CHECK( 0, Parent::fData[0] ); return *Parent::fData; }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     /**
+<span class="lineNum">     369 </span>            :      * returns a pointer to the data
+<a name="370"><span class="lineNum">     370 </span>            :      * This circumvents bounds checking so it should not be used.</a>
+<span class="lineNum">     371 </span>            :      */
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     inline T *Data() { return Parent::fData; }</span>
+<span class="lineNum">     373 </span>            :     /**
+<span class="lineNum">     374 </span>            :      * returns a const pointer to the data
+<span class="lineNum">     375 </span>            :      * This circumvents bounds checking so it should not be used.
+<span class="lineNum">     376 </span>            :      */
+<span class="lineNum">     377 </span>            :     inline const T *Data() const { return Parent::fData; }
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            :     /**
+<span class="lineNum">     380 </span>            :      * moves the array base pointer so that the data that was once at index 0 will then be at index -x
+<span class="lineNum">     381 </span>            :      */
+<span class="lineNum">     382 </span>            :     inline AliHLTArray operator+( int x ) const;
+<span class="lineNum">     383 </span>            :     /**
+<span class="lineNum">     384 </span>            :      * moves the array base pointer so that the data that was once at index 0 will then be at index x
+<span class="lineNum">     385 </span>            :      */
+<span class="lineNum">     386 </span>            :     inline AliHLTArray operator-( int x ) const;
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            : #ifndef HLTCA_GPUCODE
+<span class="lineNum">     389 </span>            :     template&lt;typename Other&gt; inline AliHLTArray&lt;Other, Dim&gt; ReinterpretCast() const {
+<span class="lineNum">     390 </span>            :       AliHLTArray&lt;Other, Dim&gt; r;
+<span class="lineNum">     391 </span>            :       r.fData = reinterpret_cast&lt;Other *&gt;( Parent::fData );
+<span class="lineNum">     392 </span>            :       r.ReinterpretCast( *this, sizeof( T ), sizeof( Other ) );
+<span class="lineNum">     393 </span>            :     }
+<span class="lineNum">     394 </span>            : #endif
+<span class="lineNum">     395 </span>            : };
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            : /**
+<span class="lineNum">     398 </span>            :  * Owns the data. When it goes out of scope the data is freed.
+<span class="lineNum">     399 </span>            :  *
+<span class="lineNum">     400 </span>            :  * The memory is allocated on the heap.
+<span class="lineNum">     401 </span>            :  *
+<span class="lineNum">     402 </span>            :  * Instantiate this class on the stack. Allocation on the heap is disallowed.
+<span class="lineNum">     403 </span>            :  *
+<span class="lineNum">     404 </span>            :  * \param T type of the entries in the array.
+<span class="lineNum">     405 </span>            :  * \param Dim selects the operator[]/operator() behavior it should have. I.e. makes it behave like a
+<span class="lineNum">     406 </span>            :  * 1-, 2- or 3-dim array. (defaults to 1)
+<span class="lineNum">     407 </span>            :  * \param alignment Defaults to 0 (default alignment). Other valid values are any multiples of 2.
+<span class="lineNum">     408 </span>            :  *                  This is especially useful for aligning data for SIMD vectors.
+<span class="lineNum">     409 </span>            :  *
+<span class="lineNum">     410 </span>            :  * \warning when using alignment the type T may not have a destructor (well it may, but it won't be
+<span class="lineNum">     411 </span>            :  * called)
+<span class="lineNum">     412 </span>            :  *
+<span class="lineNum">     413 </span>            :  * Example:
+<span class="lineNum">     414 </span>            :  * \code
+<span class="lineNum">     415 </span>            :  * void init( AliHLTArray&lt;int&gt; a, int size )
+<span class="lineNum">     416 </span>            :  * {
+<span class="lineNum">     417 </span>            :  *   for ( int i = 0; i &lt; size; ++i ) {
+<span class="lineNum">     418 </span>            :  *     a[i] = i;
+<span class="lineNum">     419 </span>            :  *   }
+<span class="lineNum">     420 </span>            :  * }
+<span class="lineNum">     421 </span>            :  *
+<span class="lineNum">     422 </span>            :  * int size = ...;
+<span class="lineNum">     423 </span>            :  * AliHLTResizableArray&lt;int&gt; foo( size ); // notice that size doesn't have to be a constant like it
+<span class="lineNum">     424 </span>            :  *                                        // has to be for C-Arrays in ISO C++
+<span class="lineNum">     425 </span>            :  * init( foo, size );
+<span class="lineNum">     426 </span>            :  * // now foo[i] == i
+<span class="lineNum">     427 </span>            :  *
+<span class="lineNum">     428 </span>            :  * \endcode
+<span class="lineNum">     429 </span>            :  */
+<span class="lineNum">     430 </span>            : template &lt; typename T, int Dim = 1, int alignment = 0 &gt;
+<span class="lineNum">     431 </span>            : class AliHLTResizableArray : public AliHLTArray&lt;typename AliHLTInternal::TypeForAlignmentHelper&lt;T, alignment&gt;::Type, Dim&gt;
+<span class="lineNum">     432 </span>            : {
+<span class="lineNum">     433 </span>            :   public:
+<span class="lineNum">     434 </span>            :     typedef typename AliHLTInternal::TypeForAlignmentHelper&lt;T, alignment&gt;::Type T2;
+<span class="lineNum">     435 </span>            :     typedef AliHLTInternal::AliHLTArrayBase&lt;T2, Dim&gt; Parent;
+<span class="lineNum">     436 </span>            :     /**
+<span class="lineNum">     437 </span>            :      * does not allocate any memory
+<span class="lineNum">     438 </span>            :      */
+<span class="lineNum">     439 </span>            :     inline AliHLTResizableArray();
+<span class="lineNum">     440 </span>            :     /**
+<a name="441"><span class="lineNum">     441 </span>            :      * use for 1-dim arrays: allocates x * sizeof(T) bytes for the array</a>
+<span class="lineNum">     442 </span>            :      */
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     inline AliHLTResizableArray( int x );</span>
+<span class="lineNum">     444 </span>            :     /**
+<span class="lineNum">     445 </span>            :      * use for 2-dim arrays: allocates x * y * sizeof(T) bytes for the array
+<span class="lineNum">     446 </span>            :      */
+<span class="lineNum">     447 </span>            :     inline AliHLTResizableArray( int x, int y );
+<span class="lineNum">     448 </span>            :     /**
+<span class="lineNum">     449 </span>            :      * use for 3-dim arrays: allocates x * y * z * sizeof(T) bytes for the array
+<span class="lineNum">     450 </span>            :      */
+<span class="lineNum">     451 </span>            :     inline AliHLTResizableArray( int x, int y, int z );
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :     /**
+<a name="454"><span class="lineNum">     454 </span>            :      * frees the data</a>
+<span class="lineNum">     455 </span>            :      */
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     inline ~AliHLTResizableArray() { AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Free( Parent::fData, Parent::fSize ); }</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :     /**
+<span class="lineNum">     459 </span>            :      * use for 1-dim arrays: resizes the memory for the array to x * sizeof(T) bytes.
+<span class="lineNum">     460 </span>            :      *
+<span class="lineNum">     461 </span>            :      * \warning this does not keep your previous data. If you were looking for this you probably
+<span class="lineNum">     462 </span>            :      * want to use std::vector instead.
+<span class="lineNum">     463 </span>            :      */
+<span class="lineNum">     464 </span>            :     inline void Resize( int x );
+<span class="lineNum">     465 </span>            :     /**
+<span class="lineNum">     466 </span>            :      * use for 2-dim arrays: resizes the memory for the array to x * y * sizeof(T) bytes.
+<span class="lineNum">     467 </span>            :      *
+<span class="lineNum">     468 </span>            :      * \warning this does not keep your previous data. If you were looking for this you probably
+<span class="lineNum">     469 </span>            :      * want to use std::vector instead.
+<span class="lineNum">     470 </span>            :      */
+<span class="lineNum">     471 </span>            :     inline void Resize( int x, int y );
+<span class="lineNum">     472 </span>            :     /**
+<span class="lineNum">     473 </span>            :      * use for 3-dim arrays: resizes the memory for the array to x * y * z * sizeof(T) bytes.
+<span class="lineNum">     474 </span>            :      *
+<span class="lineNum">     475 </span>            :      * \warning this does not keep your previous data. If you were looking for this you probably
+<span class="lineNum">     476 </span>            :      * want to use std::vector instead.
+<span class="lineNum">     477 </span>            :      */
+<span class="lineNum">     478 </span>            :     inline void Resize( int x, int y, int z );
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :   private:
+<span class="lineNum">     481 </span>            :     // disable allocation on the heap
+<span class="lineNum">     482 </span>            :     void *operator new( size_t );
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :     // disable copy
+<span class="lineNum">     485 </span>            :     AliHLTResizableArray( const AliHLTResizableArray &amp; );
+<span class="lineNum">     486 </span>            :     AliHLTResizableArray &amp;operator=( const AliHLTResizableArray &amp; );
+<span class="lineNum">     487 </span>            : };
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span>            : template &lt; unsigned int x, unsigned int y = 0, unsigned int z = 0 &gt; class AliHLTArraySize
+<span class="lineNum">     490 </span>            : {
+<span class="lineNum">     491 </span>            :   public:
+<span class="lineNum">     492 </span>            :     enum {
+<span class="lineNum">     493 </span>            :       Size = y == 0 ? x : ( z == 0 ? x * y : x * y * z ),
+<span class="lineNum">     494 </span>            :       Dim = y == 0 ? 1 : ( z == 0 ? 2 : 3 ),
+<span class="lineNum">     495 </span>            :       X = x, Y = y, Z = z
+<span class="lineNum">     496 </span>            :     };
+<span class="lineNum">     497 </span>            : };
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            : /**
+<span class="lineNum">     500 </span>            :  * Owns the data. When it goes out of scope the data is freed.
+<span class="lineNum">     501 </span>            :  *
+<span class="lineNum">     502 </span>            :  * The memory is allocated on the stack.
+<span class="lineNum">     503 </span>            :  *
+<span class="lineNum">     504 </span>            :  * Instantiate this class on the stack.
+<span class="lineNum">     505 </span>            :  *
+<span class="lineNum">     506 </span>            :  * \param T type of the entries in the array.
+<span class="lineNum">     507 </span>            :  * \param Size number of entries in the array.
+<span class="lineNum">     508 </span>            :  * \param Dim selects the operator[]/operator() behavior it should have. I.e. makes it behave like a
+<span class="lineNum">     509 </span>            :  * 1-, 2- or 3-dim array. (defaults to 1)
+<span class="lineNum">     510 </span>            :  */
+<span class="lineNum">     511 </span>            : template &lt; typename T, typename Size, int alignment = 0 &gt;
+<span class="lineNum">     512 </span>            : class AliHLTFixedArray : public AliHLTArray&lt;typename AliHLTInternal::TypeForAlignmentHelper&lt;T, alignment&gt;::Type, Size::Dim&gt;
+<span class="lineNum">     513 </span>            : {
+<span class="lineNum">     514 </span>            :   public:
+<span class="lineNum">     515 </span>            :     typedef typename AliHLTInternal::TypeForAlignmentHelper&lt;T, alignment&gt;::Type T2;
+<span class="lineNum">     516 </span>            :     typedef AliHLTInternal::AliHLTArrayBase&lt;T2, Size::Dim&gt; Parent;
+<span class="lineNum">     517 </span>            :     inline AliHLTFixedArray() {
+<span class="lineNum">     518 </span>            :       Parent::fData = fFixedArray.ConstructAlignedData();
+<span class="lineNum">     519 </span>            :       Parent::SetBounds( 0, Size::Size - 1 );
+<span class="lineNum">     520 </span>            :       SetSize( Size::X, Size::Y, Size::Z );
+<span class="lineNum">     521 </span>            :     }
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span>            :   private:
+<span class="lineNum">     524 </span>            :     AliHLTInternal::AlignedData&lt;typename AliHLTInternal::TypeForAlignmentHelper&lt;T, alignment&gt;::Type, Size::Size, alignment&gt; fFixedArray; // data array
+<span class="lineNum">     525 </span>            : 
+<span class="lineNum">     526 </span>            :     // disable allocation on the heap
+<span class="lineNum">     527 </span>            :     void *operator new( size_t );
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            :     // disable copy
+<span class="lineNum">     530 </span>            : #ifdef HLTCA_GPUCODE
+<span class="lineNum">     531 </span>            : #else
+<span class="lineNum">     532 </span>            :     AliHLTFixedArray( const AliHLTFixedArray &amp; );
+<span class="lineNum">     533 </span>            :     AliHLTFixedArray &amp;operator=( const AliHLTFixedArray &amp; );
+<span class="lineNum">     534 </span>            : #endif
+<span class="lineNum">     535 </span>            : };
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            : ////////////////////////
+<span class="lineNum">     541 </span>            : //// implementation ////
+<span class="lineNum">     542 </span>            : ////////////////////////
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span>            : namespace AliHLTInternal
+<span class="lineNum">     548 </span>            : {
+<span class="lineNum">     549 </span>            : #ifdef ENABLE_ARRAY_BOUNDS_CHECKING
+<span class="lineNum">     550 </span>            :   inline bool AliArrayBoundsCheck::IsInBounds( int x ) const
+<span class="lineNum">     551 </span>            :   {
+<span class="lineNum">     552 </span>            :     assert( x &gt;= fStart );
+<span class="lineNum">     553 </span>            :     assert( x &lt;= fEnd );
+<span class="lineNum">     554 </span>            :     return ( x &gt;= fStart &amp;&amp; x &lt;= fEnd );
+<span class="lineNum">     555 </span>            :   }
+<span class="lineNum">     556 </span>            : #endif
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     559 </span>            :   inline AliHLTArray&lt;T, 1&gt; AliHLTArrayBase&lt;T, 2&gt;::operator[]( int x )
+<span class="lineNum">     560 </span>            :   {
+<span class="lineNum">     561 </span>            :     x *= fStride;
+<span class="lineNum">     562 </span>            :     typedef AliHLTArray&lt;T, 1&gt; AT1;
+<span class="lineNum">     563 </span>            :     BOUNDS_CHECK( x, AT1() );
+<span class="lineNum">     564 </span>            :     AliHLTArray&lt;T, 1&gt; a;
+<span class="lineNum">     565 </span>            :     a.fData = &amp;fData[x];
+<span class="lineNum">     566 </span>            :     a.AliArrayBoundsCheck::operator=( *this );
+<span class="lineNum">     567 </span>            :     a.MoveBounds( -x );
+<span class="lineNum">     568 </span>            :     return a;
+<span class="lineNum">     569 </span>            :   }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     572 </span>            :   inline const AliHLTArray&lt;T, 1&gt; AliHLTArrayBase&lt;T, 2&gt;::operator[]( int x ) const
+<span class="lineNum">     573 </span>            :   {
+<span class="lineNum">     574 </span>            :     x *= fStride;
+<span class="lineNum">     575 </span>            :     typedef AliHLTArray&lt;T, 1&gt; AT1;
+<span class="lineNum">     576 </span>            :     BOUNDS_CHECK( x, AT1() );
+<span class="lineNum">     577 </span>            :     AliHLTArray&lt;T, 1&gt; a;
+<span class="lineNum">     578 </span>            :     a.fData = &amp;fData[x];
+<span class="lineNum">     579 </span>            :     a.AliArrayBoundsCheck::operator=( *this );
+<span class="lineNum">     580 </span>            :     a.MoveBounds( -x );
+<span class="lineNum">     581 </span>            :     return a;
+<span class="lineNum">     582 </span>            :   }
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     585 </span>            :   inline typename AliHLTInternal::ReturnTypeHelper&lt;T&gt;::Type &amp;AliHLTArrayBase&lt;T, 3&gt;::operator()( int x, int y, int z )
+<span class="lineNum">     586 </span>            :   {
+<span class="lineNum">     587 </span>            :     BOUNDS_CHECK( x * fStrideX + y + fStrideY + z, fData[0] );
+<span class="lineNum">     588 </span>            :     return fData[x * fStrideX + y + fStrideY + z];
+<span class="lineNum">     589 </span>            :   }
+<span class="lineNum">     590 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     591 </span>            :   inline const typename AliHLTInternal::ReturnTypeHelper&lt;T&gt;::Type &amp;AliHLTArrayBase&lt;T, 3&gt;::operator()( int x, int y, int z ) const
+<span class="lineNum">     592 </span>            :   {
+<span class="lineNum">     593 </span>            :     BOUNDS_CHECK( x * fStrideX + y + fStrideY + z, fData[0] );
+<span class="lineNum">     594 </span>            :     return fData[x * fStrideX + y + fStrideY + z];
+<span class="lineNum">     595 </span>            :   }
+<span class="lineNum">     596 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     597 </span>            :   inline AliHLTArray&lt;T, 2&gt; AliHLTArrayBase&lt;T, 3&gt;::operator[]( int x )
+<span class="lineNum">     598 </span>            :   {
+<span class="lineNum">     599 </span>            :     x *= fStrideX;
+<span class="lineNum">     600 </span>            :     typedef AliHLTArray&lt;T, 2&gt; AT2;
+<span class="lineNum">     601 </span>            :     BOUNDS_CHECK( x, AT2() );
+<span class="lineNum">     602 </span>            :     AliHLTArray&lt;T, 2&gt; a;
+<span class="lineNum">     603 </span>            :     a.fData = &amp;fData[x];
+<span class="lineNum">     604 </span>            :     a.fStride = fStrideY;
+<span class="lineNum">     605 </span>            :     a.AliArrayBoundsCheck::operator=( *this );
+<span class="lineNum">     606 </span>            :     a.MoveBounds( -x );
+<span class="lineNum">     607 </span>            :     return a;
+<span class="lineNum">     608 </span>            :   }
+<span class="lineNum">     609 </span>            :   template&lt;typename T&gt;
+<span class="lineNum">     610 </span>            :   inline const AliHLTArray&lt;T, 2&gt; AliHLTArrayBase&lt;T, 3&gt;::operator[]( int x ) const
+<span class="lineNum">     611 </span>            :   {
+<span class="lineNum">     612 </span>            :     x *= fStrideX;
+<span class="lineNum">     613 </span>            :     typedef AliHLTArray&lt;T, 2&gt; AT2;
+<span class="lineNum">     614 </span>            :     BOUNDS_CHECK( x, AT2() );
+<span class="lineNum">     615 </span>            :     AliHLTArray&lt;T, 2&gt; a;
+<span class="lineNum">     616 </span>            :     a.fData = &amp;fData[x];
+<span class="lineNum">     617 </span>            :     a.fStride = fStrideY;
+<span class="lineNum">     618 </span>            :     a.AliArrayBoundsCheck::operator=( *this );
+<span class="lineNum">     619 </span>            :     a.MoveBounds( -x );
+<span class="lineNum">     620 </span>            :     return a;
+<span class="lineNum">     621 </span>            :   }
+<span class="lineNum">     622 </span>            : } // namespace AliHLTInternal
+<span class="lineNum">     623 </span>            : 
+<a name="624"><span class="lineNum">     624 </span>            : </a>
+<span class="lineNum">     625 </span>            : template&lt;typename T, int Dim&gt;
+<span class="lineNum">     626 </span>            : inline AliHLTArray&lt;T, Dim&gt; AliHLTArray&lt;T, Dim&gt;::operator+( int x ) const
+<span class="lineNum">     627 </span>            : {
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :   AliHLTArray&lt;T, Dim&gt; r( *this );</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :   r.fData += x;</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :   r.MoveBounds( -x );</span>
+<span class="lineNum">     631 </span>            :   return r;
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     633 </span>            : template&lt;typename T, int Dim&gt;
+<span class="lineNum">     634 </span>            : inline AliHLTArray&lt;T, Dim&gt; AliHLTArray&lt;T, Dim&gt;::operator-( int x ) const
+<span class="lineNum">     635 </span>            : {
+<span class="lineNum">     636 </span>            :   AliHLTArray&lt;T, Dim&gt; r( *this );
+<span class="lineNum">     637 </span>            :   r.fData -= x;
+<span class="lineNum">     638 </span>            :   r.MoveBounds( x );
+<span class="lineNum">     639 </span>            :   return r;
+<span class="lineNum">     640 </span>            : }
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     643 </span>            : inline AliHLTResizableArray&lt;T, Dim, alignment&gt;::AliHLTResizableArray()
+<span class="lineNum">     644 </span>            : {
+<span class="lineNum">     645 </span>            :   Parent::fData = 0;
+<span class="lineNum">     646 </span>            :   Parent::SetSize( 0, 0, 0 );
+<span class="lineNum">     647 </span>            :   Parent::SetBounds( 0, -1 );
+<a name="648"><span class="lineNum">     648 </span>            : }</a>
+<span class="lineNum">     649 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     650 </span>            : inline AliHLTResizableArray&lt;T, Dim, alignment&gt;::AliHLTResizableArray( int x )
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     652 </span>            :   ALIHLTARRAY_STATIC_ASSERT( Dim == 1, AliHLTResizableArray1_used_with_incorrect_dimension );
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :   Parent::fData = AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Alloc( x );</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   Parent::SetSize( x, 0, 0 );</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :   Parent::SetBounds( 0, x - 1 );</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     657 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     658 </span>            : inline AliHLTResizableArray&lt;T, Dim, alignment&gt;::AliHLTResizableArray( int x, int y )
+<span class="lineNum">     659 </span>            : {
+<span class="lineNum">     660 </span>            :   ALIHLTARRAY_STATIC_ASSERT( Dim == 2, AliHLTResizableArray2_used_with_incorrect_dimension );
+<span class="lineNum">     661 </span>            :   Parent::fData = AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Alloc( x * y );
+<span class="lineNum">     662 </span>            :   Parent::SetSize( x, y, 0 );
+<span class="lineNum">     663 </span>            :   Parent::SetBounds( 0, x * y - 1 );
+<span class="lineNum">     664 </span>            : }
+<span class="lineNum">     665 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     666 </span>            : inline AliHLTResizableArray&lt;T, Dim, alignment&gt;::AliHLTResizableArray( int x, int y, int z )
+<span class="lineNum">     667 </span>            : {
+<span class="lineNum">     668 </span>            :   ALIHLTARRAY_STATIC_ASSERT( Dim == 3, AliHLTResizableArray3_used_with_incorrect_dimension );
+<span class="lineNum">     669 </span>            :   Parent::fData = AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Alloc( x * y * z );
+<span class="lineNum">     670 </span>            :   Parent::SetSize( x, y, z );
+<span class="lineNum">     671 </span>            :   Parent::SetBounds( 0, x * y * z - 1 );
+<a name="672"><span class="lineNum">     672 </span>            : }</a>
+<span class="lineNum">     673 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     674 </span>            : inline void AliHLTResizableArray&lt;T, Dim, alignment&gt;::Resize( int x )
+<span class="lineNum">     675 </span>            : {
+<span class="lineNum">     676 </span>            :   ALIHLTARRAY_STATIC_ASSERT( Dim == 1, AliHLTResizableArray1_resize_used_with_incorrect_dimension );
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :   AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Free( Parent::fData, Parent::fSize );</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   Parent::fData = ( x == 0 ) ? 0 : AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Alloc( x );</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :   Parent::SetSize( x, 0, 0 );</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   Parent::SetBounds( 0, x - 1 );</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     682 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     683 </span>            : inline void AliHLTResizableArray&lt;T, Dim, alignment&gt;::Resize( int x, int y )
+<span class="lineNum">     684 </span>            : {
+<span class="lineNum">     685 </span>            :   ALIHLTARRAY_STATIC_ASSERT( Dim == 2, AliHLTResizableArray2_resize_used_with_incorrect_dimension );
+<span class="lineNum">     686 </span>            :   AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Free( Parent::fData, Parent::fSize );
+<span class="lineNum">     687 </span>            :   Parent::fData = ( x == 0 ) ? 0 : AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Alloc( x * y );
+<span class="lineNum">     688 </span>            :   Parent::SetSize( x, y, 0 );
+<span class="lineNum">     689 </span>            :   Parent::SetBounds( 0, x * y - 1 );
+<span class="lineNum">     690 </span>            : }
+<span class="lineNum">     691 </span>            : template&lt;typename T, int Dim, int alignment&gt;
+<span class="lineNum">     692 </span>            : inline void AliHLTResizableArray&lt;T, Dim, alignment&gt;::Resize( int x, int y, int z )
+<span class="lineNum">     693 </span>            : {
+<span class="lineNum">     694 </span>            :   ALIHLTARRAY_STATIC_ASSERT( Dim == 3, AliHLTResizableArray3_resize_used_with_incorrect_dimension );
+<span class="lineNum">     695 </span>            :   AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Free( Parent::fData, Parent::fSize );
+<span class="lineNum">     696 </span>            :   Parent::fData = ( x == 0 ) ? 0 : AliHLTInternal::AliAllocator&lt;T, alignment&gt;::Alloc( x * y * z );
+<span class="lineNum">     697 </span>            :   Parent::SetSize( x, y, z );
+<span class="lineNum">     698 </span>            :   Parent::SetBounds( 0, x * y * z - 1 );
+<span class="lineNum">     699 </span>            : }
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span>            : #undef BOUNDS_CHECK
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span>            : #endif // ALIHLTARRAY_H
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

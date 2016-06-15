@@ -1,0 +1,1301 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - PYTHIA8/pythia8210dev/src/Analysis.cc</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">PYTHIA8/pythia8210dev/src</a> - Analysis.cc<span style="font-size: 80%;"> (source / <a href="Analysis.cc.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">638</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // Analysis.cc is a part of the PYTHIA event generator.</a>
+<span class="lineNum">       2 </span>            : // Copyright (C) 2015 Torbjorn Sjostrand.
+<span class="lineNum">       3 </span>            : // PYTHIA is licenced under the GNU GPL version 2, see COPYING for details.
+<span class="lineNum">       4 </span>            : // Please respect the MCnet Guidelines, see GUIDELINES for details.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : // Function definitions (not found in the header) for the
+<span class="lineNum">       7 </span>            : // Sphericity, Thrust, ClusJet, CellJet and SlowJet classes.
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : #include &quot;Pythia8/Analysis.h&quot;
+<span class="lineNum">      10 </span>            : #include &quot;Pythia8/FJcore.h&quot;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : namespace Pythia8 {
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : //==========================================================================
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : // Sphericity class.
+<span class="lineNum">      17 </span>            : // This class finds sphericity-related properties of an event.
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">      22 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : // Minimum number of particles to perform study.
+<span class="lineNum">      25 </span>            : const int    Sphericity::NSTUDYMIN     = 2;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : // Maximum number of times that an error warning will be printed.
+<span class="lineNum">      28 </span>            : const int    Sphericity::TIMESTOPRINT  = 1;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : // Assign mimimum squared momentum in weight to avoid division by zero.
+<span class="lineNum">      31 </span>            : const double Sphericity::P2MIN         = 1e-20;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : // Second eigenvalue not too low or not possible to find eigenvectors.
+<span class="lineNum">      34 </span>            : const double Sphericity::EIGENVALUEMIN = 1e-10;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">      37 </span>            : 
+<a name="38"><span class="lineNum">      38 </span>            : // Analyze event.</a>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : bool Sphericity::analyze(const Event&amp; event, ostream&amp; os) {
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            :   // Initial values, tensor and counters zero.
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :   eVal1 = eVal2 = eVal3 = 0.;</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   eVec1 = eVec2 = eVec3 = 0.;</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   double tt[4][4];</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :   for (int j = 1; j &lt; 4; ++j)</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :   for (int k = j; k &lt; 4; ++k) tt[j][k] = 0.;</span>
+<span class="lineNum">      48 </span>            :   int nStudy = 0;
+<span class="lineNum">      49 </span>            :   double denom = 0.;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :   // Loop over desired particles in the event.
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; event.size(); ++i)</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   if (event[i].isFinal()) {</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     if (select &gt;  2 &amp;&amp;  event[i].isNeutral() ) continue;</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     if (select == 2 &amp;&amp; !event[i].isVisible() ) continue;</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     ++nStudy;</span>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :     // Calculate matrix to be diagonalized. Special cases for speed.
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     double pNow[4];</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     pNow[1] = event[i].px();</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     pNow[2] = event[i].py();</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     pNow[3] = event[i].pz();</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     double p2Now = pNow[1]*pNow[1] + pNow[2]*pNow[2] + pNow[3]*pNow[3];</span>
+<span class="lineNum">      64 </span>            :     double pWeight = 1.;
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     if (powerInt == 1) pWeight = 1. / sqrt(max(P2MIN, p2Now));</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     else if (powerInt == 0) pWeight = pow( max(P2MIN, p2Now), powerMod);</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     for (int j = 1; j &lt; 4; ++j)</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     for (int k = j; k &lt; 4; ++k) tt[j][k] += pWeight * pNow[j] * pNow[k];</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     denom += pWeight * p2Now;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :   // Very low multiplicities (0 or 1) not considered.
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   if (nStudy &lt; NSTUDYMIN) {</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     if (nFew &lt; TIMESTOPRINT) os &lt;&lt; &quot; PYTHIA Error in &quot; &lt;&lt;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     &quot;Sphericity::analyze: too few particles&quot; &lt;&lt; endl;</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     ++nFew;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">      78 </span>            :   }
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            :   // Normalize tensor to trace = 1.
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   for (int j = 1; j &lt; 4; ++j)</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   for (int k = j; k &lt; 4; ++k) tt[j][k] /= denom;</span>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :   // Find eigenvalues to matrix (third degree equation).
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   double qCoef = ( tt[1][1] * tt[2][2] + tt[1][1] * tt[3][3]</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     + tt[2][2] * tt[3][3] - pow2(tt[1][2]) - pow2(tt[1][3])</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     - pow2(tt[2][3]) ) / 3. - 1./9.;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   double qCoefRt = sqrt( -qCoef);</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   double rCoef = -0.5 * ( qCoef + 1./9. + tt[1][1] * pow2(tt[2][3])</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     + tt[2][2] * pow2(tt[1][3]) + tt[3][3] * pow2(tt[1][2])</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     - tt[1][1] * tt[2][2] * tt[3][3] )</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     + tt[1][2] * tt[1][3] * tt[2][3] + 1./27.;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   double pTemp = max( min( rCoef / pow3(qCoefRt), 1.), -1.);</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   double pCoef = cos( acos(pTemp) / 3.);</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   double pCoefRt = sqrt( 3. * (1. - pow2(pCoef)) );</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   eVal1 = 1./3. + qCoefRt * max( 2. * pCoef,  pCoefRt - pCoef);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   eVal3 = 1./3. + qCoefRt * min( 2. * pCoef, -pCoefRt - pCoef);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   eVal2 = 1. - eVal1 - eVal3;</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :   // Begin find first and last eigenvector.
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   for (int iVal = 0; iVal &lt; 2; ++iVal) {</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     double eVal = (iVal == 0) ? eVal1 : eVal3;</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :     // If all particles are back-to-back then simpleminded third axis.
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     if (iVal &gt; 0 &amp;&amp; eVal2 &lt; EIGENVALUEMIN) {</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :       if ( abs(eVec1.pz()) &gt; 0.5) eVec3 = Vec4( 1., 0., 0., 0.);</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :       else                        eVec3 = Vec4( 0., 0., 1., 0.);</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :       eVec3 -= dot3( eVec1, eVec3) * eVec1;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :       eVec3 /= eVec3.pAbs();</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :       eVec2  = cross3( eVec1, eVec3);</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :       return true;</span>
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     // Set up matrix to diagonalize.
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     double dd[4][4];</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     for (int j = 1; j &lt; 4; ++j) {</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :       dd[j][j] = tt[j][j] - eVal;</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :       for (int k = j + 1; k &lt; 4; ++k) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         dd[j][k] = tt[j][k];</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         dd[k][j] = tt[j][k];</span>
+<span class="lineNum">     121 </span>            :       }
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :     // Find largest = pivotal element in matrix.
+<span class="lineNum">     125 </span>            :     int jMax = 0;
+<span class="lineNum">     126 </span>            :     int kMax = 0;
+<span class="lineNum">     127 </span>            :     double ddMax = 0.;
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     for (int j = 1; j &lt; 4; ++j)</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     for (int k = 1; k &lt; 4; ++k)</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     if (abs(dd[j][k]) &gt; ddMax) {</span>
+<span class="lineNum">     131 </span>            :       jMax = j;
+<span class="lineNum">     132 </span>            :       kMax = k;
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :       ddMax = abs(dd[j][k]);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     // Subtract one row from the other two; find new largest element.
+<span class="lineNum">     137 </span>            :     int jMax2 = 0;
+<span class="lineNum">     138 </span>            :     ddMax = 0.;
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     for (int j = 1; j &lt; 4; ++j)</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     if ( j != jMax) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :       double pivot = dd[j][kMax] / dd[jMax][kMax];</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :       for (int k = 1; k &lt; 4; ++k) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         dd[j][k] -= pivot * dd[jMax][k];</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         if (abs(dd[j][k]) &gt; ddMax) {</span>
+<span class="lineNum">     145 </span>            :           jMax2 = j;
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :           ddMax = abs(dd[j][k]);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     148 </span>            :       }
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :     // Construct eigenvector. Normalize to unit length; sign irrelevant.
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     int k1 = kMax + 1; if (k1 &gt; 3) k1 -= 3;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     int k2 = kMax + 2; if (k2 &gt; 3) k2 -= 3;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     double eVec[4];</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     eVec[k1]   = -dd[jMax2][k2];</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     eVec[k2]   =  dd[jMax2][k1];</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     eVec[kMax] = (dd[jMax][k1] * dd[jMax2][k2]</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :       - dd[jMax][k2] * dd[jMax2][k1]) / dd[jMax][kMax];</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     double length = sqrt( pow2(eVec[1]) + pow2(eVec[2])</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :       + pow2(eVec[3]) );</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            :     // Store eigenvectors.
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     if (iVal == 0) eVec1 = Vec4( eVec[1] / length,</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :       eVec[2] / length, eVec[3] / length, 0.);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     else eVec3 = Vec4( eVec[1] / length,</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :       eVec[2] / length, eVec[3] / length, 0.);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :   // Middle eigenvector is orthogonal to the other two; sign irrelevant.
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   eVec2 = cross3( eVec1, eVec3);</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :   // Done.
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     178 </span>            : 
+<a name="179"><span class="lineNum">     179 </span>            : // Provide a listing of the info.</a>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : void Sphericity::list(ostream&amp; os) const {
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :   // Header.
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  PYTHIA Sphericity Listing  -------- \n&quot;;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if (powerInt !=2) os &lt;&lt; &quot;      Nonstandard momentum power = &quot;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :      &lt;&lt; fixed &lt;&lt; setprecision(3) &lt;&lt; setw(6) &lt;&lt; power &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n  no     lambda      e_x       e_y       e_z \n&quot;;</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            :   // The three eigenvalues and eigenvectors.
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   os &lt;&lt; setprecision(5);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;   1&quot; &lt;&lt; setw(11) &lt;&lt; eVal1 &lt;&lt; setw(11) &lt;&lt; eVec1.px()</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(10) &lt;&lt; eVec1.py() &lt;&lt; setw(10) &lt;&lt; eVec1.pz() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;   2&quot; &lt;&lt; setw(11) &lt;&lt; eVal2 &lt;&lt; setw(11) &lt;&lt; eVec2.px()</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(10) &lt;&lt; eVec2.py() &lt;&lt; setw(10) &lt;&lt; eVec2.pz() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;   3&quot; &lt;&lt; setw(11) &lt;&lt; eVal3 &lt;&lt; setw(11) &lt;&lt; eVec3.px()</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(10) &lt;&lt; eVec3.py() &lt;&lt; setw(10) &lt;&lt; eVec3.pz() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            :   // Listing finished.
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  End PYTHIA Sphericity Listing  ----&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : //==========================================================================
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : // Thrust class.
+<span class="lineNum">     207 </span>            : // This class finds thrust-related properties of an event.
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">     212 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : // Minimum number of particles to perform study.
+<span class="lineNum">     215 </span>            : const int    Thrust::NSTUDYMIN    = 2;
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : // Maximum number of times that an error warning will be printed.
+<span class="lineNum">     218 </span>            : const int    Thrust::TIMESTOPRINT = 1;
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            : // Major not too low or not possible to find major axis.
+<span class="lineNum">     221 </span>            : const double Thrust::MAJORMIN     = 1e-10;
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     224 </span>            : 
+<a name="225"><span class="lineNum">     225 </span>            : // Analyze event.</a>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : bool Thrust::analyze(const Event&amp; event, ostream&amp; os) {
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :   // Initial values and counters zero.
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   eVal1 = eVal2 = eVal3 = 0.;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   eVec1 = eVec2 = eVec3 = 0.;</span>
+<span class="lineNum">     232 </span>            :   int nStudy = 0;
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   vector&lt;Vec4&gt; pOrder;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   Vec4 pSum, nRef, pPart, pFull, pMax;</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :   // Loop over desired particles in the event.
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; event.size(); ++i)</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   if (event[i].isFinal()) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     if (select &gt;  2 &amp;&amp;  event[i].isNeutral() ) continue;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     if (select == 2 &amp;&amp; !event[i].isVisible() ) continue;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     ++nStudy;</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :     // Store momenta. Use energy component for absolute momentum.
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     Vec4 pNow = event[i].p();</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     pNow.e(pNow.pAbs());</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     pSum += pNow;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     pOrder.push_back(pNow);</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            :   // Very low multiplicities (0 or 1) not considered.
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   if (nStudy &lt; NSTUDYMIN) {</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     if (nFew &lt; TIMESTOPRINT) os &lt;&lt; &quot; PYTHIA Error in &quot; &lt;&lt;</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     &quot;Thrust::analyze: too few particles&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     ++nFew;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     256 </span>            :   }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :   // Try all combinations of reference vector orthogonal to two particles.
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   for (int i1 = 0; i1 &lt; nStudy - 1; ++i1)</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   for (int i2 = i1 + 1; i2 &lt; nStudy; ++i2) {</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     nRef = cross3( pOrder[i1], pOrder[i2]);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     nRef /= nRef.pAbs();</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     pPart = 0.;</span>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            :     // Add all momenta with sign; two choices for each reference particle.
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nStudy; ++i) if (i != i1 &amp;&amp; i != i2) {</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :       if (dot3(pOrder[i], nRef) &gt; 0.) pPart += pOrder[i];</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :       else                            pPart -= pOrder[i];</span>
+<span class="lineNum">     269 </span>            :     }
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; 4; ++j) {</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :       if      (j == 0) pFull = pPart + pOrder[i1] + pOrder[i2];</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       else if (j == 1) pFull = pPart + pOrder[i1] - pOrder[i2];</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       else if (j == 2) pFull = pPart - pOrder[i1] + pOrder[i2];</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       else             pFull = pPart - pOrder[i1] - pOrder[i2];</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :       pFull.e(pFull.pAbs());</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :       if (pFull.e() &gt; pMax.e()) pMax = pFull;</span>
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span>            :   }
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :   // Maximum gives thrust axis and value.
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :   eVal1 = pMax.e() / pSum.e();</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   eVec1 = pMax / pMax.e();</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   eVec1.e(0.);</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :   // Subtract momentum along thrust axis.
+<span class="lineNum">     286 </span>            :   double pAbsSum = 0.;
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nStudy; ++i) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     pOrder[i] -= dot3( eVec1, pOrder[i]) * eVec1;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     pOrder[i].e(pOrder[i].pAbs());</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     pAbsSum += pOrder[i].e();</span>
+<span class="lineNum">     291 </span>            :   }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :   // Simpleminded major and minor axes if too little transverse left.
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :   if (pAbsSum &lt; MAJORMIN * pSum.e()) {</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     if ( abs(eVec1.pz()) &gt; 0.5) eVec2 = Vec4( 1., 0., 0., 0.);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     else                        eVec2 = Vec4( 0., 0., 1., 0.);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     eVec2 -= dot3( eVec1, eVec2) * eVec1;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     eVec2 /= eVec2.pAbs();</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     eVec3  = cross3( eVec1, eVec2);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     301 </span>            :   }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :   // Try all reference vectors orthogonal to one particles.
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   pMax = 0.;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   for (int i1 = 0; i1 &lt; nStudy; ++i1) {</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     nRef = cross3( pOrder[i1], eVec1);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     nRef /= nRef.pAbs();</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     pPart = 0.;</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :     // Add all momenta with sign; two choices for each reference particle.
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nStudy; ++i) if (i != i1) {</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :       if (dot3(pOrder[i], nRef) &gt; 0.) pPart += pOrder[i];</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :       else                            pPart -= pOrder[i];</span>
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     pFull = pPart + pOrder[i1];</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     pFull.e(pFull.pAbs());</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     if (pFull.e() &gt; pMax.e()) pMax = pFull;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     pFull = pPart - pOrder[i1];</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     pFull.e(pFull.pAbs());</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     if (pFull.e() &gt; pMax.e()) pMax = pFull;</span>
+<span class="lineNum">     321 </span>            :   }
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :   // Maximum gives major axis and value.
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   eVal2 = pMax.e() / pSum.e();</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :   eVec2 = pMax / pMax.e();</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   eVec2.e(0.);</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            :   // Orthogonal direction gives minor axis, and from there value.
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   eVec3 = cross3( eVec1, eVec2);</span>
+<span class="lineNum">     330 </span>            :   pAbsSum = 0.;
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nStudy; ++i)</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     pAbsSum += abs( dot3(eVec3, pOrder[i]) );</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   eVal3 = pAbsSum / pSum.e();</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :    // Done.
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     341 </span>            : 
+<a name="342"><span class="lineNum">     342 </span>            : // Provide a listing of the info.</a>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : void Thrust::list(ostream&amp; os) const {
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :   // Header.
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  PYTHIA Thrust Listing  ------------ \n&quot;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;\n          value      e_x       e_y       e_z \n&quot;;</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :   // The thrust, major and minor values and related event axes.
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   os &lt;&lt; setprecision(5);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot; Thr&quot; &lt;&lt; setw(11) &lt;&lt; eVal1 &lt;&lt; setw(11) &lt;&lt; eVec1.px()</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(10) &lt;&lt; eVec1.py() &lt;&lt; setw(10) &lt;&lt; eVec1.pz() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot; Maj&quot; &lt;&lt; setw(11) &lt;&lt; eVal2 &lt;&lt; setw(11) &lt;&lt; eVec2.px()</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(10) &lt;&lt; eVec2.py() &lt;&lt; setw(10) &lt;&lt; eVec2.pz() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot; Min&quot; &lt;&lt; setw(11) &lt;&lt; eVal3 &lt;&lt; setw(11) &lt;&lt; eVec3.px()</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(10) &lt;&lt; eVec3.py() &lt;&lt; setw(10) &lt;&lt; eVec3.pz() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            :   // Listing finished.
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  End PYTHIA Thrust Listing  --------&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            : //==========================================================================
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : // SingleClusterJet class.
+<span class="lineNum">     367 </span>            : // Simple helper class to ClusterJet for a jet and its contents.
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">     372 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            : // Assign minimal pAbs to avoid division by zero.
+<span class="lineNum">     375 </span>            : const double SingleClusterJet::PABSMIN  = 1e-10;
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     378 </span>            : 
+<a name="379"><span class="lineNum">     379 </span>            : // Distance measures between two SingleClusterJet objects.</a>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : double dist2Fun(int measure, const SingleClusterJet&amp; j1,
+<span class="lineNum">     382 </span>            :   const SingleClusterJet&amp; j2) {
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            :   // JADE distance.
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   if (measure == 2) return 2. * j1.pJet.e() * j2.pJet.e()</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     * (1. - dot3( j1.pJet, j2.pJet) / (j1.pAbs * j2.pAbs) );</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            :   // Durham distance.
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   if (measure == 3) return 2. * pow2( min( j1.pJet.e(), j2.pJet.e() ) )</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     * (1. - dot3( j1.pJet, j2.pJet) / (j1.pAbs * j2.pAbs) );</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            :   // Lund distance; &quot;default&quot;.
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   return (j1.pAbs * j2.pAbs - dot3( j1.pJet, j2.pJet))</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     * 2. * j1.pAbs * j2.pAbs / pow2(j1.pAbs + j2.pAbs);</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span>            : //==========================================================================
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            : // ClusterJet class.
+<span class="lineNum">     401 </span>            : // This class performs a jet clustering according to different
+<span class="lineNum">     402 </span>            : // distance measures: Lund, JADE or Durham.
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">     407 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            : // Maximum number of times that an error warning will be printed.
+<span class="lineNum">     410 </span>            : const int    ClusterJet::TIMESTOPRINT   = 1;
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            : // Assume the pi+- mass for all particles, except the photon, in one option.
+<span class="lineNum">     413 </span>            : const double ClusterJet::PIMASS        = 0.13957;
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            : // Assign minimal pAbs to avoid division by zero.
+<span class="lineNum">     416 </span>            : const double ClusterJet::PABSMIN        = 1e-10;
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span>            : // Initial pT/m preclustering scale as fraction of clustering one.
+<span class="lineNum">     419 </span>            : const double ClusterJet::PRECLUSTERFRAC = 0.1;
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            : // Step with which pT/m is reduced if preclustering gives too few jets.
+<span class="lineNum">     422 </span>            : const double ClusterJet::PRECLUSTERSTEP = 0.8;
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     425 </span>            : 
+<a name="426"><span class="lineNum">     426 </span>            : // Analyze event.</a>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            : bool ClusterJet::analyze(const Event&amp; event, double yScaleIn,
+<span class="lineNum">     429 </span>            :   double pTscaleIn, int nJetMinIn, int nJetMaxIn, ostream&amp; os) {
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            :   // Input values. Initial values zero.
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   yScale  = yScaleIn;</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   pTscale = pTscaleIn;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   nJetMin = nJetMinIn;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   nJetMax = nJetMaxIn;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :   particles.resize(0);</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   jets.resize(0);</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :   Vec4 pSum;</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   distances.clear();</span>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            :   // Loop over desired particles in the event.
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; event.size(); ++i)</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   if (event[i].isFinal()) {</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     if (select &gt;  2 &amp;&amp;  event[i].isNeutral() ) continue;</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     if (select == 2 &amp;&amp; !event[i].isVisible() ) continue;</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            :     // Store them, possibly with modified mass =&gt; new energy.
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     Vec4 pTemp = event[i].p();</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     if (massSet == 0 || massSet == 1) {</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :       double mTemp = (massSet == 0 || event[i].id() == 22)</span>
+<span class="lineNum">     451 </span>            :         ? 0. : PIMASS;
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :       double eTemp = sqrt(pTemp.pAbs2() + pow2(mTemp));</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       pTemp.e(eTemp);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     particles.push_back( SingleClusterJet(pTemp, i) );</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     pSum += pTemp;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span>            :   // Very low multiplicities not considered.
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   nParticles = particles.size();</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   if (nParticles &lt; nJetMin) {</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     if (nFew &lt; TIMESTOPRINT) os &lt;&lt; &quot; PYTHIA Error in &quot; &lt;&lt;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     &quot;ClusterJet::analyze: too few particles&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     ++nFew;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     466 </span>            :   }
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            :   // Squared maximum distance in GeV^2 for joining.
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   double p2Sum = pSum.m2Calc();</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   dist2Join = max( yScale * p2Sum, pow2(pTscale));</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   dist2BigMin = 2. * max( dist2Join, p2Sum);</span>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            :   // Do preclustering if desired and possible.
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   if (doPrecluster &amp;&amp; nParticles &gt; nJetMin + 2) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     precluster();</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     if (doReassign) reassign();</span>
+<span class="lineNum">     477 </span>            :   }
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            :   // If no preclustering: each particle is a starting jet.
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   else for (int i = 0; i &lt; nParticles; ++i) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     jets.push_back( SingleClusterJet(particles[i]) );</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     particles[i].daughter = i;</span>
+<span class="lineNum">     483 </span>            :   }
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            :   // Begin iteration towards fewer jets.
+<span class="lineNum">     486 </span>            :   for ( ; ; ) {
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span>            :     // Find the two closest jets.
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     double dist2Min = dist2BigMin;</span>
+<span class="lineNum">     490 </span>            :     int jMin = 0;
+<span class="lineNum">     491 </span>            :     int kMin = 0;
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(jets.size()) - 1; ++j)</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     for (int k = j + 1; k &lt; int(jets.size()); ++k) {</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :       double dist2 = dist2Fun( measure, jets[j], jets[k]);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :       if (dist2 &lt; dist2Min) {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         dist2Min = dist2;</span>
+<span class="lineNum">     497 </span>            :         jMin = j;
+<span class="lineNum">     498 </span>            :         kMin = k;
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     500 </span>            :     }
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :     // Stop if no pair below cut and not more jets than allowed.
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     if ( dist2Min &gt; dist2Join</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :       &amp;&amp; (nJetMax &lt; nJetMin || int(jets.size()) &lt;= nJetMax) ) break;</span>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span>            :     // Stop if reached minimum allowed number of jets. Else continue.
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     if (int(jets.size()) &lt;= nJetMin) break;</span>
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span>            :     // Join two closest jets.
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     jets[jMin].pJet         += jets[kMin].pJet;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     jets[jMin].pAbs          = max( PABSMIN, jets[jMin].pJet.pAbs());</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     jets[jMin].multiplicity += jets[kMin].multiplicity;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nParticles; ++i)</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     if (particles[i].daughter == kMin) particles[i].daughter = jMin;</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span>            :     // Save the last 5 distances.
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     distances.push_front(dist2Min);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     if (distances.size() &gt; 5) distances.pop_back();</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            :     // Move up last jet to empty slot to shrink list.
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     jets[kMin]               = jets.back();</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     jets.pop_back();</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     int iEnd                 = jets.size();</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nParticles; ++i)</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     if (particles[i].daughter == iEnd) particles[i].daughter = kMin;</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span>            :     // Do reassignments of particles to nearest jet if desired.
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     if (doReassign) reassign();</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span>            :   // Order jets in decreasing energy.
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :   for (int j = 0; j &lt; int(jets.size()) - 1; ++j)</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   for (int k = int(jets.size()) - 1; k &gt; j; --k)</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   if (jets[k].pJet.e() &gt; jets[k-1].pJet.e()) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     swap( jets[k], jets[k-1]);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nParticles; ++i) {</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :       if (particles[i].daughter == k) particles[i].daughter = k-1;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :       else if (particles[i].daughter == k-1) particles[i].daughter = k;</span>
+<span class="lineNum">     539 </span>            :     }
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span>            :   // Done.
+<span class="lineNum">     543 </span>            :   return true;
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     547 </span>            : 
+<a name="548"><span class="lineNum">     548 </span>            : // Precluster nearby particles to save computer time.</a>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            : void ClusterJet::precluster() {
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            :   // Begin iteration over preclustering scale.
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :   distPre = PRECLUSTERFRAC * sqrt(dist2Join) / PRECLUSTERSTEP;</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :   for ( ; ;) {</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     distPre *= PRECLUSTERSTEP;</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     dist2Pre = pow2(distPre);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nParticles; ++i) {</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :       particles[i].daughter   = -1;</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :       particles[i].isAssigned = false;</span>
+<span class="lineNum">     560 </span>            :     }
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span>            :     // Sum up low-momentum region. Jet if enough momentum.
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     Vec4 pCentral;</span>
+<span class="lineNum">     564 </span>            :     int multCentral = 0;
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nParticles; ++i)</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     if (particles[i].pAbs &lt; 2. * distPre) {</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :       pCentral    += particles[i].pJet;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :       multCentral += particles[i].multiplicity;</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :       particles[i].isAssigned = true;</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     if (pCentral.pAbs() &gt; 2. * distPre) {</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :       jets.push_back( SingleClusterJet(pCentral) );</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :       jets.back().multiplicity = multCentral;</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :       for (int i = 0; i &lt; nParticles; ++i)</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       if (particles[i].isAssigned) particles[i].daughter = 0;</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            :     // Find fastest remaining particle until none left.
+<span class="lineNum">     579 </span>            :     for ( ; ;) {
+<span class="lineNum">     580 </span>            :       int iMax = -1;
+<span class="lineNum">     581 </span>            :       double pMax = 0.;
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :       for (int i = 0; i &lt; nParticles; ++i)</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :       if ( !particles[i].isAssigned &amp;&amp; particles[i].pAbs &gt; pMax) {</span>
+<span class="lineNum">     584 </span>            :         iMax = i;
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         pMax = particles[i].pAbs;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :       if (iMax == -1) break;</span>
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span>            :       // Sum up precluster around it according to distance function.
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :       Vec4 pPre;</span>
+<span class="lineNum">     591 </span>            :       int multPre = 0;
+<span class="lineNum">     592 </span>            :       int nRemain = 0;
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :       for (int i = 0; i &lt; nParticles; ++i)</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :       if ( !particles[i].isAssigned) {</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         double dist2 = dist2Fun( measure, particles[iMax],</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :           particles[i]);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         if (dist2 &lt; dist2Pre) {</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :           pPre += particles[i].pJet;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :           ++multPre;</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :           particles[i].isAssigned = true;</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :           particles[i].daughter   = jets.size();</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         } else ++nRemain;</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :       jets.push_back( SingleClusterJet(pPre) );</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :       jets.back().multiplicity = multPre;</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :       // Decide whether sensible starting configuration or iterate.
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :       if (int(jets.size()) + nRemain &lt; nJetMin) break;</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :     if (int(jets.size()) &gt;= nJetMin) break;</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     616 </span>            : 
+<a name="617"><span class="lineNum">     617 </span>            : // Reassign particles to nearest jet to correct misclustering.</a>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span>            : void ClusterJet::reassign() {
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :   // Reset clustered momenta.
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :   for (int j = 0; j &lt; int(jets.size()); ++j) {</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :     jets[j].pTemp        = 0.;</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :     jets[j].multiplicity = 0;</span>
+<span class="lineNum">     625 </span>            :   }
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span>            :   // Loop through particles to find closest jet.
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nParticles; ++i) {</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     particles[i].daughter = -1;</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     double dist2Min = dist2BigMin;</span>
+<span class="lineNum">     631 </span>            :     int jMin = 0;
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(jets.size()); ++j) {</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :       double dist2 = dist2Fun( measure, particles[i], jets[j]);</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :       if (dist2 &lt; dist2Min) {</span>
+<span class="lineNum">     635 </span>            :         dist2Min = dist2;
+<span class="lineNum">     636 </span>            :         jMin = j;
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     638 </span>            :     }
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     jets[jMin].pTemp += particles[i].pJet;</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     ++jets[jMin].multiplicity;</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     particles[i].daughter = jMin;</span>
+<span class="lineNum">     642 </span>            :   }
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span>            :   // Replace old by new jet momenta.
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :   for (int j = 0; j &lt; int(jets.size()); ++j) {</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     jets[j].pJet = jets[j].pTemp;</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :     jets[j].pAbs =  max( PABSMIN, jets[j].pJet.pAbs());</span>
+<span class="lineNum">     648 </span>            :   }
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span>            :   // Check that no empty clusters after reassignments.
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :   for ( ;  ; ) {</span>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            :     // If no empty jets then done.
+<span class="lineNum">     654 </span>            :     int jEmpty = -1;
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(jets.size()); ++j)</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :       if (jets[j].multiplicity == 0) jEmpty = j;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :     if (jEmpty == -1) return;</span>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span>            :     // Find particle assigned to jet with largest distance to it.
+<span class="lineNum">     660 </span>            :     int iSplit = -1;
+<span class="lineNum">     661 </span>            :     double dist2Max = 0.;
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; nParticles; ++i) {</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :       int j = particles[i].daughter;</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :       double dist2 = dist2Fun( measure, particles[i], jets[j]);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :       if (dist2 &gt; dist2Max) {</span>
+<span class="lineNum">     666 </span>            :         iSplit = i;
+<span class="lineNum">     667 </span>            :         dist2Max = dist2;
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     669 </span>            :     }
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span>            :     // Let this particle form new jet and subtract off from existing.
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     int jSplit         = particles[iSplit].daughter;</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :     jets[jEmpty]       = SingleClusterJet( particles[iSplit].pJet );</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :     jets[jSplit].pJet -=  particles[iSplit].pJet;</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     jets[jSplit].pAbs  =  max( PABSMIN,jets[jSplit].pJet.pAbs());</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     particles[iSplit].daughter = jEmpty;</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     --jets[jSplit].multiplicity;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     683 </span>            : 
+<a name="684"><span class="lineNum">     684 </span>            : // Provide a listing of the info.</a>
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span>            : void ClusterJet::list(ostream&amp; os) const {
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            :   // Header.
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   string method = (measure == 1) ? &quot;Lund pT&quot;</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :         : ( (measure == 2) ? &quot;JADE m&quot; : &quot;Durham kT&quot; ) ;</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  PYTHIA ClusterJet Listing, &quot; &lt;&lt; setw(9) &lt;&lt;  method</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot; =&quot; &lt;&lt; fixed &lt;&lt; setprecision(3) &lt;&lt; setw(7) &lt;&lt; sqrt(dist2Join)</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot; GeV  --- \n \n  no  mult      p_x        p_y        p_z    &quot;</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;     e          m \n&quot;;</span>
+<span class="lineNum">     695 </span>            : 
+<span class="lineNum">     696 </span>            :   // The jets.
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; int(jets.size()); ++i) {</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     os &lt;&lt; setw(4) &lt;&lt; i &lt;&lt; setw(6) &lt;&lt; jets[i].multiplicity &lt;&lt; setw(11)</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].pJet.px() &lt;&lt; setw(11) &lt;&lt; jets[i].pJet.py()</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :        &lt;&lt; setw(11) &lt;&lt; jets[i].pJet.pz() &lt;&lt; setw(11)</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].pJet.e() &lt;&lt; setw(11) &lt;&lt; jets[i].pJet.mCalc()</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     703 </span>            :   }
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            :   // Listing finished.
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  End PYTHIA ClusterJet Listing  ---------------&quot;</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;--------&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span>            : //==========================================================================
+<span class="lineNum">     711 </span>            : 
+<span class="lineNum">     712 </span>            : // CellJet class.
+<span class="lineNum">     713 </span>            : // This class performs a cone jet search in (eta, phi, E_T) space.
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">     718 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span>            : // Minimum number of particles to perform study.
+<span class="lineNum">     721 </span>            : const int CellJet::TIMESTOPRINT = 1;
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     724 </span>            : 
+<a name="725"><span class="lineNum">     725 </span>            : // Analyze event.</a>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            : bool CellJet::analyze(const Event&amp; event, double eTjetMinIn,
+<span class="lineNum">     728 </span>            :   double coneRadiusIn, double eTseedIn, ostream&amp; ) {
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span>            :   // Input values. Initial values zero.
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :   eTjetMin   = eTjetMinIn;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :   coneRadius = coneRadiusIn;</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :   eTseed     = eTseedIn;</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :   jets.resize(0);</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :   vector&lt;SingleCell&gt; cells;</span>
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            :   // Loop over desired particles in the event.
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; event.size(); ++i)</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :   if (event[i].isFinal()) {</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     if (select &gt;  2 &amp;&amp;  event[i].isNeutral() ) continue;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     if (select == 2 &amp;&amp; !event[i].isVisible() ) continue;</span>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span>            :     // Find particle position in (eta, phi, pT) space.
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     double etaNow = event[i].eta();</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     if (abs(etaNow) &gt; etaMax) continue;</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     double phiNow = event[i].phi();</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     double pTnow  = event[i].pT();</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     int iEtaNow   = max(1, min( nEta, 1 + int(nEta * 0.5</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :       * (1. + etaNow / etaMax) ) ) );</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     int iPhiNow   = max(1, min( nPhi, 1 + int(nPhi * 0.5</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :       * (1. + phiNow / M_PI) ) ) );</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     int iCell     = nPhi * iEtaNow + iPhiNow;</span>
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span>            :     // Add pT to cell already hit or book a new cell.
+<span class="lineNum">     755 </span>            :     bool found = false;
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(cells.size()); ++j) {</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :       if (iCell == cells[j].iCell) {</span>
+<span class="lineNum">     758 </span>            :         found = true;
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :         ++cells[j].multiplicity;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :         cells[j].eTcell += pTnow;</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     762 </span>            :       }
+<span class="lineNum">     763 </span>            :     }
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     if (!found) {</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :       double etaCell = (etaMax / nEta) * (2 * iEtaNow - 1 - nEta);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :       double phiCell = (M_PI / nPhi) * (2 * iPhiNow - 1 - nPhi);</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :       cells.push_back( SingleCell( iCell, etaCell, phiCell, pTnow, 1) );</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span>            :   // Smear true bin content by calorimeter resolution.
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :   if (smear &gt; 0 &amp;&amp; rndmPtr != 0)</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   for (int j = 0; j &lt; int(cells.size()); ++j) {</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     double eTeConv = (smear &lt; 2) ? 1. : cosh( cells[j].etaCell );</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     double eBef = cells[j].eTcell * eTeConv;</span>
+<span class="lineNum">     776 </span>            :     double eAft = 0.;
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     do eAft = eBef + resolution * sqrt(eBef) * rndmPtr-&gt;gauss();</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     while (eAft &lt; 0 || eAft &gt; upperCut * eBef);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     cells[j].eTcell = eAft / eTeConv;</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span>            :   // Remove cells below threshold for seed or for use at all.
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :   for (int j = 0; j &lt; int(cells.size()); ++j) {</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     if (cells[j].eTcell &lt; eTseed)    cells[j].canBeSeed = false;</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :     if (cells[j].eTcell &lt; threshold) cells[j].isUsed    = true;</span>
+<span class="lineNum">     786 </span>            :   }
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span>            :   // Find seed cell: the one with highest pT of not yet probed ones.
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :   for ( ; ; ) {</span>
+<span class="lineNum">     790 </span>            :     int jMax = 0;
+<span class="lineNum">     791 </span>            :     double eTmax = 0.;
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(cells.size()); ++j)</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     if (cells[j].canBeSeed &amp;&amp; cells[j].eTcell &gt; eTmax) {</span>
+<span class="lineNum">     794 </span>            :       jMax = j;
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :       eTmax = cells[j].eTcell;</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span>            :     // If too small cell eT then done, else start new trial jet.
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :     if (eTmax &lt; eTseed) break;</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :     double etaCenterNow = cells[jMax].etaCell;</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     double phiCenterNow = cells[jMax].phiCell;</span>
+<span class="lineNum">     802 </span>            :     double eTjetNow     = 0.;
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span>            :     //  Sum up unused cells within required distance of seed.
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(cells.size()); ++j) {</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :       if (cells[j].isUsed) continue;</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :       double dEta = abs( cells[j].etaCell - etaCenterNow );</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :       if (dEta &gt; coneRadius) continue;</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :       double dPhi = abs( cells[j].phiCell - phiCenterNow );</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :       if (dPhi &gt; M_PI) dPhi = 2. * M_PI - dPhi;</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :       if (dPhi &gt; coneRadius) continue;</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :       if (pow2(dEta) + pow2(dPhi) &gt; pow2(coneRadius)) continue;</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :       cells[j].isAssigned = true;</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :       eTjetNow += cells[j].eTcell;</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span>            :     // Reject cluster below minimum ET.
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     if (eTjetNow &lt; eTjetMin) {</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :       cells[jMax].canBeSeed = false;</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :       for (int j = 0; j &lt; int(cells.size()); ++j)</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :         cells[j].isAssigned = false;</span>
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span>            :     // Else find new jet properties.
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     825 </span>            :       double etaWeightedNow = 0.;
+<span class="lineNum">     826 </span>            :       double phiWeightedNow = 0.;
+<span class="lineNum">     827 </span>            :       int multiplicityNow   = 0;
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :       Vec4 pMassiveNow;</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :       for (int j = 0; j &lt; int(cells.size()); ++j)</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :       if (cells[j].isAssigned) {</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :         cells[j].canBeSeed  = false;</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         cells[j].isUsed     = true;</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         cells[j].isAssigned = false;</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :         etaWeightedNow += cells[j].eTcell * cells[j].etaCell;</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :         double phiCell = cells[j].phiCell;</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :         if (abs(phiCell - phiCenterNow) &gt; M_PI)</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :           phiCell += (phiCenterNow &gt; 0.) ? 2. * M_PI : -2. * M_PI;</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :         phiWeightedNow  += cells[j].eTcell * phiCell;</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :         multiplicityNow += cells[j].multiplicity;</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         pMassiveNow     += cells[j].eTcell * Vec4(</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :            cos(cells[j].phiCell),  sin(cells[j].phiCell),</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :           sinh(cells[j].etaCell), cosh(cells[j].etaCell) );</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :       etaWeightedNow /= eTjetNow;</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :       phiWeightedNow /= eTjetNow;</span>
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            :       // Bookkeep new jet, in decreasing ET order.
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :       jets.push_back( SingleCellJet( eTjetNow, etaCenterNow, phiCenterNow,</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :         etaWeightedNow, phiWeightedNow, multiplicityNow, pMassiveNow) );</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :       for (int i = int(jets.size()) - 1; i &gt; 0; --i) {</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         if (jets[i-1].eTjet &gt; jets[i].eTjet) break;</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :         swap( jets[i-1], jets[i]);</span>
+<span class="lineNum">     853 </span>            :       }
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span>            :   // Done.
+<span class="lineNum">     858 </span>            :   return true;
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     860 </span>            : 
+<span class="lineNum">     861 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     862 </span>            : 
+<a name="863"><span class="lineNum">     863 </span>            : // Provide a listing of the info.</a>
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span>            : void CellJet::list(ostream&amp; os) const {
+<span class="lineNum">     866 </span>            : 
+<span class="lineNum">     867 </span>            :   // Header.
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  PYTHIA CellJet Listing, eTjetMin = &quot;</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :      &lt;&lt; fixed &lt;&lt; setprecision(3) &lt;&lt; setw(8) &lt;&lt; eTjetMin</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;, coneRadius = &quot; &lt;&lt; setw(5) &lt;&lt; coneRadius</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;  ------------------------------ \n \n  no    &quot;</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot; eTjet  etaCtr  phiCtr   etaWt   phiWt mult      p_x&quot;</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;        p_y        p_z         e          m \n&quot;;</span>
+<span class="lineNum">     874 </span>            : 
+<span class="lineNum">     875 </span>            :   // The jets.
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; int(jets.size()); ++i) {</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :     os &lt;&lt; setw(4) &lt;&lt; i &lt;&lt; setw(10) &lt;&lt; jets[i].eTjet &lt;&lt; setw(8)</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].etaCenter &lt;&lt; setw(8) &lt;&lt; jets[i].phiCenter &lt;&lt; setw(8)</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].etaWeighted &lt;&lt; setw(8) &lt;&lt; jets[i].phiWeighted</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :        &lt;&lt; setw(5) &lt;&lt; jets[i].multiplicity &lt;&lt; setw(11)</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].pMassive.px() &lt;&lt; setw(11) &lt;&lt; jets[i].pMassive.py()</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :        &lt;&lt; setw(11) &lt;&lt; jets[i].pMassive.pz() &lt;&lt; setw(11)</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].pMassive.e() &lt;&lt; setw(11)</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].pMassive.mCalc() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     885 </span>            :   }
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span>            :   // Listing finished.
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  End PYTHIA CellJet Listing  ------------------&quot;</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;-------------------------------------------------&quot;</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :      &lt;&lt; endl;</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span>            : //==========================================================================
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span>            : // SlowJet class.
+<span class="lineNum">     896 </span>            : // This class performs clustering in (y, phi, pT) space.
+<span class="lineNum">     897 </span>            : 
+<span class="lineNum">     898 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     899 </span>            : 
+<span class="lineNum">     900 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">     901 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">     902 </span>            : 
+<span class="lineNum">     903 </span>            : // Minimum number of particles to perform study.
+<span class="lineNum">     904 </span>            : const int    SlowJet::TIMESTOPRINT = 1;
+<span class="lineNum">     905 </span>            : 
+<span class="lineNum">     906 </span>            : // Assume the pi+- mass for all particles, except the photon, in one option.
+<span class="lineNum">     907 </span>            : const double SlowJet::PIMASS       = 0.13957;
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span>            : // Small number to avoid division by zero.
+<span class="lineNum">     910 </span>            : const double SlowJet::TINY         = 1e-20;
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     913 </span>            : 
+<a name="914"><span class="lineNum">     914 </span>            : // Set up list of particles to analyze, and initial distances.</a>
+<span class="lineNum">     915 </span>            : 
+<span class="lineNum">     916 </span>            : bool SlowJet::setup(const Event&amp; event) {
+<span class="lineNum">     917 </span>            : 
+<span class="lineNum">     918 </span>            :   // Initial values zero.
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :   clusters.resize(0);</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :   jets.resize(0);</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :   jtSize = 0;</span>
+<span class="lineNum">     922 </span>            : 
+<span class="lineNum">     923 </span>            :   // Loop over final particles in the event.
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :   Vec4   pTemp;</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   double mTemp, pT2Temp, mTTemp, yTemp, phiTemp;</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; event.size(); ++i)</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :   if (event[i].isFinal()) {</span>
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span>            :     // Always apply selection options for visible or charged particles.
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :     if      (chargedOnly &amp;&amp;  event[i].isNeutral() ) continue;</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :     else if (visibleOnly &amp;&amp; !event[i].isVisible() ) continue;</span>
+<span class="lineNum">     932 </span>            : 
+<span class="lineNum">     933 </span>            :     // Normally use built-in selection machinery.
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :     if (noHook) {</span>
+<span class="lineNum">     935 </span>            : 
+<span class="lineNum">     936 </span>            :       // Pseudorapidity cut to describe detector range.
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :       if (cutInEta    &amp;&amp; abs(event[i].eta()) &gt; etaMax) continue;</span>
+<span class="lineNum">     938 </span>            : 
+<span class="lineNum">     939 </span>            :       // Optionally modify mass and energy.
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :       pTemp = event[i].p();</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :       mTemp = event[i].m();</span>
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :       if (modifyMass) {</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :         mTemp = (massSet == 0 || event[i].id() == 22) ? 0. : PIMASS;</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :         pTemp.e( sqrt(pTemp.pAbs2() + mTemp*mTemp) );</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span>            :     // Alternatively pass info to SlowJetHook for decision.
+<span class="lineNum">     948 </span>            :     // User can also modify pTemp and mTemp.
+<span class="lineNum">     949 </span>            :     } else {
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :       pTemp = event[i].p();</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :       mTemp = event[i].m();</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :       if ( !sjHookPtr-&gt;include( i, event, pTemp, mTemp) ) continue;</span>
+<span class="lineNum">     953 </span>            :     }
+<span class="lineNum">     954 </span>            : 
+<span class="lineNum">     955 </span>            :     // Store particle momentum, including some derived quantities.
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :     pT2Temp  = max( TINY*TINY, pTemp.pT2());</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :     mTTemp  = sqrt( mTemp*mTemp + pT2Temp);</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :     yTemp   = (pTemp.pz() &gt; 0)</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :             ? log( max( TINY, pTemp.e() + pTemp.pz() ) / mTTemp )</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :             : log( mTTemp / max( TINY, pTemp.e() - pTemp.pz() ) );</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :     phiTemp = pTemp.phi();</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :     clusters.push_back( SingleSlowJet(pTemp, pT2Temp, yTemp, phiTemp, i) );</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :   origSize = clusters.size();</span>
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span>            :   // Done here for FJcore machinery.
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :   if (useFJcore) return true;</span>
+<span class="lineNum">     968 </span>            : 
+<span class="lineNum">     969 </span>            :   // Resize arrays to store distances between clusters.
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :   clSize = origSize;</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :   clLast = clSize - 1;</span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :   diB.resize(clSize);</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :   dij.resize(clSize * (clSize - 1) / 2);</span>
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span>            :   // Loop through particles and find distance to beams.
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; clSize; ++i) {</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     if (isAnti)    diB[i] = 1. / clusters[i].pT2;</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     else if (isKT) diB[i] = clusters[i].pT2;</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     else           diB[i] = 1.;</span>
+<span class="lineNum">     980 </span>            : 
+<span class="lineNum">     981 </span>            :     // Loop through pairs and find relative distance.
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; i; ++j) {</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :       dPhi = abs( clusters[i].phi - clusters[j].phi );</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :       if (dPhi &gt; M_PI) dPhi = 2. * M_PI - dPhi;</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :       dijTemp = (useStandardR)</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :               ? (pow2( clusters[i].y - clusters[j].y) + dPhi*dPhi) / R2</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :          : 2. * (cosh( clusters[i].y - clusters[j].y) - cos(dPhi)) / R2 ;</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :       if (isAnti)    dijTemp /= max(clusters[i].pT2, clusters[j].pT2);</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :       else if (isKT) dijTemp *= min(clusters[i].pT2, clusters[j].pT2);</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :       dij[i*(i-1)/2 + j] = dijTemp;</span>
+<span class="lineNum">     991 </span>            : 
+<span class="lineNum">     992 </span>            :     // End of original-particle loops.
+<span class="lineNum">     993 </span>            :     }
+<span class="lineNum">     994 </span>            :   }
+<span class="lineNum">     995 </span>            : 
+<span class="lineNum">     996 </span>            :   // Find first particle pair to join.
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :   findNext();</span>
+<span class="lineNum">     998 </span>            : 
+<span class="lineNum">     999 </span>            :   // Done.
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">    1001 </span>            : 
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1003 </span>            : 
+<span class="lineNum">    1004 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">    1005 </span>            : 
+<a name="1006"><span class="lineNum">    1006 </span>            : // Do one recombination step, possibly giving a jet.</a>
+<span class="lineNum">    1007 </span>            : 
+<span class="lineNum">    1008 </span>            : bool SlowJet::doStep() {
+<span class="lineNum">    1009 </span>            : 
+<span class="lineNum">    1010 </span>            :   // Fail if using FJcore or if no possibility to take a step.
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :   if (useFJcore) return false;</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :   if (clSize == 0) return false;</span>
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span>            :   // When distance to beam is smallest the cluster is promoted to jet.
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :   if (jMin == -1) {</span>
+<span class="lineNum">    1016 </span>            : 
+<span class="lineNum">    1017 </span>            :     // Store new jet if its pT is above pTMin.
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :     if (clusters[iMin].pT2 &gt; pT2jetMin) {</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :       jets.push_back( SingleSlowJet(clusters[iMin]) );</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :       ++jtSize;</span>
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span>            :       // Order jets in decreasing pT.
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :       for (int i = jtSize - 1; i &gt; 0; --i) {</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :         if (jets[i].pT2 &lt; jets[i-1].pT2) break;</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :         swap( jets[i], jets[i-1]);</span>
+<span class="lineNum">    1026 </span>            :       }
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1028 </span>            :   }
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span>            :   // When distance between two clusters is smallest they are joined.
+<span class="lineNum">    1031 </span>            :   else {
+<span class="lineNum">    1032 </span>            : 
+<span class="lineNum">    1033 </span>            :     // Add iMin cluster to jMin.
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :     clusters[jMin].p  += clusters[iMin].p;</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :     clusters[jMin].pT2 = max( TINY*TINY, clusters[jMin].p.pT2());</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :     double mTTemp  = sqrt(clusters[jMin].p.m2Calc() + clusters[jMin].pT2);</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :     clusters[jMin].y = (clusters[jMin].p.pz() &gt; 0)</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :       ? log( max( TINY, clusters[jMin].p.e() + clusters[jMin].p.pz() )</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :       / mTTemp ) : log( mTTemp</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :       / max( TINY, clusters[jMin].p.e() - clusters[jMin].p.pz() ) );</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :     clusters[jMin].phi = clusters[jMin].p.phi();</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :     clusters[jMin].mult += clusters[iMin].mult;</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :     clusters[jMin].idx.insert(clusters[iMin].idx.begin(),</span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :                               clusters[iMin].idx.end());</span>
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span>            :     // Update distances for and to new jMin.
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :     if (isAnti)    diB[jMin] = 1. / clusters[jMin].pT2;</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :     else if (isKT) diB[jMin] = clusters[jMin].pT2;</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :     else           diB[jMin] = 1.;</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; clSize; ++i) if (i != jMin &amp;&amp; i != iMin) {</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :       dPhi = abs( clusters[i].phi - clusters[jMin].phi );</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :       if (dPhi &gt; M_PI) dPhi = 2. * M_PI - dPhi;</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :       dijTemp = (useStandardR)</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :               ? (pow2( clusters[i].y - clusters[jMin].y) + dPhi*dPhi) / R2</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :          : 2. * (cosh( clusters[i].y - clusters[jMin].y) - cos(dPhi)) / R2 ;</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :       if (isAnti)    dijTemp /= max(clusters[i].pT2, clusters[jMin].pT2);</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :       else if (isKT) dijTemp *= min(clusters[i].pT2, clusters[jMin].pT2);</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :       if (i &lt; jMin) dij[jMin*(jMin-1)/2 + i] = dijTemp;</span>
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :       else          dij[i*(i-1)/2 + jMin]    = dijTemp;</span>
+<span class="lineNum">    1060 </span>            :     }
+<span class="lineNum">    1061 </span>            :   }
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span>            :   // Move up last cluster and distances to vacated position iMin.
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :   if (iMin &lt; clLast) {</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :     clusters[iMin] = clusters[clLast];</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :     diB[iMin] = diB[clLast];</span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; iMin; ++j)</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :       dij[iMin*(iMin-1)/2 + j] = dij[clLast*(clLast-1)/2 + j];</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :     for (int j = iMin + 1; j &lt; clLast; ++j)</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :       dij[j*(j-1)/2 + iMin] = dij[clLast*(clLast-1)/2 + j];</span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span>            :   // Shrink cluster list by one.
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :   clusters.pop_back();</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :   --clSize;</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :   --clLast;</span>
+<span class="lineNum">    1077 </span>            : 
+<span class="lineNum">    1078 </span>            :   // Find next cluster pair to join.
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :   findNext();</span>
+<span class="lineNum">    1080 </span>            : 
+<span class="lineNum">    1081 </span>            :   // Done.
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">    1083 </span>            : 
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1085 </span>            : 
+<span class="lineNum">    1086 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">    1087 </span>            : 
+<a name="1088"><span class="lineNum">    1088 </span>            : // Provide a listing of the info.</a>
+<span class="lineNum">    1089 </span>            : 
+<span class="lineNum">    1090 </span>            : void SlowJet::list(bool listAll, ostream&amp; os) const {
+<span class="lineNum">    1091 </span>            : 
+<span class="lineNum">    1092 </span>            :   // Header.
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :   if (useFJcore) os &lt;&lt; &quot;\n --  PYTHIA SlowJet(fjcore) Listing, p = &quot;;</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :   else           os &lt;&lt; &quot;\n --  PYTHIA SlowJet(native) Listing, p = &quot;;</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :   os &lt;&lt; setw(2) &lt;&lt; power &lt;&lt; &quot;, R = &quot; &lt;&lt; fixed &lt;&lt; setprecision(3) &lt;&lt; setw(5)</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :      &lt;&lt; R &lt;&lt; &quot;, pTjetMin =&quot; &lt;&lt; setw(8) &lt;&lt; pTjetMin &lt;&lt; &quot;, etaMax = &quot;</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :      &lt;&lt; setw(6) &lt;&lt; etaMax &lt;&lt; &quot;  -- \n \n   no      pTjet      y       phi&quot;</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;   mult      p_x        p_y        p_z         e          m \n&quot;;</span>
+<span class="lineNum">    1099 </span>            : 
+<span class="lineNum">    1100 </span>            :   // The jets.
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; jtSize; ++i) {</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     os &lt;&lt; setw(5) &lt;&lt; i &lt;&lt; setw(11) &lt;&lt; sqrt(jets[i].pT2) &lt;&lt; setw(9)</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].y &lt;&lt; setw(9) &lt;&lt; jets[i].phi &lt;&lt; setw(6)</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].mult &lt;&lt; setw(11) &lt;&lt; jets[i].p.px() &lt;&lt; setw(11)</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].p.py() &lt;&lt; setw(11) &lt;&lt; jets[i].p.pz() &lt;&lt; setw(11)</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :        &lt;&lt; jets[i].p.e() &lt;&lt; setw(11) &lt;&lt; jets[i].p.mCalc() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">    1107 </span>            :   }
+<span class="lineNum">    1108 </span>            : 
+<span class="lineNum">    1109 </span>            :   // Optionally list also clusters not yet jets.
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :   if (listAll &amp;&amp; clSize &gt; 0) {</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :     os &lt;&lt; &quot; --------  Below this line follows remaining clusters,&quot;</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; still pT-unordered  -------------------\n&quot;;</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; clSize; ++i) {</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :       os &lt;&lt; setw(5) &lt;&lt; i + jtSize &lt;&lt; setw(11) &lt;&lt; sqrt(clusters[i].pT2)</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :          &lt;&lt; setw(9) &lt;&lt; clusters[i].y &lt;&lt; setw(9) &lt;&lt; clusters[i].phi</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :          &lt;&lt; setw(6) &lt;&lt; clusters[i].mult &lt;&lt; setw(11) &lt;&lt; clusters[i].p.px()</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :          &lt;&lt; setw(11) &lt;&lt; clusters[i].p.py() &lt;&lt; setw(11) &lt;&lt; clusters[i].p.pz()</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :          &lt;&lt; setw(11) &lt;&lt; clusters[i].p.e() &lt;&lt; setw(11)</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :          &lt;&lt; clusters[i].p.mCalc() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">    1120 </span>            :     }
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1122 </span>            : 
+<span class="lineNum">    1123 </span>            :   // Listing finished.
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :   os &lt;&lt; &quot;\n --------  End PYTHIA SlowJet Listing  ------------------&quot;</span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :      &lt;&lt; &quot;--------------------------------------&quot; &lt;&lt; endl;</span>
+<span class="lineNum">    1126 </span>            : 
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1128 </span>            : 
+<span class="lineNum">    1129 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">    1130 </span>            : 
+<a name="1131"><span class="lineNum">    1131 </span>            : // Find next cluster pair to join.</a>
+<span class="lineNum">    1132 </span>            : 
+<span class="lineNum">    1133 </span>            : void SlowJet::findNext() {
+<span class="lineNum">    1134 </span>            : 
+<span class="lineNum">    1135 </span>            :   // Find smallest of diB, dij.
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :   if (clSize &gt; 0) {</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :     iMin =  0;</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     jMin = -1;</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     dMin = diB[0];</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     for (int i = 1; i &lt; clSize; ++i) {</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :       if (diB[i] &lt; dMin) {</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :         iMin = i;</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :         jMin = -1;</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :         dMin = diB[i];</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :       for (int j = 0; j &lt; i; ++j) {</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :         if (dij[i*(i-1)/2 + j] &lt; dMin) {</span>
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :           iMin = i;</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :           jMin = j;</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :           dMin = dij[i*(i-1)/2 + j];</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1152 </span>            :       }
+<span class="lineNum">    1153 </span>            :     }
+<span class="lineNum">    1154 </span>            : 
+<span class="lineNum">    1155 </span>            :   // If no clusters left then instead default values.
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :     iMin = -1;</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :     jMin = -1;</span>
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :     dMin = 0.;</span>
+<span class="lineNum">    1160 </span>            :   }
+<span class="lineNum">    1161 </span>            : 
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1163 </span>            : 
+<span class="lineNum">    1164 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">    1165 </span>            : 
+<a name="1166"><span class="lineNum">    1166 </span>            : // Use FJcore interface to perform clustering.</a>
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span>            : bool SlowJet::clusterFJ() {
+<span class="lineNum">    1169 </span>            : 
+<span class="lineNum">    1170 </span>            :   // Read in input configuration of particles.
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :   vector&lt;fjcore::PseudoJet&gt; inFJ;</span>
+<span class="lineNum">    1172 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; int(clusters.size()); ++i) {</span>
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :     inFJ.push_back( fjcore::PseudoJet( clusters[i].p.px(),</span>
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :       clusters[i].p.py(),  clusters[i].p.pz(),  clusters[i].p.e() ) );</span>
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :     set&lt;int&gt;::iterator idxTmp = clusters[i].idx.begin();</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :     inFJ[i].set_user_index( *idxTmp);</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1178 </span>            : 
+<span class="lineNum">    1179 </span>            :   // Create a jet definition = jet algorithm + radius parameter.
+<span class="lineNum">    1180 </span>            :   fjcore::JetAlgorithm  jetAlg = fjcore::cambridge_algorithm;
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :   if (isAnti)           jetAlg = fjcore::antikt_algorithm;</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :   if (isKT)             jetAlg = fjcore::kt_algorithm;</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :   fjcore::JetDefinition jetDef( jetAlg, R);</span>
+<span class="lineNum">    1184 </span>            : 
+<span class="lineNum">    1185 </span>            :   // Run the jet clustering with the above jet definition.
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :   fjcore::ClusterSequence clust_seq( inFJ, jetDef);</span>
+<span class="lineNum">    1187 </span>            : 
+<span class="lineNum">    1188 </span>            :   // Get the resulting jets above pTmin, ordered in pT.
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :   vector&lt;fjcore::PseudoJet&gt; outFJ</span>
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :     = sorted_by_pt( clust_seq.inclusive_jets( pTjetMin) );</span>
+<span class="lineNum">    1191 </span>            : 
+<span class="lineNum">    1192 </span>            :   // Store the FJcore output in the standard SlowJet format.
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :   Vec4   pTemp;</span>
+<span class="lineNum">    1194 </span>            :   double pT2Temp, yTemp, phiTemp;
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; int(outFJ.size()); ++i) {</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :     pTemp = Vec4( outFJ[i].px(), outFJ[i].py(), outFJ[i].pz(), outFJ[i].e() );</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :     pT2Temp = outFJ[i].pt2();</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :     yTemp   = outFJ[i].rap();</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :     phiTemp = outFJ[i].phi_std();</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :     jets.push_back( SingleSlowJet(pTemp, pT2Temp, yTemp, phiTemp, 0) );</span>
+<span class="lineNum">    1201 </span>            : 
+<span class="lineNum">    1202 </span>            :     // Also find constituents of jet.
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :     jets[i].idx.clear();</span>
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :     vector&lt;fjcore::PseudoJet&gt; constFJ = outFJ[i].constituents();</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; int(constFJ.size()); ++j)</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :       jets[i].idx.insert( constFJ[j].user_index() );</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :     jets[i].mult = constFJ.size();</span>
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1209 </span>            : 
+<span class="lineNum">    1210 </span>            :   // Set counters and some dummy (for FJcore) information.
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :   clSize = 0;</span>
+<span class="lineNum">    1212 </span><span class="lineNoCov">          0 :   clLast = 0;</span>
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :   jtSize = outFJ.size();</span>
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :   iMin   = -1;</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :   jMin   = -1;</span>
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :   dMin   = 0.;</span>
+<span class="lineNum">    1217 </span>            : 
+<span class="lineNum">    1218 </span>            :   // Done.
+<span class="lineNum">    1219 </span>            :   return true;
+<span class="lineNum">    1220 </span>            : 
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1222 </span>            : 
+<span class="lineNum">    1223 </span>            : //==========================================================================
+<span class="lineNum">    1224 </span>            : 
+<span class="lineNum">    1225 </span>            : } // end namespace Pythia8
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

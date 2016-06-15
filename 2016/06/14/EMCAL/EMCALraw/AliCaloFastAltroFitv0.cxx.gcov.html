@@ -1,0 +1,595 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - EMCAL/EMCALraw/AliCaloFastAltroFitv0.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">EMCAL/EMCALraw</a> - AliCaloFastAltroFitv0.cxx<span style="font-size: 80%;"> (source / <a href="AliCaloFastAltroFitv0.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">239</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntryLo">4.2 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-2010 ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : /* History of cvs commits:
+<span class="lineNum">      19 </span>            :  * $Log$
+<span class="lineNum">      20 </span>            :  */
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : //______________________________________________________ 
+<span class="lineNum">      23 </span>            : // Author : Aleksei Pavlinov; IHEP, Protvino, Russia
+<span class="lineNum">      24 </span>            : // Feb 17, 2009
+<span class="lineNum">      25 </span>            : // Implementation of fit procedure from ALICE-INT-2008-026:
+<span class="lineNum">      26 </span>            : // &quot;Time and amplitude reconstruction from sampling 
+<span class="lineNum">      27 </span>            : //  measurements of the PHOS signal profile&quot;
+<span class="lineNum">      28 </span>            : //  M.Yu.Bogolyubsky and ..
+<span class="lineNum">      29 </span>            : //
+<span class="lineNum">      30 </span>            : //  Fit by function en*x*x*exp(-2.*x): x = (t-t0)/tau.
+<span class="lineNum">      31 </span>            : //  The main goal is fast estimation of amplitude and t0.
+<span class="lineNum">      32 </span>            : //
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : // --- AliRoot header files ---
+<span class="lineNum">      35 </span>            : #include &quot;AliCaloFastAltroFitv0.h&quot;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #include &lt;TH1.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;TF1.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;TCanvas.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;TGraphErrors.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      42 </span>            : 
+<a name="43"><span class="lineNum">      43 </span>            : #include &lt;math.h&gt;</a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">         42 : ClassImp(AliCaloFastAltroFitv0)</span>
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<span class="lineNum">      47 </span>            : //____________________________________________________________________________
+<span class="lineNum">      48 </span>            :   AliCaloFastAltroFitv0::AliCaloFastAltroFitv0() 
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 : : TNamed(), </span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   fSig(0),fTau(0),fN(0),fPed(0), fAmp(0),fAmpErr(0),fT0(0),fT0Err(0),fChi2(0.),fNDF(0)</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 : ,fNoFit(0),fNfit(0),fTfit(0),fAmpfit(0), fStdFun(0)</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : }</span>
+<a name="54"><span class="lineNum">      54 </span>            : </a>
+<span class="lineNum">      55 </span>            : //____________________________________________________________________________
+<span class="lineNum">      56 </span>            : AliCaloFastAltroFitv0::AliCaloFastAltroFitv0(const char* name, const char* title, 
+<span class="lineNum">      57 </span>            :   const Double_t sig, const Double_t tau, const Double_t n)
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   : TNamed(name, title), </span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fSig(sig),fTau(tau),fN(n),fPed(0), fAmp(0),fAmpErr(0),fT0(0),fT0Err(0),fChi2(0.),fNDF(0) </span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :  ,fNoFit(0),fNfit(0),fTfit(0),fAmpfit(0), fStdFun(0)</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   if(strlen(name)==0) SetName(&quot;CaloFastAltroFitv0&quot;);</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 : }</span>
+<a name="64"><span class="lineNum">      64 </span>            : </a>
+<span class="lineNum">      65 </span>            : //____________________________________________________________________________
+<span class="lineNum">      66 </span>            : AliCaloFastAltroFitv0::AliCaloFastAltroFitv0(const AliCaloFastAltroFitv0 &amp;obj)
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   : TNamed(obj), </span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   fSig(0),fTau(0),fN(2.),fPed(0), fAmp(0),fAmpErr(0),fT0(0),fT0Err(0),fChi2(0.),fNDF(0) </span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :  ,fNoFit(0),fNfit(0),fTfit(0),fAmpfit(0), fStdFun(0)</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 : }</span>
+<a name="72"><span class="lineNum">      72 </span>            : </a>
+<span class="lineNum">      73 </span>            : //____________________________________________________________________________
+<span class="lineNum">      74 </span>            : AliCaloFastAltroFitv0::~AliCaloFastAltroFitv0() 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 : {  </span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   if(fTfit) delete [] fTfit;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   if(fAmpfit) delete [] fAmpfit;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 : }</span>
+<a name="79"><span class="lineNum">      79 </span>            : </a>
+<span class="lineNum">      80 </span>            : //____________________________________________________________________________
+<span class="lineNum">      81 </span>            : AliCaloFastAltroFitv0&amp; AliCaloFastAltroFitv0::operator= (const AliCaloFastAltroFitv0 &amp;/*obj*/)
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span>            :   // Not implemented yet
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   return (*this);</span>
+<a name="85"><span class="lineNum">      85 </span>            : }</a>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : void AliCaloFastAltroFitv0::FastFit(Int_t* t, Int_t* y, Int_t nPoints, Double_t sig, Double_t tau, 
+<span class="lineNum">      88 </span>            :                                     Double_t /*n*/, Double_t ped, Double_t tMax)
+<span class="lineNum">      89 </span>            : {
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   Reset();</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   fSig = sig;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   fTau = tau;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   fPed = ped;</span>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   Int_t ii=0;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   CutRightPart(t,y,nPoints,tMax, ii);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   nPoints = ii;</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fNfit   = 0;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fTfit   = new Double_t[nPoints]; </span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   fAmpfit = new Double_t[nPoints]; </span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :   
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   DeductPedestal(t,y,nPoints,  tau,ped,  fTfit,fAmpfit,fNfit);</span>
+<span class="lineNum">     106 </span>            :   //  printf(&quot; n %i : fNfit %i : ped %f \n&quot;, n, fNfit, ped);
+<span class="lineNum">     107 </span>            :   // for(int i=0; i&lt;fNfit; i++) 
+<span class="lineNum">     108 </span>            :   // printf(&quot; i %i : fAmpfit %7.2f : fTfit %7.2f \n&quot;, i, fAmpfit[i], fTfit[i]); 
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   if(fNfit&gt;=2) {</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     FastFit(fTfit,fAmpfit,fNfit,sig,tau, fAmp,fAmpErr, fT0,fT0Err,fChi2);</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     if(fChi2&gt; 0.0) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       fNDF = fNfit - 2;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       fNDF = 0;</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :       fNoFit++;</span>
+<span class="lineNum">     118 </span>            :     }
+<span class="lineNum">     119 </span>            :   } else if(fNfit==1){
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     Reset(); // What to do here =&gt; fT0 = fTfit[0]; fAmp = fAmpFit[0] ??</span>
+<span class="lineNum">     121 </span>            :   } else {
+<span class="lineNum">     122 </span>            :     Reset();
+<span class="lineNum">     123 </span>            :   }
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 : }</span>
+<a name="125"><span class="lineNum">     125 </span>            : </a>
+<span class="lineNum">     126 </span>            : //____________________________________________________________________________
+<span class="lineNum">     127 </span>            : void AliCaloFastAltroFitv0::FastFit(TH1F* h, Double_t sig, Double_t tau, Double_t n,
+<span class="lineNum">     128 </span>            : Double_t ped, Double_t tMax)
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span>            :   // Service method for convinience only
+<span class="lineNum">     131 </span>            :   // h - hist with altro response, could have empty bin
+<span class="lineNum">     132 </span>            :   // and center of bin could be different from bin number  
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   Reset();</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   if(h==0) return;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   Int_t nPoints = h-&gt;GetNbinsX();</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   if(nPoints&lt;2) return; // Sep 07, 09</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   Int_t* t = new Int_t[nPoints];</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   Int_t* y = new Int_t[nPoints];</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :   Int_t nPositive=0;
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     if(h-&gt;GetBinContent(i+1) &gt; 0.0){ // Get only positive</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :       y[nPositive] = Int_t(h-&gt;GetBinContent(i+1));</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :       t[nPositive] = Int_t(h-&gt;GetBinCenter(i+1)+0.0001);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :       nPositive++;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     149 </span>            :   }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   if(nPositive &gt;= 2) {</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     FastFit(t,y,nPoints, sig,tau,n,ped, tMax);</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   if(fChi2&lt;=0.0) fNoFit++;</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   delete [] t;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   delete [] y;</span>
+<a name="158"><span class="lineNum">     158 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : void AliCaloFastAltroFitv0::Reset()
+<span class="lineNum">     161 </span>            : {
+<span class="lineNum">     162 </span>            :   // Reset variables
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   fSig  = fTau = 0.0;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   fAmp  = fAmpErr = fT0 = fT0Err = 0.0;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   fChi2 = -1.;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   fNDF  = fNfit = 0;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   if(fTfit)   delete [] fTfit;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   if(fAmpfit) delete [] fAmpfit;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   fTfit = fAmpfit = 0;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 : }</span>
+<a name="172"><span class="lineNum">     172 </span>            : </a>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            : void AliCaloFastAltroFitv0::GetFitResult(Double_t &amp;amp,Double_t &amp;eamp,Double_t &amp;t0,Double_t &amp;et0, 
+<span class="lineNum">     175 </span>            : Double_t &amp;chi2, Int_t &amp;ndf) const
+<span class="lineNum">     176 </span>            : {
+<span class="lineNum">     177 </span>            :   // Return results of fitting procedure
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   amp  = fAmp;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   eamp = fAmpErr;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   t0   = fT0;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   et0  = fT0Err;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   chi2 = fChi2;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   ndf  = fNDF;</span>
+<a name="184"><span class="lineNum">     184 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : void AliCaloFastAltroFitv0::GetFittedPoints(Int_t &amp;nfit, Double_t* ar[2]) const
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   nfit  = fNfit;</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   ar[0] = fTfit;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   ar[1] = fAmpfit;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     192 </span>            : //
+<a name="193"><span class="lineNum">     193 </span>            : // static functions</a>
+<span class="lineNum">     194 </span>            : // 
+<span class="lineNum">     195 </span>            : void  AliCaloFastAltroFitv0::CutRightPart(Int_t *t,Int_t *y,Int_t nPoints,Double_t tMax, Int_t &amp;ii)
+<span class="lineNum">     196 </span>            : {
+<span class="lineNum">     197 </span>            :   // Cut right part of altro sample : static function
+<span class="lineNum">     198 </span>            :   Int_t tt=0;
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     tt = t[i];</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     if(tMax &amp;&amp; tt &lt;= Int_t(tMax)) {</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       t[ii] = tt;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :       y[ii] = y[i];</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :       ii++;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     206 </span>            :   }
+<span class="lineNum">     207 </span>            :   if(0) printf(&quot; ii %i -&gt; ii %i : tMax %7.2f \n&quot;, nPoints, ii, tMax);
+<a name="208"><span class="lineNum">     208 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : void AliCaloFastAltroFitv0::DeductPedestal(Int_t* t, Int_t* y, Int_t nPoints, Double_t tau, Double_t ped, 
+<span class="lineNum">     211 </span>            :   Double_t* tn, Double_t* yn, Int_t &amp;nPointsOut)
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span>            :   // Pedestal deduction if ped is positive : static function
+<span class="lineNum">     214 </span>            :   // Discard part od samle if it is not compact.
+<span class="lineNum">     215 </span>            :   static Double_t yMinUnderPed=2.; // should be tune
+<span class="lineNum">     216 </span>            :   Int_t ymax=0, nmax=0;
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++){</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     if(y[i]&gt;ymax) {</span>
+<span class="lineNum">     219 </span>            :       ymax = y[i];
+<span class="lineNum">     220 </span>            :       nmax = i;
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     222 </span>            :   }
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   Int_t i1 = nmax - Int_t(tau);</span>
+<span class="lineNum">     224 </span>            :   //i1 = 0;
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   i1 = i1&lt;0?0:i1;</span>
+<span class="lineNum">     226 </span>            :   Int_t i2 = nPoints;
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   nPointsOut = 0;</span>
+<span class="lineNum">     229 </span>            :   Double_t yd=0.0, tdiff=0.0;;
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   for(Int_t i=i1; i&lt;i2; i++) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     if(ped&gt;0.0) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :       yd = Double_t(y[i]) - ped;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     234 </span>            :       yd = Double_t(y[i]);
+<span class="lineNum">     235 </span>            :     }
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     if(yd &lt; yMinUnderPed) continue;</span>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     if(i&gt;i1 &amp;&amp; nPointsOut&gt;0){</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       tdiff = t[i] - tn[nPointsOut-1];</span>
+<span class="lineNum">     240 </span>            :       //      printf(&quot; i %i : nPointsOut %i : tdiff %6.2f : tn[nPointsOut] %6.2f \n&quot;, i,nPointsOut, tdiff, tn[nPointsOut-1]);
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       if(tdiff&gt;1.) {</span>
+<span class="lineNum">     242 </span>            :      // discard previous points if its are before maximum point and with gap&gt;1
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if(i&lt;nmax ) {</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :           nPointsOut = 0; // nPointsOut--;</span>
+<span class="lineNum">     245 </span>            :      // if point with gap after maximum - finish selection
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         } else if(i&gt;=nmax ) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     248 </span>            :         }
+<span class="lineNum">     249 </span>            :       }
+<span class="lineNum">     250 </span>            :      // Far away from maximum
+<span class="lineNum">     251 </span>            :      //if(i-nmax &gt; Int_t(5*tau))              break;
+<span class="lineNum">     252 </span>            :     }
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     tn[nPointsOut] = Double_t(t[i]);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     yn[nPointsOut] = yd;</span>
+<span class="lineNum">     255 </span>            :     //printf(&quot;i %i : nPointsOut %i : tn %6.2f : yn %6.2f \n&quot;, i, nPointsOut, tn[nPointsOut], yn[nPointsOut]); 
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     nPointsOut++;</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     258 </span>            :   //printf(&quot; nmax %i : nPointsIn %i :nPointsOut %i i1 %i \n&quot;, nmax, nPointsIn, nPointsOut, i1);
+<a name="259"><span class="lineNum">     259 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : void AliCaloFastAltroFitv0::FastFit(const Double_t* t, const Double_t* y, const Int_t nPoints, 
+<span class="lineNum">     262 </span>            :                                     const Double_t sig, const Double_t tau,
+<span class="lineNum">     263 </span>            :                                     Double_t &amp;amp, Double_t &amp;eamp, Double_t &amp;t0, Double_t &amp;et0, Double_t &amp;chi2)
+<span class="lineNum">     264 </span>            : {
+<span class="lineNum">     265 </span>            :   // Static function
+<span class="lineNum">     266 </span>            :   // It is case of n=k=2 : fnn = x*x*exp(2 - 2*x)
+<span class="lineNum">     267 </span>            :   // Input: 
+<span class="lineNum">     268 </span>            :   //nPoints  - number of points 
+<span class="lineNum">     269 </span>            :   //   t[]   - array of time bins
+<span class="lineNum">     270 </span>            :   //   y[]   - array of amplitudes after pedestal subtractions;
+<span class="lineNum">     271 </span>            :   //   sig   - error of amplitude measurement (one value for all channels)
+<span class="lineNum">     272 </span>            :   //   tau   - filter time response (in timebin units)
+<span class="lineNum">     273 </span>            :   // Output:
+<span class="lineNum">     274 </span>            :   //       amp - amplitude at t0;
+<span class="lineNum">     275 </span>            :   //      eamp - error of amplitude; 
+<span class="lineNum">     276 </span>            :   //        t0 - time of max amplitude; 
+<span class="lineNum">     277 </span>            :   //       et0 - error of t0;
+<span class="lineNum">     278 </span>            :   //      chi2 - chi2
+<span class="lineNum">     279 </span>            :   static Double_t xx; // t/tau
+<span class="lineNum">     280 </span>            :   static Double_t a, b, c;
+<span class="lineNum">     281 </span>            :   static Double_t f02, f12, f22;    // functions
+<span class="lineNum">     282 </span>            :   static Double_t f02d, f12d, f22d; // functions derivations
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   chi2 = -1.;</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   if(nPoints&lt;2) {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     printf(&quot; AliCaloFastAltroFitv0::FastFit : nPoints&lt;=%i \n&quot;, nPoints); </span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     289 </span>            :   }
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   a = b = c = 0.0;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++){</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     xx  = t[i]/tau;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     f02 = exp(-2.*xx);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     f12 = xx*f02;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     f22 = xx*f12;</span>
+<span class="lineNum">     297 </span>            :     // Derivations
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     f02d = -2.*f02;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     f12d = f02 - 2.*f12;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     f22d = 2.*(f12 - f22); </span>
+<span class="lineNum">     301 </span>            :     //
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     a += f02d * y[i];</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     b -= 2.*f12d * y[i];</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     c += f22d * y[i];</span>
+<span class="lineNum">     305 </span>            :   }
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   Double_t t01=0.0, t02=0.0;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   Double_t amp1=0.0, amp2=0.0, chi21=0.0, chi22=0.0;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :   if(QuadraticRoots(a,b,c, t01,t02)) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     t01 *= tau;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     t02 *= tau;</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     Amplitude(t,y,nPoints, sig, tau, t01, amp1, chi21);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     Amplitude(t,y,nPoints, sig, tau, t02, amp2, chi22);</span>
+<span class="lineNum">     313 </span>            :     if(0) {
+<span class="lineNum">     314 </span>            :       printf(&quot; t01 %f : t02 %f \n&quot;, t01, t02);
+<span class="lineNum">     315 </span>            :       printf(&quot; amp1 %f : amp2 %f \n&quot;, amp1, amp2);
+<span class="lineNum">     316 </span>            :       printf(&quot; chi21 %f : chi22 %f \n&quot;, chi21, chi22);
+<span class="lineNum">     317 </span>            :     }
+<span class="lineNum">     318 </span>            :     // t0 less on one tau with comparing with value from  &quot;canonical equation&quot;
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     amp  = amp1;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     t0   = t01;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     chi2 = chi21; </span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     if(chi21 &gt; chi22) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :       amp  = amp2;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :       t0   = t02; </span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :       chi2 = chi22; </span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     if(tau&lt;3.) { // EMCAL case : small tau </span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :       t0 += -0.03; // Discard bias in t0</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :       Amplitude(t,y,nPoints, sig, tau, t0, amp, chi2);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     CalculateParsErrors(t, y, nPoints, sig, tau, amp, t0, eamp, et0);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            :     // Fill1();
+<span class="lineNum">     334 </span>            :     
+<span class="lineNum">     335 </span>            :     // DrawFastFunction(amp, t0, fUtils-&gt;GetPedestalValue(), &quot;1&quot;);
+<span class="lineNum">     336 </span>            :     //    DrawFastFunction(amp1, t01, fUtils-&gt;GetPedestalValue(), &quot;1&quot;);
+<span class="lineNum">     337 </span>            :     // DrawFastFunction(amp2, t02, fUtils-&gt;GetPedestalValue(), &quot;2&quot;);
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     chi2 = t01; // no roots, bad fit - negative chi2</span>
+<span class="lineNum">     340 </span>            :   }
+<a name="341"><span class="lineNum">     341 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span>            : Bool_t AliCaloFastAltroFitv0::QuadraticRoots(const Double_t a, const Double_t b, const Double_t c, 
+<span class="lineNum">     344 </span>            :                                              Double_t &amp;x1, Double_t &amp;x2)
+<span class="lineNum">     345 </span>            : {
+<span class="lineNum">     346 </span>            :   // Resolve quadratic equations a*x**2 + b*x + c
+<span class="lineNum">     347 </span>            :   //printf(&quot; a %12.5e b %12.5e c %12.5e \n&quot;, a, b, c);
+<span class="lineNum">     348 </span>            :   static Double_t dtmp = 0.0, dtmpCut = -1.e-6;
+<span class="lineNum">     349 </span>            :   static Int_t iWarning=0, iNoSolution=0;
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   dtmp = b*b - 4.*a*c;</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :   if(dtmp&gt;=dtmpCut &amp;&amp; dtmp&lt;0.0) {</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     if(iWarning&lt;5 || iWarning%1000==0)</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :       printf(&quot;&lt;W&gt; %i small neg. sq. : dtmp %12.5e \n&quot;, iWarning, dtmp);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     iWarning++;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     dtmp = 0.0;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   if(dtmp&gt;=0.0) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     dtmp = sqrt(dtmp);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     x1   = (-b + dtmp) / (2.*a);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     x2   = (-b - dtmp) / (2.*a);</span>
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            :     //    printf(&quot; x1 %f : x2 %f \n&quot;, x1, x2);
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<span class="lineNum">     365 </span>            :   } else {
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     x1 = dtmp;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     if(iNoSolution&lt;5 || iNoSolution%1000==0)</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :       printf(&quot;&lt;No solution&gt; %i neg. sq. : dtmp %12.5e \n&quot;, iNoSolution, dtmp);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     iNoSolution++;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     371 </span>            :   }
+<a name="372"><span class="lineNum">     372 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            : void AliCaloFastAltroFitv0::Amplitude(const Double_t* t,const Double_t* y,const Int_t nPoints, 
+<span class="lineNum">     375 </span>            :                                       const Double_t sig, const Double_t tau, const Double_t t0, 
+<span class="lineNum">     376 </span>            :                                       Double_t &amp;amp, Double_t &amp;chi2)
+<span class="lineNum">     377 </span>            : {  
+<span class="lineNum">     378 </span>            :   // Calculate parameters error too - Mar 24,09
+<span class="lineNum">     379 </span>            :   // sig is independent from points
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :   amp = 0.;</span>
+<span class="lineNum">     381 </span>            :   Double_t x=0.0, f=0.0, den=0.0, f02;
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++){</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     x    = (t[i] - t0)/tau;</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     f02  = exp(-2.*x);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     f    = x*x*f02;     </span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     amp += f*y[i];</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     den += f*f;</span>
+<span class="lineNum">     388 </span>            :   }
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   if(den&gt;0.0) amp /= den;</span>
+<span class="lineNum">     390 </span>            :   //
+<span class="lineNum">     391 </span>            :   // chi2 calculation
+<span class="lineNum">     392 </span>            :   //
+<span class="lineNum">     393 </span>            :   Double_t dy=0.0;
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   chi2=0.;</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++){</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     x    = (t[i] - t0)/tau;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     f02  = exp(-2.*x);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     f    = amp*x*x*f02;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     dy   = y[i]-f;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     chi2 += dy*dy;</span>
+<span class="lineNum">     401 </span>            :     //    printf(&quot; %i : y %f -&gt; f %f : dy %f \n&quot;, i, y[i], f, dy); 
+<span class="lineNum">     402 </span>            :   }
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   chi2 /= (sig*sig);</span>
+<a name="404"><span class="lineNum">     404 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : void AliCaloFastAltroFitv0::CalculateParsErrors(const Double_t* t, const Double_t* /*y*/, const Int_t nPoints, 
+<span class="lineNum">     407 </span>            :                                                 const Double_t sig, const Double_t tau, 
+<span class="lineNum">     408 </span>            :                                                 Double_t &amp;amp, Double_t &amp;t0, Double_t &amp;eamp, Double_t &amp;et0)
+<span class="lineNum">     409 </span>            : {
+<span class="lineNum">     410 </span>            :   // Remember that fmax = exp(-n);
+<span class="lineNum">     411 </span>            :   // fmax_nk = (n/k)**n*exp(-n) =&gt; n=k=2 =&gt; exp(-n) = exp(-2.)
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :   static Double_t cc = exp(-2.);</span>
+<span class="lineNum">     413 </span>            :   //   static Double_t cc = exp(-fN); // mean(N)~1.5 ??
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            :   Double_t sumf2=0.0, sumfd2=0.0, x, f02, f12, f22, f22d;
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;nPoints; i++){</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     x    = (t[i] - t0)/tau;</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     f02  = exp(-2.*x);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     f12  = x*f02;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     f22  = x*f12;</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     sumf2 += f22 * f22;</span>
+<span class="lineNum">     423 </span>            :     //
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     f22d = 2.*(f12 - f22); </span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     sumfd2 += f22d * f22d;</span>
+<span class="lineNum">     426 </span>            :   }
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :   et0  = (sig/amp)/sqrt(sumfd2);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :   eamp = sig/sqrt(sumf2);</span>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   amp  *= cc;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   eamp *= cc;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : //
+<a name="435"><span class="lineNum">     435 </span>            : // Drawing</a>
+<span class="lineNum">     436 </span>            : //
+<span class="lineNum">     437 </span>            : TCanvas* AliCaloFastAltroFitv0::DrawFastFunction()
+<span class="lineNum">     438 </span>            : {
+<span class="lineNum">     439 </span>            :   // QA of fitting
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :   if(fNfit&lt;=0) return 0; // no points</span>
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            :   static TCanvas *c = 0;
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   if(c==0) {</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     c =  new TCanvas(&quot;fastFun&quot;,&quot;fastFun&quot;,800,600);</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   c-&gt;cd();</span>
+<span class="lineNum">     448 </span>            :   
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   Double_t* eamp = new Double_t[fNfit];</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   Double_t* et   = new Double_t[fNfit];</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;fNfit; i++) {</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     eamp[i] = fSig;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     et[i]   = 0.0;</span>
+<span class="lineNum">     455 </span>            :   }
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   TGraphErrors *gr = new TGraphErrors(fNfit, fTfit,fAmpfit, et,eamp);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   gr-&gt;Draw(&quot;Ap&quot;);</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   gr-&gt;SetTitle(Form(&quot;Fast Fit : #chi^{2}/ndf = %8.2f / %i&quot;, GetChi2(), GetNDF()));</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   gr-&gt;GetHistogram()-&gt;SetXTitle(&quot; time bin &quot;);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   gr-&gt;GetHistogram()-&gt;SetYTitle(&quot; amplitude &quot;);</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   if(fStdFun==0) {</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :      fStdFun = new TF1(&quot;stdFun&quot;, StdResponseFunction, 0., fTfit[fNfit-1]+2., 5);    </span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :      fStdFun-&gt;SetParNames(&quot;amp&quot;,&quot;t0&quot;,&quot;tau&quot;,&quot;N&quot;,&quot;ped&quot;);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetParameter(0, GetEnergy());</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetParameter(1, GetTime() + GetTau());</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetParameter(2, GetTau());  // </span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetParameter(3, GetN());    // 2</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetParameter(4, 0.);  // </span>
+<span class="lineNum">     472 </span>            :   
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetLineColor(kBlue);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   fStdFun-&gt;SetLineWidth(1);</span>
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :   fStdFun-&gt;Draw(&quot;same&quot;);</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   delete [] eamp;</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :   delete [] et;</span>
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   c-&gt;Update();</span>
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   return c;</span>
+<a name="484"><span class="lineNum">     484 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            : Double_t AliCaloFastAltroFitv0::StdResponseFunction(const Double_t *x, const Double_t *par)
+<span class="lineNum">     487 </span>            : {
+<span class="lineNum">     488 </span>            :   // Static Standard Response Function : 
+<span class="lineNum">     489 </span>            :   // look to Double_t AliEMCALRawUtils::RawResponseFunction(Double_t *x, Double_t *par)
+<span class="lineNum">     490 </span>            :   // Using for drawing only.
+<span class="lineNum">     491 </span>            :   // 
+<span class="lineNum">     492 </span>            :   // Shape of the electronics raw reponse:
+<span class="lineNum">     493 </span>            :   // It is a semi-gaussian, 2nd order Gamma function (n=2) of the general form
+<span class="lineNum">     494 </span>            :   //
+<span class="lineNum">     495 </span>            :   // t' = (t - t0 + tau) / tau
+<span class="lineNum">     496 </span>            :   // F = A * t**N * exp( N * ( 1 - t) )   for t &gt;= 0
+<span class="lineNum">     497 </span>            :   // F = 0                                for t &lt; 0 
+<span class="lineNum">     498 </span>            :   //
+<span class="lineNum">     499 </span>            :   // parameters:
+<span class="lineNum">     500 </span>            :   // A:   par[0]   // Amplitude = peak value
+<span class="lineNum">     501 </span>            :   // t0:  par[1]
+<span class="lineNum">     502 </span>            :   // tau: par[2]
+<span class="lineNum">     503 </span>            :   // N:   par[3]
+<span class="lineNum">     504 </span>            :   // ped: par[4]
+<span class="lineNum">     505 </span>            :   //
+<span class="lineNum">     506 </span>            :   static Double_t signal , tau, n, ped, xx;
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :   tau = par[2];</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   n   = par[3];</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   ped = par[4];</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   xx = ( x[0] - par[1] + tau ) / tau ;</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   if (xx &lt;= 0) </span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     signal = ped ;  </span>
+<span class="lineNum">     515 </span>            :   else {  
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     signal = ped + par[0] * TMath::Power(xx , n) * TMath::Exp(n * (1 - xx )) ; </span>
+<span class="lineNum">     517 </span>            :   }
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :   return signal ;  </span>
+<span class="lineNum">     519 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

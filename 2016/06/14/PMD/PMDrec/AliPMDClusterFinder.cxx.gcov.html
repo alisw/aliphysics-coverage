@@ -1,0 +1,929 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - PMD/PMDrec/AliPMDClusterFinder.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">PMD/PMDrec</a> - AliPMDClusterFinder.cxx<span style="font-size: 80%;"> (source / <a href="AliPMDClusterFinder.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">296</td>
+            <td class="headerCovTableEntry">376</td>
+            <td class="headerCovTableEntryMed">78.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryLo">63.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /***************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : //-----------------------------------------------------//
+<span class="lineNum">      17 </span>            : //                                                     //
+<span class="lineNum">      18 </span>            : //           Date   : August 05 2003                   //
+<span class="lineNum">      19 </span>            : //  This reads the file PMD.digits.root(TreeD),        //
+<span class="lineNum">      20 </span>            : //  calls the Clustering algorithm and stores the      //
+<span class="lineNum">      21 </span>            : //  clustering output in PMD.RecPoints.root(TreeR)     // 
+<span class="lineNum">      22 </span>            : //                                                     //
+<span class="lineNum">      23 </span>            : //-----------------------------------------------------//
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;TTree.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;TClonesArray.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliRunLoader.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliLoader.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliRawReader.h&quot;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #include &quot;AliPMDdigit.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliPMDClusterFinder.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliPMDClustering.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliPMDClusteringV1.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliPMDcluster.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliPMDrecpoint1.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliPMDrechit.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliPMDRawStream.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;AliPMDCalibData.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;AliPMDPedestal.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;AliPMDddldata.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;AliPMDHotData.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;AliPMDNoiseCut.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliPMDddlinfoData.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliPMDRecoParam.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliRecoParam.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;AliPMDReconstructor.h&quot;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #include &quot;AliDAQ.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliCDBEntry.h&quot;
+<span class="lineNum">      57 </span>            : 
+<a name="58"><span class="lineNum">      58 </span>            : </a>
+<span class="lineNum">      59 </span>            : 
+<a name="60"><span class="lineNum">      60 </span><span class="lineCov">         12 : ClassImp(AliPMDClusterFinder)</span></a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">          2 : AliPMDClusterFinder::AliPMDClusterFinder():</span>
+<span class="lineNum">      63 </span><span class="lineCov">          2 :   fRunLoader(0),</span>
+<span class="lineNum">      64 </span><span class="lineCov">          2 :   fPMDLoader(0),</span>
+<span class="lineNum">      65 </span><span class="lineCov">          4 :   fCalibGain(GetCalibGain()),</span>
+<span class="lineNum">      66 </span><span class="lineCov">          4 :   fCalibPed(GetCalibPed()),</span>
+<span class="lineNum">      67 </span><span class="lineCov">          4 :   fCalibHot(GetCalibHot()),</span>
+<span class="lineNum">      68 </span><span class="lineCov">          4 :   fNoiseCut(GetNoiseCut()),</span>
+<span class="lineNum">      69 </span><span class="lineCov">          4 :   fDdlinfo(GetDdlinfoData()),</span>
+<span class="lineNum">      70 </span><span class="lineCov">          2 :   fRecoParam(0x0),</span>
+<span class="lineNum">      71 </span><span class="lineCov">          2 :   fTreeD(0),</span>
+<span class="lineNum">      72 </span><span class="lineCov">          2 :   fTreeR(0),</span>
+<span class="lineNum">      73 </span><span class="lineCov">          6 :   fDigits(new TClonesArray(&quot;AliPMDdigit&quot;, 1000)),</span>
+<span class="lineNum">      74 </span><span class="lineCov">          6 :   fRecpoints(new TClonesArray(&quot;AliPMDrecpoint1&quot;, 1000)),</span>
+<span class="lineNum">      75 </span><span class="lineCov">          6 :   fRechits(new TClonesArray(&quot;AliPMDrechit&quot;, 1000)),</span>
+<span class="lineNum">      76 </span><span class="lineCov">          2 :   fNpoint(0),</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 :   fNhit(0),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          2 :   fDetNo(0)</span>
+<span class="lineNum">      79 </span><span class="lineCov">         10 : {</span>
+<span class="lineNum">      80 </span>            : //
+<span class="lineNum">      81 </span>            : // Constructor
+<span class="lineNum">      82 </span>            : //
+<a name="83"><span class="lineNum">      83 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">      84 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 : AliPMDClusterFinder::AliPMDClusterFinder(AliRunLoader* runLoader):</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   fRunLoader(runLoader),</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   fPMDLoader(runLoader-&gt;GetLoader(&quot;PMDLoader&quot;)),</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   fCalibGain(GetCalibGain()),</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   fCalibPed(GetCalibPed()),</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   fCalibHot(GetCalibHot()),</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   fNoiseCut(GetNoiseCut()),</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   fDdlinfo(GetDdlinfoData()),</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   fRecoParam(0x0),</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   fTreeD(0),</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fTreeR(0),</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fDigits(new TClonesArray(&quot;AliPMDdigit&quot;, 1000)),</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   fRecpoints(new TClonesArray(&quot;AliPMDrecpoint1&quot;, 1000)),</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   fRechits(new TClonesArray(&quot;AliPMDrechit&quot;, 1000)),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   fNpoint(0),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fNhit(0),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fDetNo(0)</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     103 </span>            : //
+<span class="lineNum">     104 </span>            : // Constructor
+<span class="lineNum">     105 </span>            : //
+<a name="106"><span class="lineNum">     106 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     107 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     108 </span>            : AliPMDClusterFinder::AliPMDClusterFinder(const AliPMDClusterFinder &amp; finder):
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   TObject(finder),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   fRunLoader(0),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   fPMDLoader(0),</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   fCalibGain(GetCalibGain()),</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   fCalibPed(GetCalibPed()),</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   fCalibHot(GetCalibHot()),</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   fNoiseCut(GetNoiseCut()),</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fDdlinfo(GetDdlinfoData()),</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   fRecoParam(0x0),</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   fTreeD(0),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   fTreeR(0),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   fDigits(NULL),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   fRecpoints(NULL),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   fRechits(NULL),</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   fNpoint(0),</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   fNhit(0),</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   fDetNo(0)</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     127 </span>            :   // copy constructor
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   AliError(&quot;Copy constructor not allowed&quot;);</span>
+<a name="129"><span class="lineNum">     129 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     130 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     131 </span>            : AliPMDClusterFinder &amp;AliPMDClusterFinder::operator=(const AliPMDClusterFinder &amp; /*finder*/)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span>            :  // assignment op
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   AliError(&quot;Assignment Operator not allowed&quot;);</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="136"><span class="lineNum">     136 </span>            : }</a>
+<span class="lineNum">     137 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     138 </span>            : AliPMDClusterFinder::~AliPMDClusterFinder()
+<span class="lineNum">     139 </span><span class="lineCov">          8 : {</span>
+<span class="lineNum">     140 </span>            :   // Destructor
+<span class="lineNum">     141 </span><span class="lineCov">          2 :   if (fDigits)</span>
+<span class="lineNum">     142 </span>            :     {
+<span class="lineNum">     143 </span><span class="lineCov">          2 :       fDigits-&gt;Clear();</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span><span class="lineCov">          2 :   if (fRecpoints)</span>
+<span class="lineNum">     146 </span>            :     {
+<span class="lineNum">     147 </span><span class="lineCov">          2 :       fRecpoints-&gt;Clear();</span>
+<span class="lineNum">     148 </span>            :     }
+<span class="lineNum">     149 </span><span class="lineCov">          2 :   if (fRechits)</span>
+<span class="lineNum">     150 </span>            :     {
+<span class="lineNum">     151 </span><span class="lineCov">          2 :       fRechits-&gt;Clear();</span>
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">          4 : }</span>
+<a name="155"><span class="lineNum">     155 </span>            : // ------------------------------------------------------------------------- //</a>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : void AliPMDClusterFinder::Digits2RecPoints(TTree *digitsTree,
+<span class="lineNum">     158 </span>            :                                            TTree *clustersTree, Int_t gRecoMode)
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span>            :   // Converts digits to recpoints after running clustering
+<span class="lineNum">     161 </span>            :   // algorithm on CPV plane and PREshower plane
+<span class="lineNum">     162 </span>            :   //
+<span class="lineNum">     163 </span>            :   // This algorithm is called during the reconstruction from digits
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            :   Int_t    det  = 0, smn = 0;
+<span class="lineNum">     166 </span>            :   Int_t    xpos = 0, ypos = 0;
+<span class="lineNum">     167 </span>            :   Int_t    ismn = 0;
+<span class="lineNum">     168 </span>            :   Int_t    idet = 0;
+<span class="lineNum">     169 </span>            :   Float_t  adc  = 0.;
+<span class="lineNum">     170 </span><span class="lineCov">          8 :   Float_t  clusdata[6] = {0.,0.,0.,0.,0.,0.};</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :   AliPMDcluster *pmdcl = 0x0;
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineCov">          4 :   TObjArray *pmdcont = new TObjArray();</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">          8 :   AliPMDClustering *pmdclust = new AliPMDClusteringV1();</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :   // Fetch the reco param object
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">          4 :   fRecoParam = AliPMDReconstructor::GetRecoParam();</span>
+<span class="lineNum">     181 </span><span class="lineCov">          4 :   if(fRecoParam == 0x0)</span>
+<span class="lineNum">     182 </span>            :     {
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :        AliFatal(&quot;No Reco Param found for PMD!!!&quot;);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :   AliPMDdigit  *pmddigit;
+<span class="lineNum">     188 </span><span class="lineCov">          4 :   TBranch *branch = digitsTree-&gt;GetBranch(&quot;PMDDigit&quot;);</span>
+<span class="lineNum">     189 </span><span class="lineCov">          4 :   branch-&gt;SetAddress(&amp;fDigits);</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineCov">          4 :   ResetRecpoint();</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :   Int_t bufsize = 16000;
+<span class="lineNum">     194 </span><span class="lineCov">          4 :   TBranch * branch1 = clustersTree-&gt;Branch(&quot;PMDRecpoint&quot;, &amp;fRecpoints, bufsize); </span>
+<span class="lineNum">     195 </span><span class="lineCov">          4 :   TBranch * branch2 = clustersTree-&gt;Branch(&quot;PMDRechit&quot;, &amp;fRechits, bufsize); </span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">          4 :   Int_t nmodules = (Int_t) digitsTree-&gt;GetEntries();</span>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineCov">        392 :   for (Int_t imodule = 0; imodule &lt; nmodules; imodule++)</span>
+<span class="lineNum">     200 </span>            :     {
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :       Int_t totADCMod = 0;
+<span class="lineNum">     203 </span><span class="lineCov">        192 :       ResetCellADC();</span>
+<span class="lineNum">     204 </span><span class="lineCov">        192 :       digitsTree-&gt;GetEntry(imodule); </span>
+<span class="lineNum">     205 </span><span class="lineCov">        192 :       Int_t nentries = fDigits-&gt;GetLast();</span>
+<span class="lineNum">     206 </span><span class="lineCov">        744 :       for (Int_t ient = 0; ient &lt; nentries+1; ient++)</span>
+<span class="lineNum">     207 </span>            :         {
+<span class="lineNum">     208 </span><span class="lineCov">        180 :           pmddigit = (AliPMDdigit*)fDigits-&gt;UncheckedAt(ient);</span>
+<span class="lineNum">     209 </span>            :           
+<span class="lineNum">     210 </span><span class="lineCov">        180 :           det    = pmddigit-&gt;GetDetector();</span>
+<span class="lineNum">     211 </span><span class="lineCov">        180 :           smn    = pmddigit-&gt;GetSMNumber();</span>
+<span class="lineNum">     212 </span><span class="lineCov">        180 :           xpos   = pmddigit-&gt;GetRow();</span>
+<span class="lineNum">     213 </span><span class="lineCov">        180 :           ypos   = pmddigit-&gt;GetColumn();</span>
+<span class="lineNum">     214 </span><span class="lineCov">        180 :           adc    = pmddigit-&gt;GetADC();</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineCov">        180 :           if(det &lt; 0 || det &gt; 1)</span>
+<span class="lineNum">     217 </span>            :             {
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :               AliError(Form(&quot;*CPV/PRE NUMBER WRONG %d *&quot;,det));</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :               continue; </span>
+<span class="lineNum">     220 </span>            :             }
+<span class="lineNum">     221 </span><span class="lineCov">        180 :           if(smn == -1 || smn &gt; 23)</span>
+<span class="lineNum">     222 </span>            :             {
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :               AliError(Form(&quot;*MODULE NUMBER WRONG %d *&quot;,smn));</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :               continue; </span>
+<span class="lineNum">     225 </span>            :             }
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineCov">        180 :           if(xpos &lt; 0 || xpos &gt; 47 || ypos &lt; 0 || ypos &gt; 95)</span>
+<span class="lineNum">     228 </span>            :             {
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :               AliError(Form(&quot;*Row %d and Column NUMBER %d NOT Valid *&quot;,</span>
+<span class="lineNum">     230 </span>            :                             xpos, ypos));
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :               continue; </span>
+<span class="lineNum">     232 </span>            :             }
+<span class="lineNum">     233 </span>            :           
+<span class="lineNum">     234 </span>            :           // Pedestal Subtraction
+<span class="lineNum">     235 </span><span class="lineCov">        180 :           Int_t   pedmeanrms = fCalibPed-&gt;GetPedMeanRms(det,smn,xpos,ypos);</span>
+<span class="lineNum">     236 </span><span class="lineCov">        180 :           Int_t   pedrms1    = (Int_t) pedmeanrms%100;</span>
+<span class="lineNum">     237 </span><span class="lineCov">        180 :           Float_t pedrms     = (Float_t)pedrms1/10.;</span>
+<span class="lineNum">     238 </span><span class="lineCov">        180 :           Float_t pedmean    = (Float_t) (pedmeanrms - pedrms1)/1000.0;</span>
+<span class="lineNum">     239 </span>            :           //printf(&quot;%f %f\n&quot;,pedmean, pedrms);
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineCov">        180 :           Float_t adc1 = adc - (pedmean + 3.0*pedrms);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :           // Hot cell - set the cell adc = 0
+<span class="lineNum">     244 </span><span class="lineCov">        180 :           Float_t hotflag = fCalibHot-&gt;GetHotChannel(det,smn,xpos,ypos);</span>
+<span class="lineNum">     245 </span><span class="lineCov">        180 :           if (hotflag == 1.) adc1 = 0;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :           // CALIBRATION
+<span class="lineNum">     248 </span><span class="lineCov">        180 :           Float_t gain = fCalibGain-&gt;GetGainFact(det,smn,xpos,ypos);</span>
+<span class="lineNum">     249 </span>            :           // printf(&quot;adc = %d gain = %f\n&quot;,adc,gain);
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineCov">        180 :           adc = adc1*gain;</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineCov">        180 :           fCellTrack[xpos][ypos] = pmddigit-&gt;GetTrackNumber();</span>
+<span class="lineNum">     254 </span><span class="lineCov">        180 :           fCellPid[xpos][ypos] = pmddigit-&gt;GetTrackPid();</span>
+<span class="lineNum">     255 </span><span class="lineCov">        180 :           fCellADC[xpos][ypos] = (Double_t) adc;</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">        180 :           totADCMod += (Int_t) adc;</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineCov">        180 :         }</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :       idet = det;
+<span class="lineNum">     262 </span>            :       ismn = smn;
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">        335 :       if (totADCMod &lt;= 0) continue;</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            :       // Set the minimum noise cut per module before clustering
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            :       // Int_t imod = idet*24 + ismn;
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            :       // Int_t cluspar = fRecoParam-&gt;GetPbPbParam()-&gt;GetClusteringParam();
+<span class="lineNum">     272 </span><span class="lineCov">         49 :       AliPMDRecoParam * par = fRecoParam-&gt;GetPPParam();</span>
+<span class="lineNum">     273 </span><span class="lineCov">         49 :       Int_t cluspar = par-&gt;GetClusteringParam();</span>
+<span class="lineNum">     274 </span><span class="lineCov">         98 :       delete par;</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :       // Int_t cluspar = fRecoParam-&gt;GetCosmicParam()-&gt;GetClusteringParam();
+<span class="lineNum">     277 </span>            :       
+<span class="lineNum">     278 </span>            :       //_______________________________________________________// 
+<span class="lineNum">     279 </span>            :       //Added to switch Refine and crude Clustering - satya//
+<span class="lineNum">     280 </span>            :       // temporary solution - will be sorted out later
+<span class="lineNum">     281 </span>            :       /*cluspar = 1;
+<span class="lineNum">     282 </span>            :       static AliPMDRecoParam *reconp = NULL;
+<span class="lineNum">     283 </span>            :       reconp = (AliPMDRecoParam*)AliPMDReconstructor::GetRecoParam();
+<span class="lineNum">     284 </span>            :       if(!reconp) {
+<span class="lineNum">     285 </span>            :         cluspar = 1;
+<span class="lineNum">     286 </span>            :       } 
+<span class="lineNum">     287 </span>            :       else { 
+<span class="lineNum">     288 </span>            :         
+<span class="lineNum">     289 </span>            :       if( reconp-&gt;GetClusteringParam() == 1) 
+<span class="lineNum">     290 </span>            :         cluspar = 1;
+<span class="lineNum">     291 </span>            :       if( reconp-&gt;GetClusteringParam() == 2) 
+<span class="lineNum">     292 </span>            :         cluspar = 2;
+<span class="lineNum">     293 </span>            :         }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :       */
+<span class="lineNum">     296 </span>            :       cluspar = gRecoMode;
+<span class="lineNum">     297 </span>            :       //_______________________________________________________// 
+<span class="lineNum">     298 </span>            :       
+<span class="lineNum">     299 </span><span class="lineCov">         49 :       pmdclust-&gt;SetClusteringParam(cluspar);</span>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :       Float_t encut = 4.;
+<span class="lineNum">     302 </span><span class="lineCov">         49 :       pmdclust-&gt;SetEdepCut(encut);</span>
+<span class="lineNum">     303 </span><span class="lineCov">         49 :       pmdclust-&gt;DoClust(idet,ismn,fCellTrack,fCellPid,fCellADC,pmdcont);</span>
+<span class="lineNum">     304 </span>            :       
+<span class="lineNum">     305 </span><span class="lineCov">         49 :       Int_t nentries1 = pmdcont-&gt;GetEntries();</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">        147 :       AliDebug(1,Form(&quot;Total number of clusters/module = %d&quot;,nentries1));</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineCov">        270 :       for (Int_t ient1 = 0; ient1 &lt; nentries1; ient1++)</span>
+<span class="lineNum">     310 </span>            :         {
+<span class="lineNum">     311 </span><span class="lineCov">         86 :           pmdcl = (AliPMDcluster*)pmdcont-&gt;UncheckedAt(ient1);</span>
+<span class="lineNum">     312 </span><span class="lineCov">         86 :           idet        = pmdcl-&gt;GetDetector();</span>
+<span class="lineNum">     313 </span><span class="lineCov">         86 :           ismn        = pmdcl-&gt;GetSMN();</span>
+<span class="lineNum">     314 </span><span class="lineCov">         86 :           clusdata[0] = pmdcl-&gt;GetClusX();</span>
+<span class="lineNum">     315 </span><span class="lineCov">         86 :           clusdata[1] = pmdcl-&gt;GetClusY();</span>
+<span class="lineNum">     316 </span><span class="lineCov">         86 :           clusdata[2] = pmdcl-&gt;GetClusADC();</span>
+<span class="lineNum">     317 </span><span class="lineCov">         86 :           clusdata[3] = pmdcl-&gt;GetClusCells();</span>
+<span class="lineNum">     318 </span><span class="lineCov">         86 :           clusdata[4] = pmdcl-&gt;GetClusSigmaX();</span>
+<span class="lineNum">     319 </span><span class="lineCov">         86 :           clusdata[5] = pmdcl-&gt;GetClusSigmaY();</span>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineCov">         86 :           AddRecPoint(idet,ismn,clusdata);</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineCov">         86 :           Int_t ncell = (Int_t) clusdata[3];</span>
+<span class="lineNum">     324 </span><span class="lineCov">         86 :           if (ncell &gt; 19) ncell = 19;</span>
+<span class="lineNum">     325 </span><span class="lineCov">        524 :           for(Int_t ihit = 0; ihit &lt; ncell; ihit++)</span>
+<span class="lineNum">     326 </span>            :             {
+<span class="lineNum">     327 </span><span class="lineCov">        176 :               Int_t celldataX = pmdcl-&gt;GetClusCellX(ihit);</span>
+<span class="lineNum">     328 </span><span class="lineCov">        176 :               Int_t celldataY = pmdcl-&gt;GetClusCellY(ihit);</span>
+<span class="lineNum">     329 </span><span class="lineCov">        176 :               Int_t celldataTr = pmdcl-&gt;GetClusCellTrack(ihit);</span>
+<span class="lineNum">     330 </span><span class="lineCov">        176 :               Int_t celldataPid   = pmdcl-&gt;GetClusCellPid(ihit);</span>
+<span class="lineNum">     331 </span><span class="lineCov">        176 :               Float_t celldataAdc = pmdcl-&gt;GetClusCellAdc(ihit);</span>
+<span class="lineNum">     332 </span><span class="lineCov">        176 :               AddRecHit(celldataX, celldataY, celldataTr, celldataPid, celldataAdc);</span>
+<span class="lineNum">     333 </span>            :             }
+<span class="lineNum">     334 </span><span class="lineCov">         86 :           branch2-&gt;Fill();</span>
+<span class="lineNum">     335 </span><span class="lineCov">         86 :           ResetRechit();</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span><span class="lineCov">         49 :       pmdcont-&gt;Delete();</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineCov">         49 :       branch1-&gt;Fill();</span>
+<span class="lineNum">     340 </span><span class="lineCov">         49 :       ResetRecpoint();</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineCov">         49 :     } // modules</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">          4 :   ResetCellADC();</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            :   //   delete the pointers
+<span class="lineNum">     348 </span><span class="lineCov">          8 :   delete pmdclust;</span>
+<span class="lineNum">     349 </span><span class="lineCov">          8 :   delete pmdcont;</span>
+<span class="lineNum">     350 </span><span class="lineCov">          4 : }</span>
+<a name="351"><span class="lineNum">     351 </span>            : // ------------------------------------------------------------------------- //</a>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            : void AliPMDClusterFinder::Digits2RecPoints(AliRawReader *rawReader,
+<span class="lineNum">     354 </span>            :                                            TTree *clustersTree, Int_t gRecoMode)
+<span class="lineNum">     355 </span>            : {
+<span class="lineNum">     356 </span>            :   // Converts RAW data to recpoints after running clustering
+<span class="lineNum">     357 </span>            :   // algorithm on CPV and PREshower plane
+<span class="lineNum">     358 </span>            :   //
+<span class="lineNum">     359 </span>            :   // This method is called at the time of reconstruction from RAW data
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :   AliPMDddldata *pmdddl = 0x0;
+<span class="lineNum">     363 </span>            :   AliPMDcluster *pmdcl  = 0x0;
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineCov">          8 :   Float_t  clusdata[6];</span>
+<span class="lineNum">     366 </span><span class="lineCov">          4 :   TObjArray pmdddlcont;</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineCov">          8 :   TObjArray *pmdcont = new TObjArray();</span>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineCov">         12 :   AliPMDClustering *pmdclust = new AliPMDClusteringV1();</span>
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :   // access the ddlinfo database to fetch  the no of modules per DDL
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineCov">          4 :   Int_t moduleddl[6] = {0,0,0,0,0,0};</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">         56 :   for(Int_t jddl = 0; jddl &lt; 6; jddl++)</span>
+<span class="lineNum">     377 </span>            :     {
+<span class="lineNum">     378 </span><span class="lineCov">         48 :       moduleddl[jddl] = fDdlinfo-&gt;GetNoOfModulePerDdl(jddl);</span>
+<span class="lineNum">     379 </span>            :     }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :   // Set the minimum noise cut per module before clustering
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">          8 :   fRecoParam = AliPMDReconstructor::GetRecoParam();</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineCov">          4 :   if(fRecoParam == 0x0)</span>
+<span class="lineNum">     386 </span>            :     {
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :        AliFatal(&quot;No Reco Param found for PMD!!!&quot;);</span>
+<span class="lineNum">     388 </span>            :     }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineCov">          4 :   ResetRecpoint();</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            :   Int_t bufsize = 16000;
+<span class="lineNum">     393 </span><span class="lineCov">          4 :   TBranch *branch1 = clustersTree-&gt;Branch(&quot;PMDRecpoint&quot;, &amp;fRecpoints, bufsize); </span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">          4 :   TBranch * branch2 = clustersTree-&gt;Branch(&quot;PMDRechit&quot;, &amp;fRechits, bufsize); </span>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :   const Int_t kRow = 48;
+<span class="lineNum">     398 </span>            :   const Int_t kCol = 96;
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :   Int_t idet = 0;
+<span class="lineNum">     401 </span>            :   Int_t iSMN = 0;
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            :   Int_t indexDDL = -1;
+<span class="lineNum">     404 </span><span class="lineCov">          4 :   AliPMDRawStream pmdinput(rawReader);</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">         56 :   while ((indexDDL = pmdinput.DdlData(&amp;pmdddlcont)) &gt;=0)</span>
+<span class="lineNum">     407 </span>            :     {
+<span class="lineNum">     408 </span><span class="lineCov">         16 :       iSMN = moduleddl[indexDDL];</span>
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :       Int_t ***precpvADC;
+<span class="lineNum">     411 </span><span class="lineCov">         32 :       precpvADC = new int **[iSMN];</span>
+<span class="lineNum">     412 </span><span class="lineCov">        608 :       for (Int_t i=0; i&lt;iSMN; i++) precpvADC[i] = new int *[kRow];</span>
+<span class="lineNum">     413 </span><span class="lineCov">        416 :       for (Int_t i=0; i&lt;iSMN;i++)</span>
+<span class="lineNum">     414 </span>            :         {
+<span class="lineNum">     415 </span><span class="lineCov">      28032 :           for (Int_t j=0; j&lt;kRow; j++) precpvADC[i][j] = new int [kCol];</span>
+<span class="lineNum">     416 </span>            :         }
+<span class="lineNum">     417 </span><span class="lineCov">        416 :       for (Int_t i = 0; i &lt; iSMN; i++)</span>
+<span class="lineNum">     418 </span>            :         {
+<span class="lineNum">     419 </span><span class="lineCov">      18816 :           for (Int_t j = 0; j &lt; kRow; j++)</span>
+<span class="lineNum">     420 </span>            :             {
+<span class="lineNum">     421 </span><span class="lineCov">    1787904 :               for (Int_t k = 0; k &lt; kCol; k++)</span>
+<span class="lineNum">     422 </span>            :                 {
+<span class="lineNum">     423 </span><span class="lineCov">     884736 :                   precpvADC[i][j][k] = 0;</span>
+<span class="lineNum">     424 </span>            :                 }
+<span class="lineNum">     425 </span>            :             }
+<span class="lineNum">     426 </span>            :         }
+<span class="lineNum">     427 </span><span class="lineCov">         16 :       ResetCellADC();</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span>            :       Int_t indexsmn = 0;
+<span class="lineNum">     430 </span><span class="lineCov">         16 :       Int_t ientries = pmdddlcont.GetEntries();</span>
+<span class="lineNum">     431 </span><span class="lineCov">        392 :       for (Int_t ient = 0; ient &lt; ientries; ient++)</span>
+<span class="lineNum">     432 </span>            :         {
+<span class="lineNum">     433 </span><span class="lineCov">        180 :           pmdddl = (AliPMDddldata*)pmdddlcont.UncheckedAt(ient);</span>
+<span class="lineNum">     434 </span>            :           
+<span class="lineNum">     435 </span><span class="lineCov">        180 :           Int_t det = pmdddl-&gt;GetDetector();</span>
+<span class="lineNum">     436 </span><span class="lineCov">        180 :           Int_t smn = pmdddl-&gt;GetSMN();</span>
+<span class="lineNum">     437 </span>            :           //Int_t mcm = pmdddl-&gt;GetMCM();
+<span class="lineNum">     438 </span>            :           //Int_t chno = pmdddl-&gt;GetChannel();
+<span class="lineNum">     439 </span><span class="lineCov">        180 :           Int_t row = pmdddl-&gt;GetRow();</span>
+<span class="lineNum">     440 </span><span class="lineCov">        180 :           Int_t col = pmdddl-&gt;GetColumn();</span>
+<span class="lineNum">     441 </span><span class="lineCov">        180 :           Int_t sig = pmdddl-&gt;GetSignal();</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineCov">        180 :           if(det &lt; 0 || det &gt; 1)</span>
+<span class="lineNum">     445 </span>            :             {
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :               AliError(Form(&quot;*CPV/PRE NUMBER WRONG %d *&quot;,det));</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :               continue; </span>
+<span class="lineNum">     448 </span>            :             }
+<span class="lineNum">     449 </span><span class="lineCov">        180 :           if(smn &lt; 0 || smn &gt; 23)</span>
+<span class="lineNum">     450 </span>            :             {
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :               AliError(Form(&quot;*MODULE NUMBER WRONG %d *&quot;,smn));</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :               continue; </span>
+<span class="lineNum">     453 </span>            :             }
+<span class="lineNum">     454 </span><span class="lineCov">        180 :           if(row &lt; 0 || row &gt; 47 || col &lt; 0 || col &gt; 95)</span>
+<span class="lineNum">     455 </span>            :             {
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :               AliError(Form(&quot;*Row %d and Column NUMBER %d NOT Valid *&quot;,</span>
+<span class="lineNum">     457 </span>            :                             row, col));
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :               continue; </span>
+<span class="lineNum">     460 </span>            :             }
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :           // Pedestal Subtraction
+<span class="lineNum">     463 </span><span class="lineCov">        180 :           Int_t   pedmeanrms = fCalibPed-&gt;GetPedMeanRms(det,smn,row,col);</span>
+<span class="lineNum">     464 </span><span class="lineCov">        180 :           Int_t   pedrms1    = (Int_t) pedmeanrms%100;</span>
+<span class="lineNum">     465 </span><span class="lineCov">        180 :           Float_t pedrms     = (Float_t)pedrms1/10.;</span>
+<span class="lineNum">     466 </span><span class="lineCov">        180 :           Float_t pedmean    = (Float_t) (pedmeanrms - pedrms1)/1000.0;</span>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            :           //printf(&quot;%f %f\n&quot;,pedmean, pedrms);
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            :           // Float_t sig1 = (Float_t) sig;
+<span class="lineNum">     471 </span><span class="lineCov">        180 :           Float_t sig1 = (Float_t) sig - (pedmean + 3.0*pedrms);</span>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            :           // Hot cell - set the cell adc = 0
+<span class="lineNum">     474 </span><span class="lineCov">        180 :           Float_t hotflag = fCalibHot-&gt;GetHotChannel(det,smn,row,col);</span>
+<span class="lineNum">     475 </span><span class="lineCov">        180 :           if (hotflag == 1.) sig1 = 0;</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            :           // CALIBRATION
+<span class="lineNum">     478 </span><span class="lineCov">        180 :           Float_t gain = fCalibGain-&gt;GetGainFact(det,smn,row,col);</span>
+<span class="lineNum">     479 </span>            :           //printf(&quot;sig = %d gain = %f\n&quot;,sig,gain);
+<span class="lineNum">     480 </span><span class="lineCov">        180 :           sig = (Int_t) (sig1*gain);</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineCov">        180 :           if (indexDDL == 0)</span>
+<span class="lineNum">     483 </span>            :             {
+<span class="lineNum">     484 </span><span class="lineCov">        106 :               if (det != 0)</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :                 AliError(Form(&quot;*DDL %d and Detector NUMBER %d NOT MATCHING *&quot;,</span>
+<span class="lineNum">     486 </span>            :                               indexDDL, det));
+<span class="lineNum">     487 </span><span class="lineCov">        106 :               if (iSMN == 6)</span>
+<span class="lineNum">     488 </span>            :                 {
+<span class="lineNum">     489 </span>            :                   indexsmn = smn;
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     491 </span><span class="lineCov">        106 :               else if (iSMN == 12)</span>
+<span class="lineNum">     492 </span>            :                 {
+<span class="lineNum">     493 </span><span class="lineCov">        106 :                   if (smn &lt; 6)</span>
+<span class="lineNum">     494 </span><span class="lineCov">         84 :                     indexsmn = smn;</span>
+<span class="lineNum">     495 </span><span class="lineCov">         22 :                   else if (smn &gt;= 18 &amp;&amp; smn &lt; 24)</span>
+<span class="lineNum">     496 </span><span class="lineCov">         22 :                     indexsmn = smn-12;</span>
+<span class="lineNum">     497 </span>            :                 }
+<span class="lineNum">     498 </span>            :             }
+<span class="lineNum">     499 </span><span class="lineCov">         74 :           else if (indexDDL &gt;= 1 &amp;&amp; indexDDL &lt; 4)</span>
+<span class="lineNum">     500 </span>            :             {
+<span class="lineNum">     501 </span><span class="lineCov">         14 :               if (det != 0)</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :                 AliError(Form(&quot;*DDL %d and Detector NUMBER %d NOT MATCHING *&quot;,</span>
+<span class="lineNum">     503 </span>            :                               indexDDL, det));
+<span class="lineNum">     504 </span><span class="lineCov">         14 :               indexsmn = smn - indexDDL * 6;</span>
+<span class="lineNum">     505 </span><span class="lineCov">         14 :             }</span>
+<span class="lineNum">     506 </span><span class="lineCov">         60 :           else if (indexDDL == 4)</span>
+<span class="lineNum">     507 </span>            :             {
+<span class="lineNum">     508 </span><span class="lineCov">         34 :               if (det != 1)</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :                 AliError(Form(&quot;*DDL %d and Detector NUMBER %d NOT MATCHING *&quot;,</span>
+<span class="lineNum">     510 </span>            :                               indexDDL, det));
+<span class="lineNum">     511 </span><span class="lineCov">         34 :               if (smn &lt; 6)</span>
+<span class="lineNum">     512 </span>            :                 {
+<span class="lineNum">     513 </span>            :                   indexsmn = smn;
+<span class="lineNum">     514 </span><span class="lineCov">         34 :                 }</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :               else if (smn &gt;= 18 &amp;&amp; smn &lt; 24)</span>
+<span class="lineNum">     516 </span>            :                 {
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                   indexsmn = smn - 12;</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     519 </span>            :             }
+<span class="lineNum">     520 </span><span class="lineCov">         26 :           else if (indexDDL == 5)</span>
+<span class="lineNum">     521 </span>            :             {
+<span class="lineNum">     522 </span><span class="lineCov">         26 :               if (det != 1)</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                 AliError(Form(&quot;*DDL %d and Detector NUMBER %d NOT MATCHING *&quot;,</span>
+<span class="lineNum">     524 </span>            :                               indexDDL, det));
+<span class="lineNum">     525 </span><span class="lineCov">         26 :               if (smn &gt;= 6 &amp;&amp; smn &lt; 18)</span>
+<span class="lineNum">     526 </span>            :                 {
+<span class="lineNum">     527 </span><span class="lineCov">         26 :                   indexsmn = smn - 6;</span>
+<span class="lineNum">     528 </span><span class="lineCov">         26 :                 }</span>
+<span class="lineNum">     529 </span>            :             }         
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span><span class="lineCov">        180 :           precpvADC[indexsmn][row][col] = sig;</span>
+<span class="lineNum">     532 </span><span class="lineCov">        180 :         }</span>
+<span class="lineNum">     533 </span>            :       
+<span class="lineNum">     534 </span><span class="lineCov">         16 :       pmdddlcont.Delete();</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span>            :       Int_t totAdcMod = 0;
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            :       Int_t ismn = 0;
+<span class="lineNum">     539 </span><span class="lineCov">        416 :       for (indexsmn = 0; indexsmn &lt; iSMN; indexsmn++)</span>
+<span class="lineNum">     540 </span>            :         {
+<span class="lineNum">     541 </span><span class="lineCov">        192 :           ResetCellADC();</span>
+<span class="lineNum">     542 </span>            :           totAdcMod = 0;
+<span class="lineNum">     543 </span><span class="lineCov">      18816 :           for (Int_t irow = 0; irow &lt; kRow; irow++)</span>
+<span class="lineNum">     544 </span>            :             {
+<span class="lineNum">     545 </span><span class="lineCov">    1787904 :               for (Int_t icol = 0; icol &lt; kCol; icol++)</span>
+<span class="lineNum">     546 </span>            :                 {
+<span class="lineNum">     547 </span><span class="lineCov">     884736 :                   fCellTrack[irow][icol] = -1;</span>
+<span class="lineNum">     548 </span><span class="lineCov">     884736 :                   fCellPid[irow][icol]   = -1;</span>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineCov">     884736 :                   fCellADC[irow][icol] = </span>
+<span class="lineNum">     551 </span><span class="lineCov">     884736 :                     (Double_t) precpvADC[indexsmn][irow][icol];</span>
+<span class="lineNum">     552 </span><span class="lineCov">     884736 :                   totAdcMod += precpvADC[indexsmn][irow][icol];</span>
+<span class="lineNum">     553 </span>            :                 } // row
+<span class="lineNum">     554 </span>            :             }     // col
+<span class="lineNum">     555 </span>            :           
+<span class="lineNum">     556 </span><span class="lineCov">        192 :           if (indexDDL == 0)</span>
+<span class="lineNum">     557 </span>            :             {
+<span class="lineNum">     558 </span><span class="lineCov">         48 :               if (iSMN == 6)</span>
+<span class="lineNum">     559 </span>            :                 {
+<span class="lineNum">     560 </span>            :                   ismn = indexsmn;
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     562 </span><span class="lineCov">         48 :               else if (iSMN == 12)</span>
+<span class="lineNum">     563 </span>            :                 {
+<span class="lineNum">     564 </span>            :                   
+<span class="lineNum">     565 </span><span class="lineCov">         48 :                   if (indexsmn &lt; 6)</span>
+<span class="lineNum">     566 </span><span class="lineCov">         24 :                     ismn = indexsmn;</span>
+<span class="lineNum">     567 </span><span class="lineCov">         24 :                   else if (indexsmn &gt;= 6 &amp;&amp; indexsmn &lt; 12)</span>
+<span class="lineNum">     568 </span><span class="lineCov">         24 :                     ismn = indexsmn + 12;</span>
+<span class="lineNum">     569 </span>            :                 }
+<span class="lineNum">     570 </span>            :               idet = 0;
+<span class="lineNum">     571 </span><span class="lineCov">         48 :             }</span>
+<span class="lineNum">     572 </span><span class="lineCov">        144 :           else if (indexDDL &gt;= 1 &amp;&amp; indexDDL &lt; 4)</span>
+<span class="lineNum">     573 </span>            :             {
+<span class="lineNum">     574 </span><span class="lineCov">         48 :               ismn = indexsmn + indexDDL * 6;</span>
+<span class="lineNum">     575 </span>            :               idet = 0;
+<span class="lineNum">     576 </span><span class="lineCov">         48 :             }</span>
+<span class="lineNum">     577 </span><span class="lineCov">         96 :           else if (indexDDL == 4)</span>
+<span class="lineNum">     578 </span>            :             {
+<span class="lineNum">     579 </span><span class="lineCov">         48 :               if (indexsmn &lt; 6)</span>
+<span class="lineNum">     580 </span>            :                 {
+<span class="lineNum">     581 </span>            :                   ismn = indexsmn;
+<span class="lineNum">     582 </span><span class="lineCov">         24 :                 }</span>
+<span class="lineNum">     583 </span><span class="lineCov">         24 :               else if (indexsmn &gt;= 6 &amp;&amp; indexsmn &lt; 12)</span>
+<span class="lineNum">     584 </span>            :                 {
+<span class="lineNum">     585 </span><span class="lineCov">         24 :                   ismn = indexsmn + 12;</span>
+<span class="lineNum">     586 </span><span class="lineCov">         24 :                 }</span>
+<span class="lineNum">     587 </span>            :               idet = 1;
+<span class="lineNum">     588 </span><span class="lineCov">         48 :             }</span>
+<span class="lineNum">     589 </span><span class="lineCov">         48 :           else if (indexDDL == 5)</span>
+<span class="lineNum">     590 </span>            :             {
+<span class="lineNum">     591 </span><span class="lineCov">         48 :               ismn = indexsmn + 6;</span>
+<span class="lineNum">     592 </span>            :               idet = 1;
+<span class="lineNum">     593 </span><span class="lineCov">         48 :             }</span>
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span><span class="lineCov">        192 :           if (totAdcMod &lt;= 0) continue;</span>
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineCov">         49 :           Int_t imod = idet*24 + ismn;</span>
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span>            :           // Int_t cluspar = fRecoParam-&gt;GetPbPbParam()-&gt;GetClusteringParam();
+<span class="lineNum">     600 </span><span class="lineCov">         49 :           AliPMDRecoParam * par = fRecoParam-&gt;GetPPParam();</span>
+<span class="lineNum">     601 </span><span class="lineCov">         49 :            Int_t cluspar = par-&gt;GetClusteringParam();</span>
+<span class="lineNum">     602 </span><span class="lineCov">         98 :            delete par;</span>
+<span class="lineNum">     603 </span>            :           // Int_t cluspar = fRecoParam-&gt;GetCosmicParam()-&gt;GetClusteringParam();
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span>            :           //_______________________________________________________// 
+<span class="lineNum">     606 </span>            :           //Added to switch Refine and crude Clustering - satya//
+<span class="lineNum">     607 </span>            :           // temporary solution - will be sorted out later
+<span class="lineNum">     608 </span>            :           /* cluspar = 1;
+<span class="lineNum">     609 </span>            :           static AliPMDRecoParam *reconp = NULL;
+<span class="lineNum">     610 </span>            :           reconp = (AliPMDRecoParam*)AliPMDReconstructor::GetRecoParam();
+<span class="lineNum">     611 </span>            :           if(!reconp) {
+<span class="lineNum">     612 </span>            :             cluspar = 1;
+<span class="lineNum">     613 </span>            :           } 
+<span class="lineNum">     614 </span>            :           else { 
+<span class="lineNum">     615 </span>            :             if( reconp-&gt;GetClusteringParam() == 1) 
+<span class="lineNum">     616 </span>            :               cluspar = 1;
+<span class="lineNum">     617 </span>            :             if( reconp-&gt;GetClusteringParam() == 2) 
+<span class="lineNum">     618 </span>            :               cluspar = 2;
+<span class="lineNum">     619 </span>            :           }*/
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            :           cluspar = gRecoMode; // permanent solution
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span>            :           //_______________________________________________________// 
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span><span class="lineCov">         49 :           pmdclust-&gt;SetClusteringParam(cluspar);</span>
+<span class="lineNum">     627 </span><span class="lineCov">         49 :           Float_t encut = fNoiseCut-&gt;GetNoiseCut(imod);</span>
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span><span class="lineCov">         49 :           pmdclust-&gt;SetEdepCut(encut);</span>
+<span class="lineNum">     630 </span><span class="lineCov">         49 :           pmdclust-&gt;DoClust(idet,ismn,fCellTrack,fCellPid,fCellADC,pmdcont);</span>
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span><span class="lineCov">         49 :           Int_t nentries1 = pmdcont-&gt;GetEntries();</span>
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineCov">        245 :           AliDebug(1,Form(&quot;Total number of clusters/module = %d&quot;,nentries1));</span>
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span><span class="lineCov">        270 :           for (Int_t ient1 = 0; ient1 &lt; nentries1; ient1++)</span>
+<span class="lineNum">     637 </span>            :             {
+<span class="lineNum">     638 </span><span class="lineCov">         86 :               pmdcl = (AliPMDcluster*)pmdcont-&gt;UncheckedAt(ient1);</span>
+<span class="lineNum">     639 </span><span class="lineCov">         86 :               idet        = pmdcl-&gt;GetDetector();</span>
+<span class="lineNum">     640 </span><span class="lineCov">         86 :               ismn        = pmdcl-&gt;GetSMN();</span>
+<span class="lineNum">     641 </span><span class="lineCov">        172 :               clusdata[0] = pmdcl-&gt;GetClusX();</span>
+<span class="lineNum">     642 </span><span class="lineCov">        172 :               clusdata[1] = pmdcl-&gt;GetClusY();</span>
+<span class="lineNum">     643 </span><span class="lineCov">        172 :               clusdata[2] = pmdcl-&gt;GetClusADC();</span>
+<span class="lineNum">     644 </span><span class="lineCov">        172 :               clusdata[3] = pmdcl-&gt;GetClusCells();</span>
+<span class="lineNum">     645 </span><span class="lineCov">        172 :               clusdata[4] = pmdcl-&gt;GetClusSigmaX();</span>
+<span class="lineNum">     646 </span><span class="lineCov">        172 :               clusdata[5] = pmdcl-&gt;GetClusSigmaY();</span>
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span><span class="lineCov">         86 :               AddRecPoint(idet,ismn,clusdata);</span>
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span><span class="lineCov">         86 :               Int_t ncell = (Int_t) clusdata[3];</span>
+<span class="lineNum">     651 </span><span class="lineCov">         86 :               if (ncell &gt; 19) ncell = 19;</span>
+<span class="lineNum">     652 </span><span class="lineCov">        524 :               for(Int_t ihit = 0; ihit &lt; ncell; ihit++)</span>
+<span class="lineNum">     653 </span>            :                 {
+<span class="lineNum">     654 </span><span class="lineCov">        176 :                   Int_t celldataX = pmdcl-&gt;GetClusCellX(ihit);</span>
+<span class="lineNum">     655 </span><span class="lineCov">        176 :                   Int_t celldataY = pmdcl-&gt;GetClusCellY(ihit);</span>
+<span class="lineNum">     656 </span><span class="lineCov">        176 :                   Int_t celldataTr = pmdcl-&gt;GetClusCellTrack(ihit);</span>
+<span class="lineNum">     657 </span><span class="lineCov">        176 :                   Int_t celldataPid   = pmdcl-&gt;GetClusCellPid(ihit);</span>
+<span class="lineNum">     658 </span><span class="lineCov">        176 :                   Float_t celldataAdc = pmdcl-&gt;GetClusCellAdc(ihit);</span>
+<span class="lineNum">     659 </span><span class="lineCov">        176 :                   AddRecHit(celldataX, celldataY, celldataTr, celldataPid, celldataAdc);</span>
+<span class="lineNum">     660 </span>            :                 }
+<span class="lineNum">     661 </span><span class="lineCov">         86 :               branch2-&gt;Fill();</span>
+<span class="lineNum">     662 </span><span class="lineCov">         86 :               ResetRechit();</span>
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span>            :             }
+<span class="lineNum">     665 </span><span class="lineCov">         49 :           pmdcont-&gt;Delete();</span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span><span class="lineCov">         49 :           branch1-&gt;Fill();</span>
+<span class="lineNum">     668 </span><span class="lineCov">         49 :           ResetRecpoint();</span>
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span><span class="lineCov">         49 :         } // smn</span>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineCov">        416 :       for (Int_t i=0; i&lt;iSMN; i++)</span>
+<span class="lineNum">     674 </span>            :         {
+<span class="lineNum">     675 </span><span class="lineCov">      37248 :           for (Int_t j=0; j&lt;kRow; j++) delete [] precpvADC[i][j];</span>
+<span class="lineNum">     676 </span>            :         }
+<span class="lineNum">     677 </span><span class="lineCov">        800 :       for (Int_t i=0; i&lt;iSMN; i++) delete [] precpvADC[i];</span>
+<span class="lineNum">     678 </span><span class="lineCov">         32 :       delete [] precpvADC;</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span>            :     } // DDL Loop
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            :   
+<span class="lineNum">     683 </span><span class="lineCov">          4 :   ResetCellADC();</span>
+<span class="lineNum">     684 </span>            :   
+<span class="lineNum">     685 </span>            :   //   delete the pointers
+<span class="lineNum">     686 </span><span class="lineCov">          8 :   delete pmdclust;</span>
+<span class="lineNum">     687 </span><span class="lineCov">          8 :   delete pmdcont;</span>
+<a name="688"><span class="lineNum">     688 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     689 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     690 </span>            : void AliPMDClusterFinder::AddRecPoint(Int_t idet,Int_t ismn,Float_t *clusdata)
+<span class="lineNum">     691 </span>            : {
+<span class="lineNum">     692 </span>            :   // Add Reconstructed points
+<span class="lineNum">     693 </span>            :   //
+<span class="lineNum">     694 </span><span class="lineCov">        344 :   TClonesArray &amp;lrecpoints = *fRecpoints;</span>
+<span class="lineNum">     695 </span>            :   AliPMDrecpoint1 *newrecpoint;
+<span class="lineNum">     696 </span><span class="lineCov">        172 :   newrecpoint = new AliPMDrecpoint1(idet, ismn, clusdata);</span>
+<span class="lineNum">     697 </span><span class="lineCov">        172 :   new(lrecpoints[fNpoint++]) AliPMDrecpoint1(newrecpoint);</span>
+<span class="lineNum">     698 </span><span class="lineCov">        344 :   delete newrecpoint;</span>
+<a name="699"><span class="lineNum">     699 </span><span class="lineCov">        172 : }</span></a>
+<span class="lineNum">     700 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     701 </span>            : void AliPMDClusterFinder::AddRecHit(Int_t celldataX,Int_t celldataY,
+<span class="lineNum">     702 </span>            :                                     Int_t celldataTr, Int_t celldataPid,
+<span class="lineNum">     703 </span>            :                                     Float_t celldataAdc)
+<span class="lineNum">     704 </span>            : {
+<span class="lineNum">     705 </span>            :   // Add associated cell hits to the Reconstructed points
+<span class="lineNum">     706 </span>            :   //
+<span class="lineNum">     707 </span><span class="lineCov">        704 :   TClonesArray &amp;lrechits = *fRechits;</span>
+<span class="lineNum">     708 </span>            :   AliPMDrechit *newrechit;
+<span class="lineNum">     709 </span><span class="lineCov">        352 :   newrechit = new AliPMDrechit(celldataX, celldataY, celldataTr, celldataPid, celldataAdc);</span>
+<span class="lineNum">     710 </span><span class="lineCov">        352 :   new(lrechits[fNhit++]) AliPMDrechit(newrechit);</span>
+<span class="lineNum">     711 </span><span class="lineCov">        704 :   delete newrechit;</span>
+<a name="712"><span class="lineNum">     712 </span><span class="lineCov">        352 : }</span></a>
+<span class="lineNum">     713 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     714 </span>            : void AliPMDClusterFinder::ResetCellADC()
+<span class="lineNum">     715 </span>            : {
+<span class="lineNum">     716 </span>            :   // Reset the individual cell ADC value to zero
+<span class="lineNum">     717 </span>            :   //
+<span class="lineNum">     718 </span><span class="lineCov">      40392 :   for(Int_t irow = 0; irow &lt; fgkRow; irow++)</span>
+<span class="lineNum">     719 </span>            :     {
+<span class="lineNum">     720 </span><span class="lineCov">    3799296 :       for(Int_t icol = 0; icol &lt; fgkCol; icol++)</span>
+<span class="lineNum">     721 </span>            :         {
+<span class="lineNum">     722 </span><span class="lineCov">    1880064 :           fCellTrack[irow][icol] = -1;</span>
+<span class="lineNum">     723 </span><span class="lineCov">    1880064 :           fCellPid[irow][icol]   = -1;</span>
+<span class="lineNum">     724 </span><span class="lineCov">    1880064 :           fCellADC[irow][icol]   = 0.;</span>
+<span class="lineNum">     725 </span>            :         }
+<span class="lineNum">     726 </span>            :     }
+<a name="727"><span class="lineNum">     727 </span><span class="lineCov">        408 : }</span></a>
+<span class="lineNum">     728 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     729 </span>            : void AliPMDClusterFinder::ResetRecpoint()
+<span class="lineNum">     730 </span>            : {
+<span class="lineNum">     731 </span>            :   // Clear the list of reconstructed points
+<span class="lineNum">     732 </span><span class="lineCov">        212 :   fNpoint = 0;</span>
+<span class="lineNum">     733 </span><span class="lineCov">        212 :   if (fRecpoints) fRecpoints-&gt;Clear();</span>
+<a name="734"><span class="lineNum">     734 </span><span class="lineCov">        106 : }</span></a>
+<span class="lineNum">     735 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     736 </span>            : void AliPMDClusterFinder::ResetRechit()
+<span class="lineNum">     737 </span>            : {
+<span class="lineNum">     738 </span>            :   // Clear the list of reconstructed points
+<span class="lineNum">     739 </span><span class="lineCov">        344 :   fNhit = 0;</span>
+<span class="lineNum">     740 </span><span class="lineCov">        344 :   if (fRechits) fRechits-&gt;Clear();</span>
+<a name="741"><span class="lineNum">     741 </span><span class="lineCov">        172 : }</span></a>
+<span class="lineNum">     742 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     743 </span>            : void AliPMDClusterFinder::Load()
+<span class="lineNum">     744 </span>            : {
+<span class="lineNum">     745 </span>            :   // Load all the *.root files
+<span class="lineNum">     746 </span>            :   //
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :   fPMDLoader-&gt;LoadDigits(&quot;READ&quot;);</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :   fPMDLoader-&gt;LoadRecPoints(&quot;recreate&quot;);</span>
+<a name="749"><span class="lineNum">     749 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     750 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     751 </span>            : void AliPMDClusterFinder::LoadClusters()
+<span class="lineNum">     752 </span>            : {
+<span class="lineNum">     753 </span>            :   // Load all the *.root files
+<span class="lineNum">     754 </span>            :   //
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :   fPMDLoader-&gt;LoadRecPoints(&quot;recreate&quot;);</span>
+<a name="756"><span class="lineNum">     756 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     757 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     758 </span>            : void AliPMDClusterFinder::UnLoad()
+<span class="lineNum">     759 </span>            : {
+<span class="lineNum">     760 </span>            :   // Unload all the *.root files
+<span class="lineNum">     761 </span>            :   //
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :   fPMDLoader-&gt;UnloadDigits();</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :   fPMDLoader-&gt;UnloadRecPoints();</span>
+<a name="764"><span class="lineNum">     764 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     765 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     766 </span>            : void AliPMDClusterFinder::UnLoadClusters()
+<span class="lineNum">     767 </span>            : {
+<span class="lineNum">     768 </span>            :   // Unload all the *.root files
+<span class="lineNum">     769 </span>            :   //
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :   fPMDLoader-&gt;UnloadRecPoints();</span>
+<a name="771"><span class="lineNum">     771 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     772 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     773 </span>            : AliPMDCalibData* AliPMDClusterFinder::GetCalibGain() const
+<span class="lineNum">     774 </span>            : {
+<span class="lineNum">     775 </span>            :   // The run number will be centralized in AliCDBManager,
+<span class="lineNum">     776 </span>            :   // you don't need to set it here!
+<span class="lineNum">     777 </span>            :   // Added by ZA
+<span class="lineNum">     778 </span><span class="lineCov">          6 :   AliCDBEntry  *entry = AliCDBManager::Instance()-&gt;Get(&quot;PMD/Calib/Gain&quot;);</span>
+<span class="lineNum">     779 </span>            :   
+<span class="lineNum">     780 </span><span class="lineCov">          2 :   if(!entry)  AliFatal(&quot;Calibration object retrieval failed! &quot;);</span>
+<span class="lineNum">     781 </span>            :   
+<span class="lineNum">     782 </span>            :   AliPMDCalibData *calibdata=0;
+<span class="lineNum">     783 </span><span class="lineCov">          4 :   if (entry) calibdata = (AliPMDCalibData*) entry-&gt;GetObject();</span>
+<span class="lineNum">     784 </span>            :   
+<span class="lineNum">     785 </span><span class="lineCov">          2 :   if (!calibdata)  AliFatal(&quot;No calibration data from calibration database !&quot;);</span>
+<span class="lineNum">     786 </span>            :   
+<span class="lineNum">     787 </span><span class="lineCov">          2 :   return calibdata;</span>
+<a name="788"><span class="lineNum">     788 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     789 </span>            : // ------------------------------------------------------------------------- //
+<span class="lineNum">     790 </span>            : AliPMDPedestal* AliPMDClusterFinder::GetCalibPed() const
+<span class="lineNum">     791 </span>            : {
+<span class="lineNum">     792 </span>            :   // The run number will be centralized in AliCDBManager,
+<span class="lineNum">     793 </span>            :   // you don't need to set it here!
+<span class="lineNum">     794 </span><span class="lineCov">          6 :   AliCDBEntry  *entry = AliCDBManager::Instance()-&gt;Get(&quot;PMD/Calib/Ped&quot;);</span>
+<span class="lineNum">     795 </span>            :   
+<span class="lineNum">     796 </span><span class="lineCov">          2 :   if(!entry) AliFatal(&quot;Pedestal object retrieval failed!&quot;);</span>
+<span class="lineNum">     797 </span>            :     
+<span class="lineNum">     798 </span>            :   AliPMDPedestal *pedestal = 0;
+<span class="lineNum">     799 </span><span class="lineCov">          4 :   if (entry) pedestal = (AliPMDPedestal*) entry-&gt;GetObject();</span>
+<span class="lineNum">     800 </span>            :   
+<span class="lineNum">     801 </span><span class="lineCov">          2 :   if (!pedestal)  AliFatal(&quot;No pedestal data from pedestal database !&quot;);</span>
+<span class="lineNum">     802 </span>            :   
+<span class="lineNum">     803 </span><span class="lineCov">          2 :   return pedestal;</span>
+<a name="804"><span class="lineNum">     804 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     805 </span>            : //--------------------------------------------------------------------//
+<span class="lineNum">     806 </span>            : AliPMDHotData* AliPMDClusterFinder::GetCalibHot() const
+<span class="lineNum">     807 </span>            : {
+<span class="lineNum">     808 </span>            :   // The run number will be centralized in AliCDBManager,
+<span class="lineNum">     809 </span>            :   // you don't need to set it here!
+<span class="lineNum">     810 </span><span class="lineCov">          6 :   AliCDBEntry  *entry = AliCDBManager::Instance()-&gt;Get(&quot;PMD/Calib/Hot&quot;);</span>
+<span class="lineNum">     811 </span>            :   
+<span class="lineNum">     812 </span><span class="lineCov">          2 :   if(!entry) AliFatal(&quot;HotData object retrieval failed!&quot;);</span>
+<span class="lineNum">     813 </span>            :   
+<span class="lineNum">     814 </span>            :   AliPMDHotData *hot = 0;
+<span class="lineNum">     815 </span><span class="lineCov">          4 :   if (entry) hot = (AliPMDHotData*) entry-&gt;GetObject();</span>
+<span class="lineNum">     816 </span>            :   
+<span class="lineNum">     817 </span><span class="lineCov">          2 :   if (!hot)  AliFatal(&quot;No hot data from  database !&quot;);</span>
+<span class="lineNum">     818 </span>            :   
+<span class="lineNum">     819 </span><span class="lineCov">          2 :   return hot;</span>
+<a name="820"><span class="lineNum">     820 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     821 </span>            : //--------------------------------------------------------------------//
+<span class="lineNum">     822 </span>            : AliPMDNoiseCut* AliPMDClusterFinder::GetNoiseCut() const
+<span class="lineNum">     823 </span>            : {
+<span class="lineNum">     824 </span>            :   // The run number will be centralized in AliCDBManager,
+<span class="lineNum">     825 </span>            :   // you don't need to set it here!
+<span class="lineNum">     826 </span><span class="lineCov">          6 :   AliCDBEntry  *entry = AliCDBManager::Instance()-&gt;Get(&quot;PMD/Calib/NoiseCut&quot;);</span>
+<span class="lineNum">     827 </span>            :   
+<span class="lineNum">     828 </span><span class="lineCov">          2 :   if(!entry) AliFatal(&quot;Noisecut object retrieval failed!&quot;);</span>
+<span class="lineNum">     829 </span>            :   
+<span class="lineNum">     830 </span>            :   AliPMDNoiseCut *ncut = 0;
+<span class="lineNum">     831 </span><span class="lineCov">          4 :   if (entry) ncut = (AliPMDNoiseCut*) entry-&gt;GetObject();</span>
+<span class="lineNum">     832 </span>            :   
+<span class="lineNum">     833 </span><span class="lineCov">          2 :   if (!ncut)  AliFatal(&quot;No noise cut data from  database !&quot;);</span>
+<span class="lineNum">     834 </span>            :   
+<span class="lineNum">     835 </span><span class="lineCov">          2 :   return ncut;</span>
+<a name="836"><span class="lineNum">     836 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     837 </span>            : //--------------------------------------------------------------------//
+<span class="lineNum">     838 </span>            : AliPMDddlinfoData* AliPMDClusterFinder::GetDdlinfoData() const
+<span class="lineNum">     839 </span>            : {
+<span class="lineNum">     840 </span>            :   // The run number will be centralized in AliCDBManager,
+<span class="lineNum">     841 </span>            :   // you don't need to set it here!
+<span class="lineNum">     842 </span><span class="lineCov">          6 :   AliCDBEntry  *entry = AliCDBManager::Instance()-&gt;Get(&quot;PMD/Calib/Ddlinfo&quot;);</span>
+<span class="lineNum">     843 </span>            :   
+<span class="lineNum">     844 </span><span class="lineCov">          2 :   if(!entry) AliFatal(&quot;ddlinfo object retrieval failed!&quot;);</span>
+<span class="lineNum">     845 </span>            :   
+<span class="lineNum">     846 </span>            :   AliPMDddlinfoData *ddlinfo = 0;
+<span class="lineNum">     847 </span><span class="lineCov">          4 :   if (entry) ddlinfo = (AliPMDddlinfoData*) entry-&gt;GetObject();</span>
+<span class="lineNum">     848 </span>            :   
+<span class="lineNum">     849 </span><span class="lineCov">          2 :   if (!ddlinfo)  AliFatal(&quot;No ddl info data from  database !&quot;);</span>
+<span class="lineNum">     850 </span>            :   
+<span class="lineNum">     851 </span><span class="lineCov">          2 :   return ddlinfo;</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     853 </span>            :   
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

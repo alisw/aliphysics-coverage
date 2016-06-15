@@ -1,0 +1,1500 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCutil/AliTPCAltroEmulator.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCutil</a> - AliTPCAltroEmulator.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCAltroEmulator.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">672</td>
+            <td class="headerCovTableEntryLo">0.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntryLo">2.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**             @file Altro.C</a>
+<span class="lineNum">       2 </span>            :  *      @brief The Altro class implements the Altro digital Chain in C++
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *      This Class represents a C++ version of the ALTRO. For a complete Documentation of the Altro
+<span class="lineNum">       5 </span>            :  *      Look at : http://ep-ed-alice-tpc.web.cern.ch/ep-ed-alice-tpc/altro_chip.htm\n
+<span class="lineNum">       6 </span>            :  *      Due to the fact that the real ALTRO constantly samples in between the recorded events,
+<span class="lineNum">       7 </span>            :  *      it has the knowledge on what happened in the period. This affects the BSL1, TCF and BSL2 module.
+<span class="lineNum">       8 </span>            :  *      In the BSL1 the ALTRO follows slow baseline drifts e.g. temperature change, the TCF has a infinite
+<span class="lineNum">       9 </span>            :  *      (IIR Filter) memory of &quot;old samples&quot; i.e. a cluster at the start of a readout cycle will be treated
+<span class="lineNum">      10 </span>            :  *      differently, and the BSL2 has a 8 step pipeline. The ALTRO Class can't emulate this behavior,
+<span class="lineNum">      11 </span>            :  *      since the data is not recorded.\n
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  *      @author Roland Bramm
+<span class="lineNum">      14 </span>            :  *      @version $LastChangedRevision: 688 $
+<span class="lineNum">      15 </span>            :  *      @date    $LastChangedDate: 2005-12-16 14:07:11 +0100 (Fri, 16 Dec 2005) $
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  *      \verbinclude Altro/Altro.C.log
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      22 </span>            : //     Class for emulation of the ALTRO chip (Altro digital Chain) in C++                          //
+<span class="lineNum">      23 </span>            : //     Author: Roland Bramm                                                                        //
+<span class="lineNum">      24 </span>            : //                                                                                                 //
+<span class="lineNum">      25 </span>            : //     NOTE: This class has been modified to be conform with the coding conventions of the         //
+<span class="lineNum">      26 </span>            : //           ALICE Off-line Project. Keywords for setting the mode of BSC1 were modified           //
+<span class="lineNum">      27 </span>            : //           and are shown in the header file ...                                                  //
+<span class="lineNum">      28 </span>            : //                           Stefan Rossegger, 8th february 2008                                   //
+<span class="lineNum">      29 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;AliTPCAltroEmulator.h&quot;
+<span class="lineNum">      32 </span>            : #include &lt;TH1F.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;AliDAQ.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;AliRawReader.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;AliRawVEvent.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;AliRawData.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;AliRawVEquipment.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;AliRawEquipmentHeader.h&gt;
+<span class="lineNum">      41 </span>            : #include &quot;AliTPCRawStreamV3.h&quot;
+<span class="lineNum">      42 </span>            : #include &lt;TCanvas.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;AliRawDataHeader.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;AliRawDataHeaderV3.h&gt;
+<span class="lineNum">      45 </span>            : #include &quot;TString.h&quot;
+<span class="lineNum">      46 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : using namespace std;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /**     @brief Consturctor of Altro Class
+<span class="lineNum">      51 </span>            :  *
+<span class="lineNum">      52 </span>            :  *      Consturctor of Altro Class, some variables are set.\n
+<span class="lineNum">      53 </span>            :  *      The input Data is altered, so after running the complete emulation you have the
+<span class="lineNum">      54 </span>            :  *      Altro Processed Data in the Channel Pointer.\n
+<span class="lineNum">      55 </span>            :  *
+<span class="lineNum">      56 </span>            :  *      @param timebins an &lt;tt&gt; int &lt;/tt&gt; sets the length of the input Data (Channel)
+<span class="lineNum">      57 </span>            :  *      @param Channel an &lt;tt&gt; short* &lt;/tt&gt; Pointer to a 1d Short_tArray with the input Data
+<span class="lineNum">      58 </span>            :  */
+<a name="59"><span class="lineNum">      59 </span>            : </a>
+<span class="lineNum">      60 </span>            : 
+<a name="61"><span class="lineNum">      61 </span><span class="lineCov">         12 : ClassImp(AliTPCAltroEmulator)</span></a>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : AliTPCAltroEmulator::AliTPCAltroEmulator(Int_t timebins, short* Channel) : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   TNamed(),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   ftimebins(timebins),</span>
+<span class="lineNum">      66 </span>            : //  fChannelIn(Channel),
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   fChannelShort(Channel), </span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   fADCkeep(0),     </span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   fOnBSL1(0), </span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   fOnTCF(0),  </span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   fOnBSL2(0), </span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   fOnClip(0), </span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   fOnZSU(0),  </span>
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   fConfiguredAltro(0),   // ConfiguredAltro</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   fConfiguredBSL1(0),    // ConfiguredBSL1</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   fConfiguredTCF(0),     // ConfiguredTCF</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   fConfiguredTCFraw(0),     // ConfiguredTCF</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fConfiguredBSL2(0),    // ConfiguredBSL2</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   fConfiguredZSU(0),     // ConfiguredZSU</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fBSL1mode(0),          // BSL1mode</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   fBSL1ValuePeDestal(0), // BSL1ValuePeDestal</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   fBSL1PedestalMem(0),   // BSL1PedestalMem</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   fBSL1polarity(0),      // BSL1polarity</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   fTCFK1(0), // K1</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   fTCFK2(0), // K2</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   fTCFK3(0), // K3</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   fTCFL1(0), // L1</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   fTCFL2(0), // L2</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   fTCFL3(0), // L3</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   fTCFK1Int(0), // K1Int</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   fTCFK2Int(0), // K2Int</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fTCFK3Int(0), // K3Int</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fTCFL1Int(0), // L1Int</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   fTCFL2Int(0), // L2Int</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   fTCFL3Int(0), // L3Int</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fBSL2HighThreshold(0), // BSL2HighThreshold</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fBSL2LowThreshold(0),  // BSL2LowThreshold</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   fBSL2Offset(0),        // BSL2Offset</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   fBSL2Presamples(0),    // BSL2Presamples(0),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   fBSL2Postsamples(0),   // BSL2Postsamples</span>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fZSUThreshold(0),      // ZSUThreshold</span>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   fZSUMinSamplesaboveThreshold(0), // ZSUMinSamplesaboveThreshold</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fZSUPresamples(0),     // ZSUPresamples</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   fZSUPostsamples(0),     // ZSUPostsamples</span>
+<span class="lineNum">     111 </span>            :   
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   fReader(0),           // for Altro Emulation on Raw Reader</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   fDecoder(0),</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   fRunNumber(0), </span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   fDDLFolderName(&quot;./&quot;),</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fOutputDateFileName(&quot;./tmpRaw.date&quot;),</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   fOutputRootFileName(&quot;./tmpRaw.root&quot;),</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   fIsRandom(kTRUE),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   fChannels(0),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   fCDHs(0),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   fADCs(0),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   fTrailers(0),</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   fRawData(0) {</span>
+<span class="lineNum">     124 </span>            :   //
+<span class="lineNum">     125 </span>            :   // Constructor of Altro Class
+<span class="lineNum">     126 </span>            :   //
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   fADCkeep = new Short_t[1024]; </span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   fTCFK1IntROC[0]=0; fTCFK1IntROC[1]=0; // dummy defaults</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   fTCFK2IntROC[0]=0; fTCFK2IntROC[1]=0; // dummy defaults</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   fTCFK3IntROC[0]=0; fTCFK3IntROC[1]=0; // dummy defaults</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   fTCFL1IntROC[0]=0; fTCFL1IntROC[1]=0; // dummy defaults</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   fTCFL2IntROC[0]=0; fTCFL2IntROC[1]=0; // dummy defaults</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   fTCFL3IntROC[0]=0; fTCFL3IntROC[1]=0; // dummy defaults</span>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            : /**     @brief Destructor of Altro Class
+<span class="lineNum">     142 </span>            :  *
+<a name="143"><span class="lineNum">     143 </span>            :  *      Destructor of Altro Class\n</a>
+<span class="lineNum">     144 </span>            :  */
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : AliTPCAltroEmulator::~AliTPCAltroEmulator() {</span>
+<span class="lineNum">     146 </span>            :   //
+<span class="lineNum">     147 </span>            :   // Destructor of Altro Class
+<span class="lineNum">     148 </span>            :   //
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            :   //  if(fConfiguredZSU == 1)
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   delete[] fADCkeep;</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   delete[] fChannels;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   delete[] fCDHs    ;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   delete[] fADCs    ;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   delete[] fTrailers;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   delete[] fRawData ;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   delete fDecoder   ;</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : /**  @brief Configures which modules of the Altro should be on.
+<span class="lineNum">     164 </span>            :  *
+<span class="lineNum">     165 </span>            :  *      Configures which modules of the Altro should be on. Each of the modules
+<span class="lineNum">     166 </span>            :  *      which are configured to be on, have to be configured later before running
+<span class="lineNum">     167 </span>            :  *      the emulation!\n
+<span class="lineNum">     168 </span>            :  *
+<span class="lineNum">     169 </span>            :  *      @param ONBaselineCorrection1 an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) to turn on the Base Line Correction 1 (BSL1) Module
+<span class="lineNum">     170 </span>            :  *      @param ONTailcancellation an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) to turn on the Tail Cancellation Filter (TCF) Module
+<span class="lineNum">     171 </span>            :  *      @param ONBaselineCorrection2 an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) to turn on the Moving Average Filter (BSL2) Module
+<span class="lineNum">     172 </span>            :  *      @param ONClipping an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) to turn on the Clipping Module. This is not possible in the real Altro, there it is always on.
+<span class="lineNum">     173 </span>            :  *      @param ONZerosuppression an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) to turn on the Zero Suppression (ZSU) Module
+<a name="174"><span class="lineNum">     174 </span>            :  *      @param ONDataFormatting an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) to turn on the Data Formatting on (not implemented)</a>
+<span class="lineNum">     175 </span>            :  */
+<span class="lineNum">     176 </span>            : void AliTPCAltroEmulator::ConfigAltro(Int_t ONBaselineCorrection1, Int_t ONTailcancellation, Int_t ONBaselineCorrection2, Int_t ONClipping, Int_t ONZerosuppression, Int_t ONDataFormatting){
+<span class="lineNum">     177 </span>            :   //
+<span class="lineNum">     178 </span>            :   // Configures which modules of the Altro should be on 
+<span class="lineNum">     179 </span>            :   //
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   fOnBSL1 = InRange(ONBaselineCorrection1,0,1,&quot;AliTPCAltroEmulator::ConfigAltro&quot;,&quot;ONBaselineCorrection1&quot;);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   fOnTCF  = InRange(ONTailcancellation,0,1,&quot;AliTPCAltroEmulator::ConfigAltro&quot;,&quot;ONTailcancellation&quot;);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   fOnBSL2 = InRange(ONBaselineCorrection2,0,1,&quot;AliTPCAltroEmulator::ConfigAltro&quot;,&quot;ONBaselineCorrection2&quot;);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   fOnClip = InRange(ONClipping,0,1,&quot;AliTPCAltroEmulator::ConfigAltro&quot;,&quot;ONClipping&quot;);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   fOnZSU = InRange(ONZerosuppression,0,1,&quot;AliTPCAltroEmulator::ConfigAltro&quot;,&quot;ONZerosuppression&quot;);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   fConfiguredAltro = 1;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   if (!fConfiguredAltro) { //dummy code to avoid warning</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     printf(&quot;%d\n&quot;,ONDataFormatting); // does not have to be checked</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : /**  @brief Configures the Base Line Correction 1 (BSL1) Module
+<span class="lineNum">     192 </span>            :  *
+<span class="lineNum">     193 </span>            :  *      Configures the Base Line Correction 1 (BSL1) Module. You dont have to build a proper pedestalMemory
+<span class="lineNum">     194 </span>            :  *      array, a pointer of the correct type is enough, of course you are not allowed to use Basline
+<span class="lineNum">     195 </span>            :  *      Correction Modes which need then the array ...\n
+<span class="lineNum">     196 </span>            :  *      All configurable values are &quot;Range checked&quot; and if out of the Range set to the nearest extreme.
+<span class="lineNum">     197 </span>            :  *      So the Emulation will work, but the result is maybe not the expected one.
+<span class="lineNum">     198 </span>            :  *
+<span class="lineNum">     199 </span>            :  *      @param mode an &lt;tt&gt; Int_t &lt;/tt&gt; sets the mode of the Baseline Correction. See the Altro manual for a description
+<span class="lineNum">     200 </span>            :  *      @param ValuePeDestal an &lt;tt&gt; Int_t &lt;/tt&gt; this is the baseline of the Channel.
+<span class="lineNum">     201 </span>            :  *      @param PedestalMem an &lt;tt&gt; *Int_t &lt;/tt&gt; Pointer to a 1d Short_t Array with the pedestal memory Data
+<a name="202"><span class="lineNum">     202 </span>            :  *      @param polarity an &lt;tt&gt; Int_t &lt;/tt&gt; Switch (0,1) for the polarity</a>
+<span class="lineNum">     203 </span>            :  */
+<span class="lineNum">     204 </span>            : void AliTPCAltroEmulator::ConfigBaselineCorrection1(Int_t mode, Int_t ValuePeDestal, Int_t *PedestalMem, Int_t polarity){
+<span class="lineNum">     205 </span>            :   //
+<span class="lineNum">     206 </span>            :   // Configures the Base Line Correction 1 (BSL1) Module
+<span class="lineNum">     207 </span>            :   //
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   fBSL1mode          = InRange(mode,0,16,&quot;AliTPCAltroEmulator::ConfigBaselineCorrection1&quot;,&quot;mode&quot;);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   fBSL1ValuePeDestal = InRange(ValuePeDestal,0,1023,&quot;AliTPCAltroEmulator::BaselineCorrection1&quot;,&quot;ValuePeDestal&quot;);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   fBSL1PedestalMem = PedestalMem;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   fBSL1polarity = InRange(polarity,0,1,&quot;AliTPCAltroEmulator::BaselineCorrection1&quot;,&quot;polarity&quot;);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   fConfiguredBSL1 = 1;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            : /**  @brief Configures the Tail Cancellation Filter (TCF) Module
+<span class="lineNum">     216 </span>            :  *
+<span class="lineNum">     217 </span>            :  *      Configures the Tail Cancellation Filter (TCF) Module. You have to set the coefficients in the
+<span class="lineNum">     218 </span>            :  *      Integer version.\n
+<span class="lineNum">     219 </span>            :  *      To convert from Int_t to Float_t use (int)*(pow(2,-16)-1)
+<span class="lineNum">     220 </span>            :  *      To convert from Float_t to Int_t usw (Float_t)*(pow(2,16)-1)
+<span class="lineNum">     221 </span>            :  *      All configurable values are &quot;Range checked&quot; and if out of the Range set to the nearest extreme.
+<span class="lineNum">     222 </span>            :  *      So the Emulation will work, but the result is maybe not the expected one.
+<span class="lineNum">     223 </span>            :  *
+<span class="lineNum">     224 </span>            :  *      @param K1 an &lt;tt&gt; Int_t &lt;/tt&gt; sets the K1 coeeficient of the TCF
+<span class="lineNum">     225 </span>            :  *      @param K2 an &lt;tt&gt; Int_t &lt;/tt&gt; sets the K2 coeeficient of the TCF
+<span class="lineNum">     226 </span>            :  *      @param K3 an &lt;tt&gt; Int_t &lt;/tt&gt; sets the K3 coeeficient of the TCF
+<span class="lineNum">     227 </span>            :  *      @param L1 an &lt;tt&gt; Int_t &lt;/tt&gt; sets the L1 coeeficient of the TCF
+<span class="lineNum">     228 </span>            :  *      @param L2 an &lt;tt&gt; Int_t &lt;/tt&gt; sets the L2 coeeficient of the TCF
+<a name="229"><span class="lineNum">     229 </span>            :  *      @param L3 an &lt;tt&gt; Int_t &lt;/tt&gt; sets the L3 coeeficient of the TCF</a>
+<span class="lineNum">     230 </span>            :  */
+<span class="lineNum">     231 </span>            : void AliTPCAltroEmulator::ConfigTailCancellationFilter(Int_t K1, Int_t K2, Int_t K3, Int_t L1, Int_t L2, Int_t L3){
+<span class="lineNum">     232 </span>            :   //
+<span class="lineNum">     233 </span>            :   // Configures the Tail Cancellation Filter (TCF) Module
+<span class="lineNum">     234 </span>            :   //
+<span class="lineNum">     235 </span>            :   // conf from Int_t to fp:  (int)*(pow(2,-16)-1)
+<span class="lineNum">     236 </span>            :   //             backway:  (Float_t)*(pow(2,16)-1)
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   fTCFK1Int = InRange(K1,0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K1&quot;);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   fTCFK2Int = InRange(K2,0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K2&quot;);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   fTCFK3Int = InRange(K3,0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K3&quot;);</span>
+<span class="lineNum">     240 </span>            :   
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   fTCFL1Int = InRange(L1,0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L1&quot;);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   fTCFL2Int = InRange(L2,0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L2&quot;);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   fTCFL3Int = InRange(L3,0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L3&quot;);</span>
+<a name="244"><span class="lineNum">     244 </span><span class="lineNoCov">          0 :   fConfiguredTCF = 1;</span></a>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     246 </span>            : void AliTPCAltroEmulator::ConfigTailCancellationFilterForRAWfiles(const Int_t *K1, const Int_t *K2, const Int_t *K3, 
+<span class="lineNum">     247 </span>            :                                                                   const Int_t *L1, const Int_t *L2, const Int_t *L3){
+<span class="lineNum">     248 </span>            :   //
+<span class="lineNum">     249 </span>            :   // Configures the Tail Cancellation Filter (TCF) Module - Different settings for IROC and OROC
+<span class="lineNum">     250 </span>            :   //
+<span class="lineNum">     251 </span>            :   // conf from Int_t to fp:  (int)*(pow(2,-16)-1)
+<span class="lineNum">     252 </span>            :   //             backway:  (Float_t)*(pow(2,16)-1)
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :   // IROC
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   fTCFK1IntROC[0] = InRange(K1[0],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K1[0]&quot;);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :   fTCFK2IntROC[0] = InRange(K2[0],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K2[0]&quot;);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   fTCFK3IntROC[0] = InRange(K3[0],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K3[0]&quot;);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   fTCFL1IntROC[0] = InRange(L1[0],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L1[0]&quot;);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   fTCFL2IntROC[0] = InRange(L2[0],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L2[0]&quot;);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   fTCFL3IntROC[0] = InRange(L3[0],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L3[0]&quot;);</span>
+<span class="lineNum">     261 </span>            :   // OROC
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   fTCFK1IntROC[1] = InRange(K1[1],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K1[1]&quot;);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   fTCFK2IntROC[1] = InRange(K2[1],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K2[1]&quot;);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   fTCFK3IntROC[1] = InRange(K3[1],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;K3[1]&quot;);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   fTCFL1IntROC[1] = InRange(L1[1],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L1[1]&quot;);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   fTCFL2IntROC[1] = InRange(L2[1],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L2[1]&quot;);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   fTCFL3IntROC[1] = InRange(L3[1],0,65535,&quot;AliTPCAltroEmulator::ConfigTailCancellationFilter&quot;,&quot;L3[1]&quot;);</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   fConfiguredTCFraw = 1;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            : /**  @brief Configures the Moving Average Filter (BSL2) Module
+<span class="lineNum">     275 </span>            :  *
+<span class="lineNum">     276 </span>            :  *      Configures the Moving Average Filter (BSL2) Module.
+<span class="lineNum">     277 </span>            :  *      All configurable values are &quot;Range checked&quot; and if out of the Range set to the nearest extreme.
+<span class="lineNum">     278 </span>            :  *      So the Emulation will work, but the result is maybe not the expected one.
+<span class="lineNum">     279 </span>            :  *
+<span class="lineNum">     280 </span>            :  *      @param HighThreshold an &lt;tt&gt; Int_t &lt;/tt&gt; sets the high Threshold
+<span class="lineNum">     281 </span>            :  *      @param LowThreshold an &lt;tt&gt; Int_t &lt;/tt&gt; sets the low Theshold
+<span class="lineNum">     282 </span>            :  *      @param Offset an &lt;tt&gt; Int_t &lt;/tt&gt; sets the the offset which is added to the Signal
+<span class="lineNum">     283 </span>            :  *      @param Presamples an &lt;tt&gt; Int_t &lt;/tt&gt; sets the number of pre samples excluded from the moving average caclulation
+<a name="284"><span class="lineNum">     284 </span>            :  *      @param Postsamples an &lt;tt&gt; Int_t &lt;/tt&gt; sets the number of post samples excluded from the moving average caclulation</a>
+<span class="lineNum">     285 </span>            :  */
+<span class="lineNum">     286 </span>            : void AliTPCAltroEmulator::ConfigBaselineCorrection2(Int_t HighThreshold, Int_t LowThreshold, Int_t Offset, Int_t Presamples, Int_t Postsamples){
+<span class="lineNum">     287 </span>            :   //
+<span class="lineNum">     288 </span>            :   // Configures the Moving Average Filter (BSL2) Module
+<span class="lineNum">     289 </span>            :   //
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   fBSL2HighThreshold = InRange(HighThreshold,0,1023,&quot;AliTPCAltroEmulator::ConfigBaselineCorrection2&quot;,&quot;HighThreshold&quot;);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   fBSL2LowThreshold  = InRange(LowThreshold,0,1023,&quot;AliTPCAltroEmulator::ConfigBaselineCorrection2&quot;,&quot;LowThreshold&quot;);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   fBSL2Offset        = InRange(Offset,0,1023,&quot;AliTPCAltroEmulator::ConfigBaselineCorrection2&quot;,&quot;Offset&quot;);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   fBSL2Presamples    = InRange(Presamples,0,3,&quot;AliTPCAltroEmulator::ConfigBaselineCorrection2&quot;,&quot;Presamples&quot;);</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :   fBSL2Postsamples   = InRange(Postsamples,0,15,&quot;AliTPCAltroEmulator::ConfigBaselineCorrection2&quot;,&quot;Postsamples&quot;);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :   fConfiguredBSL2 = 1;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : /**  @brief Configures the Zero Suppression Module (ZSU)
+<span class="lineNum">     299 </span>            :  *
+<span class="lineNum">     300 </span>            :  *      Configures the Zero Suppression Module (ZSU).
+<span class="lineNum">     301 </span>            :  *      All configurable values are &quot;Range checked&quot; and if out of the Range set to the nearest extreme.
+<span class="lineNum">     302 </span>            :  *      So the Emulation will work, but the result is maybe not the expected one.
+<span class="lineNum">     303 </span>            :  *
+<span class="lineNum">     304 </span>            :  *      @param Threshold an &lt;tt&gt; Int_t &lt;/tt&gt; sets the Threshold
+<span class="lineNum">     305 </span>            :  *      @param MinSamplesaboveThreshold an &lt;tt&gt; Int_t &lt;/tt&gt; sets the minimum number of samples which have to be greater than the threshold
+<span class="lineNum">     306 </span>            :  *      @param Presamples an &lt;tt&gt; Int_t &lt;/tt&gt; sets the number of pre samples which are kept
+<a name="307"><span class="lineNum">     307 </span>            :  *      @param Postsamples an &lt;tt&gt; Int_t &lt;/tt&gt; sets the number of post samples which are kept</a>
+<span class="lineNum">     308 </span>            :  */
+<span class="lineNum">     309 </span>            : void AliTPCAltroEmulator::ConfigZerosuppression(Int_t Threshold, Int_t MinSamplesaboveThreshold, Int_t Presamples, Int_t Postsamples){
+<span class="lineNum">     310 </span>            :   //
+<span class="lineNum">     311 </span>            :   // Configures the Zero Suppression Module (ZSU)
+<span class="lineNum">     312 </span>            :   //
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   fZSUThreshold                = InRange(Threshold,0,1023,&quot;AliTPCAltroEmulator::BaselineCorrection1&quot;,&quot;Threshold&quot;);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   fZSUMinSamplesaboveThreshold = InRange(MinSamplesaboveThreshold,1,3,&quot;AliTPCAltroEmulator::BaselineCorrection1&quot;,&quot;MinSamplesaboveThreshold&quot;);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   fZSUPresamples               = InRange(Presamples,0,3,&quot;AliTPCAltroEmulator::BaselineCorrection1&quot;,&quot;Presamples&quot;);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   fZSUPostsamples              = InRange(Postsamples,0,7,&quot;AliTPCAltroEmulator::BaselineCorrection1&quot;,&quot;Postsamples&quot;);</span>
+<span class="lineNum">     317 </span>            :   
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     fADCkeep[i] = 0;</span>
+<span class="lineNum">     320 </span>            :   }
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   fConfiguredZSU = 1;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : /**  @brief Prints the set Parameters, if module is configured
+<span class="lineNum">     325 </span>            :  *
+<a name="326"><span class="lineNum">     326 </span>            :  *      Prints the set Parameters, if module is configured.</a>
+<span class="lineNum">     327 </span>            :  */
+<span class="lineNum">     328 </span>            : void AliTPCAltroEmulator::PrintParameters(){
+<span class="lineNum">     329 </span>            :   //
+<span class="lineNum">     330 </span>            :   // Prints the set Parameters, if module is configured
+<span class="lineNum">     331 </span>            :   //
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;+-------------------------------------------+&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;| Configured Parameters of the Altro Module |&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;+-------------------------------------------+&quot; &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     335 </span>            :   
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;Parameters set in the Altro Modules:&quot; &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;ONBaselineCorrection1: &quot; &lt;&lt; fOnBSL1 &lt;&lt; endl;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;ONTailcancellation   : &quot; &lt;&lt; fOnTCF &lt;&lt; endl;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;ONBaselineCorrection2: &quot; &lt;&lt; fOnBSL2 &lt;&lt; endl;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;ONClipping           : &quot; &lt;&lt; fOnClip &lt;&lt; endl;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;ONZerosuppression    : &quot; &lt;&lt; fOnZSU &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   if(fConfiguredBSL1 == 1){</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Parameters set in the BSL1 (Baseline Correction 1) Module:&quot; &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;mode                 : &quot; &lt;&lt; fBSL1mode &lt;&lt; endl;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;ValuePeDestal        : &quot; &lt;&lt; fBSL1ValuePeDestal &lt;&lt; endl;</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;polarity             : &quot; &lt;&lt; fBSL1ValuePeDestal &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;BSL1 (Baseline Correction 1) Module not configured!&quot; &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     349 </span>            :   }
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   if(fConfiguredTCF == 1){</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Parameters set in the TCF (TailCancellation Filter) Module:&quot; &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;K1       (int|Float_t) : &quot; &lt;&lt; fTCFK1Int &lt;&lt; &quot; | &quot; &lt;&lt; fTCFK1Int/(Float_t)((1&lt;&lt;16)-1) &lt;&lt; endl;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;K2       (int|Float_t) : &quot; &lt;&lt; fTCFK2Int &lt;&lt; &quot; | &quot; &lt;&lt; fTCFK2Int/(Float_t)((1&lt;&lt;16)-1) &lt;&lt; endl;</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;K3       (int|Float_t) : &quot; &lt;&lt; fTCFK3Int &lt;&lt; &quot; | &quot; &lt;&lt; fTCFK3Int/(Float_t)((1&lt;&lt;16)-1) &lt;&lt; endl;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;L1       (int|Float_t) : &quot; &lt;&lt; fTCFL1Int &lt;&lt; &quot; | &quot; &lt;&lt; fTCFL1Int/(Float_t)((1&lt;&lt;16)-1) &lt;&lt; endl;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;L2       (int|Float_t) : &quot; &lt;&lt; fTCFL2Int &lt;&lt; &quot; | &quot; &lt;&lt; fTCFL2Int/(Float_t)((1&lt;&lt;16)-1) &lt;&lt; endl;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;L3       (int|Float_t) : &quot; &lt;&lt; fTCFL3Int &lt;&lt; &quot; | &quot; &lt;&lt; fTCFL3Int/(Float_t)((1&lt;&lt;16)-1) &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;TCF (TailCancellation Filter) Module not configured!&quot; &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     360 </span>            :   }
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :   if(fConfiguredBSL2 == 1){</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Parameters set in the BSL2 (Baseline Correction 2) Module:&quot; &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;HighThreshold        : &quot; &lt;&lt; fBSL2HighThreshold &lt;&lt; endl;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;LowThreshold         : &quot; &lt;&lt; fBSL2LowThreshold &lt;&lt; endl;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Offset               : &quot; &lt;&lt; fBSL2Offset &lt;&lt; endl;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Presamples           : &quot; &lt;&lt; fBSL2Presamples &lt;&lt; endl;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Postsamples          : &quot; &lt;&lt; fBSL2Postsamples &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;BSL2 (Baseline Correction 2) Module not configured!&quot; &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     370 </span>            :   }
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :   if(fConfiguredZSU == 1){</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Parameters set in the ZSU (Zero Suppression Unit) Module:&quot; &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Threshold            : &quot; &lt;&lt; fZSUThreshold &lt;&lt; endl;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;MinSampaboveThreshold: &quot; &lt;&lt; fZSUMinSamplesaboveThreshold &lt;&lt; endl;</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Presamples           : &quot; &lt;&lt; fZSUPresamples &lt;&lt; endl;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;Postsamples          : &quot; &lt;&lt; fZSUPostsamples &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;ZSU (Zero Suppression Unit) Module not configured!&quot; &lt;&lt; endl &lt;&lt; endl &lt;&lt; endl;</span>
+<span class="lineNum">     379 </span>            :   }
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 : }</span>
+<a name="381"><span class="lineNum">     381 </span>            : </a>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            : void AliTPCAltroEmulator::SetChannelData(Int_t timebins, Short_t* channelData) {
+<span class="lineNum">     384 </span>            :   //
+<span class="lineNum">     385 </span>            :   // Set channel data, for example a new channel
+<span class="lineNum">     386 </span>            :   //
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   ftimebins = timebins;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   fChannelShort = channelData;</span>
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     392 </span>            :  
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            : /**  @brief Runs the emulation of all configured Modules.
+<span class="lineNum">     395 </span>            :  *
+<span class="lineNum">     396 </span>            :  *      Runs the emulation of all configured Modules. This changes then the content of the
+<a name="397"><span class="lineNum">     397 </span>            :  *      input Array</a>
+<span class="lineNum">     398 </span>            :  */
+<span class="lineNum">     399 </span>            : void AliTPCAltroEmulator::RunEmulation(Int_t roc){
+<span class="lineNum">     400 </span>            :   //
+<span class="lineNum">     401 </span>            :   // Runs the emulation of all configured Modules.
+<span class="lineNum">     402 </span>            :   //
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   if (!fChannelShort) {</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     printf(&quot;ERROR cant run Altro Emulation: Channel input not set.\nUse for example: SetChannelData(Int_t timebins, Short_t* Channel)\n&quot;);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     407 </span>            :   }
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::RunEmulation | start&quot; &lt;&lt; endl;
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   if(fConfiguredAltro == 0){</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot;ERROR cant run Altro Emulation because not configured&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     413 </span>            :   }
+<span class="lineNum">     414 </span>            :   
+<span class="lineNum">     415 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::RunEmulation | start BSL1 on: &quot; &lt;&lt; fOnBSL1 &lt;&lt; &quot; configures: &quot; &lt;&lt; fConfiguredBSL1 &lt;&lt; endl;
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   if(fOnBSL1 == 1){</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     if(fConfiguredBSL1 == 1){</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       BaselineCorrection1(fBSL1mode, fBSL1ValuePeDestal, fBSL1PedestalMem, fBSL1polarity);</span>
+<span class="lineNum">     419 </span>            :     }else{
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :       cout &lt;&lt; &quot;ERROR cant run Baseline Correction 1 because not configured&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     422 </span>            :     }
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     424 </span>            :   
+<span class="lineNum">     425 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::RunEmulation | start TCF on: &quot; &lt;&lt; fOnTCF &lt;&lt; &quot; configures: &quot; &lt;&lt; fConfiguredTCF &lt;&lt; endl;
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :   if(fOnTCF == 1){</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     if (roc==-1) { // use one set of TCF params</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       if(fConfiguredTCF == 1){</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         TailCancellationFilterFixedPoint(fTCFK1Int, fTCFK2Int, fTCFK3Int, fTCFL1Int, fTCFL2Int, fTCFL3Int);</span>
+<span class="lineNum">     430 </span>            :       }else{
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         cout &lt;&lt; &quot;ERROR cant run Tail Cancellation Filter because not configured&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     433 </span>            :       }
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     } else { // use different TCF params for IROC and OROC</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       if(fConfiguredTCFraw == 1){</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         if (roc==0)      //IROC</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :           TailCancellationFilterFixedPoint(fTCFK1IntROC[0], fTCFK2IntROC[0], fTCFK3IntROC[0], </span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                                            fTCFL1IntROC[0], fTCFL2IntROC[0], fTCFL3IntROC[0]);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         else if (roc==1) // OROC</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :           TailCancellationFilterFixedPoint(fTCFK1IntROC[1], fTCFK2IntROC[1], fTCFK3IntROC[1], </span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                                            fTCFL1IntROC[1], fTCFL2IntROC[1], fTCFL3IntROC[1]);</span>
+<span class="lineNum">     442 </span>            :         else
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :           cout &lt;&lt; &quot;ERROR cant run Tail Cancellation Filter because TCF settings for ROC not found&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     444 </span>            :       } else {
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         cout &lt;&lt; &quot;ERROR cant run Tail Cancellation Filter because not configured (for RAW data files!)&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     447 </span>            :       }
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            :     }
+<span class="lineNum">     450 </span>            :   }
+<span class="lineNum">     451 </span>            :   
+<span class="lineNum">     452 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::RunEmulation | start BSL2 on: &quot; &lt;&lt; fOnBSL2 &lt;&lt; &quot; configures: &quot; &lt;&lt; fConfiguredBSL2 &lt;&lt; endl;
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :   if(fOnBSL2 == 1){</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     if(fConfiguredBSL2 == 1){</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :       BaselineCorrection2RTL(fBSL2HighThreshold, fBSL2LowThreshold, fBSL2Offset, fBSL2Presamples, fBSL2Postsamples);</span>
+<span class="lineNum">     456 </span>            :     }else{
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :       cout &lt;&lt; &quot;ERROR cant run Baseline Correction 2 because not configured&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     459 </span>            :     }
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     461 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::RunEmulation | start CLIP on: &quot; &lt;&lt; fOnClip &lt;&lt; endl;
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   if(fOnClip == 1){</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     Clipping();</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     465 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::RunEmulation | start ZSU on: &quot; &lt;&lt; fOnZSU &lt;&lt; &quot; configures: &quot; &lt;&lt; fConfiguredZSU &lt;&lt; endl;
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   if(fOnZSU == 1){</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     if(fConfiguredZSU == 1){</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :       Zerosuppression(fZSUThreshold,fZSUMinSamplesaboveThreshold,fZSUPresamples,fZSUPostsamples);</span>
+<span class="lineNum">     469 </span>            :     }else{
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :       cout &lt;&lt; &quot;ERROR cant run Zero Suppression Unit because not configured&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     472 </span>            :     }
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            :   
+<span class="lineNum">     476 </span>            : 
+<a name="477"><span class="lineNum">     477 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : void AliTPCAltroEmulator::BaselineCorrection1(Int_t mode, Int_t ValuePeDestal, Int_t *PedestalMem, Int_t polarity){
+<span class="lineNum">     480 </span>            :   //
+<span class="lineNum">     481 </span>            :   // BaselineCorrection1
+<span class="lineNum">     482 </span>            :   //
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :   //VPD == 0 !!
+<span class="lineNum">     485 </span>            :   Int_t fixedPeDestal = 0;
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :   // take first and last bins to calculate a mean pedestal value
+<span class="lineNum">     488 </span>            :   Int_t window = 3;
+<span class="lineNum">     489 </span>            :   Int_t meanPeDestal = 0;
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   if (mode == kDINxMPD &amp;&amp; ftimebins&gt;=6) {</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; window; i++) {</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :       meanPeDestal += fChannelShort[i];</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       meanPeDestal += fChannelShort[ftimebins-1-i];</span>
+<span class="lineNum">     494 </span>            :     }
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     meanPeDestal /= (window*2);</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     497 </span>            :     
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :   if(polarity ==1){</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = 1023 - fChannelShort[i];</span>
+<span class="lineNum">     501 </span>            :     }
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     503 </span>            :   
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   switch(mode) {</span>
+<span class="lineNum">     505 </span>            :   case kDINxFPD:
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - fixedPeDestal;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     509 </span>            :   case kDINxFT:
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - PedestalMem[i];</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     513 </span>            :   case kDINxFDIN:
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - PedestalMem[ fChannelShort[i] ];</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     517 </span>            :   case kDINxFDINxVPD:
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - PedestalMem[ fChannelShort[i] - ValuePeDestal];</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     521 </span>            :   case kDINxVPDxFPD:
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - ValuePeDestal - fixedPeDestal;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     525 </span>            :   case kDINxVPDxFT:
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - ValuePeDestal - PedestalMem[i];</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     529 </span>            :   case kDINxVPDxFDIN:
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - ValuePeDestal - PedestalMem[ fChannelShort[i] ];</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     533 </span>            :   case kDINxVPDxFDINxVPD:
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i]  - ValuePeDestal - PedestalMem[ fChannelShort[i] - ValuePeDestal ];</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     537 </span>            :   case kFDINxFPD:
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = PedestalMem[ fChannelShort[i] ] - fixedPeDestal;</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     541 </span>            :   case kFDINxVPDxFPD:
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = PedestalMem[ fChannelShort[i] - ValuePeDestal ] - fixedPeDestal;</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     545 </span>            :   case kFTxFPD:
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = PedestalMem[i] - fixedPeDestal;</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     549 </span>            :   case kDINxMPD:
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; ftimebins; i++)</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :       fChannelShort[i]  = fChannelShort[i] - meanPeDestal;</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     553 </span>            :   }
+<a name="554"><span class="lineNum">     554 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span>            : Int_t AliTPCAltroEmulator::Multiply36(Int_t P, Int_t N){
+<span class="lineNum">     557 </span>            :   //
+<span class="lineNum">     558 </span>            :   // multiply function to emulate the 36 bit fixed point multiplication of the Altro.
+<span class="lineNum">     559 </span>            :   //
+<span class="lineNum">     560 </span>            :   long long retval =0;
+<span class="lineNum">     561 </span>            :   long long temp = 0;
+<span class="lineNum">     562 </span>            :   long long vAX = 0;
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :   temp = (long long)P*(long long)N;</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :   vAX = (( Mask(temp,35,18) + ((long long)(-P)&lt;&lt;18) ) + Mask(temp,17,0));</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :   if ( Maskandshift(N,17,17) == 1){</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     retval = ((Maskandshift(vAX,35,35)&lt;&lt;17) + Maskandshift(vAX,32,16));</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     retval = Maskandshift(temp,32,16);</span>
+<span class="lineNum">     569 </span>            :   }
+<a name="570"><span class="lineNum">     570 </span><span class="lineNoCov">          0 :   return retval;</span></a>
+<span class="lineNum">     571 </span>            : }
+<span class="lineNum">     572 </span>            : long long AliTPCAltroEmulator::Mask(long long in, Int_t left, Int_t right){
+<span class="lineNum">     573 </span>            :   //
+<span class="lineNum">     574 </span>            :   // mask
+<span class="lineNum">     575 </span>            :   //
+<span class="lineNum">     576 </span>            :   long long retval;
+<span class="lineNum">     577 </span>            :   long long pattern;
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :   long long length = abs(left - right)+1;</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :   pattern = ((((long long)1)&lt;&lt;length)-1)&lt;&lt;right;</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :   retval = in&amp;pattern;</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :   return retval;</span>
+<a name="582"><span class="lineNum">     582 </span>            : }</a>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span>            : long long AliTPCAltroEmulator::Maskandshift(long long in, Int_t left, Int_t right){
+<span class="lineNum">     585 </span>            :   //
+<span class="lineNum">     586 </span>            :   // maskandshift
+<span class="lineNum">     587 </span>            :   //
+<span class="lineNum">     588 </span>            :   long long retval;
+<span class="lineNum">     589 </span>            :   long long pattern;
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :   long long length = abs(left - right)+1;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :   pattern = ((((long long)1)&lt;&lt;length)-1);</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :   retval = (in&gt;&gt;right)&amp;pattern;</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :   return retval;</span>
+<a name="594"><span class="lineNum">     594 </span>            : }</a>
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            : void AliTPCAltroEmulator::TailCancellationFilterFixedPoint(Int_t K1, Int_t K2, Int_t K3, Int_t L1, Int_t L2, Int_t L3){
+<span class="lineNum">     597 </span>            :   //
+<span class="lineNum">     598 </span>            :   // TailCancellationFilterFixedPoint
+<span class="lineNum">     599 </span>            :   //
+<span class="lineNum">     600 </span>            :   Int_t c1n = 0, c2n = 0, c3n = 0;
+<span class="lineNum">     601 </span>            :   Int_t c1o = 0, c2o = 0, c3o = 0;
+<span class="lineNum">     602 </span>            :   Int_t d1  = 0, d2  = 0;
+<span class="lineNum">     603 </span>            :   Int_t dout = 0;
+<span class="lineNum">     604 </span>            :   Int_t din = 0;
+<span class="lineNum">     605 </span>            :   Int_t bit = 0;
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :   //  printf(&quot;%5d %5d %5d %5d %5d %5d\n&quot;,K1,K2,K3,L1,L2,L3);
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :     din = fChannelShort[i];</span>
+<span class="lineNum">     611 </span>            :     
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     din = (din&lt;&lt;2);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     c1n             = Mask( (Mask(din,17,0) + Multiply36(K1,Mask(c1o,17,0)) ) ,17,0);</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     d1              = Mask( (Mask(c1n,17,0) - Multiply36(L1,Mask(c1o,17,0)) ) ,17,0);</span>
+<span class="lineNum">     615 </span>            :     //d1              = Mask( (Mask(c1n,17,0) + Mask(~Multiply36(L1,Mask(c1o,17,0))+1,17,0) ) ,17,0);
+<span class="lineNum">     616 </span>            :     
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     c2n             = Mask( (Mask(d1 ,17,0) + Multiply36(K2,Mask(c2o,17,0)) ) ,17,0);</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     d2              = Mask( (Mask(c2n,17,0) - Multiply36(L2,Mask(c2o,17,0)) ) ,17,0);</span>
+<span class="lineNum">     619 </span>            :     //d2              = Mask( (Mask(c2n,17,0) + Mask(~Multiply36(L2,Mask(c2o,17,0))+1,17,0) ) ,17,0);
+<span class="lineNum">     620 </span>            :     
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     c3n             = Mask( (Mask(d2 ,17,0) + Multiply36(K3,Mask(c3o,17,0)) ) ,17,0);</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     dout            = Mask( (Mask(c3n,17,0) - Multiply36(L3,Mask(c3o,17,0)) ) ,17,0);</span>
+<span class="lineNum">     623 </span>            :     //dout            = Mask( (Mask(c3n,17,0) + Mask(~Multiply36(L3,Mask(c3o,17,0))+1,17,0) ) ,17,0);
+<span class="lineNum">     624 </span>            :     
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     if( (Maskandshift(dout,2,2) == 1) || (Maskandshift(dout,1,1) == 1)){</span>
+<span class="lineNum">     626 </span>            :       bit = 1;
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     }else{</span>
+<span class="lineNum">     628 </span>            :       bit = 0;
+<span class="lineNum">     629 </span>            :     }
+<span class="lineNum">     630 </span>            :     
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     dout = ((dout&gt;&gt;3)&lt;&lt;1) + bit;</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     if(Maskandshift(dout,15,15) == 1){</span>
+<span class="lineNum">     633 </span>            :       //is needed to get the correct coding when getting negative results
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :       dout = -Mask((-Mask(dout,9,0)),9,0);</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     }else{</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :       dout = Mask(dout,9,0);</span>
+<span class="lineNum">     637 </span>            :     }
+<span class="lineNum">     638 </span>            :     
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     fChannelShort[i] = (short) dout;</span>
+<span class="lineNum">     640 </span>            :     c1o = c1n;
+<span class="lineNum">     641 </span>            :     c2o = c2n;
+<span class="lineNum">     642 </span>            :     c3o = c3n;
+<span class="lineNum">     643 </span>            :   }
+<a name="644"><span class="lineNum">     644 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span>            : void AliTPCAltroEmulator::BaselineCorrection2RTL(Int_t HighThreshold, Int_t LowThreshold, Int_t Offset, Int_t Presamples, Int_t Postsamples){
+<span class="lineNum">     647 </span>            :   //
+<span class="lineNum">     648 </span>            :   // BaselineCorrection2RTL
+<span class="lineNum">     649 </span>            :   //
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span>            :   //cout &lt;&lt; &quot;Altro::BaselineCorrection2RTL | HighThreshold: &quot; &lt;&lt; HighThreshold &lt;&lt; &quot; LowThreshold: &quot; &lt;&lt; LowThreshold &lt;&lt; &quot; Offset: &quot; &lt;&lt; Offset &lt;&lt; &quot; Presamples: &quot; &lt;&lt; Presamples &lt;&lt; &quot; Postsamples: &quot; &lt;&lt; Postsamples &lt;&lt; endl;
+<span class="lineNum">     652 </span>            :   //more or less direct &quot;translation&quot; of the hdl code.
+<span class="lineNum">     653 </span>            :   //Input signals
+<span class="lineNum">     654 </span>            :   Int_t din;
+<span class="lineNum">     655 </span>            :   Int_t dout;
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :   Int_t edges[6]; // = Postsamples*4 + Presamples;</span>
+<span class="lineNum">     657 </span>            :   Int_t offset = Offset;
+<span class="lineNum">     658 </span>            :   Int_t thrlo = LowThreshold;//called thr_mau[19] ...
+<span class="lineNum">     659 </span>            :   Int_t thrhi = HighThreshold;
+<span class="lineNum">     660 </span>            :   
+<span class="lineNum">     661 </span>            :   // Variables
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   Int_t fOld[4]; //flag pipe</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   Int_t fNew[4]; //flag pipe</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   Int_t dOld[4]; //data pipe</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :   Int_t dNew[4]; //data pipe</span>
+<span class="lineNum">     666 </span>            :   Int_t dxOld;
+<span class="lineNum">     667 </span>            :   Int_t dxNew;
+<span class="lineNum">     668 </span>            :   Int_t pstscnt; // Counter for Postsamples
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   Int_t zOld[9]; // Filter stages</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :   Int_t zNew[9]; // Filter stages</span>
+<span class="lineNum">     671 </span>            :   Int_t zxOld; //Accumulator stage
+<span class="lineNum">     672 </span>            :   Int_t zxNew; //Accumulator stage
+<span class="lineNum">     673 </span>            :   Int_t valcntOld; //Valid sample counter
+<span class="lineNum">     674 </span>            :   Int_t valcntNew = 0; //Valid sample counter
+<span class="lineNum">     675 </span>            :   
+<span class="lineNum">     676 </span>            :   Int_t valid; //Valid flag
+<span class="lineNum">     677 </span>            :   Int_t fx; //postsample flag
+<span class="lineNum">     678 </span>            :   //Int_t s07; // differentiator result
+<span class="lineNum">     679 </span>            :   Int_t s8; // Acc + Diff result
+<span class="lineNum">     680 </span>            :   Int_t flag;
+<span class="lineNum">     681 </span>            :   //Int_t bsth; //baseline threshold
+<span class="lineNum">     682 </span>            :   //Int_t din_p; //Data input strictly positive
+<span class="lineNum">     683 </span>            :   Int_t bsl;
+<span class="lineNum">     684 </span>            :   //Int_t dx_bsls; // dx -bsl
+<span class="lineNum">     685 </span>            :   //Int_t dx_clip; // dxbsl clipped
+<span class="lineNum">     686 </span>            :   //Int_t bsl_of = 0;
+<span class="lineNum">     687 </span>            :   
+<span class="lineNum">     688 </span>            :   //initialisation
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; 9 ; i++)</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     zOld[i] = 0;</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; 4 ; i++){</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     fOld[i] = 0;</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     dOld[i] = 0;</span>
+<span class="lineNum">     694 </span>            :   }
+<span class="lineNum">     695 </span>            :   dxOld= 0;
+<span class="lineNum">     696 </span>            :   pstscnt = 0;
+<span class="lineNum">     697 </span>            :   zxOld = 0;
+<span class="lineNum">     698 </span>            :   valcntOld = 0;
+<span class="lineNum">     699 </span>            :   valid = 0;
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; 2 ; i++){</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     edges[i] = (Presamples&amp;(1&lt;&lt;i))&gt;&gt;i;</span>
+<span class="lineNum">     702 </span>            :   }
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; 4 ; i++){</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     edges[(3-i)+2] = (Postsamples&amp;(1&lt;&lt;i))&gt;&gt;i;</span>
+<span class="lineNum">     705 </span>            :   }
+<span class="lineNum">     706 </span>            :   /*cout &lt;&lt; &quot;edges :&quot;;
+<span class="lineNum">     707 </span>            :     for(Int_t i = 0; i &lt; 6 ; i++)
+<span class="lineNum">     708 </span>            :     cout &lt;&lt; edges[i] &lt;&lt; &quot;:&quot;;
+<span class="lineNum">     709 </span>            :     cout &lt;&lt; &quot; Presamples: &quot; &lt;&lt; Presamples &lt;&lt; &quot; Postsamples: &quot; &lt;&lt; Postsamples &lt;&lt; endl;*/
+<span class="lineNum">     710 </span>            :   
+<span class="lineNum">     711 </span>            :   //Loop
+<span class="lineNum">     712 </span>            :   //cout &lt;&lt; &quot;AliTPCAltroEmulator::BaselineCorrection2_RTL | starting Loop&quot; &lt;&lt; endl;
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :   for(Int_t timebin = -12; timebin &lt; ftimebins+10; timebin++){</span>
+<span class="lineNum">     714 </span>            :     //cout &lt;&lt; &quot;AliTPCAltroEmulator::BaselineCorrection2_RTL | in Loop timebin: &quot; &lt;&lt; timebin &lt;&lt; endl;
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     din = GetElement(fChannelShort,timebin);</span>
+<span class="lineNum">     716 </span>            :     
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     s8 = zxOld + (zOld[8] - zOld[0]);</span>
+<span class="lineNum">     718 </span>            :     
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     if(valid == 1)</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :       bsl = s8&gt;&gt;3;// ...</span>
+<span class="lineNum">     721 </span>            :     else
+<span class="lineNum">     722 </span>            :       bsl = 0;
+<span class="lineNum">     723 </span>            :     
+<span class="lineNum">     724 </span>            :     //assign flag = (din_p &gt; thrhi) | (thrlo &gt; din_p);    // Signal samples between thresholds
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     if( (din &lt;= (bsl + thrhi)) &amp;&amp; (din &gt;= (bsl - thrlo)) )</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :       flag = 0;</span>
+<span class="lineNum">     727 </span>            :     else
+<span class="lineNum">     728 </span>            :       flag = 1;
+<span class="lineNum">     729 </span>            :     
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :     if(pstscnt == 0)</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :       fx = 0;</span>
+<span class="lineNum">     732 </span>            :     else
+<span class="lineNum">     733 </span>            :       fx = 1;
+<span class="lineNum">     734 </span>            :     
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     if(valcntOld &gt;= 12)</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :       valid = 1;</span>
+<span class="lineNum">     737 </span>            :     else
+<span class="lineNum">     738 </span>            :       valid = 0;
+<span class="lineNum">     739 </span>            :     
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     fNew[3] = flag;</span>
+<span class="lineNum">     741 </span>            :     
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     if( (fOld[3] == 1) || ( (flag == 1) &amp;&amp; ( (edges[0] == 1) || (edges[1] == 1) ) ) ) //f[2] =  f[3] | (flag&amp;(edges[0]|edges[1]));</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :       fNew[2] = 1;</span>
+<span class="lineNum">     744 </span>            :     else
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :       fNew[2] = 0;</span>
+<span class="lineNum">     746 </span>            :     
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     if( (fOld[2] == 1) || ( (edges[1] == 1) &amp;&amp; (flag == 1) ) ) //               f[1] =  f[2] | (edges[1] &amp; flag);</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :       fNew[1] = 1;</span>
+<span class="lineNum">     749 </span>            :     else
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :       fNew[1] = 0;</span>
+<span class="lineNum">     751 </span>            :     
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     if( ( (fOld[1] == 1) || ( (flag == 1) &amp;&amp; (edges[0] == 1) &amp;&amp; (edges[1] == 1) )  || (fx==1) ) &amp;&amp; (valid==1) ) //              f[0] = (f[1] | (edges[1] &amp; edges[0] &amp; flag) | fx) &amp; valid;</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :       fNew[0] = 1;</span>
+<span class="lineNum">     754 </span>            :     else
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :       fNew[0] = 0;</span>
+<span class="lineNum">     756 </span>            :     
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     dxNew = dOld[0];</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; 3; i++)</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :       dNew[i] = dOld[i+1];</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     dNew[3] = din;</span>
+<span class="lineNum">     761 </span>            :     
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     if( (fOld[1]==1) &amp;&amp; (fOld[2]==0) )</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :       pstscnt = Postsamples;</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     else if(fx == 1)</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :       pstscnt--;</span>
+<span class="lineNum">     766 </span>            :     
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     if(fOld[0] == 0){</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :       if(valid == 0)</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         valcntNew =  ++valcntOld;</span>
+<span class="lineNum">     770 </span>            :       
+<span class="lineNum">     771 </span>            :       zxNew = s8;
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :       for(Int_t i = 0; i &lt; 8; i++)</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :         zNew[i] = zOld[i+1];</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :       zNew[8] = dOld[0];</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     }else{</span>
+<span class="lineNum">     776 </span>            :       zxNew = zxOld;
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :       for(Int_t i = 0; i &lt; 9; i++)</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         zNew[i] = zOld[i];</span>
+<span class="lineNum">     779 </span>            :     }
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     dout = dxOld - (bsl - offset);</span>
+<span class="lineNum">     781 </span>            :     //if(dout &lt;0)
+<span class="lineNum">     782 </span>            :     //  dout = 0;
+<span class="lineNum">     783 </span>            :     
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     SetElement(fChannelShort,timebin-5,(short)dout);</span>
+<span class="lineNum">     785 </span>            :     //sim clockschange
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; 9 ; i++)</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :       zOld[i] = zNew[i];</span>
+<span class="lineNum">     788 </span>            :     zxOld = zxNew;
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     for(Int_t i = 0; i &lt; 4 ; i++){</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :       fOld[i] = fNew[i];</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :       dOld[i] = dNew[i];</span>
+<span class="lineNum">     792 </span>            :     }
+<span class="lineNum">     793 </span>            :     dxOld = dxNew;
+<span class="lineNum">     794 </span>            :     valcntOld = valcntNew;
+<span class="lineNum">     795 </span>            :   }
+<a name="796"><span class="lineNum">     796 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span>            : void AliTPCAltroEmulator::Clipping(){ 
+<span class="lineNum">     799 </span>            :   //
+<span class="lineNum">     800 </span>            :   // implement if no BC2 clipping has to run
+<span class="lineNum">     801 </span>            :   //
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :     if(fChannelShort[i] &lt; -1)</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :       fChannelShort[i] = -1;</span>
+<span class="lineNum">     805 </span>            :   }
+<a name="806"><span class="lineNum">     806 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span>            : void AliTPCAltroEmulator::Zerosuppression(Int_t Threshold, Int_t MinSamplesaboveThreshold, Int_t Presamples, Int_t Postsamples){
+<span class="lineNum">     809 </span>            :   //
+<span class="lineNum">     810 </span>            :   // add again altro feature
+<span class="lineNum">     811 </span>            :   //
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            :   //TODO: Implement &quot;Altro zsu merging&quot;
+<span class="lineNum">     814 </span>            :   //Int_t Postsamplecounter = 0;
+<span class="lineNum">     815 </span>            :   //Int_t setPostsample = 0;
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     if(fChannelShort[i] &gt;= Threshold)</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :       fADCkeep[i] = 1;</span>
+<span class="lineNum">     820 </span>            :     else
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :       fADCkeep[i] = 0;</span>
+<span class="lineNum">     822 </span>            :   }
+<span class="lineNum">     823 </span>            : 
+<span class="lineNum">     824 </span>            :   Int_t startofclustersequence = -1;
+<span class="lineNum">     825 </span>            :   Int_t endofClustersInSequence = -1;
+<span class="lineNum">     826 </span>            :   
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :     if( (fADCkeep[i] == 1) &amp;&amp; (GetElement(fADCkeep,i-1) == 0) ){</span>
+<span class="lineNum">     829 </span>            :       startofclustersequence = i;
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     if( (fADCkeep[i] == 1) &amp;&amp; (GetElement(fADCkeep,i+1) == 0) ){</span>
+<span class="lineNum">     832 </span>            :       endofClustersInSequence = i;
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     834 </span>            :     //cout &lt;&lt; i &lt;&lt; &quot; startofclustersequence: &quot; &lt;&lt; startofclustersequence &lt;&lt; &quot; endofClustersInSequence: &quot; &lt;&lt; endofClustersInSequence;
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     if( (startofclustersequence != -1) &amp;&amp; (endofClustersInSequence != -1) ){</span>
+<span class="lineNum">     836 </span>            :       //cout &lt;&lt; &quot; found! &quot; &lt;&lt;  (endofClustersInSequence - startofclustersequence + 1);
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :       if ( (endofClustersInSequence - startofclustersequence + 1) &lt; MinSamplesaboveThreshold ){</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :         for(Int_t j = startofclustersequence; j &lt;= endofClustersInSequence ; j++){</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :           fADCkeep[j] = 0;</span>
+<span class="lineNum">     840 </span>            :         }
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     842 </span>            :       startofclustersequence = -1;
+<span class="lineNum">     843 </span>            :       endofClustersInSequence = -1;
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     845 </span>            :     //cout &lt;&lt; endl;
+<span class="lineNum">     846 </span>            :   }
+<span class="lineNum">     847 </span>            :   
+<span class="lineNum">     848 </span>            :   /*for(Int_t i = 0; i &lt; ftimebins; i++){
+<span class="lineNum">     849 </span>            :     if( (GetElement(fADCkeep,i-1) == 1) &amp;&amp; (GetElement(fADCkeep,i) == 0) &amp;&amp; (GetElement(fADCkeep,i+1) == 1) ){
+<span class="lineNum">     850 </span>            :     SetElement(fADCkeep,i,1);
+<span class="lineNum">     851 </span>            :     }
+<span class="lineNum">     852 </span>            :     }*/
+<span class="lineNum">     853 </span>            :   
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :     if( (fADCkeep[i] == 1) &amp;&amp; (GetElement(fADCkeep,i-1) == 0) ){</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :       for(Int_t j = i-Presamples ; j &lt;= i; j++){</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :         SetElement(fADCkeep,j,1);</span>
+<span class="lineNum">     858 </span>            :       }
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     860 </span>            :   }
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :   for(Int_t i = ftimebins; i &gt;= 0; i--){</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :     if( (fADCkeep[i] == 1) &amp;&amp; (GetElement(fADCkeep,i+1) == 0) ){</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :       for(Int_t j = i ; j &lt;= i+Postsamples; j++){</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :         SetElement(fADCkeep,j,1);</span>
+<span class="lineNum">     865 </span>            :       }
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     867 </span>            :   }
+<span class="lineNum">     868 </span>            :   /*cout &lt;&lt; &quot; Postsamplecounter: &quot; &lt;&lt; Postsamplecounter;
+<span class="lineNum">     869 </span>            :     for(Int_t j = i+1 ; j &lt;= i+Postsamples; j++){
+<span class="lineNum">     870 </span>            :     SetElement(fADCkeep,j,1);
+<span class="lineNum">     871 </span>            :     i+=Postsamples;
+<span class="lineNum">     872 </span>            :     }
+<span class="lineNum">     873 </span>            :     cout &lt;&lt; endl;
+<span class="lineNum">     874 </span>            :     }
+<span class="lineNum">     875 </span>            :     cout &lt;&lt; i &lt;&lt; &quot; ADCK: &quot; &lt;&lt; GetElement(fADCkeep,i);
+<span class="lineNum">     876 </span>            :     cout &lt;&lt; &quot; Postsam: &quot; &lt;&lt; Postsamplecounter &lt;&lt; &quot; ADCK: &quot; &lt;&lt; GetElement(fADCkeep,i);*/
+<span class="lineNum">     877 </span>            :   
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     if( (fADCkeep[i] == 1) &amp;&amp; (GetElement(fADCkeep,i+1) == 0) &amp;&amp; ( (GetElement(fADCkeep,i+3) == 1) || (GetElement(fADCkeep,i+2) == 1) ) ){</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :       SetElement(fADCkeep,i+1,1);</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :       SetElement(fADCkeep,i+2,1);</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     883 </span>            :   }
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :     if( !GetKeepChannel(i) ) {</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :       SetElement(fChannelShort,i,-1); // set non relevant data to -1</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     889 </span>            :   }
+<span class="lineNum">     890 </span>            : 
+<span class="lineNum">     891 </span>            : 
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     893 </span>            : 
+<span class="lineNum">     894 </span>            : /**  @brief formats the data like the ALTRO. Result is a 64 bit array
+<span class="lineNum">     895 </span>            :  *
+<span class="lineNum">     896 </span>            :  *      formats the data like the ALTRO. Result is a 64 bit array
+<span class="lineNum">     897 </span>            :  *
+<a name="898"><span class="lineNum">     898 </span>            :  */</a>
+<span class="lineNum">     899 </span>            : 
+<span class="lineNum">     900 </span>            : void AliTPCAltroEmulator::DataFormater(){
+<span class="lineNum">     901 </span>            :   //
+<span class="lineNum">     902 </span>            :   // formats the data like the ALTRO. Result is a 64 bit array
+<span class="lineNum">     903 </span>            :   //
+<span class="lineNum">     904 </span>            : 
+<span class="lineNum">     905 </span>            : 
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span>            : /**  @brief calculates the compression out of the bitmask
+<span class="lineNum">     910 </span>            :  *
+<span class="lineNum">     911 </span>            :  *      calculates the compression out of the bitmask with the set adc values
+<span class="lineNum">     912 </span>            :  *
+<a name="913"><span class="lineNum">     913 </span>            :  *      @return \c Float_t consisting of the compression factor</a>
+<span class="lineNum">     914 </span>            :  */
+<span class="lineNum">     915 </span>            : Float_t AliTPCAltroEmulator::CalculateCompression() {
+<span class="lineNum">     916 </span>            :   //
+<span class="lineNum">     917 </span>            :   // calculates the compression out of the bitmask
+<span class="lineNum">     918 </span>            :   //
+<span class="lineNum">     919 </span>            : 
+<span class="lineNum">     920 </span>            :   // calculation is based on altro 10 bit words ..
+<span class="lineNum">     921 </span>            :   Int_t sample = 0;
+<span class="lineNum">     922 </span>            :   Int_t cluster = 0;
+<span class="lineNum">     923 </span>            :   Int_t data = 0;
+<span class="lineNum">     924 </span>            :   Float_t retval = 0.0;
+<span class="lineNum">     925 </span>            :   
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :   for(Int_t i = 0; i &lt; ftimebins; i++){</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :     if(fADCkeep[i] == 1){</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :       sample++;</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :     if( (fADCkeep[i] == 1) &amp;&amp; (GetElement(fADCkeep,i+1) == 0) ){</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :       cluster++;</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     933 </span>            :   }
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :   data = sample + cluster*2;</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :   data = data + data%4 + 4;</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :   if(data &gt;0){</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     retval = ftimebins / (Float_t)data;//num of timebins is equal to max number of samples</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     939 </span>            :     retval = 1.0;
+<span class="lineNum">     940 </span>            :   }
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :   return retval;</span>
+<a name="942"><span class="lineNum">     942 </span>            : }</a>
+<span class="lineNum">     943 </span>            : 
+<span class="lineNum">     944 </span>            : Short_t AliTPCAltroEmulator::GetElement(short* Array,Int_t index){
+<span class="lineNum">     945 </span>            :   //
+<span class="lineNum">     946 </span>            :   // GetElement of array
+<span class="lineNum">     947 </span>            :   //
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :   if (index &lt; 0)</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :   else if(index &gt;= ftimebins)</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     952 </span>            :   else
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :     return Array[index];</span>
+<a name="954"><span class="lineNum">     954 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span>            : void AliTPCAltroEmulator::SetElement(short* Array,Int_t index,Short_t value){
+<span class="lineNum">     957 </span>            :   //
+<span class="lineNum">     958 </span>            :   // SetElement of array
+<span class="lineNum">     959 </span>            :   //
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :   if (index &lt; 0)</span>
+<span class="lineNum">     961 </span>            :     return;
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :   else if(index &gt;= ftimebins)</span>
+<span class="lineNum">     963 </span>            :     return;
+<span class="lineNum">     964 </span>            :   else
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :     Array[index] = value;</span>
+<a name="966"><span class="lineNum">     966 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     967 </span>            : 
+<span class="lineNum">     968 </span>            : Int_t AliTPCAltroEmulator::InBand(Int_t ADC,Int_t bsl, Int_t LowThreshold, Int_t HighThreshold){
+<span class="lineNum">     969 </span>            :   //
+<span class="lineNum">     970 </span>            :   // check if it's within the band of search
+<span class="lineNum">     971 </span>            :   //
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :   Int_t fLow = bsl - LowThreshold;</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :   Int_t fHigh = bsl + HighThreshold;</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :   if( (ADC &lt;= fHigh) &amp;&amp; (ADC &gt;= fLow) )</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     976 </span>            :   else
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="978"><span class="lineNum">     978 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     979 </span>            : 
+<span class="lineNum">     980 </span>            : Int_t AliTPCAltroEmulator::InRange(Int_t parameter,Int_t Low,Int_t High,const char *Module,const char *ParameterName){
+<span class="lineNum">     981 </span>            :   //
+<span class="lineNum">     982 </span>            :   // checks it it's within the range
+<span class="lineNum">     983 </span>            :   //
+<span class="lineNum">     984 </span>            : 
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :   char out[255];</span>
+<span class="lineNum">     986 </span>            :   Int_t retval;
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :   if(parameter &gt; High){</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :     snprintf(out,255,&quot;Error | %s | Parameter %s is to big, has to be %d &lt;= %s &lt;= %d, is %d, now set to %d&quot;,Module,ParameterName,Low,ParameterName,High,parameter,High);</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :     cout &lt;&lt; out &lt;&lt; endl;</span>
+<span class="lineNum">     990 </span>            :     retval = High;
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :   }else if(parameter &lt; Low){</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :     snprintf(out,255,&quot;Error | %s | Parameter %s is to small, has to be %d &lt;= %s &lt;= %d, is %d, now set to %d&quot;,Module,ParameterName,Low,ParameterName,High,parameter,Low);</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :     cout &lt;&lt; out &lt;&lt; endl;</span>
+<span class="lineNum">     994 </span>            :     retval = Low;
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     996 </span>            :     retval = parameter;
+<span class="lineNum">     997 </span>            :   }
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :   return retval;</span>
+<a name="999"><span class="lineNum">     999 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1000 </span>            : 
+<span class="lineNum">    1001 </span>            : Short_t AliTPCAltroEmulator::GetShortChannel(Int_t i){
+<span class="lineNum">    1002 </span>            :   //
+<span class="lineNum">    1003 </span>            :   // GetElement of channel
+<span class="lineNum">    1004 </span>            :   //
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :   return GetElement(fChannelShort,i);</span>
+<a name="1006"><span class="lineNum">    1006 </span>            : }</a>
+<span class="lineNum">    1007 </span>            : 
+<span class="lineNum">    1008 </span>            : Short_t AliTPCAltroEmulator::GetKeepChannel(Int_t i){
+<span class="lineNum">    1009 </span>            :   //
+<span class="lineNum">    1010 </span>            :   // GetElement of Keep Channel
+<span class="lineNum">    1011 </span>            :   //
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :   return GetElement(fADCkeep,i);</span>
+<a name="1013"><span class="lineNum">    1013 </span>            : }</a>
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            : Bool_t AliTPCAltroEmulator::WriteEvent(Int_t ievent) {
+<span class="lineNum">    1016 </span>            :   //
+<span class="lineNum">    1017 </span>            :   // Write event to the DDL data folders
+<span class="lineNum">    1018 </span>            :   //
+<span class="lineNum">    1019 </span>            : 
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :   for (Int_t ddlID=0;ddlID&lt;216;++ddlID) {</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :     Bool_t  *channelsDDL=fChannels+ddlID*4096     ;</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :     Short_t *adcsDDL    =fADCs    +ddlID*4096*1024;</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     UInt_t  *cdhDDL     =fCDHs    +ddlID*8        ;</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     UInt_t  *trailerDDL =fTrailers+ddlID*9        ;</span>
+<span class="lineNum">    1025 </span>            :     
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :     FILE *file=fopen(Form(&quot;%s/raw%d/TPC_%03d.ddl&quot;,</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :                           fDDLFolderName.Data(),ievent,768+ddlID),</span>
+<span class="lineNum">    1028 </span>            :                      &quot;wb&quot;);
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :     if (!file) {</span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">    1031 </span>            :     } else { 
+<span class="lineNum">    1032 </span>            :       Int_t i32;
+<span class="lineNum">    1033 </span>            :       // write CDH (first word to be altered later)
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :       for (i32=0;i32&lt;8;++i32)</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :         fRawData[i32]=cdhDDL[i32];</span>
+<span class="lineNum">    1036 </span>            :       
+<span class="lineNum">    1037 </span>            :       // process payload
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :       for (Int_t hwaddr=0;hwaddr&lt;4096;++hwaddr) if (channelsDDL[hwaddr]) {</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :         Short_t *adcsChannel=adcsDDL+hwaddr*1024;</span>
+<span class="lineNum">    1040 </span>            :         // merge custers
+<span class="lineNum">    1041 </span>            :         // TODO: acqusition window
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :         for (Int_t it=0;it&lt;1024-3;++it) {</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :           if (adcsChannel[it]&gt;=0&amp;&amp;adcsChannel[it+3]&gt;=0) {</span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :             if (adcsChannel[it+1]&lt;0) {</span>
+<span class="lineNum">    1045 </span>            :               //            printf(&quot;merge&quot;);
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :               adcsChannel[it+1]=0;</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :             if (adcsChannel[it+2]&lt;0) {</span>
+<span class="lineNum">    1049 </span>            :               //            printf(&quot;merge&quot;);
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :               adcsChannel[it+2]=0;</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1052 </span>            :           }
+<span class="lineNum">    1053 </span>            :         }
+<span class="lineNum">    1054 </span>            :         Int_t i10=3;
+<span class="lineNum">    1055 </span>            :         Int_t icw=0;
+<span class="lineNum">    1056 </span>            :         Int_t its=1;
+<span class="lineNum">    1057 </span>            :         Int_t cw =0;
+<span class="lineNum">    1058 </span>            :         Int_t ts =0;
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :         for (Int_t it=1023;it&gt;=0;--it) {</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :           Short_t w10=adcsChannel[it];</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :           if (w10&gt;=0) {</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :             if (cw&lt;0) {</span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :               icw=i10++;</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :               its=i10++;</span>
+<span class="lineNum">    1065 </span>            :               cw =0    ;
+<span class="lineNum">    1066 </span>            :               ts=it    ;
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :             fRawData[i32+i10/3]|=w10&lt;&lt;(10*(2-i10%3));</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :             ++i10;</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :             ++cw;</span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">    1072 </span>            :           else {
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :             if (cw&gt;=0) {</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :               cw+=2;</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :               fRawData[i32+icw/3]|=cw &lt;&lt;(10*(2-icw%3));</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :               fRawData[i32+its/3]|=ts &lt;&lt;(10*(2-its%3));</span>
+<span class="lineNum">    1077 </span>            :               cw=-1;
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1079 </span>            :           }
+<span class="lineNum">    1080 </span>            :         }
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :         fRawData[i32]=0x1&lt;&lt;30|(i10-3)&lt;&lt;16|hwaddr;</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :         i32+=(i10+2)/3;</span>
+<span class="lineNum">    1083 </span>            :         
+<span class="lineNum">    1084 </span>            :         // clean up
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;1024;++i) adcsChannel[i]=-1;</span>
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :         channelsDDL[hwaddr]=kFALSE;</span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1088 </span>            :       
+<span class="lineNum">    1089 </span>            :       // write RCU trailer
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :       fRawData[i32]=0x2&lt;&lt;30|(i32-8);i32++;</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :       for (Int_t i=0;i&lt;8;++i)</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :         fRawData[i32++]=trailerDDL[i];</span>
+<span class="lineNum">    1093 </span>            :       
+<span class="lineNum">    1094 </span>            :       // write first word of CDH
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :       fRawData[0]=i32*4;</span>
+<span class="lineNum">    1096 </span>            :       
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :       Int_t nwritten=fwrite(fRawData,sizeof(UInt_t),i32,file);</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :       fclose(file);</span>
+<span class="lineNum">    1099 </span>            : 
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :       if (nwritten!=i32) return kFALSE;</span>
+<span class="lineNum">    1101 </span>            :       
+<span class="lineNum">    1102 </span>            :       // clean up
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :       do {fRawData[--i32]=0;} while (i32&gt;0);</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="1107"><span class="lineNum">    1107 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1108 </span>            : 
+<span class="lineNum">    1109 </span>            : Bool_t AliTPCAltroEmulator::GDC2DDLs(AliRawVEvent *gdc,Int_t ievent) {
+<span class="lineNum">    1110 </span>            :   //
+<span class="lineNum">    1111 </span>            :   // Converte GDC data to DDL format
+<span class="lineNum">    1112 </span>            :   //
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :   for(Int_t iLDC=0;iLDC&lt;gdc-&gt;GetNSubEvents();++iLDC) {</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :     AliRawVEvent *ldc=gdc-&gt;GetSubEvent(iLDC);</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :     for(Int_t iEq=0;iEq&lt;ldc-&gt;GetNEquipments();++iEq) {</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :       AliRawVEquipment *eq=ldc-&gt;GetEquipment(iEq);</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :       AliRawEquipmentHeader *eqHeader=eq-&gt;GetEquipmentHeader();</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :       Int_t eqSize=eqHeader-&gt;GetEquipmentSize();</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :       if (eqSize&gt;0) {</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :         Int_t ddlIndex;</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :         Int_t detId=AliDAQ::DetectorIDFromDdlID(eqHeader-&gt;GetId(),ddlIndex);</span>
+<span class="lineNum">    1122 </span>            :         Int_t nwritten=0;
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :         FILE *ddlFile=fopen(Form(&quot;%s/raw%d/%s&quot;,</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :                                  fDDLFolderName.Data(),</span>
+<span class="lineNum">    1125 </span>            :                                  ievent,
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :                                  AliDAQ::DdlFileName(detId,ddlIndex)),</span>
+<span class="lineNum">    1127 </span>            :                             &quot;wb&quot;);
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :         AliRawData *rawData=eq-&gt;GetRawData();</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :         if (ddlFile) {</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :           nwritten=fwrite(rawData-&gt;GetBuffer(),1,rawData-&gt;GetSize(),ddlFile);</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :           fclose(ddlFile);</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :         if (nwritten&lt;rawData-&gt;GetSize()) return kFALSE;</span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 : }</span>
+<a name="1139"><span class="lineNum">    1139 </span>            : </a>
+<span class="lineNum">    1140 </span>            : 
+<span class="lineNum">    1141 </span>            : Bool_t AliTPCAltroEmulator::ConvertRawFilesToDate(Int_t nevents) {
+<span class="lineNum">    1142 </span>            :   //
+<span class="lineNum">    1143 </span>            :   //  Convertes Raw files to Date format
+<span class="lineNum">    1144 </span>            :   //
+<span class="lineNum">    1145 </span>            :   
+<span class="lineNum">    1146 </span>            :   // from $ALICE_ROOT/STEER/AliSimulation.cxx
+<span class="lineNum">    1147 </span>            :   
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :   char command[100];</span>
+<span class="lineNum">    1149 </span>            :   FILE *pipe;
+<span class="lineNum">    1150 </span>            : 
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :   printf(&quot; RAW to DATE CONVERSION: Run Number %d\n&quot;,fRunNumber);</span>
+<span class="lineNum">    1152 </span>            : 
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :   if (fRunNumber&gt;0)</span>
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :     pipe=gSystem-&gt;OpenPipe(Form(&quot;dateStream -c -s -D -o %s -C -# %d -run %d&quot;, </span>
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :                                 fOutputDateFileName.Data(),</span>
+<span class="lineNum">    1156 </span>            :                                 nevents,
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :                                 fRunNumber),</span>
+<span class="lineNum">    1158 </span>            :                            &quot;w&quot;);
+<span class="lineNum">    1159 </span>            :   else
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :     pipe=gSystem-&gt;OpenPipe(Form(&quot;dateStream -c -s -D -o %s -C -# %d&quot;, </span>
+<span class="lineNum">    1161 </span>            :                                 fOutputDateFileName.Data(),
+<span class="lineNum">    1162 </span>            :                                 nevents),
+<span class="lineNum">    1163 </span>            :                            &quot;w&quot;);
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :   if (!pipe) {</span>
+<span class="lineNum">    1165 </span><span class="lineNoCov">          0 :     fprintf(stderr,&quot;error: cannot execute command: %s&quot;,command);</span>
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1167 </span>            :   }
+<span class="lineNum">    1168 </span>            : 
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :   for (Int_t ievent=0;ievent&lt;nevents;++ievent) {</span>
+<span class="lineNum">    1170 </span>            :     UInt_t detectorPattern = 0xFFFFFFFF;
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :     fprintf(pipe, &quot;GDC DetectorPattern %u\n&quot;, detectorPattern);</span>
+<span class="lineNum">    1172 </span>            : 
+<span class="lineNum">    1173 </span>            :     Float_t ldc = 0;
+<span class="lineNum">    1174 </span>            :     Int_t prevLDC = -1;
+<span class="lineNum">    1175 </span>            :   
+<span class="lineNum">    1176 </span>            :     // loop over detectors and DDLs
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :     for (Int_t iDet = 0; iDet &lt; AliDAQ::kNDetectors; iDet++) {</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :       if (!(iDet&lt;=5 || iDet==17 )) continue;</span>
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :       for (Int_t iDDL = 0; iDDL &lt; AliDAQ::NumberOfDdls(iDet); iDDL++) {</span>
+<span class="lineNum">    1180 </span>            :         //      printf(&quot;iDet=%d, iDDL=%d, filenmae=%s\n&quot;,iDet,iDDL,filename);
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :         Int_t ddlID = AliDAQ::DdlID(iDet,iDDL);</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :         Int_t ldcID = Int_t(ldc + 0.0001);</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :         ldc += AliDAQ::NumberOfLdcs(iDet) / AliDAQ::NumberOfDdls(iDet);</span>
+<span class="lineNum">    1184 </span>            : 
+<span class="lineNum">    1185 </span>            :         // check existence and size of raw data file
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :         FILE* file = fopen(Form(&quot;%s/raw%d/%s&quot;,</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :                                 fDDLFolderName.Data(),</span>
+<span class="lineNum">    1188 </span>            :                                 ievent,
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :                                 AliDAQ::DdlFileName(iDet,iDDL)),</span>
+<span class="lineNum">    1190 </span>            :                            &quot;rb&quot;);
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :         if (!file) continue;</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :         fseek(file, 0, SEEK_END);</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :         unsigned long size = ftell(file);</span>
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :         fclose(file);</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :         if (!size) continue;</span>
+<span class="lineNum">    1196 </span>            : 
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :         if (ldcID != prevLDC) {</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :           fprintf(pipe, &quot; LDC Id %d\n&quot;, ldcID);</span>
+<span class="lineNum">    1199 </span>            :           prevLDC = ldcID;
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :         fprintf(pipe,&quot;  Equipment Id %d Payload %s/raw%d/%s\n&quot;,</span>
+<span class="lineNum">    1202 </span>            :                           ddlID,
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :                           fDDLFolderName.Data(),</span>
+<span class="lineNum">    1204 </span>            :                           ievent,
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :                           (char*)AliDAQ::DdlFileName(iDet,iDDL) );</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1208 </span>            :   }
+<span class="lineNum">    1209 </span><span class="lineNoCov">          0 :   Int_t result = gSystem-&gt;ClosePipe(pipe);</span>
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :   return (result == 0);</span>
+<a name="1211"><span class="lineNum">    1211 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1212 </span>            : 
+<span class="lineNum">    1213 </span>            : void AliTPCAltroEmulator::InitBuffers() {
+<span class="lineNum">    1214 </span>            :   // 
+<span class="lineNum">    1215 </span>            :   // Initialization of the Buffers
+<span class="lineNum">    1216 </span>            :   //
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :   if (!fChannels) fChannels=new Bool_t [216*4096     ];</span>
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 :   if (!fCDHs    ) fCDHs    =new UInt_t [216*8        ];</span>
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :   if (!fADCs    ) fADCs    =new Short_t[216*4096*1024];</span>
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :   if (!fTrailers) fTrailers=new UInt_t [216*9        ];</span>
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :   if (!fRawData ) fRawData =new UInt_t [  1*4096*1024]; // be save...</span>
+<span class="lineNum">    1222 </span>            : 
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;216*4096     ;++i) fChannels[i]=kFALSE;</span>
+<span class="lineNum">    1224 </span>            :   // no need to init CDHs
+<span class="lineNum">    1225 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;216*4096*1024;++i) fADCs    [i]=-1    ;</span>
+<span class="lineNum">    1226 </span>            :   // no need to init trailers
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;  1*4096*1024;++i) fRawData [i]= 0    ;</span>
+<a name="1228"><span class="lineNum">    1228 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1229 </span>            : 
+<span class="lineNum">    1230 </span>            : Bool_t AliTPCAltroEmulator::ConvertDateToRoot() {
+<span class="lineNum">    1231 </span>            :   //
+<span class="lineNum">    1232 </span>            :   // convert a DATE file to a root file with the program &quot;alimdc&quot;
+<span class="lineNum">    1233 </span>            :   //
+<span class="lineNum">    1234 </span>            : 
+<span class="lineNum">    1235 </span>            :   // from $ALICE_ROOT/STEER/AliSimulation.cxx
+<span class="lineNum">    1236 </span>            : 
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :   printf(&quot; DATE to ROOT CONVERSION: Run Number %d\n&quot;,fRunNumber);</span>
+<span class="lineNum">    1238 </span>            : 
+<span class="lineNum">    1239 </span>            :   // ALIMDC setup
+<span class="lineNum">    1240 </span>            :   const Int_t kDBSize    = 2000000000; //2GB
+<span class="lineNum">    1241 </span>            :   const Int_t kTagDBSize = 1000000000;
+<span class="lineNum">    1242 </span>            :   const Bool_t kFilter = kFALSE;
+<span class="lineNum">    1243 </span>            :   const Int_t kCompression = 1;
+<span class="lineNum">    1244 </span>            : 
+<span class="lineNum">    1245 </span>            :   //  AliInfo(Form(&quot;converting DATE file %s to root file %s&quot;, 
+<span class="lineNum">    1246 </span>            :   //               dateFileName, rootFileName));
+<span class="lineNum">    1247 </span>            : 
+<span class="lineNum">    1248 </span>            :   const char* rawDBFS[2] = { &quot;/tmp/mdc1&quot;, &quot;/tmp/mdc2&quot; };
+<span class="lineNum">    1249 </span>            :   const char* tagDBFS    = &quot;/tmp/mdc1/tags&quot;;
+<span class="lineNum">    1250 </span>            : 
+<span class="lineNum">    1251 </span>            :   // User defined file system locations
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :   if (gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB1&quot;)) </span>
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :     rawDBFS[0] = gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB1&quot;);</span>
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :   if (gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB2&quot;)) </span>
+<span class="lineNum">    1255 </span><span class="lineNoCov">          0 :     rawDBFS[1] = gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB2&quot;);</span>
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :   if (gSystem-&gt;Getenv(&quot;ALIMDC_TAGDB&quot;)) </span>
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :     tagDBFS = gSystem-&gt;Getenv(&quot;ALIMDC_TAGDB&quot;);</span>
+<span class="lineNum">    1258 </span>            : 
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;rm -rf %s&quot;,rawDBFS[0]));</span>
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;rm -rf %s&quot;,rawDBFS[1]));</span>
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;rm -rf %s&quot;,tagDBFS));</span>
+<span class="lineNum">    1262 </span>            : 
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;mkdir %s&quot;,rawDBFS[0]));</span>
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;mkdir %s&quot;,rawDBFS[1]));</span>
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;mkdir %s&quot;,tagDBFS));</span>
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :   Int_t result = gSystem-&gt;Exec(Form(&quot;alimdc %d %d %d %d %s&quot;, </span>
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :                                     kDBSize, kTagDBSize, kFilter, kCompression, fOutputDateFileName.Data()));</span>
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;mv %s/*.root %s&quot;, rawDBFS[0],fOutputRootFileName.Data()));</span>
+<span class="lineNum">    1270 </span>            : 
+<span class="lineNum">    1271 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;rm -rf %s&quot;,rawDBFS[0]));</span>
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;rm -rf %s&quot;,rawDBFS[1]));</span>
+<span class="lineNum">    1273 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec(Form(&quot;rm -rf %s&quot;,tagDBFS));</span>
+<span class="lineNum">    1274 </span>            : 
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :   return (result == 0);</span>
+<a name="1276"><span class="lineNum">    1276 </span>            : }</a>
+<span class="lineNum">    1277 </span>            : 
+<span class="lineNum">    1278 </span>            : void AliTPCAltroEmulator::RunEmulationOnRAWdata(AliRawReader *reader, Int_t plotFlag) {
+<span class="lineNum">    1279 </span>            :   //
+<span class="lineNum">    1280 </span>            :   // Run the Altro Emulation on a full Raw data set (AliRawReader)
+<span class="lineNum">    1281 </span>            :   // plus write the outcome in a RAW data format
+<span class="lineNum">    1282 </span>            :   //
+<span class="lineNum">    1283 </span>            : 
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :   if (!reader) {</span>
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :     printf(&quot;ERROR cant run Altro Emulation: AliRawReader is zero. No RAW data file.\n&quot;);</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1287 </span>            :   }
+<span class="lineNum">    1288 </span>            : 
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :   fReader=reader;</span>
+<span class="lineNum">    1290 </span><span class="lineNoCov">          0 :   if (fDecoder) delete fDecoder;</span>
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :   fDecoder=new AliTPCRawStreamV3(reader);</span>
+<span class="lineNum">    1292 </span>            : 
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :   InitBuffers();</span>
+<span class="lineNum">    1294 </span>            :   
+<span class="lineNum">    1295 </span>            :   Int_t chanCount=0;
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :   TH1F hisO(&quot;DINO&quot;,&quot;DINO&quot;,1024,0,1024); </span>
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :   TH1F his(&quot;DIN&quot;,&quot;DIN&quot;,1024,0,1024); </span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :   his.GetYaxis()-&gt;SetRangeUser(-20,90);</span>
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :   Short_t *data = new Short_t[1024]; </span>
+<span class="lineNum">    1300 </span>            :   TCanvas *c1 =0;
+<span class="lineNum">    1301 </span><span class="lineNoCov">          0 :   if (plotFlag) {</span>
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :     c1 = new TCanvas(&quot;c1&quot;,&quot;c1&quot;);</span>
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :     c1-&gt;SetGridx(); c1-&gt;SetGridy();</span>
+<span class="lineNum">    1304 </span>            :   }
+<span class="lineNum">    1305 </span>            : 
+<span class="lineNum">    1306 </span>            :   // event loop
+<span class="lineNum">    1307 </span>            :   Int_t ievent=0;
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 :   while (fReader-&gt;NextEvent()) {</span>
+<span class="lineNum">    1309 </span>            :     
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :     if (fReader-&gt;GetRunNumber()&gt;0) fRunNumber=fReader-&gt;GetRunNumber();</span>
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :     gSystem-&gt;Exec(Form(&quot;mkdir -p %s/raw%d/&quot;,fDDLFolderName.Data(),ievent));</span>
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 :     GDC2DDLs(const_cast&lt;AliRawVEvent*&gt;(fReader-&gt;GetEvent()),ievent);</span>
+<span class="lineNum">    1313 </span>            :     
+<span class="lineNum">    1314 </span>            :     Int_t ddlC =0;
+<span class="lineNum">    1315 </span><span class="lineNoCov">          0 :     while (fDecoder-&gt;NextDDL()) {</span>
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :       Int_t ddlID=fDecoder-&gt;GetDDLNumber();</span>
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :       printf(&quot;ddl: %d (%d/216)\n&quot;,ddlID,++ddlC);</span>
+<span class="lineNum">    1318 </span>            :      
+<span class="lineNum">    1319 </span><span class="lineNoCov">          0 :       Bool_t  *channelsDDL=fChannels+ddlID*4096      ;</span>
+<span class="lineNum">    1320 </span><span class="lineNoCov">          0 :       Short_t *adcsDDL    =fADCs    +ddlID*4096*1024 ;</span>
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :       UInt_t  *cdhDDL     =fCDHs    +ddlID*8         ;</span>
+<span class="lineNum">    1322 </span><span class="lineNoCov">          0 :       UInt_t  *trailerDDL =fTrailers+ddlID*9         ;</span>
+<span class="lineNum">    1323 </span>            :       
+<span class="lineNum">    1324 </span>            :       // CDH 
+<span class="lineNum">    1325 </span><span class="lineNoCov">          0 :       const AliRawDataHeader * cdh = fReader-&gt;GetDataHeader();</span>
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :       const AliRawDataHeaderV3 * cdhV3 = fReader-&gt;GetDataHeaderV3();</span>
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :       for (Int_t i=0;i&lt;8;++i) {</span>
+<span class="lineNum">    1328 </span>            :         // just to show how ugly it is...
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 :         if (cdh)</span>
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :           cdhDDL[i]=reinterpret_cast&lt;UInt_t*&gt;(const_cast&lt;AliRawDataHeader*&gt;(cdh))[i]; </span>
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :         if (cdhV3)</span>
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :           cdhDDL[i]=reinterpret_cast&lt;UInt_t*&gt;(const_cast&lt;AliRawDataHeaderV3*&gt;(cdhV3))[i]; </span>
+<span class="lineNum">    1333 </span>            :       }
+<span class="lineNum">    1334 </span>            :       // PAYLOAD
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :       while (fDecoder-&gt;NextChannel()) {</span>
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :         Int_t hwaddr=fDecoder-&gt;GetHWAddress();</span>
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :         Int_t sector=fDecoder-&gt;GetSector();</span>
+<span class="lineNum">    1338 </span><span class="lineNoCov">          0 :         Int_t row=fDecoder-&gt;GetRow();</span>
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :         Int_t pad=fDecoder-&gt;GetPad();</span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :         Short_t *adcsChannel=adcsDDL+hwaddr*1024;</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :         while (fDecoder-&gt;NextBunch()) {</span>
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :           UInt_t          ts     =fDecoder-&gt;GetStartTimeBin();</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :           Int_t           cw     =fDecoder-&gt;GetBunchLength() ;</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :           const UShort_t *signals=fDecoder-&gt;GetSignals()     ;</span>
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :           for (Int_t ci=0;ci&lt;cw;++ci) {</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :             Short_t s=signals[ci];</span>
+<span class="lineNum">    1347 </span><span class="lineNoCov">          0 :             Int_t   t=ts-ci;</span>
+<span class="lineNum">    1348 </span>            :             // TODO aqcuisition window
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :             if (0&lt;=t&amp;&amp;t&lt;(1024-3)) {</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :               channelsDDL[hwaddr]=kTRUE;</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :               if (adcsChannel[t]&lt;0)</span>
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :                 adcsChannel[t]=s;</span>
+<span class="lineNum">    1353 </span>            :               else
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :                 adcsChannel[t]+=s;</span>
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :               if (adcsChannel[t]&gt;0x3ff)</span>
+<span class="lineNum">    1356 </span><span class="lineNoCov">          0 :                 adcsChannel[t]=0x3ff;</span>
+<span class="lineNum">    1357 </span>            :             }
+<span class="lineNum">    1358 </span>            :           }
+<span class="lineNum">    1359 </span>            :         }
+<span class="lineNum">    1360 </span>            : 
+<span class="lineNum">    1361 </span>            :         // search start of aquisition
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :         Int_t t0 = 0;    while (adcsChannel[t0]==-1) t0++;</span>
+<span class="lineNum">    1363 </span>            :         // search end of aquisition
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :         Int_t tE = 1024; while (adcsChannel[tE]==-1) tE--;</span>
+<span class="lineNum">    1365 </span>            :         
+<span class="lineNum">    1366 </span>            :         // channel is complete - Perform Altro Emulation
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :         if (plotFlag!=0 &amp;&amp; !(chanCount%plotFlag) ) {</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :           for (Int_t t=0; t&lt;1024; t++) {</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :             his.SetBinContent(t+1,adcsChannel[t]);</span>
+<span class="lineNum">    1370 </span>            :           }
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :           his.SetTitle(Form(&quot;sig_sec%d_row%d_pad%d&quot;,sector,row,pad));</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :           his.SetStats(0); his.GetXaxis()-&gt;SetTitle(&quot;timebin&quot;); </span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :           his.DrawCopy();</span>
+<span class="lineNum">    1374 </span>            :         }
+<span class="lineNum">    1375 </span>            : 
+<span class="lineNum">    1376 </span>            :         // FEED THE ALTRO EMULATOR WITH CLEAN SIGNAL (no aquisition-window ghosts)
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :         Int_t timebins = tE-t0+1;</span>
+<span class="lineNum">    1378 </span><span class="lineNoCov">          0 :         for (Int_t t=t0;t&lt;(t0+timebins);t++)</span>
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :           data[t-t0]=adcsChannel[t];</span>
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :         SetChannelData(timebins,data);</span>
+<span class="lineNum">    1381 </span>            :         
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :         Int_t roc = (sector%36)&gt;=18; // 0 for IROC, 1 for OROC</span>
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :         RunEmulation(roc); </span>
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :         for (Int_t t=t0;t&lt;(t0+timebins);t++) </span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :           adcsChannel[t]=data[t-t0];</span>
+<span class="lineNum">    1386 </span>            :           
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :         if (plotFlag!=0 &amp;&amp; !(chanCount%plotFlag) ) {</span>
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :           for (Int_t t=0; t&lt;1024; t++)</span>
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 :             hisO.SetBinContent(t+1,adcsChannel[t]);</span>
+<span class="lineNum">    1390 </span><span class="lineNoCov">          0 :           hisO.SetStats(0); hisO.SetLineColor(2);</span>
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :           hisO.DrawCopy(&quot;same&quot;);</span>
+<span class="lineNum">    1392 </span>            :             
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :           c1-&gt;SaveAs(Form(&quot;%s/sig_sec%02d_row%02d_pad%03d_%s_%d%d%d%d%d.png&quot;,</span>
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :                           fDDLFolderName.Data(),sector,row,pad,</span>
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :                           fOutputRootFileName.Data(),</span>
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :                           fOnBSL1,fOnTCF,fOnBSL2,fOnClip,fOnZSU));</span>
+<span class="lineNum">    1397 </span>            :             
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :           his.Reset();</span>
+<span class="lineNum">    1399 </span><span class="lineNoCov">          0 :           hisO.Reset();</span>
+<span class="lineNum">    1400 </span>            : 
+<span class="lineNum">    1401 </span>            :         }
+<span class="lineNum">    1402 </span><span class="lineNoCov">          0 :         chanCount++;</span>
+<span class="lineNum">    1403 </span>            : 
+<span class="lineNum">    1404 </span>            :       }
+<span class="lineNum">    1405 </span>            :       
+<span class="lineNum">    1406 </span>            :       // TRAILER 
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 :       UChar_t *rcuTrailer;</span>
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :       fDecoder-&gt;GetRCUTrailerData(rcuTrailer);</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :       for (Int_t i=0;i&lt;= /* (!) */ fDecoder-&gt;GetRCUTrailerSize()/4;++i)</span>
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 :         trailerDDL[i]=reinterpret_cast&lt;UInt_t*&gt;(rcuTrailer)[i]; // again: UGLY!</span>
+<span class="lineNum">    1411 </span>            :       
+<span class="lineNum">    1412 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1413 </span>            :             
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :     if (ddlC&gt;0) WriteEvent(ievent++);</span>
+<span class="lineNum">    1415 </span>            :   }
+<span class="lineNum">    1416 </span>            : 
+<span class="lineNum">    1417 </span><span class="lineNoCov">          0 :   delete[] data; // free space</span>
+<span class="lineNum">    1418 </span>            : 
+<span class="lineNum">    1419 </span>            :   // convert to date and back
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :   ConvertRawFilesToDate(ievent);</span>
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 :   ConvertDateToRoot();</span>
+<span class="lineNum">    1422 </span>            : 
+<span class="lineNum">    1423 </span>            : 
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

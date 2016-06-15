@@ -1,0 +1,635 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - RAW/MDC/AliRawDB.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">RAW/MDC</a> - AliRawDB.cxx<span style="font-size: 80%;"> (source / <a href="AliRawDB.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">157</td>
+            <td class="headerCovTableEntry">249</td>
+            <td class="headerCovTableEntryLo">63.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryMed">86.4 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // @(#)alimdc:$Name:  $:$Id$</a>
+<span class="lineNum">       2 </span>            : // Author: Fons Rademakers  26/11/99
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : /**************************************************************************
+<span class="lineNum">       5 </span>            :  * Copyright(c) 1998-2003, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       8 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       9 </span>            :  *                                                                        *
+<span class="lineNum">      10 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      11 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      12 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      13 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      14 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      15 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      16 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      17 </span>            :  **************************************************************************/
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : //////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      20 </span>            : //                                                                      //
+<span class="lineNum">      21 </span>            : // AliRawDB                                                             //
+<span class="lineNum">      22 </span>            : //                                                                      //
+<span class="lineNum">      23 </span>            : //////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;RVersion.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #if ROOT_VERSION_CODE &gt;= ROOT_VERSION(5,15,0)
+<span class="lineNum">      30 </span>            : #include &lt;TBufferFile.h&gt;
+<span class="lineNum">      31 </span>            : #else
+<span class="lineNum">      32 </span>            : #include &lt;TBuffer.h&gt;
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;TKey.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #include &lt;TBranch.h&gt;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #include &quot;AliESDEvent.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliRawEventV2.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;AliRawDataArrayV2.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;AliRawEventHeaderBase.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;AliRawEquipmentHeader.h&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;AliRawDB.h&quot;
+<span class="lineNum">      49 </span>            : 
+<a name="50"><span class="lineNum">      50 </span>            : using std::ofstream;</a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineCov">          2 : ClassImp(AliRawDB)</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : const char *AliRawDB::fgkAliRootTag = &quot;$Rev$&quot;;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : // Split TPC into 18 branches in order to avoid problems with big memory
+<span class="lineNum">      57 </span>            : // consumption in case of TPC events w/o zero-suppression
+<span class="lineNum">      58 </span>            : Int_t AliRawDB::fgkDetBranches[AliDAQ::kNDetectors+1] = {
+<span class="lineNum">      59 </span>            :    1, /*  1 ITSSPD */
+<span class="lineNum">      60 </span>            :    1, /*  2 ITSSDD */
+<span class="lineNum">      61 </span>            :    1, /*  3 ITSSSD */
+<span class="lineNum">      62 </span>            :   18, /*  4 TPC */
+<span class="lineNum">      63 </span>            :    1, /*  5 TRD */
+<span class="lineNum">      64 </span>            :    1, /*  6 TOF */
+<span class="lineNum">      65 </span>            :    1, /*  7 HMPID */
+<span class="lineNum">      66 </span>            :    1, /*  8 PHOS */
+<span class="lineNum">      67 </span>            :    1, /*  9 CPV */
+<span class="lineNum">      68 </span>            :    1, /* 10 PMD */
+<span class="lineNum">      69 </span>            :    1, /* 11 MUONTRK */
+<span class="lineNum">      70 </span>            :    1, /* 12 MUONTRG */
+<span class="lineNum">      71 </span>            :    1, /* 13 FMD */
+<span class="lineNum">      72 </span>            :    1, /* 14 T0 */
+<span class="lineNum">      73 </span>            :    1, /* 15 VZERO */
+<span class="lineNum">      74 </span>            :    1, /* 16 ZDC */
+<span class="lineNum">      75 </span>            :    1, /* 17 ACORDE */
+<span class="lineNum">      76 </span>            :    1, /* 18 TRG */
+<span class="lineNum">      77 </span>            :    1, /* 19 EMCAL */
+<span class="lineNum">      78 </span>            :    1, /* 20 DAQ_TEST */
+<span class="lineNum">      79 </span>            :    1, /* 21 EMPTY */
+<span class="lineNum">      80 </span>            :    1, /* 22 AD */
+<span class="lineNum">      81 </span>            :    1, /* 23 MFT */
+<span class="lineNum">      82 </span>            :    1, /* 24 FIT */
+<span class="lineNum">      83 </span>            :    10,/* 25 HLT */
+<span class="lineNum">      84 </span>            :    1  /* 26 --- */
+<span class="lineNum">      85 </span>            : };
+<a name="86"><span class="lineNum">      86 </span>            : </a>
+<span class="lineNum">      87 </span>            : //______________________________________________________________________________
+<span class="lineNum">      88 </span><span class="lineCov">          1 : AliRawDB::AliRawDB(AliRawEventV2 *event,</span>
+<span class="lineNum">      89 </span>            :                    AliESDEvent *esd, 
+<span class="lineNum">      90 </span>            :                    Int_t compress,
+<span class="lineNum">      91 </span>            :                    const char* fileName,
+<span class="lineNum">      92 </span>            :                    Int_t basketsize, Long64_t autoflush) :
+<span class="lineNum">      93 </span><span class="lineCov">          1 :   fRawDB(NULL),</span>
+<span class="lineNum">      94 </span><span class="lineCov">          1 :   fTree(NULL),</span>
+<span class="lineNum">      95 </span><span class="lineCov">          1 :   fEvent(event),</span>
+<span class="lineNum">      96 </span><span class="lineCov">          1 :   fESDTree(NULL),</span>
+<span class="lineNum">      97 </span><span class="lineCov">          1 :   fESD(esd),</span>
+<span class="lineNum">      98 </span><span class="lineCov">          1 :   fCompress(compress),</span>
+<span class="lineNum">      99 </span><span class="lineCov">          1 :   fBasketSize(basketsize),</span>
+<span class="lineNum">     100 </span><span class="lineCov">          1 :   fAutoFlush(autoflush),</span>
+<span class="lineNum">     101 </span><span class="lineCov">          1 :   fMaxSize(-1),</span>
+<span class="lineNum">     102 </span><span class="lineCov">          1 :   fFS1(&quot;&quot;),</span>
+<span class="lineNum">     103 </span><span class="lineCov">          1 :   fFS2(&quot;&quot;),</span>
+<span class="lineNum">     104 </span><span class="lineCov">          1 :   fDeleteFiles(kFALSE),</span>
+<span class="lineNum">     105 </span><span class="lineCov">          1 :   fStop(kFALSE)</span>
+<span class="lineNum">     106 </span><span class="lineCov">          5 : {</span>
+<span class="lineNum">     107 </span>            :    // Create a new raw DB
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineCov">         52 :   for (Int_t iDet = 0; iDet &lt; AliDAQ::kNDetectors; iDet++) {</span>
+<span class="lineNum">     110 </span><span class="lineCov">         50 :     fDetRawData[iDet] = new AliRawDataArrayV2*[fgkDetBranches[iDet]];</span>
+<span class="lineNum">     111 </span><span class="lineCov">         50 :     Int_t nDDLsPerBranch = AliDAQ::NumberOfDdls(iDet)/fgkDetBranches[iDet];</span>
+<span class="lineNum">     112 </span><span class="lineCov">        152 :     for (Int_t iBranch = 0; iBranch &lt; fgkDetBranches[iDet]; iBranch++)</span>
+<span class="lineNum">     113 </span><span class="lineCov">        153 :       fDetRawData[iDet][iBranch] = new AliRawDataArrayV2(nDDLsPerBranch);</span>
+<span class="lineNum">     114 </span>            :   }
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineCov">          2 :   fDetRawData[AliDAQ::kNDetectors] = new AliRawDataArrayV2*[fgkDetBranches[AliDAQ::kNDetectors]];</span>
+<span class="lineNum">     117 </span><span class="lineCov">          4 :   for (Int_t iBranch = 0; iBranch &lt; fgkDetBranches[AliDAQ::kNDetectors]; iBranch++)</span>
+<span class="lineNum">     118 </span><span class="lineCov">          3 :     fDetRawData[AliDAQ::kNDetectors][iBranch] = new AliRawDataArrayV2(100);</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">          1 :    if (fileName) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :       if (!Create(fileName))</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :          MakeZombie();</span>
+<span class="lineNum">     123 </span>            :    }
+<span class="lineNum">     124 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     125 </span>            : 
+<a name="126"><span class="lineNum">     126 </span>            : </a>
+<span class="lineNum">     127 </span>            : //______________________________________________________________________________
+<span class="lineNum">     128 </span><span class="lineCov">          6 : AliRawDB::~AliRawDB() {</span>
+<span class="lineNum">     129 </span>            :   // Destructor
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">          2 :   if(Close()==-1) Error(&quot;~AliRawDB&quot;, &quot;cannot close output file!&quot;);</span>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">         54 :   for (Int_t iDet = 0; iDet &lt; (AliDAQ::kNDetectors + 1); iDet++) {</span>
+<span class="lineNum">     134 </span><span class="lineCov">        156 :     for (Int_t iBranch = 0; iBranch &lt; fgkDetBranches[iDet]; iBranch++)</span>
+<span class="lineNum">     135 </span><span class="lineCov">        104 :       delete fDetRawData[iDet][iBranch];</span>
+<span class="lineNum">     136 </span><span class="lineCov">         52 :     delete [] fDetRawData[iDet];</span>
+<span class="lineNum">     137 </span>            :   }
+<span class="lineNum">     138 </span><span class="lineCov">          3 : }</span>
+<a name="139"><span class="lineNum">     139 </span>            : </a>
+<span class="lineNum">     140 </span>            : //______________________________________________________________________________
+<span class="lineNum">     141 </span>            : Bool_t AliRawDB::FSHasSpace(const char *fs) const
+<span class="lineNum">     142 </span>            : {
+<span class="lineNum">     143 </span>            :    // Check for at least fMaxSize bytes of free space on the file system.
+<span class="lineNum">     144 </span>            :    // If the space is not available return kFALSE, kTRUE otherwise.
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">          2 :    Long_t id, bsize, blocks, bfree;</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineCov">          1 :    if (gSystem-&gt;GetFsInfo(fs, &amp;id, &amp;bsize, &amp;blocks, &amp;bfree) == 1) {</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :       Error(&quot;FSHasSpace&quot;, &quot;could not stat file system %s&quot;, fs);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     151 </span>            :    }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :    // Leave 5 percent of diskspace free
+<span class="lineNum">     154 </span><span class="lineCov">          1 :    Double_t avail = Double_t(bfree) * 0.95;</span>
+<span class="lineNum">     155 </span><span class="lineCov">          1 :    if (avail*bsize &gt; fMaxSize)</span>
+<span class="lineNum">     156 </span><span class="lineCov">          1 :       return kTRUE;</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :    Warning(&quot;FSHasSpace&quot;, &quot;no space on file system %s&quot;, fs);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :    return kFALSE;</span>
+<span class="lineNum">     160 </span><span class="lineCov">          1 : }</span>
+<a name="161"><span class="lineNum">     161 </span>            : </a>
+<span class="lineNum">     162 </span>            : //______________________________________________________________________________
+<span class="lineNum">     163 </span>            : const char *AliRawDB::GetFileName() const
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span>            :    // Return filename based on hostname and date and time. This will make
+<span class="lineNum">     166 </span>            :    // each file unique. Also makes sure (via FSHasSpace()) that there is
+<span class="lineNum">     167 </span>            :    // enough space on the file system to store the file. Returns 0 in
+<span class="lineNum">     168 </span>            :    // case of error or interrupt signal.
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">          5 :    static TString fname;</span>
+<span class="lineNum">     171 </span>            :    static Bool_t  fstoggle = kFALSE;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">          1 :    TString fs = fstoggle ? fFS2 : fFS1;</span>
+<span class="lineNum">     174 </span><span class="lineCov">          1 :    TDatime dt;</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">          2 :    TString hostname = gSystem-&gt;HostName();</span>
+<span class="lineNum">     177 </span>            :    Int_t pos;
+<span class="lineNum">     178 </span><span class="lineCov">          2 :    if ((pos = hostname.Index(&quot;.&quot;)) != kNPOS)</span>
+<span class="lineNum">     179 </span><span class="lineCov">          1 :       hostname.Remove(pos);</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineCov">          3 :    if (!FSHasSpace(fs)) {</span>
+<span class="lineNum">     182 </span>            :       while (1) {
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :          fstoggle = !fstoggle;</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :          fs = fstoggle ? fFS2 : fFS1;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :          if (FSHasSpace(fs)) break;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :          Info(&quot;GetFileName&quot;, &quot;sleeping 30 seconds before retrying...&quot;);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :          gSystem-&gt;Sleep(30000);   // sleep for 30 seconds</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :          if (fStop) return 0;</span>
+<span class="lineNum">     189 </span>            :       }
+<span class="lineNum">     190 </span>            :    }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineCov">          5 :    fname = fs + &quot;/&quot; + hostname + &quot;_&quot;;</span>
+<span class="lineNum">     193 </span><span class="lineCov">          2 :    fname += dt.GetDate();</span>
+<span class="lineNum">     194 </span><span class="lineCov">          1 :    fname += &quot;_&quot;;</span>
+<span class="lineNum">     195 </span><span class="lineCov">          2 :    fname += dt.GetTime();</span>
+<span class="lineNum">     196 </span><span class="lineCov">          1 :    fname += &quot;.root&quot;;</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineCov">          1 :    fstoggle = !fstoggle;</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">          2 :    return fname;</span>
+<span class="lineNum">     201 </span><span class="lineCov">          1 : }</span>
+<a name="202"><span class="lineNum">     202 </span>            : </a>
+<span class="lineNum">     203 </span>            : //______________________________________________________________________________
+<span class="lineNum">     204 </span>            : void AliRawDB::SetFS(const char* fs1, const char* fs2)
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span>            : // set the file system location
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">          2 :   fFS1 = fs1;</span>
+<span class="lineNum">     209 </span><span class="lineCov">          2 :   if (fs1 &amp;&amp; !fFS1.Contains(&quot;:&quot;)) {</span>
+<span class="lineNum">     210 </span><span class="lineCov">          1 :     gSystem-&gt;ResetErrno();</span>
+<span class="lineNum">     211 </span><span class="lineCov">          1 :     gSystem-&gt;MakeDirectory(fs1);</span>
+<span class="lineNum">     212 </span><span class="lineCov">          2 :     if (gSystem-&gt;GetErrno() &amp;&amp; gSystem-&gt;GetErrno() != EEXIST) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       SysError(&quot;SetFS&quot;, &quot;mkdir %s&quot;, fs1);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     215 </span>            :   }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">          1 :   fFS2 = fs2;</span>
+<span class="lineNum">     218 </span><span class="lineCov">          1 :   if (fs2) {</span>
+<span class="lineNum">     219 </span><span class="lineCov">          1 :     gSystem-&gt;ResetErrno();</span>
+<span class="lineNum">     220 </span><span class="lineCov">          1 :     gSystem-&gt;MakeDirectory(fs2);</span>
+<span class="lineNum">     221 </span><span class="lineCov">          2 :     if (gSystem-&gt;GetErrno() &amp;&amp; gSystem-&gt;GetErrno() != EEXIST) {</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :       SysError(&quot;SetFS&quot;, &quot;mkdir %s&quot;, fs2);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     224 </span>            :   }
+<span class="lineNum">     225 </span><span class="lineCov">          1 : }</span>
+<a name="226"><span class="lineNum">     226 </span>            : </a>
+<span class="lineNum">     227 </span>            : //______________________________________________________________________________
+<span class="lineNum">     228 </span>            : Bool_t AliRawDB::Create(const char* fileName)
+<span class="lineNum">     229 </span>            : {
+<span class="lineNum">     230 </span>            :    // Create a new raw DB.
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :    const Int_t kMaxRetry = 1;
+<span class="lineNum">     233 </span>            :    const Int_t kMaxSleep = 1;      // seconds
+<span class="lineNum">     234 </span>            :    const Int_t kMaxSleepLong = 10; // seconds
+<span class="lineNum">     235 </span><span class="lineCov">          2 :    Int_t retry = 0;</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            : again:
+<span class="lineNum">     238 </span><span class="lineCov">          1 :    if (fStop) return kFALSE;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :    const char *fname = fileName;
+<span class="lineNum">     241 </span><span class="lineCov">          2 :    if (!fname) fname = GetFileName();</span>
+<span class="lineNum">     242 </span><span class="lineCov">          1 :    if (!fname) {</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :       Error(&quot;Create&quot;, &quot;error getting raw DB file name&quot;);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     245 </span>            :    }
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">          1 :    retry++;</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineCov">          2 :    fRawDB = TFile::Open(fname, GetOpenOption(),</span>
+<span class="lineNum">     250 </span><span class="lineCov">          1 :                         Form(&quot;ALICE raw-data file (%s)&quot;, GetAliRootTag()), fCompress,</span>
+<span class="lineNum">     251 </span><span class="lineCov">          1 :                         GetNetopt());</span>
+<span class="lineNum">     252 </span><span class="lineCov">          1 :    if (!fRawDB) {</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       if (retry &lt; kMaxRetry) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :          Warning(&quot;Create&quot;, &quot;failure to open file, sleeping %d %s before retrying...&quot;,</span>
+<span class="lineNum">     255 </span>            :                  kMaxSleep, kMaxSleep==1 ? &quot;second&quot; : &quot;seconds&quot;);
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :          gSystem-&gt;Sleep(kMaxSleep*1000);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :          goto again;</span>
+<span class="lineNum">     258 </span>            :       }
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       Error(&quot;Create&quot;, &quot;failure to open file %s after %d tries&quot;, fname, kMaxRetry);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     261 </span>            :    }
+<span class="lineNum">     262 </span><span class="lineCov">          1 :    if (retry &gt; 1)</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :       Warning(&quot;Create&quot;, &quot;succeeded to open file after %d retries&quot;, retry);</span>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineCov">          1 :    if (fRawDB-&gt;IsZombie()) {</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :       if (fRawDB-&gt;GetErrno() == ENOSPC ||</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :           fRawDB-&gt;GetErrno() == 1018   ||   // SECOMERR</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :           fRawDB-&gt;GetErrno() == 1027) {     // SESYSERR</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :          fRawDB-&gt;ResetErrno();</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :          delete fRawDB;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :          Warning(&quot;Create&quot;, &quot;file is a zombie (no space), sleeping %d %s before retrying...&quot;,</span>
+<span class="lineNum">     272 </span>            :                  kMaxSleepLong, kMaxSleepLong==1 ? &quot;second&quot; : &quot;seconds&quot;);
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :          gSystem-&gt;Sleep(kMaxSleepLong*1000);   // sleep 10 seconds before retrying</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :          goto again;</span>
+<span class="lineNum">     275 </span>            :       }
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :       Error(&quot;Create&quot;, &quot;file %s is zombie&quot;, fname);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :       fRawDB-&gt;ResetErrno();</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :       delete fRawDB;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :       fRawDB = 0;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :       if (retry &lt; kMaxRetry) {</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :          Warning(&quot;Create&quot;, &quot;file is a zombie, sleeping %d %s before retrying...&quot;,</span>
+<span class="lineNum">     282 </span>            :                  kMaxSleep, kMaxSleep==1 ? &quot;second&quot; : &quot;seconds&quot;);
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :          gSystem-&gt;Sleep(kMaxSleep*1000);</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :          goto again;</span>
+<span class="lineNum">     285 </span>            :       }
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :       Error(&quot;Create&quot;, &quot;failure to open file %s after %d tries&quot;, fname, kMaxRetry);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     288 </span>            :    }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">          1 :    return kTRUE;</span>
+<a name="291"><span class="lineNum">     291 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            : static void BranchResetBit(TBranch *b) 
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            :   // Reset MapObject on this branch and all the sub-branches
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">        688 :   b-&gt;ResetBit( kBranchObject | kBranchAny ); // Or in newer ROOT: b-&gt;ResetBit( kMapObject )</span>
+<span class="lineNum">     298 </span><span class="lineCov">        344 :   TIter next( b-&gt;GetListOfBranches() );</span>
+<span class="lineNum">     299 </span>            :   TBranch *sub = 0;
+<span class="lineNum">     300 </span><span class="lineCov">       1614 :   while ( (sub = (TBranch*)next() ) ) {</span>
+<span class="lineNum">     301 </span><span class="lineCov">        291 :     BranchResetBit( sub );</span>
+<span class="lineNum">     302 </span>            :   }
+<span class="lineNum">     303 </span><span class="lineCov">        344 : }</span>
+<a name="304"><span class="lineNum">     304 </span>            : </a>
+<span class="lineNum">     305 </span>            : //______________________________________________________________________________
+<span class="lineNum">     306 </span>            : void AliRawDB::MakeTree()
+<span class="lineNum">     307 </span>            : {
+<span class="lineNum">     308 </span>            :    // Create ROOT Tree object container.
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineCov">          5 :    fTree = new TTree(&quot;RAW&quot;, Form(&quot;ALICE raw-data tree (%s)&quot;, GetAliRootTag()));</span>
+<span class="lineNum">     311 </span><span class="lineCov">          1 :    fTree-&gt;SetAutoSave(21000000000LL);  // autosave when 21 Gbyte written</span>
+<span class="lineNum">     312 </span><span class="lineCov">          1 :    fTree-&gt;SetAutoFlush(fAutoFlush);</span>
+<span class="lineNum">     313 </span>            :   
+<span class="lineNum">     314 </span><span class="lineCov">          1 :    fTree-&gt;BranchRef();</span>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :    Int_t split   = 99;
+<span class="lineNum">     317 </span><span class="lineCov">          1 :    TBranch *b = fTree-&gt;Branch(&quot;rawevent&quot;, &quot;AliRawEventV2&quot;, &amp;fEvent, fBasketSize, split);</span>
+<span class="lineNum">     318 </span><span class="lineCov">          1 :    BranchResetBit(b);</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :    // Make brach for each sub-detector
+<span class="lineNum">     321 </span><span class="lineCov">         52 :    for (Int_t iDet = 0; iDet &lt; AliDAQ::kNDetectors; iDet++) {</span>
+<span class="lineNum">     322 </span><span class="lineCov">        152 :      for (Int_t iBranch = 0; iBranch &lt; fgkDetBranches[iDet]; iBranch++) {</span>
+<span class="lineNum">     323 </span><span class="lineCov">        102 :        b = fTree-&gt;Branch(Form(&quot;%s%d&quot;,AliDAQ::DetectorName(iDet),iBranch),&quot;AliRawDataArrayV2&quot;,</span>
+<span class="lineNum">     324 </span><span class="lineCov">         51 :                          &amp;fDetRawData[iDet][iBranch],fBasketSize,split);</span>
+<span class="lineNum">     325 </span><span class="lineCov">         51 :        BranchResetBit(b);</span>
+<span class="lineNum">     326 </span>            :      }
+<span class="lineNum">     327 </span>            :    }
+<span class="lineNum">     328 </span>            :    // Make special branch for unrecognized raw-data payloads
+<span class="lineNum">     329 </span><span class="lineCov">          4 :    for (Int_t iBranch = 0; iBranch &lt; fgkDetBranches[AliDAQ::kNDetectors]; iBranch++) {</span>
+<span class="lineNum">     330 </span><span class="lineCov">          2 :      b = fTree-&gt;Branch(Form(&quot;Common%d&quot;,iBranch),&quot;AliRawDataArrayV2&quot;,</span>
+<span class="lineNum">     331 </span><span class="lineCov">          1 :                        &amp;fDetRawData[AliDAQ::kNDetectors][iBranch],fBasketSize,split);</span>
+<span class="lineNum">     332 </span><span class="lineCov">          1 :      BranchResetBit(b);</span>
+<span class="lineNum">     333 </span>            :    }
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :    // Create tree which will contain the HLT ESD information
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          1 :    if (fESD) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :      fESDTree = new TTree(&quot;esdTree&quot;, Form(&quot;ALICE HLT ESD tree (%s)&quot;, GetAliRootTag()));</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :      fESDTree-&gt;SetAutoSave(21000000000LL);  // autosave when 21 Gbyte written</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :      fESDTree-&gt;SetAutoFlush(fAutoFlush);</span>
+<span class="lineNum">     341 </span>            :      split   = 0;
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :      fESDTree-&gt;Branch(&quot;ESD&quot;, &quot;AliESDEvent&quot;, &amp;fESD, fBasketSize, split);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">          1 : }</span>
+<a name="346"><span class="lineNum">     346 </span>            : </a>
+<span class="lineNum">     347 </span>            : //______________________________________________________________________________
+<span class="lineNum">     348 </span>            : Long64_t AliRawDB::Close()
+<span class="lineNum">     349 </span>            : {
+<span class="lineNum">     350 </span>            :    // Close raw DB.
+<span class="lineNum">     351 </span><span class="lineCov">          5 :    if (!fRawDB) return 0;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineCov">          1 :    if (!fRawDB-&gt;IsOpen()) return 0;</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineCov">          1 :    fRawDB-&gt;cd();</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :    // Write the tree.
+<span class="lineNum">     358 </span>            :    Bool_t error = kFALSE;
+<span class="lineNum">     359 </span><span class="lineCov">          1 :    if (fTree)</span>
+<span class="lineNum">     360 </span><span class="lineCov">          1 :      if (fTree-&gt;Write() == 0)</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :        error = kTRUE;</span>
+<span class="lineNum">     362 </span><span class="lineCov">          1 :    if (fESDTree)</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :      if (fESDTree-&gt;Write() == 0)</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :        error = kTRUE;</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :    // Close DB, this also deletes the fTree
+<span class="lineNum">     367 </span><span class="lineCov">          1 :    fRawDB-&gt;Close();</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineCov">          1 :    fTree = NULL;</span>
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineCov">          1 :    Long64_t filesize = fRawDB-&gt;GetEND();</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineCov">          1 :    if (fDeleteFiles) {</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :       gSystem-&gt;Unlink(fRawDB-&gt;GetName());</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :       delete fRawDB;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :       fRawDB = 0;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :       if(!error)</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         return filesize;</span>
+<span class="lineNum">     379 </span>            :       else
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     381 </span>            :    }
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">          2 :    delete fRawDB;</span>
+<span class="lineNum">     384 </span><span class="lineCov">          1 :    fRawDB = 0;</span>
+<span class="lineNum">     385 </span><span class="lineCov">          1 :    if(!error)</span>
+<span class="lineNum">     386 </span><span class="lineCov">          1 :      return filesize;</span>
+<span class="lineNum">     387 </span>            :    else
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :      return -1;</span>
+<span class="lineNum">     389 </span><span class="lineCov">          2 : }</span>
+<a name="390"><span class="lineNum">     390 </span>            : </a>
+<span class="lineNum">     391 </span>            : //______________________________________________________________________________
+<span class="lineNum">     392 </span>            : Int_t AliRawDB::Fill()
+<span class="lineNum">     393 </span>            : {
+<span class="lineNum">     394 </span>            :   // Fill the trees and return the number of written bytes
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            :   // Create raw data TTree if it not yet done
+<span class="lineNum">     397 </span><span class="lineCov">          9 :   if (!fTree) MakeTree();</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineCov">          4 :    Double_t bytes = fRawDB-&gt;GetBytesWritten();</span>
+<span class="lineNum">     400 </span>            :    Bool_t error = kFALSE;
+<span class="lineNum">     401 </span><span class="lineCov">          4 :    if (fTree-&gt;Fill() == -1)</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :      error = kTRUE;</span>
+<span class="lineNum">     403 </span><span class="lineCov">          4 :    if (fESDTree) </span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :      if (fESDTree-&gt;Fill() == -1)</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :        error = kTRUE;</span>
+<span class="lineNum">     406 </span><span class="lineCov">          4 :    if(!error)</span>
+<span class="lineNum">     407 </span><span class="lineCov">          4 :      return Int_t(fRawDB-&gt;GetBytesWritten() - bytes);</span>
+<span class="lineNum">     408 </span>            :    else
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :      return -1;</span>
+<span class="lineNum">     410 </span><span class="lineCov">          4 : }</span>
+<a name="411"><span class="lineNum">     411 </span>            : </a>
+<span class="lineNum">     412 </span>            : //______________________________________________________________________________
+<span class="lineNum">     413 </span>            : Long64_t AliRawDB::GetTotalSize()
+<span class="lineNum">     414 </span>            : {
+<span class="lineNum">     415 </span>            :    // Return the total size of the trees
+<span class="lineNum">     416 </span>            :   Long64_t total = 0;
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineCov">          8 :   if (fTree) {</span>
+<span class="lineNum">     419 </span>            :     Int_t skey = 0;
+<span class="lineNum">     420 </span><span class="lineCov">          3 :     TDirectory *dir = fTree-&gt;GetDirectory();</span>
+<span class="lineNum">     421 </span><span class="lineCov">          3 :     if (dir) {</span>
+<span class="lineNum">     422 </span><span class="lineCov">          3 :       TKey *key = dir-&gt;GetKey(fTree-&gt;GetName());</span>
+<span class="lineNum">     423 </span><span class="lineCov">          3 :       if (key) skey = key-&gt;GetKeylen();</span>
+<span class="lineNum">     424 </span><span class="lineCov">          3 :     }</span>
+<span class="lineNum">     425 </span><span class="lineCov">          3 :     total += (Long64_t)skey + fTree-&gt;GetZipBytes();</span>
+<span class="lineNum">     426 </span><span class="lineCov">          3 :   }</span>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineCov">          4 :   if(fESDTree)</span>
+<span class="lineNum">     429 </span>            :     {
+<span class="lineNum">     430 </span>            :       Int_t skey = 0;
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :       TDirectory *dir = fESDTree-&gt;GetDirectory();</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :       if (dir) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         TKey *key = dir-&gt;GetKey(fESDTree-&gt;GetName());</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if (key) skey = key-&gt;GetKeylen();</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :       total += (Long64_t)skey + fESDTree-&gt;GetZipBytes();</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineCov">          4 :   return total;</span>
+<span class="lineNum">     440 </span>            : }
+<a name="441"><span class="lineNum">     441 </span>            : </a>
+<span class="lineNum">     442 </span>            : //______________________________________________________________________________
+<span class="lineNum">     443 </span>            : Long64_t AliRawDB::AutoSave()
+<span class="lineNum">     444 </span>            : {
+<span class="lineNum">     445 </span>            :   // Auto-save the raw-data and
+<span class="lineNum">     446 </span>            :   // esd (if any) trees
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   Long64_t nbytes = fTree-&gt;AutoSave();</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   if (fESDTree) nbytes += fESDTree-&gt;AutoSave();</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   return nbytes;</span>
+<span class="lineNum">     453 </span>            : }
+<a name="454"><span class="lineNum">     454 </span>            : </a>
+<span class="lineNum">     455 </span>            : //______________________________________________________________________________
+<span class="lineNum">     456 </span>            : Bool_t AliRawDB::NextFile(const char* fileName)
+<span class="lineNum">     457 </span>            : {
+<span class="lineNum">     458 </span>            :    // Close te current file and open a new one.
+<span class="lineNum">     459 </span>            :    // Returns kFALSE in case opening failed.
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :    Close();</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :    if (!Create(fileName)) return kFALSE;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :    return kTRUE;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 : }</span>
+<a name="466"><span class="lineNum">     466 </span>            : </a>
+<span class="lineNum">     467 </span>            : //______________________________________________________________________________
+<span class="lineNum">     468 </span>            : Float_t AliRawDB::GetCompressionFactor() const
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :    // Return compression factor.
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :    if (fTree-&gt;GetZipBytes() == 0.)</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :       return 1.0;</span>
+<span class="lineNum">     474 </span>            :    else
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       return fTree-&gt;GetTotBytes()/fTree-&gt;GetZipBytes();</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 : }</span>
+<a name="477"><span class="lineNum">     477 </span>            : </a>
+<span class="lineNum">     478 </span>            : //______________________________________________________________________________
+<span class="lineNum">     479 </span>            : const char *AliRawDB::GetAliRootTag()
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :   // Return the aliroot tag (version)
+<span class="lineNum">     482 </span>            :   // used to generate the raw data file.
+<span class="lineNum">     483 </span>            :   // Stored in the raw-data file title.
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineCov">         11 :   static TString version = fgkAliRootTag;</span>
+<span class="lineNum">     486 </span><span class="lineCov">          4 :   version.Remove(TString::kBoth,'$');</span>
+<span class="lineNum">     487 </span><span class="lineCov">          4 :   version.ReplaceAll(&quot;Rev&quot;,&quot;AliRoot version&quot;);</span>
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span><span class="lineCov">          4 :   return version.Data();</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 : }</span>
+<a name="491"><span class="lineNum">     491 </span>            : </a>
+<span class="lineNum">     492 </span>            : //______________________________________________________________________________
+<span class="lineNum">     493 </span>            : Bool_t AliRawDB::WriteGuidFile(TString &amp;guidFileFolder)
+<span class="lineNum">     494 </span>            : {
+<span class="lineNum">     495 </span>            :   // Write the guid file
+<span class="lineNum">     496 </span>            :   // in the specified folder or
+<span class="lineNum">     497 </span>            :   // in the folder where the raw data
+<span class="lineNum">     498 </span>            :   // file is.
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineCov">          2 :    TString guidFileName;</span>
+<span class="lineNum">     501 </span><span class="lineCov">          2 :    if (!guidFileFolder.IsNull()) {</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :      guidFileName = guidFileFolder;</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :      TString pathStr = fRawDB-&gt;GetName();</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :      TObjArray *pathArr = pathStr.Tokenize('/');</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :      guidFileName.Append(&quot;/&quot;);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :      guidFileName.Append(((TObjString *)pathArr-&gt;Last())-&gt;String());</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :      pathArr-&gt;Delete();</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :      delete pathArr;</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     511 </span>            :    else
+<span class="lineNum">     512 </span><span class="lineCov">          2 :      guidFileName = fRawDB-&gt;GetName();</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineCov">          1 :    guidFileName += &quot;.guid&quot;;</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineCov">          2 :    ofstream fguid(guidFileName.Data());</span>
+<span class="lineNum">     517 </span><span class="lineCov">          2 :    if (!fguid.is_open()) {</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :      Error(&quot;WriteGuidFile&quot;, &quot;failure to open guid file %s&quot;, guidFileName.Data());</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     520 </span>            :    }
+<span class="lineNum">     521 </span><span class="lineCov">          3 :    TString guid = fRawDB-&gt;GetUUID().AsString();</span>
+<span class="lineNum">     522 </span><span class="lineCov">          3 :    fguid &lt;&lt; &quot;guid: \t&quot; &lt;&lt; guid.Data();</span>
+<span class="lineNum">     523 </span><span class="lineCov">          1 :    fguid.close();</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            :    return kTRUE;
+<span class="lineNum">     526 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     527 </span>            : 
+<a name="528"><span class="lineNum">     528 </span>            : </a>
+<span class="lineNum">     529 </span>            : //______________________________________________________________________________
+<span class="lineNum">     530 </span>            : void AliRawDB::Reset()
+<span class="lineNum">     531 </span>            : {
+<span class="lineNum">     532 </span>            :   // Clear the raw-data arrays
+<span class="lineNum">     533 </span>            :   // Should be done before processing the raw-data event
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span><span class="lineCov">        220 :   for (Int_t iDet = 0; iDet &lt; (AliDAQ::kNDetectors + 1); iDet++)</span>
+<span class="lineNum">     536 </span><span class="lineCov">        624 :     for (Int_t iBranch = 0; iBranch &lt; fgkDetBranches[iDet]; iBranch++)</span>
+<span class="lineNum">     537 </span><span class="lineCov">        208 :       fDetRawData[iDet][iBranch]-&gt;ClearData();</span>
+<span class="lineNum">     538 </span><span class="lineCov">          4 : }</span>
+<a name="539"><span class="lineNum">     539 </span>            : </a>
+<span class="lineNum">     540 </span>            : //______________________________________________________________________________
+<span class="lineNum">     541 </span>            : AliRawDataArrayV2 *AliRawDB::GetRawDataArray(UInt_t eqSize, UInt_t eqId) const
+<span class="lineNum">     542 </span>            : {
+<span class="lineNum">     543 </span>            :   // Return the corresponding raw-datra array (branch)
+<span class="lineNum">     544 </span>            :   // depending on the equipment ID
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :   Int_t iDet = AliDAQ::kNDetectors;
+<span class="lineNum">     547 </span>            :   Int_t iBranch = 0; // can we split somehow the unrecognized data??? For the moment - no
+<span class="lineNum">     548 </span><span class="lineCov">       3242 :   if(eqSize) {</span>
+<span class="lineNum">     549 </span><span class="lineCov">       1621 :     Int_t ddlIndex = -1;</span>
+<span class="lineNum">     550 </span><span class="lineCov">       1621 :     iDet = AliDAQ::DetectorIDFromDdlID(eqId,ddlIndex);</span>
+<span class="lineNum">     551 </span><span class="lineCov">       1621 :     if (iDet &lt; 0 || iDet &gt;= AliDAQ::kNDetectors)</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :       iDet = AliDAQ::kNDetectors;</span>
+<span class="lineNum">     553 </span>            :     else
+<span class="lineNum">     554 </span><span class="lineCov">       1621 :       iBranch = (ddlIndex * fgkDetBranches[iDet])/AliDAQ::NumberOfDdls(iDet);</span>
+<span class="lineNum">     555 </span><span class="lineCov">       1621 :   }</span>
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span><span class="lineCov">       1621 :   return fDetRawData[iDet][iBranch];</span>
+<span class="lineNum">     558 </span>            : }
+<span class="lineNum">     559 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

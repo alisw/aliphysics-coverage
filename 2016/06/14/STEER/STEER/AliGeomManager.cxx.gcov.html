@@ -1,0 +1,1875 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliGeomManager.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliGeomManager.cxx<span style="font-size: 80%;"> (source / <a href="AliGeomManager.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">500</td>
+            <td class="headerCovTableEntry">807</td>
+            <td class="headerCovTableEntryLo">62.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntryLo">55.6 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : //-------------------------------------------------------------------------
+<span class="lineNum">      16 </span>            : //   Implementation of AliGeomManager, the geometry manager class 
+<span class="lineNum">      17 </span>            : //   which interfaces to TGeo and the look-up table mapping unique
+<span class="lineNum">      18 </span>            : //   volume indices to symbolic volume names. For that it collects
+<span class="lineNum">      19 </span>            : //   several static methods.
+<span class="lineNum">      20 </span>            : //-------------------------------------------------------------------------
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;TClass.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;TGeoManager.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;TGeoPhysicalNode.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;TClonesArray.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;TGeoMatrix.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;TGeoPhysicalNode.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;TStopwatch.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;TGeoOverlap.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;TPluginManager.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #include &quot;AliGeomManager.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliAlignObj.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliAlignObjParams.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliCDBStorage.h&quot;
+<a name="42"><span class="lineNum">      42 </span>            : #include &quot;AliCDBEntry.h&quot;</a>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineCov">        126 : ClassImp(AliGeomManager)</span>
+<span class="lineNum">      45 </span>            :   
+<span class="lineNum">      46 </span>            : Int_t AliGeomManager::fgLayerSize[kLastLayer - kFirstLayer] = {
+<span class="lineNum">      47 </span>            :   80, 160,  // ITS SPD first and second layer
+<span class="lineNum">      48 </span>            :   84, 176,  // ITS SDD first and second layer
+<span class="lineNum">      49 </span>            :   748, 950, // ITS SSD first and second layer
+<span class="lineNum">      50 </span>            :   36, 36,   // TPC inner and outer chambers
+<span class="lineNum">      51 </span>            :   90, 90, 90, 90, 90, 90,  // 6 TRD chambers' layers
+<span class="lineNum">      52 </span>            :   1638,     // TOF
+<span class="lineNum">      53 </span>            :   5, 5,     // PHOS,CPV
+<span class="lineNum">      54 </span>            :   7,        // HMPID ??
+<span class="lineNum">      55 </span>            :   1,         // MUON ??
+<span class="lineNum">      56 </span>            :   22        // EMCAL and DCAL
+<span class="lineNum">      57 </span>            : };
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : const char* AliGeomManager::fgLayerName[kLastLayer - kFirstLayer] = {
+<span class="lineNum">      60 </span>            :   &quot;ITS inner pixels layer&quot;, &quot;ITS outer pixels layer&quot;,
+<span class="lineNum">      61 </span>            :   &quot;ITS inner drifts layer&quot;, &quot;ITS outer drifts layer&quot;,
+<span class="lineNum">      62 </span>            :   &quot;ITS inner strips layer&quot;, &quot;ITS outer strips layer&quot;,
+<span class="lineNum">      63 </span>            :   &quot;TPC inner chambers layer&quot;, &quot;TPC outer chambers layer&quot;,
+<span class="lineNum">      64 </span>            :   &quot;TRD chambers layer 1&quot;, &quot;TRD chambers layer 2&quot;, &quot;TRD chambers layer 3&quot;,
+<span class="lineNum">      65 </span>            :   &quot;TRD chambers layer 4&quot;, &quot;TRD chambers layer 5&quot;, &quot;TRD chambers layer 6&quot;,
+<span class="lineNum">      66 </span>            :   &quot;TOF layer&quot;,
+<span class="lineNum">      67 </span>            :   &quot;PHOS EMC layer&quot;,&quot;PHOS CPV layer&quot;,
+<span class="lineNum">      68 </span>            :   &quot;HMPID layer&quot;, 
+<span class="lineNum">      69 </span>            :   &quot;MUON ?&quot;,
+<span class="lineNum">      70 </span>            :   &quot;EMCAL layer&quot;
+<span class="lineNum">      71 </span>            : };
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : TGeoPNEntry** AliGeomManager::fgPNEntry[kLastLayer - kFirstLayer] = {
+<span class="lineNum">      74 </span>            :   0x0,0x0,
+<span class="lineNum">      75 </span>            :   0x0,0x0,
+<span class="lineNum">      76 </span>            :   0x0,0x0,
+<span class="lineNum">      77 </span>            :   0x0,0x0,
+<span class="lineNum">      78 </span>            :   0x0,0x0,0x0,
+<span class="lineNum">      79 </span>            :   0x0,0x0,0x0,
+<span class="lineNum">      80 </span>            :   0x0,
+<span class="lineNum">      81 </span>            :   0x0,0x0,
+<span class="lineNum">      82 </span>            :   0x0,
+<span class="lineNum">      83 </span>            :   0x0,
+<span class="lineNum">      84 </span>            :   0x0
+<span class="lineNum">      85 </span>            : };
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : AliAlignObj** AliGeomManager::fgAlignObjs[kLastLayer - kFirstLayer] = {
+<span class="lineNum">      88 </span>            :   0x0,0x0,
+<span class="lineNum">      89 </span>            :   0x0,0x0,
+<span class="lineNum">      90 </span>            :   0x0,0x0,
+<span class="lineNum">      91 </span>            :   0x0,0x0,
+<span class="lineNum">      92 </span>            :   0x0,0x0,0x0,
+<span class="lineNum">      93 </span>            :   0x0,0x0,0x0,
+<span class="lineNum">      94 </span>            :   0x0,
+<span class="lineNum">      95 </span>            :   0x0,0x0,
+<span class="lineNum">      96 </span>            :   0x0,
+<span class="lineNum">      97 </span>            :   0x0,
+<span class="lineNum">      98 </span>            :   0x0
+<span class="lineNum">      99 </span>            : };
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : const char* AliGeomManager::fgkDetectorName[AliGeomManager::fgkNDetectors] =
+<span class="lineNum">     102 </span>            : {&quot;GRP&quot;,&quot;ITS&quot;,&quot;TPC&quot;,&quot;TRD&quot;,&quot;TOF&quot;,&quot;PHOS&quot;,&quot;HMPID&quot;,&quot;EMCAL&quot;,&quot;MUON&quot;,&quot;FMD&quot;,&quot;ZDC&quot;,&quot;PMD&quot;,&quot;T0&quot;,&quot;VZERO&quot;,&quot;ACORDE&quot;,&quot;AD&quot;,&quot;MFT&quot;,&quot;FIT&quot;};
+<span class="lineNum">     103 </span>            : Int_t AliGeomManager::fgNalignable[fgkNDetectors] = {0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : TGeoManager* AliGeomManager::fgGeometry = 0x0;
+<a name="106"><span class="lineNum">     106 </span>            : </a>
+<span class="lineNum">     107 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     108 </span>            : void AliGeomManager::Destroy()
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span>            :   // destroy the manager as well as gGeoManager (if it was not attached to fgGeometry)
+<span class="lineNum">     111 </span><span class="lineCov">          4 :   TGeoManager::UnlockGeometry();</span>
+<span class="lineNum">     112 </span><span class="lineCov">          2 :   delete gGeoManager;</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :   fgGeometry = gGeoManager = 0;</span>
+<span class="lineNum">     114 </span><span class="lineCov">          2 :   ResetPNEntriesLUT();</span>
+<span class="lineNum">     115 </span><span class="lineCov">          2 : }</span>
+<a name="116"><span class="lineNum">     116 </span>            : </a>
+<span class="lineNum">     117 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     118 </span>            : void AliGeomManager::LoadGeometry(const char *geomFileName)
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span>            :   // initialization
+<span class="lineNum">     121 </span>            :   // Load geometry either from a file
+<span class="lineNum">     122 </span>            :   // or from the corresponding CDB entry
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">          8 :   if(fgGeometry-&gt;IsLocked()){</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :       AliErrorClass(&quot;Cannot load a new geometry, the current one being locked. Setting internal geometry to null!!&quot;);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :       fgGeometry = NULL;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     128 </span>            :   }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineCov">          4 :   fgGeometry = NULL;</span>
+<span class="lineNum">     131 </span><span class="lineCov">          8 :   if (geomFileName &amp;&amp; (!gSystem-&gt;AccessPathName(geomFileName))) {</span>
+<span class="lineNum">     132 </span><span class="lineCov">          2 :     fgGeometry = TGeoManager::Import(geomFileName);</span>
+<span class="lineNum">     133 </span><span class="lineCov">          2 :     AliInfoClass(Form(&quot;From now on using geometry from custom geometry file \&quot;%s\&quot;&quot;,geomFileName));</span>
+<span class="lineNum">     134 </span><span class="lineCov">          2 :   }</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">          4 :   if (!fgGeometry) {</span>
+<span class="lineNum">     137 </span><span class="lineCov">          2 :     AliCDBPath path(&quot;GRP&quot;,&quot;Geometry&quot;,&quot;Data&quot;);</span>
+<span class="lineNum">     138 </span>            :         
+<span class="lineNum">     139 </span><span class="lineCov">          8 :     AliCDBEntry *entry=AliCDBManager::Instance()-&gt;Get(path.GetPath());</span>
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     if(!entry) AliFatalClass(&quot;Couldn't load geometry data from CDB!&quot;);</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">          2 :     entry-&gt;SetOwner(0);</span>
+<span class="lineNum">     143 </span><span class="lineCov">          2 :     fgGeometry = (TGeoManager*) entry-&gt;GetObject();</span>
+<span class="lineNum">     144 </span><span class="lineCov">          2 :     if (!fgGeometry) AliFatalClass(&quot;Couldn't find TGeoManager in the specified CDB entry!&quot;);</span>
+<span class="lineNum">     145 </span>            :     
+<span class="lineNum">     146 </span><span class="lineCov">         12 :     AliInfoClass(Form(&quot;From now on using geometry from CDB base folder \&quot;%s\&quot;&quot;,</span>
+<span class="lineNum">     147 </span>            :                       AliCDBManager::Instance()-&gt;GetURI(&quot;GRP/Geometry/Data&quot;)));
+<span class="lineNum">     148 </span><span class="lineCov">          2 :   }</span>
+<span class="lineNum">     149 </span><span class="lineCov">          4 :   ResetPNEntriesLUT();</span>
+<span class="lineNum">     150 </span><span class="lineCov">          4 :   InitPNEntriesLUT();</span>
+<span class="lineNum">     151 </span><span class="lineCov">          4 :   InitNalignable();</span>
+<span class="lineNum">     152 </span><span class="lineCov">          8 : }</span>
+<a name="153"><span class="lineNum">     153 </span>            : </a>
+<span class="lineNum">     154 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     155 </span>            : void AliGeomManager::SetGeometry(TGeoManager * const geom)
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :   // Load already active geometry
+<span class="lineNum">     158 </span><span class="lineCov">          2 :   if (!geom) AliFatalClass(&quot;Pointer to the active geometry is 0x0!&quot;);</span>
+<span class="lineNum">     159 </span><span class="lineCov">          1 :   ResetPNEntriesLUT();</span>
+<span class="lineNum">     160 </span><span class="lineCov">          1 :   fgGeometry = geom;</span>
+<span class="lineNum">     161 </span><span class="lineCov">          1 :   InitPNEntriesLUT();</span>
+<span class="lineNum">     162 </span><span class="lineCov">          1 :   InitNalignable();</span>
+<span class="lineNum">     163 </span><span class="lineCov">          1 : }</span>
+<a name="164"><span class="lineNum">     164 </span>            : </a>
+<span class="lineNum">     165 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     166 </span>            : AliGeomManager::AliGeomManager():
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   TObject()</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     169 </span>            :   // default constructor
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 : }</span>
+<a name="171"><span class="lineNum">     171 </span>            : </a>
+<span class="lineNum">     172 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     173 </span>            : AliGeomManager::~AliGeomManager()
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     175 </span>            :   // dummy destructor
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 : }</span>
+<a name="177"><span class="lineNum">     177 </span>            : </a>
+<span class="lineNum">     178 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     179 </span>            : Int_t AliGeomManager::LayerSize(Int_t layerId)
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :   // Get the layer size for layer corresponding to layerId.
+<span class="lineNum">     182 </span>            :   // Implemented only for ITS,TPC,TRD,TOF and HMPID
+<span class="lineNum">     183 </span>            :   //
+<span class="lineNum">     184 </span><span class="lineCov">       3696 :   if (layerId &lt; kFirstLayer || layerId &gt;= kLastLayer) {</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Invalid layer index %d ! Layer range is (%d -&gt; %d) !&quot;,layerId,kFirstLayer,kLastLayer));</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     187 </span>            :   }
+<span class="lineNum">     188 </span>            :   else {
+<span class="lineNum">     189 </span><span class="lineCov">       1848 :     return fgLayerSize[layerId - kFirstLayer];</span>
+<span class="lineNum">     190 </span>            :   }
+<span class="lineNum">     191 </span><span class="lineCov">       1848 : }</span>
+<a name="192"><span class="lineNum">     192 </span>            : </a>
+<span class="lineNum">     193 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     194 </span>            : const char* AliGeomManager::LayerName(Int_t layerId)
+<span class="lineNum">     195 </span>            : {
+<span class="lineNum">     196 </span>            :   // Get the layer name corresponding to layerId.
+<span class="lineNum">     197 </span>            :   // Implemented only for ITS,TPC,TRD,TOF and HMPID
+<span class="lineNum">     198 </span>            :   //
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   if (layerId &lt; kFirstLayer || layerId &gt;= kLastLayer) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Invalid layer index %d ! Layer range is (%d -&gt; %d) !&quot;,layerId,kFirstLayer,kLastLayer));</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     return &quot;Invalid Layer!&quot;;</span>
+<span class="lineNum">     202 </span>            :   }
+<span class="lineNum">     203 </span>            :   else {
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     return fgLayerName[layerId - kFirstLayer];</span>
+<span class="lineNum">     205 </span>            :   }
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 : }</span>
+<a name="207"><span class="lineNum">     207 </span>            : </a>
+<span class="lineNum">     208 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     209 </span>            : UShort_t AliGeomManager::LayerToVolUID(ELayerID layerId, Int_t modId)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :   // From detector (layer) name and module number (according to detector
+<span class="lineNum">     212 </span>            :   // internal numbering) build the unique numerical identity of that volume
+<span class="lineNum">     213 </span>            :   // inside ALICE
+<span class="lineNum">     214 </span>            :   // fVolUID is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     215 </span>            :   // remaining 11 for module ID inside det (2048 possible values).
+<span class="lineNum">     216 </span>            :   // NO check for validity of given modId inside the layer for speed's sake.
+<span class="lineNum">     217 </span>            :   //
+<span class="lineNum">     218 </span><span class="lineCov">     184934 :   return ((UShort_t(layerId) &lt;&lt; 11) | UShort_t(modId));</span>
+<span class="lineNum">     219 </span>            : }
+<a name="220"><span class="lineNum">     220 </span>            : </a>
+<span class="lineNum">     221 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     222 </span>            : UShort_t AliGeomManager::LayerToVolUID(Int_t   layerId, Int_t modId)
+<span class="lineNum">     223 </span>            : {
+<span class="lineNum">     224 </span>            :   // From detector (layer) name and module number (according to detector
+<span class="lineNum">     225 </span>            :   // internal numbering) build the unique numerical identity of that volume
+<span class="lineNum">     226 </span>            :   // inside ALICE
+<span class="lineNum">     227 </span>            :   // fVolUID is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     228 </span>            :   // remaining 11 for module ID inside det (2048 possible values).
+<span class="lineNum">     229 </span>            :   // NO check for validity of given modId inside the layer for speed's sake.
+<span class="lineNum">     230 </span>            :   //
+<span class="lineNum">     231 </span><span class="lineCov">      52024 :   return ((UShort_t(layerId) &lt;&lt; 11) | UShort_t(modId));</span>
+<span class="lineNum">     232 </span>            : }
+<a name="233"><span class="lineNum">     233 </span>            : </a>
+<span class="lineNum">     234 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     235 </span>            : UShort_t AliGeomManager::LayerToVolUIDSafe(ELayerID layerId, Int_t modId)
+<span class="lineNum">     236 </span>            : {
+<span class="lineNum">     237 </span>            :   // From detector (layer) name and module number (according to detector
+<span class="lineNum">     238 </span>            :   // internal numbering) build the unique numerical identity of that volume
+<span class="lineNum">     239 </span>            :   // inside ALICE
+<span class="lineNum">     240 </span>            :   // fVolUID is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     241 </span>            :   // remaining 11 for module ID inside det (2048 possible values).
+<span class="lineNum">     242 </span>            :   // Check validity of given modId inside the layer.
+<span class="lineNum">     243 </span>            :   //
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   if(modId &lt; 0 || modId &gt;= LayerSize(layerId)){</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Invalid volume id %d ! Range of valid ids for layer \&quot;%s\&quot; is [0, %d] !&quot;,modId,LayerName(layerId),LayerSize(layerId)-1));</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     247 </span>            :   }
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   return ((UShort_t(layerId) &lt;&lt; 11) | UShort_t(modId));</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 : }</span>
+<a name="250"><span class="lineNum">     250 </span>            : </a>
+<span class="lineNum">     251 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     252 </span>            : UShort_t AliGeomManager::LayerToVolUIDSafe(Int_t layerId, Int_t modId)
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span>            :   // From detector (layer) name and module number (according to detector
+<span class="lineNum">     255 </span>            :   // internal numbering) build the unique numerical identity of that volume
+<span class="lineNum">     256 </span>            :   // inside ALICE
+<span class="lineNum">     257 </span>            :   // fVolUID is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     258 </span>            :   // remaining 11 for module ID inside det (2048 possible values).
+<span class="lineNum">     259 </span>            :   // Check validity of given modId inside the layer.
+<span class="lineNum">     260 </span>            :   //
+<span class="lineNum">     261 </span><span class="lineCov">        630 :   if(modId &lt; 0 || modId &gt;= LayerSize(layerId)){</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Invalid volume id %d ! Range of valid ids for layer \&quot;%s\&quot; is [0, %d] !&quot;,modId,LayerName(layerId),LayerSize(layerId)-1));</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     264 </span>            :   }
+<span class="lineNum">     265 </span><span class="lineCov">        210 :   return ((UShort_t(layerId) &lt;&lt; 11) | UShort_t(modId));</span>
+<span class="lineNum">     266 </span><span class="lineCov">        210 : }</span>
+<a name="267"><span class="lineNum">     267 </span>            : </a>
+<span class="lineNum">     268 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     269 </span>            : AliGeomManager::ELayerID AliGeomManager::VolUIDToLayer(UShort_t voluid, Int_t &amp;modId)
+<span class="lineNum">     270 </span>            : {
+<span class="lineNum">     271 </span>            :   // From voluid, unique numerical identity of that volume inside ALICE,
+<span class="lineNum">     272 </span>            :   // (voluid is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     273 </span>            :   // remaining 11 for module ID inside det (2048 possible values)), return
+<span class="lineNum">     274 </span>            :   // the identity of the layer to which that volume belongs and sets the
+<span class="lineNum">     275 </span>            :   // argument modId to the identity of that volume internally to the layer.
+<span class="lineNum">     276 </span>            :   // NO check for validity of given voluid for speed's sake.
+<span class="lineNum">     277 </span>            :   //
+<span class="lineNum">     278 </span><span class="lineCov">     171170 :   modId = voluid &amp; 0x7ff;</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">      85585 :   return VolUIDToLayer(voluid);</span>
+<span class="lineNum">     281 </span>            : }
+<a name="282"><span class="lineNum">     282 </span>            : </a>
+<span class="lineNum">     283 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     284 </span>            : AliGeomManager::ELayerID AliGeomManager::VolUIDToLayer(UShort_t voluid)
+<span class="lineNum">     285 </span>            : {
+<span class="lineNum">     286 </span>            :   // From voluid, unique numerical identity of that volume inside ALICE,
+<span class="lineNum">     287 </span>            :   // (voluid is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     288 </span>            :   // remaining 11 for module ID inside det (2048 possible values)), return
+<span class="lineNum">     289 </span>            :   // the identity of the layer to which that volume belongs
+<span class="lineNum">     290 </span>            :   // NO check for validity of given voluid for speed's sake.
+<span class="lineNum">     291 </span>            :   //
+<span class="lineNum">     292 </span><span class="lineCov">     171170 :   return ELayerID(voluid &gt;&gt; 11);</span>
+<span class="lineNum">     293 </span>            : }
+<a name="294"><span class="lineNum">     294 </span>            : </a>
+<span class="lineNum">     295 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     296 </span>            : AliGeomManager::ELayerID AliGeomManager::VolUIDToLayerSafe(UShort_t voluid, Int_t &amp;modId)
+<span class="lineNum">     297 </span>            : {
+<span class="lineNum">     298 </span>            :   // From voluid, unique numerical identity of that volume inside ALICE,
+<span class="lineNum">     299 </span>            :   // (voluid is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     300 </span>            :   // remaining 11 for module ID inside det (2048 possible values)), returns
+<span class="lineNum">     301 </span>            :   // the identity of the layer to which that volume belongs and sets the
+<span class="lineNum">     302 </span>            :   // argument modId to the identity of that volume internally to the layer.
+<span class="lineNum">     303 </span>            :   // Checks the validity of the given voluid
+<span class="lineNum">     304 </span>            :   //
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   ELayerID layId = VolUIDToLayerSafe(voluid);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   if(layId != AliGeomManager::kInvalidLayer){</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     Int_t mId = Int_t(voluid &amp; 0x7ff);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     if( mId&gt;=0 &amp;&amp; mId&lt;LayerSize(layId)){</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :       modId = mId;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :       return layId;</span>
+<span class="lineNum">     311 </span>            :     }
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   AliErrorClass(Form(&quot;Invalid unique volume id: %d !&quot;,voluid));</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   modId = -1;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   return kInvalidLayer;</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 : }</span>
+<a name="319"><span class="lineNum">     319 </span>            : </a>
+<span class="lineNum">     320 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     321 </span>            : AliGeomManager::ELayerID AliGeomManager::VolUIDToLayerSafe(UShort_t voluid)
+<span class="lineNum">     322 </span>            : {
+<span class="lineNum">     323 </span>            :   // From voluid, unique numerical identity of that volume inside ALICE,
+<span class="lineNum">     324 </span>            :   // (voluid is 16 bits, first 5 reserved for layerID (32 possible values),
+<span class="lineNum">     325 </span>            :   // remaining 11 for module ID inside det (2048 possible values)), returns
+<span class="lineNum">     326 </span>            :   // the identity of the layer to which that volume belongs
+<span class="lineNum">     327 </span>            :   // Checks the validity of the given voluid
+<span class="lineNum">     328 </span>            :   //
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   if( (voluid &gt;&gt; 11) &lt; kLastLayer)  return ELayerID(voluid &gt;&gt; 11);</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   AliErrorClass(Form(&quot;Invalid layer id: %d !&quot;,(voluid &gt;&gt; 11)));</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   return kInvalidLayer;</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 : }</span>
+<a name="335"><span class="lineNum">     335 </span>            : </a>
+<span class="lineNum">     336 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     337 </span>            : Bool_t AliGeomManager::GetFromGeometry(const char *symname, AliAlignObj &amp;alobj)
+<span class="lineNum">     338 </span>            : {
+<span class="lineNum">     339 </span>            :   // Get the alignment object which corresponds to the symbolic volume name
+<span class="lineNum">     340 </span>            :   // symname (in case equal to the TGeo volume path)
+<span class="lineNum">     341 </span>            :   // The method is extremely slow due to the searching by string,
+<span class="lineNum">     342 </span>            :   // therefore it should be used with great care!!
+<span class="lineNum">     343 </span>            :   // This method returns FALSE if the symname of the object was not
+<span class="lineNum">     344 </span>            :   // valid neither to get a TGeoPEntry nor as a volume path, or if the path
+<span class="lineNum">     345 </span>            :   // associated to the TGeoPNEntry was not valid.
+<span class="lineNum">     346 </span>            :   //
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :   // Reset the alignment object
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   alobj.SetPars(0,0,0,0,0,0);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   alobj.SetSymName(symname);</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :   if (!fgGeometry || !fgGeometry-&gt;IsClosed()) {</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Can't get the alignment object! gGeoManager doesn't exist or it is still opened!&quot;);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     355 </span>            :   }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   if (!fgGeometry-&gt;GetListOfPhysicalNodes()) {</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Can't get the alignment object! gGeoManager doesn't contain any aligned nodes!&quot;);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     360 </span>            :   }
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :   const char *path;
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :   TGeoPNEntry* pne = fgGeometry-&gt;GetAlignableEntry(symname);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :   if(pne){</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     path = pne-&gt;GetTitle();</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;The symbolic volume name %s does not correspond to a physical entry. Using it as a volume path!&quot;,symname));</span>
+<span class="lineNum">     368 </span>            :     path = symname;
+<span class="lineNum">     369 </span>            :   }
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   TObjArray* nodesArr = fgGeometry-&gt;GetListOfPhysicalNodes();</span>
+<span class="lineNum">     371 </span>            :   TGeoPhysicalNode* node = NULL;
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :   for (Int_t iNode = 0; iNode &lt; nodesArr-&gt;GetEntriesFast(); iNode++) {</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     TGeoPhysicalNode* tempNode = (TGeoPhysicalNode*) nodesArr-&gt;UncheckedAt(iNode);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     const char *nodePath = tempNode-&gt;GetName();</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     if (strcmp(path,nodePath) == 0) {</span>
+<span class="lineNum">     376 </span>            :       node = tempNode;
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     378 </span>            :     }
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :   if (!node) {</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     if (!fgGeometry-&gt;cd(path)) {</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :       AliErrorClass(Form(&quot;%s not valid neither as symbolic volume name nor as volume path!&quot;,path));</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span>            :     else {
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       AliWarningClass(Form(&quot;Volume (%s) has not been misaligned!&quot;,path));</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">     389 </span>            :     }
+<span class="lineNum">     390 </span>            :   }
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   TGeoHMatrix align,gprime,g,ginv,l;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   gprime = *node-&gt;GetMatrix();</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   l = *node-&gt;GetOriginalMatrix();</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :   g = *node-&gt;GetMatrix(node-&gt;GetLevel()-1);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :   g *= l;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   ginv = g.Inverse();</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   align = gprime * ginv;</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :   return alobj.SetMatrix(align);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     402 </span>            : 
+<a name="403"><span class="lineNum">     403 </span>            : </a>
+<span class="lineNum">     404 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     405 </span>            : void  AliGeomManager::InitAlignObjFromGeometry()
+<span class="lineNum">     406 </span>            : {
+<span class="lineNum">     407 </span>            :   // Loop over all alignable volumes and extract
+<span class="lineNum">     408 </span>            :   // the corresponding alignment objects from
+<span class="lineNum">     409 </span>            :   // the TGeo geometry
+<span class="lineNum">     410 </span>            :   //
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   for (Int_t iLayer = kFirstLayer; iLayer &lt; AliGeomManager::kLastLayer; iLayer++) {</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     if (!fgAlignObjs[iLayer-kFirstLayer]) {</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :       fgAlignObjs[iLayer-kFirstLayer] = new AliAlignObj*[LayerSize(iLayer)];</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     for (Int_t iModule = 0; iModule &lt; LayerSize(iLayer); iModule++) {</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :       UShort_t volid = LayerToVolUID(iLayer,iModule);</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :       fgAlignObjs[iLayer-kFirstLayer][iModule] = new AliAlignObjParams(&quot;&quot;,volid,0,0,0,0,0,0,kTRUE);</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       const char *symname = SymName(volid);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       if (!GetFromGeometry(symname, *fgAlignObjs[iLayer-kFirstLayer][iModule]))</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         AliErrorClass(Form(&quot;Failed to extract the alignment object for the volume (ID=%d and path=%s) !&quot;,volid,symname));</span>
+<span class="lineNum">     421 </span>            :     }
+<span class="lineNum">     422 </span>            :   }
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 : }</span>
+<a name="425"><span class="lineNum">     425 </span>            : </a>
+<span class="lineNum">     426 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     427 </span>            : AliAlignObj* AliGeomManager::GetAlignObj(UShort_t voluid)
+<span class="lineNum">     428 </span>            : {
+<span class="lineNum">     429 </span>            :   // Returns the alignment object for given volume ID
+<span class="lineNum">     430 </span>            :   //
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   Int_t modId;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   ELayerID layerId = VolUIDToLayer(voluid,modId);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   return GetAlignObj(layerId,modId);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 : }</span>
+<a name="435"><span class="lineNum">     435 </span>            : </a>
+<span class="lineNum">     436 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     437 </span>            : AliAlignObj* AliGeomManager::GetAlignObj(ELayerID layerId, Int_t modId)
+<span class="lineNum">     438 </span>            : {
+<span class="lineNum">     439 </span>            :   // Returns pointer to alignment object given its layer and module ID
+<span class="lineNum">     440 </span>            :   //
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :   if(modId&lt;0 || modId&gt;=fgLayerSize[layerId-kFirstLayer]){</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;Module number %d not in the valid range (0-&gt;%d) !&quot;,modId,fgLayerSize[layerId-kFirstLayer]-1));</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     444 </span>            :   }
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :   InitAlignObjFromGeometry();</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   return fgAlignObjs[layerId-kFirstLayer][modId];</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 : }</span>
+<a name="449"><span class="lineNum">     449 </span>            : </a>
+<span class="lineNum">     450 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     451 </span>            : const char* AliGeomManager::SymName(UShort_t voluid)
+<span class="lineNum">     452 </span>            : {
+<span class="lineNum">     453 </span>            :   // Returns the symbolic volume name for given volume ID
+<span class="lineNum">     454 </span>            :   //
+<span class="lineNum">     455 </span><span class="lineCov">       1820 :   Int_t modId;</span>
+<span class="lineNum">     456 </span><span class="lineCov">        910 :   ELayerID layerId = VolUIDToLayer(voluid,modId);</span>
+<span class="lineNum">     457 </span><span class="lineCov">       1820 :   return SymName(layerId,modId);</span>
+<span class="lineNum">     458 </span><span class="lineCov">        910 : }</span>
+<a name="459"><span class="lineNum">     459 </span>            : </a>
+<span class="lineNum">     460 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     461 </span>            : const char* AliGeomManager::SymName(ELayerID layerId, Int_t modId)
+<span class="lineNum">     462 </span>            : {
+<span class="lineNum">     463 </span>            :   // Returns the symbolic volume name given for a given layer
+<span class="lineNum">     464 </span>            :   // and module ID
+<span class="lineNum">     465 </span>            :   //
+<span class="lineNum">     466 </span><span class="lineCov">     109452 :   if(!fgGeometry){</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;No geometry instance loaded yet!&quot;);</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     469 </span>            :   }
+<span class="lineNum">     470 </span><span class="lineCov">     109452 :   if(modId&lt;0 || modId&gt;=fgLayerSize[layerId-kFirstLayer]){</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;Module number %d not in the valid range (0-&gt;%d) !&quot;,modId,fgLayerSize[layerId-kFirstLayer]-1));</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     473 </span>            :   }
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span><span class="lineCov">      54726 :   TGeoPNEntry* pne = fgPNEntry[layerId-kFirstLayer][modId];</span>
+<span class="lineNum">     476 </span><span class="lineCov">      54726 :   if(!pne)</span>
+<span class="lineNum">     477 </span>            :   {
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;Module %d of layer %s is not activated!&quot;,modId,LayerName(layerId)));</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     480 </span>            :   }
+<span class="lineNum">     481 </span><span class="lineCov">      54726 :   return pne-&gt;GetName();</span>
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineCov">      54726 : }</span>
+<a name="484"><span class="lineNum">     484 </span>            : </a>
+<span class="lineNum">     485 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     486 </span>            : Bool_t AliGeomManager::CheckSymNamesLUT(const char* /*detsToBeChecked*/)
+<span class="lineNum">     487 </span>            : {
+<span class="lineNum">     488 </span>            :   // Check the look-up table which associates the unique numerical identity of
+<span class="lineNum">     489 </span>            :   // each alignable volume to the corresponding symbolic volume name.
+<span class="lineNum">     490 </span>            :   // The LUT is now held inside the geometry and handled by TGeo.
+<span class="lineNum">     491 </span>            :   // The method is meant to be launched when loading a geometry to verify that
+<span class="lineNum">     492 </span>            :   // no changes in the symbolic names have been introduced, which would prevent
+<span class="lineNum">     493 </span>            :   // backward compatibility with alignment objects.
+<span class="lineNum">     494 </span>            :   // To accept both complete and partial geometry, this method skips the check
+<span class="lineNum">     495 </span>            :   // for TRD and TOF volumes which are missing in the partial geometry.
+<span class="lineNum">     496 </span>            :   // 
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : //  TString detsString(detsToBeChecked);
+<span class="lineNum">     499 </span>            : //  if(detsString.Contains(&quot;ALL&quot;)) detsString=&quot;ITS TPC TOF TRD HMPID PHOS EMCAL&quot;;
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            :   // Temporary measure to face the case of reconstruction over detectors not present in the geometry
+<span class="lineNum">     502 </span><span class="lineCov">          6 :   TString detsString = &quot;&quot;;</span>
+<span class="lineNum">     503 </span><span class="lineCov">          9 :   if(fgGeometry-&gt;CheckPath(&quot;ALIC_1/ITSV_1&quot;)) detsString+=&quot;ITS &quot;;</span>
+<span class="lineNum">     504 </span><span class="lineCov">          9 :   if(fgGeometry-&gt;CheckPath(&quot;ALIC_1/TPC_M_1&quot;)) detsString+=&quot;TPC &quot;;</span>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineCov">          3 :   TString tofsm;</span>
+<span class="lineNum">     507 </span><span class="lineCov">          3 :   TString baseTof(&quot;ALIC_1/B077_1/BSEGMO&quot;);</span>
+<span class="lineNum">     508 </span><span class="lineCov">          3 :   TString middleTof(&quot;_1/BTOF&quot;);</span>
+<span class="lineNum">     509 </span><span class="lineCov">          3 :   TString trailTof(&quot;_1/FTOA_0&quot;);</span>
+<span class="lineNum">     510 </span>            :   Bool_t tofActive=kFALSE;
+<span class="lineNum">     511 </span><span class="lineCov">          3 :   Bool_t tofSMs[18];</span>
+<span class="lineNum">     512 </span><span class="lineCov">        114 :   for(Int_t sm=0; sm&lt;18; sm++)</span>
+<span class="lineNum">     513 </span>            :   {
+<span class="lineNum">     514 </span><span class="lineCov">         54 :     tofSMs[sm]=kFALSE;</span>
+<span class="lineNum">     515 </span><span class="lineCov">         54 :     tofsm=baseTof;</span>
+<span class="lineNum">     516 </span><span class="lineCov">         54 :     tofsm += sm;</span>
+<span class="lineNum">     517 </span><span class="lineCov">         54 :     tofsm += middleTof;</span>
+<span class="lineNum">     518 </span><span class="lineCov">         54 :     tofsm += sm;</span>
+<span class="lineNum">     519 </span><span class="lineCov">         54 :     tofsm += trailTof;</span>
+<span class="lineNum">     520 </span><span class="lineCov">        162 :     if(fgGeometry-&gt;CheckPath(tofsm.Data()))</span>
+<span class="lineNum">     521 </span>            :     {
+<span class="lineNum">     522 </span>            :       tofActive=kTRUE;
+<span class="lineNum">     523 </span><span class="lineCov">         45 :       tofSMs[sm]=kTRUE;</span>
+<span class="lineNum">     524 </span><span class="lineCov">         45 :     }</span>
+<span class="lineNum">     525 </span>            :   }
+<span class="lineNum">     526 </span><span class="lineCov">          6 :   if(tofActive) detsString+=&quot;TOF &quot;;</span>
+<span class="lineNum">     527 </span>            :   
+<span class="lineNum">     528 </span><span class="lineCov">          3 :   TString trdsm;</span>
+<span class="lineNum">     529 </span><span class="lineCov">          3 :   TString baseTrd(&quot;ALIC_1/B077_1/BSEGMO&quot;);</span>
+<span class="lineNum">     530 </span><span class="lineCov">          3 :   TString middleTrd(&quot;_1/BTRD&quot;);</span>
+<span class="lineNum">     531 </span><span class="lineCov">          3 :   TString trailTrd(&quot;_1/UTR1_1&quot;);</span>
+<span class="lineNum">     532 </span>            :   Bool_t trdActive=kFALSE;
+<span class="lineNum">     533 </span><span class="lineCov">          3 :   Bool_t trdSMs[18];</span>
+<span class="lineNum">     534 </span><span class="lineCov">        114 :   for(Int_t sm=0; sm&lt;18; sm++)</span>
+<span class="lineNum">     535 </span>            :   {
+<span class="lineNum">     536 </span><span class="lineCov">         54 :     trdSMs[sm]=kFALSE;</span>
+<span class="lineNum">     537 </span><span class="lineCov">         54 :     trdsm=baseTrd;</span>
+<span class="lineNum">     538 </span><span class="lineCov">         54 :     trdsm += sm;</span>
+<span class="lineNum">     539 </span><span class="lineCov">         54 :     trdsm += middleTrd;</span>
+<span class="lineNum">     540 </span><span class="lineCov">         54 :     trdsm += sm;</span>
+<span class="lineNum">     541 </span><span class="lineCov">         54 :     trdsm += trailTrd;</span>
+<span class="lineNum">     542 </span><span class="lineCov">        162 :     if(fgGeometry-&gt;CheckPath(trdsm.Data()))</span>
+<span class="lineNum">     543 </span>            :     {
+<span class="lineNum">     544 </span>            :       trdActive=kTRUE;
+<span class="lineNum">     545 </span><span class="lineCov">         25 :       trdSMs[sm]=kTRUE;</span>
+<span class="lineNum">     546 </span><span class="lineCov">         25 :     }</span>
+<span class="lineNum">     547 </span>            :   }
+<span class="lineNum">     548 </span><span class="lineCov">          6 :   if(trdActive) detsString+=&quot;TRD &quot;;</span>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineCov">          9 :   if(fgGeometry-&gt;CheckPath(&quot;ALIC_1/Hmp0_0&quot;)) detsString+=&quot;HMPID &quot;;</span>
+<span class="lineNum">     551 </span>            :   
+<span class="lineNum">     552 </span><span class="lineCov">          6 :   TString phosMod, cpvMod;</span>
+<span class="lineNum">     553 </span><span class="lineCov">          3 :   TString basePhos(&quot;ALIC_1/PHOS_&quot;);</span>
+<span class="lineNum">     554 </span>            :   Bool_t phosActive=kFALSE;
+<span class="lineNum">     555 </span>            :   Bool_t cpvActive=kFALSE;
+<span class="lineNum">     556 </span><span class="lineCov">          3 :   Bool_t phosMods[5];</span>
+<span class="lineNum">     557 </span><span class="lineCov">         36 :   for(Int_t pmod=0; pmod&lt;5; pmod++)</span>
+<span class="lineNum">     558 </span>            :   {
+<span class="lineNum">     559 </span><span class="lineCov">         15 :     phosMods[pmod]=kFALSE;</span>
+<span class="lineNum">     560 </span><span class="lineCov">         15 :     phosMod = basePhos;</span>
+<span class="lineNum">     561 </span><span class="lineCov">         15 :     phosMod += (pmod+1);</span>
+<span class="lineNum">     562 </span><span class="lineCov">         15 :     cpvMod = phosMod;</span>
+<span class="lineNum">     563 </span><span class="lineCov">         15 :     cpvMod += &quot;/PCPV_1&quot;;</span>
+<span class="lineNum">     564 </span><span class="lineCov">         45 :     if(fgGeometry-&gt;CheckPath(phosMod.Data()))</span>
+<span class="lineNum">     565 </span>            :     {
+<span class="lineNum">     566 </span>            :       phosActive=kTRUE;
+<span class="lineNum">     567 </span><span class="lineCov">         11 :       phosMods[pmod]=kTRUE;</span>
+<span class="lineNum">     568 </span><span class="lineCov">         38 :       if(fgGeometry-&gt;CheckPath(cpvMod.Data())) cpvActive=kTRUE;</span>
+<span class="lineNum">     569 </span>            :     }
+<span class="lineNum">     570 </span>            :   }
+<span class="lineNum">     571 </span><span class="lineCov">          6 :   if(phosActive) detsString+=&quot;PHOS &quot;;</span>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            :   // Check over the ten EMCAL full supermodules and the two EMCAL half supermodules
+<span class="lineNum">     574 </span><span class="lineCov">          3 :   TString emcalSM;</span>
+<span class="lineNum">     575 </span><span class="lineCov">          3 :   TString baseEmcalSM(&quot;ALIC_1/XEN1_1/&quot;);</span>
+<span class="lineNum">     576 </span>            :   Bool_t emcalActive=kFALSE;
+<span class="lineNum">     577 </span><span class="lineCov">          3 :   Bool_t emcalSMs[22] = {kFALSE};</span>
+<span class="lineNum">     578 </span><span class="lineCov">        138 :   for(Int_t sm=0; sm&lt;22; sm++)</span>
+<span class="lineNum">     579 </span>            :   {
+<span class="lineNum">     580 </span><span class="lineCov">         66 :     emcalSM=baseEmcalSM;</span>
+<span class="lineNum">     581 </span><span class="lineCov">         66 :     if(sm&lt;10){</span>
+<span class="lineNum">     582 </span><span class="lineCov">         30 :       emcalSM += &quot;SMOD_&quot;;</span>
+<span class="lineNum">     583 </span><span class="lineCov">         30 :       emcalSM += (sm+1);</span>
+<span class="lineNum">     584 </span><span class="lineCov">         36 :     }else if(sm/2 == 5){</span>
+<span class="lineNum">     585 </span><span class="lineCov">          6 :       emcalSM += &quot;SM10_&quot;;</span>
+<span class="lineNum">     586 </span><span class="lineCov">          6 :       emcalSM += (sm-9);</span>
+<span class="lineNum">     587 </span><span class="lineCov">         30 :     }else if(sm &gt; 11){</span>
+<span class="lineNum">     588 </span><span class="lineCov">         30 :       emcalSM += &quot;DCSM_&quot;;</span>
+<span class="lineNum">     589 </span><span class="lineCov">         30 :       emcalSM += (sm-11);</span>
+<span class="lineNum">     590 </span>            :     }
+<span class="lineNum">     591 </span><span class="lineCov">        198 :     if(fgGeometry-&gt;CheckPath(emcalSM.Data()))</span>
+<span class="lineNum">     592 </span>            :     {
+<span class="lineNum">     593 </span>            :       emcalActive=kTRUE;
+<span class="lineNum">     594 </span><span class="lineCov">         42 :       emcalSMs[sm]=kTRUE;</span>
+<span class="lineNum">     595 </span><span class="lineCov">         42 :     }</span>
+<span class="lineNum">     596 </span>            :   }
+<span class="lineNum">     597 </span><span class="lineCov">          6 :   if(emcalActive) detsString+=&quot;EMCAL &quot;;</span>
+<span class="lineNum">     598 </span>            :   
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineCov">          3 :   TString symname;</span>
+<span class="lineNum">     601 </span>            :   const char* sname;
+<span class="lineNum">     602 </span>            :   TGeoPNEntry* pne = 0x0;
+<span class="lineNum">     603 </span>            :   Int_t uid; // global unique identity
+<span class="lineNum">     604 </span>            :   Int_t modnum; // unique id inside layer; in the following, set it to 0 at the start of each layer
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;ITS&quot;)){</span>
+<span class="lineNum">     607 </span>            :   /*********************       ITS layers  ***********************/
+<span class="lineNum">     608 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for ITS layers&quot;);</span>
+<span class="lineNum">     609 </span><span class="lineCov">          3 :     TString strSPD = &quot;ITS/SPD&quot;;</span>
+<span class="lineNum">     610 </span><span class="lineCov">          3 :     TString strSDD = &quot;ITS/SDD&quot;;</span>
+<span class="lineNum">     611 </span><span class="lineCov">          3 :     TString strSSD = &quot;ITS/SSD&quot;;</span>
+<span class="lineNum">     612 </span><span class="lineCov">          3 :     TString strStave = &quot;/Stave&quot;;</span>
+<span class="lineNum">     613 </span><span class="lineCov">          3 :     TString strHalfStave = &quot;/HalfStave&quot;;</span>
+<span class="lineNum">     614 </span><span class="lineCov">          3 :     TString strLadder = &quot;/Ladder&quot;;</span>
+<span class="lineNum">     615 </span><span class="lineCov">          3 :     TString strSector = &quot;/Sector&quot;;</span>
+<span class="lineNum">     616 </span><span class="lineCov">          3 :     TString strSensor = &quot;/Sensor&quot;;</span>
+<span class="lineNum">     617 </span><span class="lineCov">          3 :     TString strEntryName1;</span>
+<span class="lineNum">     618 </span><span class="lineCov">          3 :     TString strEntryName2;</span>
+<span class="lineNum">     619 </span><span class="lineCov">          3 :     TString strEntryName3;</span>
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :     /*********************       SPD layer1  ***********************/
+<span class="lineNum">     622 </span>            :     {
+<span class="lineNum">     623 </span>            :       modnum = 0;
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span><span class="lineCov">         69 :       for(Int_t cSect = 0; cSect&lt;10; cSect++){</span>
+<span class="lineNum">     626 </span><span class="lineCov">         30 :         strEntryName1 = strSPD;</span>
+<span class="lineNum">     627 </span><span class="lineCov">         30 :         strEntryName1 += 0;</span>
+<span class="lineNum">     628 </span><span class="lineCov">         30 :         strEntryName1 += strSector;</span>
+<span class="lineNum">     629 </span><span class="lineCov">         30 :         strEntryName1 += cSect;</span>
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineCov">        210 :         for(Int_t cStave =0; cStave&lt;2; cStave++){</span>
+<span class="lineNum">     632 </span><span class="lineCov">         60 :           strEntryName2 = strEntryName1;</span>
+<span class="lineNum">     633 </span><span class="lineCov">         60 :           strEntryName2 += strStave;</span>
+<span class="lineNum">     634 </span><span class="lineCov">         60 :           strEntryName2 += cStave;</span>
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span><span class="lineCov">        420 :           for (Int_t cHS=0; cHS&lt;2; cHS++) {</span>
+<span class="lineNum">     637 </span><span class="lineCov">        120 :             strEntryName3 = strEntryName2;</span>
+<span class="lineNum">     638 </span><span class="lineCov">        120 :             strEntryName3 += strHalfStave;</span>
+<span class="lineNum">     639 </span><span class="lineCov">        120 :             strEntryName3 += cHS;</span>
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span><span class="lineCov">        840 :             for(Int_t cLad =0; cLad&lt;2; cLad++){</span>
+<span class="lineNum">     642 </span><span class="lineCov">        240 :               symname = strEntryName3;</span>
+<span class="lineNum">     643 </span><span class="lineCov">        240 :               symname += strLadder;</span>
+<span class="lineNum">     644 </span><span class="lineCov">        240 :               symname += cLad+cHS*2;</span>
+<span class="lineNum">     645 </span><span class="lineCov">        240 :               uid = LayerToVolUID(kSPD1,modnum++);</span>
+<span class="lineNum">     646 </span><span class="lineCov">        240 :               pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     647 </span><span class="lineCov">        240 :               if(!pne)</span>
+<span class="lineNum">     648 </span>            :               {
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :                 AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     651 </span>            :               }
+<span class="lineNum">     652 </span><span class="lineCov">        240 :               sname = pne-&gt;GetName();</span>
+<span class="lineNum">     653 </span><span class="lineCov">        480 :               if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     654 </span>            :               {
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :                 AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d.&quot;</span>
+<span class="lineNum">     656 </span>            :                       &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     658 </span>            :               }
+<span class="lineNum">     659 </span>            :             }
+<span class="lineNum">     660 </span>            :           }
+<span class="lineNum">     661 </span>            :         }
+<span class="lineNum">     662 </span>            :       }
+<span class="lineNum">     663 </span>            :     }
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span>            :     /*********************       SPD layer2  ***********************/
+<span class="lineNum">     666 </span>            :     {
+<span class="lineNum">     667 </span>            :       modnum = 0;
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span><span class="lineCov">         69 :       for(Int_t cSect = 0; cSect&lt;10; cSect++){</span>
+<span class="lineNum">     670 </span><span class="lineCov">         30 :         strEntryName1 = strSPD;</span>
+<span class="lineNum">     671 </span><span class="lineCov">         30 :         strEntryName1 += 1;</span>
+<span class="lineNum">     672 </span><span class="lineCov">         30 :         strEntryName1 += strSector;</span>
+<span class="lineNum">     673 </span><span class="lineCov">         30 :         strEntryName1 += cSect;</span>
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineCov">        330 :         for(Int_t cStave =0; cStave&lt;4; cStave++){</span>
+<span class="lineNum">     676 </span><span class="lineCov">        120 :           strEntryName2 = strEntryName1;</span>
+<span class="lineNum">     677 </span><span class="lineCov">        120 :           strEntryName2 += strStave;</span>
+<span class="lineNum">     678 </span><span class="lineCov">        120 :           strEntryName2 += cStave;</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineCov">        840 :           for (Int_t cHS=0; cHS&lt;2; cHS++) {</span>
+<span class="lineNum">     681 </span><span class="lineCov">        240 :             strEntryName3 = strEntryName2;</span>
+<span class="lineNum">     682 </span><span class="lineCov">        240 :             strEntryName3 += strHalfStave;</span>
+<span class="lineNum">     683 </span><span class="lineCov">        240 :             strEntryName3 += cHS;</span>
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span><span class="lineCov">       1680 :             for(Int_t cLad =0; cLad&lt;2; cLad++){</span>
+<span class="lineNum">     686 </span><span class="lineCov">        480 :               symname = strEntryName3;</span>
+<span class="lineNum">     687 </span><span class="lineCov">        480 :               symname += strLadder;</span>
+<span class="lineNum">     688 </span><span class="lineCov">        480 :               symname += cLad+cHS*2;</span>
+<span class="lineNum">     689 </span><span class="lineCov">        480 :               uid = LayerToVolUID(kSPD2,modnum++);</span>
+<span class="lineNum">     690 </span><span class="lineCov">        480 :               pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     691 </span><span class="lineCov">        480 :               if(!pne)</span>
+<span class="lineNum">     692 </span>            :               {
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :                 AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     695 </span>            :               }
+<span class="lineNum">     696 </span><span class="lineCov">        480 :               sname = pne-&gt;GetName();</span>
+<span class="lineNum">     697 </span><span class="lineCov">        960 :               if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     698 </span>            :               {
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :                 AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d.&quot;</span>
+<span class="lineNum">     700 </span>            :                       &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     702 </span>            :               }
+<span class="lineNum">     703 </span>            :             }
+<span class="lineNum">     704 </span>            :           }
+<span class="lineNum">     705 </span>            :         }
+<span class="lineNum">     706 </span>            :       }
+<span class="lineNum">     707 </span>            :     }
+<span class="lineNum">     708 </span>            : 
+<span class="lineNum">     709 </span>            :     /*********************       SDD layer1  ***********************/
+<span class="lineNum">     710 </span>            :     {
+<span class="lineNum">     711 </span>            :       modnum=0;
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span><span class="lineCov">         93 :       for(Int_t c1 = 1; c1&lt;=14; c1++){</span>
+<span class="lineNum">     714 </span><span class="lineCov">         42 :         strEntryName1 = strSDD;</span>
+<span class="lineNum">     715 </span><span class="lineCov">         42 :         strEntryName1 += 2;</span>
+<span class="lineNum">     716 </span><span class="lineCov">         42 :         strEntryName1 +=strLadder;</span>
+<span class="lineNum">     717 </span><span class="lineCov">         42 :         strEntryName1 += (c1-1);</span>
+<span class="lineNum">     718 </span><span class="lineCov">        630 :         for(Int_t c2 =1; c2&lt;=6; c2++){</span>
+<span class="lineNum">     719 </span><span class="lineCov">        252 :           symname = strEntryName1;</span>
+<span class="lineNum">     720 </span><span class="lineCov">        252 :           symname += strSensor;</span>
+<span class="lineNum">     721 </span><span class="lineCov">        252 :           symname += (c2-1);</span>
+<span class="lineNum">     722 </span><span class="lineCov">        252 :           uid = LayerToVolUID(kSDD1,modnum++);</span>
+<span class="lineNum">     723 </span><span class="lineCov">        252 :           pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     724 </span><span class="lineCov">        252 :           if(!pne)</span>
+<span class="lineNum">     725 </span>            :           {
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     728 </span>            :           }
+<span class="lineNum">     729 </span><span class="lineCov">        252 :           sname = pne-&gt;GetName();</span>
+<span class="lineNum">     730 </span><span class="lineCov">        504 :           if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     731 </span>            :           {
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     733 </span>            :                   &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     735 </span>            :           }
+<span class="lineNum">     736 </span>            :         }
+<span class="lineNum">     737 </span>            :       }
+<span class="lineNum">     738 </span>            :     }
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            :     /*********************       SDD layer2  ***********************/
+<span class="lineNum">     741 </span>            :     {
+<span class="lineNum">     742 </span>            :       modnum=0;
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineCov">        141 :       for(Int_t c1 = 1; c1&lt;=22; c1++){</span>
+<span class="lineNum">     745 </span><span class="lineCov">         66 :         strEntryName1 = strSDD;</span>
+<span class="lineNum">     746 </span><span class="lineCov">         66 :         strEntryName1 += 3;</span>
+<span class="lineNum">     747 </span><span class="lineCov">         66 :         strEntryName1 +=strLadder;</span>
+<span class="lineNum">     748 </span><span class="lineCov">         66 :         strEntryName1 += (c1-1);</span>
+<span class="lineNum">     749 </span><span class="lineCov">       1254 :         for(Int_t c2 = 1; c2&lt;=8; c2++){</span>
+<span class="lineNum">     750 </span><span class="lineCov">        528 :           symname = strEntryName1;</span>
+<span class="lineNum">     751 </span><span class="lineCov">        528 :           symname += strSensor;</span>
+<span class="lineNum">     752 </span><span class="lineCov">        528 :           symname += (c2-1);</span>
+<span class="lineNum">     753 </span><span class="lineCov">        528 :           uid = LayerToVolUID(kSDD2,modnum++);</span>
+<span class="lineNum">     754 </span><span class="lineCov">        528 :           pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     755 </span><span class="lineCov">        528 :           if(!pne)</span>
+<span class="lineNum">     756 </span>            :           {
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     759 </span>            :           }
+<span class="lineNum">     760 </span><span class="lineCov">        528 :           sname = pne-&gt;GetName();</span>
+<span class="lineNum">     761 </span><span class="lineCov">       1056 :           if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     762 </span>            :           {
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     764 </span>            :                   &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     766 </span>            :           }
+<span class="lineNum">     767 </span>            :         }
+<span class="lineNum">     768 </span>            :       }
+<span class="lineNum">     769 </span>            :     }
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span>            :     /*********************       SSD layer1  ***********************/
+<span class="lineNum">     772 </span>            :     {
+<span class="lineNum">     773 </span>            :       modnum=0;
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineCov">        213 :       for(Int_t c1 = 1; c1&lt;=34; c1++){</span>
+<span class="lineNum">     776 </span><span class="lineCov">        102 :         strEntryName1 = strSSD;</span>
+<span class="lineNum">     777 </span><span class="lineCov">        102 :         strEntryName1 += 4;</span>
+<span class="lineNum">     778 </span><span class="lineCov">        102 :         strEntryName1 +=strLadder;</span>
+<span class="lineNum">     779 </span><span class="lineCov">        102 :         strEntryName1 += (c1-1);</span>
+<span class="lineNum">     780 </span><span class="lineCov">       4794 :         for(Int_t c2 = 1; c2&lt;=22; c2++){</span>
+<span class="lineNum">     781 </span><span class="lineCov">       2244 :           symname = strEntryName1;</span>
+<span class="lineNum">     782 </span><span class="lineCov">       2244 :           symname += strSensor;</span>
+<span class="lineNum">     783 </span><span class="lineCov">       2244 :           symname += (c2-1);</span>
+<span class="lineNum">     784 </span><span class="lineCov">       2244 :           uid = LayerToVolUID(kSSD1,modnum++);</span>
+<span class="lineNum">     785 </span><span class="lineCov">       2244 :           pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     786 </span><span class="lineCov">       2244 :           if(!pne)</span>
+<span class="lineNum">     787 </span>            :           {
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     790 </span>            :           }
+<span class="lineNum">     791 </span><span class="lineCov">       2244 :           sname = pne-&gt;GetName();</span>
+<span class="lineNum">     792 </span><span class="lineCov">       4488 :           if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     793 </span>            :           {
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     795 </span>            :                   &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     797 </span>            :           }
+<span class="lineNum">     798 </span>            :         }
+<span class="lineNum">     799 </span>            :       }
+<span class="lineNum">     800 </span>            :     }
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span>            :     /*********************       SSD layer2  ***********************/
+<span class="lineNum">     803 </span>            :     {
+<span class="lineNum">     804 </span>            :       modnum=0;
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineCov">        237 :       for(Int_t c1 = 1; c1&lt;=38; c1++){</span>
+<span class="lineNum">     807 </span><span class="lineCov">        114 :         strEntryName1 = strSSD;</span>
+<span class="lineNum">     808 </span><span class="lineCov">        114 :         strEntryName1 += 5;</span>
+<span class="lineNum">     809 </span><span class="lineCov">        114 :         strEntryName1 +=strLadder;</span>
+<span class="lineNum">     810 </span><span class="lineCov">        114 :         strEntryName1 += (c1-1);</span>
+<span class="lineNum">     811 </span><span class="lineCov">       6042 :         for(Int_t c2 = 1; c2&lt;=25; c2++){</span>
+<span class="lineNum">     812 </span><span class="lineCov">       2850 :           symname = strEntryName1;</span>
+<span class="lineNum">     813 </span><span class="lineCov">       2850 :           symname += strSensor;</span>
+<span class="lineNum">     814 </span><span class="lineCov">       2850 :           symname += (c2-1);</span>
+<span class="lineNum">     815 </span><span class="lineCov">       2850 :           uid = LayerToVolUID(kSSD2,modnum++);</span>
+<span class="lineNum">     816 </span><span class="lineCov">       2850 :           pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     817 </span><span class="lineCov">       2850 :           if(!pne)</span>
+<span class="lineNum">     818 </span>            :           {
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     821 </span>            :           }
+<span class="lineNum">     822 </span><span class="lineCov">       2850 :           sname = pne-&gt;GetName();</span>
+<span class="lineNum">     823 </span><span class="lineCov">       5700 :           if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     824 </span>            :           {
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     826 </span>            :                   &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     828 </span>            :           }
+<span class="lineNum">     829 </span>            :         }
+<span class="lineNum">     830 </span>            :       }
+<span class="lineNum">     831 </span>            :     }
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for ITS symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">     834 </span><span class="lineCov">          6 :   }</span>
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;TPC&quot;))</span>
+<span class="lineNum">     837 </span>            :   {
+<span class="lineNum">     838 </span>            :     /***************    TPC inner and outer layers    ****************/
+<span class="lineNum">     839 </span>            :     
+<span class="lineNum">     840 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for TPC layers&quot;);</span>
+<span class="lineNum">     841 </span><span class="lineCov">          3 :     TString sAsector=&quot;TPC/EndcapA/Sector&quot;;</span>
+<span class="lineNum">     842 </span><span class="lineCov">          3 :     TString sCsector=&quot;TPC/EndcapC/Sector&quot;;</span>
+<span class="lineNum">     843 </span><span class="lineCov">          3 :     TString sInner=&quot;/InnerChamber&quot;;</span>
+<span class="lineNum">     844 </span><span class="lineCov">          3 :     TString sOuter=&quot;/OuterChamber&quot;;</span>
+<span class="lineNum">     845 </span>            : 
+<span class="lineNum">     846 </span>            :     /***************    TPC inner chambers' layer    ****************/
+<span class="lineNum">     847 </span>            :     {
+<span class="lineNum">     848 </span>            :       modnum = 0;
+<span class="lineNum">     849 </span>            : 
+<span class="lineNum">     850 </span><span class="lineCov">        117 :       for(Int_t cnt=1; cnt&lt;=18; cnt++)</span>
+<span class="lineNum">     851 </span>            :       {
+<span class="lineNum">     852 </span><span class="lineCov">         54 :         symname = sAsector;</span>
+<span class="lineNum">     853 </span><span class="lineCov">         54 :         symname += cnt;</span>
+<span class="lineNum">     854 </span><span class="lineCov">         54 :         symname += sInner;</span>
+<span class="lineNum">     855 </span><span class="lineCov">         54 :         uid = LayerToVolUID(kTPC1,modnum++);</span>
+<span class="lineNum">     856 </span><span class="lineCov">         54 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     857 </span><span class="lineCov">         54 :         if(!pne)</span>
+<span class="lineNum">     858 </span>            :         {
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     861 </span>            :         }
+<span class="lineNum">     862 </span><span class="lineCov">         54 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">     863 </span><span class="lineCov">        108 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     864 </span>            :         {
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     866 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     868 </span>            :         }
+<span class="lineNum">     869 </span>            :       }
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineCov">        117 :       for(Int_t cnt=1; cnt&lt;=18; cnt++)</span>
+<span class="lineNum">     872 </span>            :       {
+<span class="lineNum">     873 </span><span class="lineCov">         54 :         symname = sCsector;</span>
+<span class="lineNum">     874 </span><span class="lineCov">         54 :         symname += cnt;</span>
+<span class="lineNum">     875 </span><span class="lineCov">         54 :         symname += sInner;</span>
+<span class="lineNum">     876 </span><span class="lineCov">         54 :         uid = LayerToVolUID(kTPC1,modnum++);</span>
+<span class="lineNum">     877 </span><span class="lineCov">         54 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     878 </span><span class="lineCov">         54 :         if(!pne)</span>
+<span class="lineNum">     879 </span>            :         {
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     882 </span>            :         }
+<span class="lineNum">     883 </span><span class="lineCov">         54 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">     884 </span><span class="lineCov">        108 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     885 </span>            :         {
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     887 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     889 </span>            :         }
+<span class="lineNum">     890 </span>            :       }
+<span class="lineNum">     891 </span>            :     }
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span>            :     /***************    TPC outer chambers' layer    ****************/
+<span class="lineNum">     894 </span>            :     {
+<span class="lineNum">     895 </span>            :       modnum = 0;
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span><span class="lineCov">        117 :       for(Int_t cnt=1; cnt&lt;=18; cnt++)</span>
+<span class="lineNum">     898 </span>            :       {
+<span class="lineNum">     899 </span><span class="lineCov">         54 :         symname = sAsector;</span>
+<span class="lineNum">     900 </span><span class="lineCov">         54 :         symname += cnt;</span>
+<span class="lineNum">     901 </span><span class="lineCov">         54 :         symname += sOuter;</span>
+<span class="lineNum">     902 </span><span class="lineCov">         54 :         uid = LayerToVolUID(kTPC2,modnum++);</span>
+<span class="lineNum">     903 </span><span class="lineCov">         54 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     904 </span><span class="lineCov">         54 :         if(!pne)</span>
+<span class="lineNum">     905 </span>            :         {
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     908 </span>            :         }
+<span class="lineNum">     909 </span><span class="lineCov">         54 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">     910 </span><span class="lineCov">        108 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     911 </span>            :         {
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     913 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     915 </span>            :         }
+<span class="lineNum">     916 </span>            :       }
+<span class="lineNum">     917 </span>            : 
+<span class="lineNum">     918 </span><span class="lineCov">        117 :       for(Int_t cnt=1; cnt&lt;=18; cnt++)</span>
+<span class="lineNum">     919 </span>            :       {
+<span class="lineNum">     920 </span><span class="lineCov">         54 :         symname = sCsector;</span>
+<span class="lineNum">     921 </span><span class="lineCov">         54 :         symname += cnt;</span>
+<span class="lineNum">     922 </span><span class="lineCov">         54 :         symname += sOuter;</span>
+<span class="lineNum">     923 </span><span class="lineCov">         54 :         uid = LayerToVolUID(kTPC2,modnum++);</span>
+<span class="lineNum">     924 </span><span class="lineCov">         54 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     925 </span><span class="lineCov">         54 :         if(!pne)</span>
+<span class="lineNum">     926 </span>            :         {
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     929 </span>            :         }
+<span class="lineNum">     930 </span><span class="lineCov">         54 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">     931 </span><span class="lineCov">        108 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     932 </span>            :         {
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     934 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     936 </span>            :         }
+<span class="lineNum">     937 </span>            :       }
+<span class="lineNum">     938 </span>            :     }
+<span class="lineNum">     939 </span>            : 
+<span class="lineNum">     940 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for TPC symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">     941 </span><span class="lineCov">          6 :   }</span>
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;TOF&quot;))</span>
+<span class="lineNum">     944 </span>            :   {
+<span class="lineNum">     945 </span>            :     /*********************       TOF layer   ***********************/
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for TOF layers&quot;);</span>
+<span class="lineNum">     948 </span>            :     modnum=0;
+<span class="lineNum">     949 </span>            : 
+<span class="lineNum">     950 </span>            :     Int_t nstrA=15;
+<span class="lineNum">     951 </span>            :     Int_t nstrB=19;
+<span class="lineNum">     952 </span>            :     Int_t nstrC=19;
+<span class="lineNum">     953 </span>            :     Int_t nSectors=18;
+<span class="lineNum">     954 </span>            :     Int_t nStrips=nstrA+2*nstrB+2*nstrC;
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span><span class="lineCov">          3 :     TString snSM  = &quot;TOF/sm&quot;;</span>
+<span class="lineNum">     957 </span><span class="lineCov">          3 :     TString snSTRIP = &quot;/strip&quot;;</span>
+<span class="lineNum">     958 </span>            :     
+<span class="lineNum">     959 </span><span class="lineCov">        117 :     for (Int_t isect = 0; isect &lt; nSectors; isect++) {</span>
+<span class="lineNum">     960 </span><span class="lineCov">        324 :         if(tofSMs[isect]) AliDebugClass(3,Form(&quot;Consistency check for symnames of TOF supermodule %d.&quot;,isect));</span>
+<span class="lineNum">     961 </span><span class="lineCov">       9990 :       for (Int_t istr = 1; istr &lt;= nStrips; istr++) {        </span>
+<span class="lineNum">     962 </span><span class="lineCov">       4914 :         symname  = snSM;</span>
+<span class="lineNum">     963 </span><span class="lineCov">       9828 :         symname += Form(&quot;%02d&quot;,isect);</span>
+<span class="lineNum">     964 </span><span class="lineCov">       4914 :         symname += snSTRIP;</span>
+<span class="lineNum">     965 </span><span class="lineCov">       9828 :         symname += Form(&quot;%02d&quot;,istr);</span>
+<span class="lineNum">     966 </span><span class="lineCov">       4914 :         uid = LayerToVolUID(kTOF,modnum++);</span>
+<span class="lineNum">     967 </span><span class="lineCov">       4914 :         if(!tofSMs[isect]) continue; // taking possible missing TOF sectors (partial geometry) into account</span>
+<span class="lineNum">     968 </span><span class="lineCov">       4095 :         if ((isect==13 || isect==14 || isect==15) &amp;&amp; (istr &gt;= 39 &amp;&amp; istr &lt;= 53)) continue; //taking holes into account</span>
+<span class="lineNum">     969 </span><span class="lineCov">       4095 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">     970 </span><span class="lineCov">       4095 :         if(!pne)</span>
+<span class="lineNum">     971 </span>            :         {
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     974 </span>            :         }
+<span class="lineNum">     975 </span><span class="lineCov">       4095 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">     976 </span><span class="lineCov">       8190 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">     977 </span>            :         {
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">     979 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">     981 </span>            :         }
+<span class="lineNum">     982 </span>            :       }
+<span class="lineNum">     983 </span>            :     }
+<span class="lineNum">     984 </span>            :     
+<span class="lineNum">     985 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for TOF symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">     986 </span><span class="lineCov">          6 :   } </span>
+<span class="lineNum">     987 </span>            : 
+<span class="lineNum">     988 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;HMPID&quot;))</span>
+<span class="lineNum">     989 </span>            :   {
+<span class="lineNum">     990 </span>            :     /*********************      HMPID layer   ***********************/
+<span class="lineNum">     991 </span>            : 
+<span class="lineNum">     992 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for HMPID layers&quot;);</span>
+<span class="lineNum">     993 </span><span class="lineCov">          3 :     TString str = &quot;/HMPID/Chamber&quot;;</span>
+<span class="lineNum">     994 </span>            : 
+<span class="lineNum">     995 </span><span class="lineCov">         48 :     for (modnum=0; modnum &lt; 7; modnum++) {</span>
+<span class="lineNum">     996 </span><span class="lineCov">         21 :       symname = str;</span>
+<span class="lineNum">     997 </span><span class="lineCov">         21 :       symname += modnum;</span>
+<span class="lineNum">     998 </span><span class="lineCov">         21 :       uid = LayerToVolUID(kHMPID,modnum);</span>
+<span class="lineNum">     999 </span><span class="lineCov">         21 :       pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">    1000 </span><span class="lineCov">         21 :       if(!pne)</span>
+<span class="lineNum">    1001 </span>            :       {
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :         AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">    1004 </span>            :       }
+<span class="lineNum">    1005 </span><span class="lineCov">         21 :       sname = pne-&gt;GetName();</span>
+<span class="lineNum">    1006 </span><span class="lineCov">         42 :       if(symname.CompareTo(sname)) </span>
+<span class="lineNum">    1007 </span>            :       {
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :         AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">    1009 </span>            :               &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">    1011 </span>            :       }
+<span class="lineNum">    1012 </span>            :     }
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for HMPID symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">    1015 </span><span class="lineCov">          6 :   }</span>
+<span class="lineNum">    1016 </span>            : 
+<span class="lineNum">    1017 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;TRD&quot;))</span>
+<span class="lineNum">    1018 </span>            :   {
+<span class="lineNum">    1019 </span>            :     /*********************      TRD layers 1-6   *******************/
+<span class="lineNum">    1020 </span>            :     //!! 6 layers with index increasing in outwards direction
+<span class="lineNum">    1021 </span>            :     
+<span class="lineNum">    1022 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for TRD layers&quot;);</span>
+<span class="lineNum">    1023 </span><span class="lineCov">          3 :     Int_t arTRDlayId[6] = {kTRD1, kTRD2, kTRD3, kTRD4, kTRD5, kTRD6};</span>
+<span class="lineNum">    1024 </span>            : 
+<span class="lineNum">    1025 </span><span class="lineCov">          3 :     TString snStr  = &quot;TRD/sm&quot;;</span>
+<span class="lineNum">    1026 </span><span class="lineCov">          3 :     TString snApp1 = &quot;/st&quot;;</span>
+<span class="lineNum">    1027 </span><span class="lineCov">          3 :     TString snApp2 = &quot;/pl&quot;;</span>
+<span class="lineNum">    1028 </span>            :     
+<span class="lineNum">    1029 </span><span class="lineCov">         45 :     for(Int_t layer=0; layer&lt;6; layer++){</span>
+<span class="lineNum">    1030 </span>            :       modnum=0;
+<span class="lineNum">    1031 </span><span class="lineCov">        108 :       AliDebugClass(3,Form(&quot;Consistency check for symnames of TRD layer %d.&quot;,layer));</span>
+<span class="lineNum">    1032 </span><span class="lineCov">        702 :       for (Int_t isect = 0; isect &lt; 18; isect++) {</span>
+<span class="lineNum">    1033 </span><span class="lineCov">       4212 :         for (Int_t icham = 0; icham &lt; 5; icham++) {</span>
+<span class="lineNum">    1034 </span><span class="lineCov">       1620 :           symname  = snStr;</span>
+<span class="lineNum">    1035 </span><span class="lineCov">       3240 :           symname += Form(&quot;%02d&quot;,isect);</span>
+<span class="lineNum">    1036 </span><span class="lineCov">       1620 :           symname += snApp1;</span>
+<span class="lineNum">    1037 </span><span class="lineCov">       1620 :           symname += icham;</span>
+<span class="lineNum">    1038 </span><span class="lineCov">       1620 :           symname += snApp2;</span>
+<span class="lineNum">    1039 </span><span class="lineCov">       1620 :           symname += layer;</span>
+<span class="lineNum">    1040 </span><span class="lineCov">       1620 :           uid = LayerToVolUID(arTRDlayId[layer],modnum++);</span>
+<span class="lineNum">    1041 </span><span class="lineCov">       1620 :           if(!trdSMs[isect]) continue;</span>
+<span class="lineNum">    1042 </span><span class="lineCov">        750 :           if ((isect==13 || isect==14 || isect==15) &amp;&amp; icham==2) continue; //keeping holes into account</span>
+<span class="lineNum">    1043 </span><span class="lineCov">        750 :           pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">    1044 </span><span class="lineCov">        750 :           if(!pne)</span>
+<span class="lineNum">    1045 </span>            :           {
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">    1048 </span>            :           }
+<span class="lineNum">    1049 </span><span class="lineCov">        750 :           sname = pne-&gt;GetName();</span>
+<span class="lineNum">    1050 </span><span class="lineCov">       1500 :           if(symname.CompareTo(sname)) </span>
+<span class="lineNum">    1051 </span>            :           {
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :             AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">    1053 </span>            :                   &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">    1055 </span>            :           }
+<span class="lineNum">    1056 </span>            :         }
+<span class="lineNum">    1057 </span>            :       }
+<span class="lineNum">    1058 </span>            :     }
+<span class="lineNum">    1059 </span>            : 
+<span class="lineNum">    1060 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for TRD symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">    1061 </span><span class="lineCov">          6 :   }</span>
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;PHOS&quot;))</span>
+<span class="lineNum">    1064 </span>            :   {
+<span class="lineNum">    1065 </span>            :     /*********************      PHOS EMC layer   ***********************/
+<span class="lineNum">    1066 </span>            : 
+<span class="lineNum">    1067 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for PHOS layers&quot;);</span>
+<span class="lineNum">    1068 </span>            :     
+<span class="lineNum">    1069 </span><span class="lineCov">          3 :       TString str = &quot;PHOS/Module&quot;;</span>
+<span class="lineNum">    1070 </span>            :       modnum=0;
+<span class="lineNum">    1071 </span>            : 
+<span class="lineNum">    1072 </span><span class="lineCov">         39 :       for (Int_t iModule=0; iModule &lt; 5; iModule++) {</span>
+<span class="lineNum">    1073 </span><span class="lineCov">         15 :         if(!phosMods[iModule]) continue;</span>
+<span class="lineNum">    1074 </span><span class="lineCov">         11 :         symname = str;</span>
+<span class="lineNum">    1075 </span><span class="lineCov">         11 :         symname += (iModule+1);</span>
+<span class="lineNum">    1076 </span><span class="lineCov">         11 :         uid = LayerToVolUID(kPHOS1,iModule);</span>
+<span class="lineNum">    1077 </span><span class="lineCov">         11 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">    1078 </span><span class="lineCov">         11 :         if(!pne)</span>
+<span class="lineNum">    1079 </span>            :         {
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">    1082 </span>            :         }
+<span class="lineNum">    1083 </span><span class="lineCov">         11 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">    1084 </span><span class="lineCov">         22 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">    1085 </span>            :         {
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">    1087 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">    1089 </span>            :         }
+<span class="lineNum">    1090 </span>            :         /*********************      PHOS CPV layer   ***********************/
+<span class="lineNum">    1091 </span><span class="lineCov">         11 :         if(!cpvActive) continue;</span>
+<span class="lineNum">    1092 </span><span class="lineCov">          5 :         symname += &quot;/CPV&quot;;</span>
+<span class="lineNum">    1093 </span><span class="lineCov">          5 :         uid = LayerToVolUID(kPHOS2,iModule);</span>
+<span class="lineNum">    1094 </span><span class="lineCov">          5 :         pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">    1095 </span><span class="lineCov">          5 :         if(!pne)</span>
+<span class="lineNum">    1096 </span>            :         {
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">    1099 </span>            :         }
+<span class="lineNum">    1100 </span><span class="lineCov">          5 :         sname = pne-&gt;GetName();</span>
+<span class="lineNum">    1101 </span><span class="lineCov">         10 :         if(symname.CompareTo(sname)) </span>
+<span class="lineNum">    1102 </span>            :         {
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :           AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">    1104 </span>            :                 &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">    1106 </span>            :         }
+<span class="lineNum">    1107 </span>            :       }
+<span class="lineNum">    1108 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for PHOS symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">    1109 </span><span class="lineCov">          6 :   }</span>
+<span class="lineNum">    1110 </span>            : 
+<span class="lineNum">    1111 </span><span class="lineCov">          6 :   if(detsString.Contains(&quot;EMCAL&quot;))</span>
+<span class="lineNum">    1112 </span>            :   {
+<span class="lineNum">    1113 </span>            :     /*********************      EMCAL layer   ***********************/
+<span class="lineNum">    1114 </span>            : 
+<span class="lineNum">    1115 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Checking consistency of symbolic names for EMCAL layers&quot;);</span>
+<span class="lineNum">    1116 </span><span class="lineCov">          3 :     TString str = &quot;EMCAL/FullSupermodule&quot;;</span>
+<span class="lineNum">    1117 </span>            :     modnum=0;
+<span class="lineNum">    1118 </span>            : 
+<span class="lineNum">    1119 </span><span class="lineCov">        141 :     for (Int_t iModule=0; iModule &lt; 22; iModule++) {</span>
+<span class="lineNum">    1120 </span><span class="lineCov">         66 :       if(!emcalSMs[iModule]) continue;</span>
+<span class="lineNum">    1121 </span><span class="lineCov">         42 :       symname = str;</span>
+<span class="lineNum">    1122 </span><span class="lineCov">         42 :       symname += iModule+1;</span>
+<span class="lineNum">    1123 </span><span class="lineCov">         42 :       if(iModule/2 == 5) {// 10,11</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :         symname = &quot;EMCAL/HalfSupermodule&quot;;</span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :         symname += iModule-9;</span>
+<span class="lineNum">    1126 </span><span class="lineCov">         42 :       }else if(iModule &gt; 11) {// 12 ~ 21</span>
+<span class="lineNum">    1127 </span><span class="lineCov">         12 :         symname = &quot;EMCAL/DCALSupermodule&quot;;</span>
+<span class="lineNum">    1128 </span><span class="lineCov">         12 :         symname += iModule-11;</span>
+<span class="lineNum">    1129 </span>            :       }
+<span class="lineNum">    1130 </span>            :       modnum = iModule;
+<span class="lineNum">    1131 </span><span class="lineCov">         42 :       uid = LayerToVolUID(kEMCAL,modnum);</span>
+<span class="lineNum">    1132 </span><span class="lineCov">         42 :       pne = fgGeometry-&gt;GetAlignableEntryByUID(uid);</span>
+<span class="lineNum">    1133 </span><span class="lineCov">         42 :       if(!pne)</span>
+<span class="lineNum">    1134 </span>            :       {
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :         AliErrorClass(Form(&quot;In the currently loaded geometry there is no TGeoPNEntry with unique id %d&quot;,uid));</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">    1137 </span>            :       }
+<span class="lineNum">    1138 </span><span class="lineCov">         42 :       sname = pne-&gt;GetName();</span>
+<span class="lineNum">    1139 </span><span class="lineCov">         84 :       if(symname.CompareTo(sname)) </span>
+<span class="lineNum">    1140 </span>            :       {
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :         AliErrorClass(Form(&quot;Current loaded geometry differs in the definition of symbolic name for uid %d&quot;</span>
+<span class="lineNum">    1142 </span>            :               &quot;Expected was %s, found was %s!&quot;, uid, symname.Data(), sname));
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">    1144 </span>            :       }
+<span class="lineNum">    1145 </span>            :     }
+<span class="lineNum">    1146 </span>            :   
+<span class="lineNum">    1147 </span><span class="lineCov">         18 :     AliDebugClass(2,&quot;Consistency check for EMCAL symbolic names finished successfully.&quot;);</span>
+<span class="lineNum">    1148 </span><span class="lineCov">          6 :   }</span>
+<span class="lineNum">    1149 </span>            :   
+<span class="lineNum">    1150 </span><span class="lineCov">          3 :   return kTRUE;</span>
+<span class="lineNum">    1151 </span>            : 
+<span class="lineNum">    1152 </span><span class="lineCov">          3 : }</span>
+<a name="1153"><span class="lineNum">    1153 </span>            : </a>
+<span class="lineNum">    1154 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1155 </span>            : void AliGeomManager::InitPNEntriesLUT()
+<span class="lineNum">    1156 </span>            : {
+<span class="lineNum">    1157 </span>            :   // Initialize the look-up table which associates the unique
+<span class="lineNum">    1158 </span>            :   // numerical identity of each alignable volume to the
+<span class="lineNum">    1159 </span>            :   // corresponding TGeoPNEntry.
+<span class="lineNum">    1160 </span>            :   // The LUTs are static; they are created at the creation of the
+<span class="lineNum">    1161 </span>            :   // AliGeomManager instance and recreated if the geometry has changed
+<span class="lineNum">    1162 </span>            :   //
+<span class="lineNum">    1163 </span><span class="lineCov">         10 :   if(!fgGeometry) {</span>
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Impossible to initialize PNEntries LUT without an active geometry&quot;);</span>
+<span class="lineNum">    1165 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1166 </span>            :   }
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span><span class="lineCov">        210 :   for (Int_t iLayer = 0; iLayer &lt; (kLastLayer - kFirstLayer); iLayer++){</span>
+<span class="lineNum">    1169 </span><span class="lineCov">        200 :     if (!fgPNEntry[iLayer]) fgPNEntry[iLayer] = new TGeoPNEntry*[fgLayerSize[iLayer]];</span>
+<span class="lineNum">    1170 </span><span class="lineCov">      45080 :     for(Int_t modnum=0; modnum&lt;fgLayerSize[iLayer]; modnum++){</span>
+<span class="lineNum">    1171 </span><span class="lineCov">      22440 :       fgPNEntry[iLayer][modnum] = fgGeometry-&gt;GetAlignableEntryByUID(LayerToVolUID(iLayer+1,modnum));</span>
+<span class="lineNum">    1172 </span>            :     }
+<span class="lineNum">    1173 </span>            :   }
+<span class="lineNum">    1174 </span><span class="lineCov">          5 : }</span>
+<a name="1175"><span class="lineNum">    1175 </span>            : </a>
+<span class="lineNum">    1176 </span>            : //______________________________________________________________________
+<span class="lineNum">    1177 </span>            : TGeoHMatrix* AliGeomManager::GetMatrix(TGeoPNEntry * const pne) 
+<span class="lineNum">    1178 </span>            : {
+<span class="lineNum">    1179 </span>            :   // Get the global transformation matrix for a given PNEntry
+<span class="lineNum">    1180 </span>            :   // by quering the TGeoManager
+<span class="lineNum">    1181 </span>            : 
+<span class="lineNum">    1182 </span><span class="lineCov">      56019 :   if (!fgGeometry || !fgGeometry-&gt;IsClosed()) {</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Can't get the global matrix! gGeoManager doesn't exist or it is still opened!&quot;);</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">    1185 </span>            :   }
+<span class="lineNum">    1186 </span>            : 
+<span class="lineNum">    1187 </span><span class="lineCov">      18673 :   TGeoPhysicalNode *pnode = pne-&gt;GetPhysicalNode();</span>
+<span class="lineNum">    1188 </span><span class="lineCov">      32988 :   if (pnode) return pnode-&gt;GetMatrix();</span>
+<span class="lineNum">    1189 </span>            : 
+<span class="lineNum">    1190 </span><span class="lineCov">       4358 :   const char* path = pne-&gt;GetTitle();</span>
+<span class="lineNum">    1191 </span><span class="lineCov">       4358 :   if (!fgGeometry-&gt;cd(path)) {</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Volume path %s not valid!&quot;,path));</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">    1194 </span>            :   }
+<span class="lineNum">    1195 </span><span class="lineCov">       4358 :   return fgGeometry-&gt;GetCurrentMatrix();</span>
+<span class="lineNum">    1196 </span><span class="lineCov">      18673 : }</span>
+<a name="1197"><span class="lineNum">    1197 </span>            : </a>
+<span class="lineNum">    1198 </span>            : //______________________________________________________________________
+<span class="lineNum">    1199 </span>            : TGeoHMatrix* AliGeomManager::GetMatrix(Int_t index) 
+<span class="lineNum">    1200 </span>            : {
+<span class="lineNum">    1201 </span>            :   // Get the global transformation matrix for a given alignable volume
+<span class="lineNum">    1202 </span>            :   // identified by its unique ID 'index' by quering the TGeoManager
+<span class="lineNum">    1203 </span>            : 
+<span class="lineNum">    1204 </span><span class="lineCov">      35794 :   TGeoPNEntry *pne = GetPNEntry(index);</span>
+<span class="lineNum">    1205 </span><span class="lineCov">      17897 :   if (!pne) return NULL;</span>
+<span class="lineNum">    1206 </span>            : 
+<span class="lineNum">    1207 </span><span class="lineCov">      17897 :   return GetMatrix(pne);</span>
+<span class="lineNum">    1208 </span><span class="lineCov">      17897 : }</span>
+<a name="1209"><span class="lineNum">    1209 </span>            : </a>
+<span class="lineNum">    1210 </span>            : //______________________________________________________________________
+<span class="lineNum">    1211 </span>            : TGeoHMatrix* AliGeomManager::GetMatrix(const char* symname) 
+<span class="lineNum">    1212 </span>            : {
+<span class="lineNum">    1213 </span>            :   // Get the global transformation matrix for a given alignable volume
+<span class="lineNum">    1214 </span>            :   //  identified by its symbolic name 'symname' by quering the TGeoManager
+<span class="lineNum">    1215 </span>            : 
+<span class="lineNum">    1216 </span><span class="lineCov">       2328 :   if (!fgGeometry || !fgGeometry-&gt;IsClosed()) {</span>
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;No active geometry or geometry not yet closed!&quot;);</span>
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">    1219 </span>            :   }
+<span class="lineNum">    1220 </span>            : 
+<span class="lineNum">    1221 </span><span class="lineCov">        776 :   TGeoPNEntry* pne = fgGeometry-&gt;GetAlignableEntry(symname);</span>
+<span class="lineNum">    1222 </span><span class="lineCov">        776 :   if (!pne) return NULL;</span>
+<span class="lineNum">    1223 </span>            : 
+<span class="lineNum">    1224 </span><span class="lineCov">        776 :   return GetMatrix(pne);</span>
+<span class="lineNum">    1225 </span><span class="lineCov">        776 : }</span>
+<a name="1226"><span class="lineNum">    1226 </span>            : </a>
+<span class="lineNum">    1227 </span>            : //______________________________________________________________________
+<span class="lineNum">    1228 </span>            : Bool_t AliGeomManager::GetTranslation(Int_t index, Double_t t[3]) 
+<span class="lineNum">    1229 </span>            : {
+<span class="lineNum">    1230 </span>            :   // Get the translation vector for a given module 'index'
+<span class="lineNum">    1231 </span>            :   // by quering the TGeoManager
+<span class="lineNum">    1232 </span>            : 
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :   TGeoHMatrix *m = GetMatrix(index);</span>
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :   if (!m) return kFALSE;</span>
+<span class="lineNum">    1235 </span>            : 
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :   Double_t *trans = m-&gt;GetTranslation();</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 3; i++) t[i] = trans[i];</span>
+<span class="lineNum">    1238 </span>            : 
+<span class="lineNum">    1239 </span>            :   return kTRUE;
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 : }</span>
+<a name="1241"><span class="lineNum">    1241 </span>            : </a>
+<span class="lineNum">    1242 </span>            : //______________________________________________________________________
+<span class="lineNum">    1243 </span>            : Bool_t AliGeomManager::GetRotation(Int_t index, Double_t r[9]) 
+<span class="lineNum">    1244 </span>            : {
+<span class="lineNum">    1245 </span>            :   // Get the rotation matrix for a given module 'index'
+<span class="lineNum">    1246 </span>            :   // by quering the TGeoManager
+<span class="lineNum">    1247 </span>            : 
+<span class="lineNum">    1248 </span><span class="lineCov">      23936 :   TGeoHMatrix *m = GetMatrix(index);</span>
+<span class="lineNum">    1249 </span><span class="lineCov">      11968 :   if (!m) return kFALSE;</span>
+<span class="lineNum">    1250 </span>            : 
+<span class="lineNum">    1251 </span><span class="lineCov">      11968 :   Double_t *rot = m-&gt;GetRotationMatrix();</span>
+<span class="lineNum">    1252 </span><span class="lineCov">     239360 :   for (Int_t i = 0; i &lt; 9; i++) r[i] = rot[i];</span>
+<span class="lineNum">    1253 </span>            : 
+<span class="lineNum">    1254 </span>            :   return kTRUE;
+<span class="lineNum">    1255 </span><span class="lineCov">      11968 : }</span>
+<a name="1256"><span class="lineNum">    1256 </span>            : </a>
+<span class="lineNum">    1257 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1258 </span>            : Bool_t AliGeomManager::GetDeltaForBranch(Int_t index, TGeoHMatrix &amp;inclusiveD)
+<span class="lineNum">    1259 </span>            : {
+<span class="lineNum">    1260 </span>            :   // The method sets the matrix passed as argument as the global delta
+<span class="lineNum">    1261 </span>            :   // (for the volume referred by the unique index) including the displacements
+<span class="lineNum">    1262 </span>            :   // of all parent volumes in the branch.
+<span class="lineNum">    1263 </span>            :   //
+<span class="lineNum">    1264 </span>            : 
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :   TGeoHMatrix go,invgo;</span>
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :   go = *GetOrigGlobalMatrix(index);</span>
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :   invgo = go.Inverse();</span>
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :   inclusiveD = *GetMatrix(index);</span>
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :   inclusiveD.Multiply(&amp;invgo);</span>
+<span class="lineNum">    1270 </span>            : 
+<span class="lineNum">    1271 </span>            :   return kTRUE;
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 : }</span>
+<a name="1273"><span class="lineNum">    1273 </span>            : </a>
+<span class="lineNum">    1274 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1275 </span>            : Bool_t AliGeomManager::GetDeltaForBranch(AliAlignObj&amp; aao, TGeoHMatrix &amp;inclusiveD)
+<span class="lineNum">    1276 </span>            : {
+<span class="lineNum">    1277 </span>            :   // The method sets the matrix passed as argument as the global delta
+<span class="lineNum">    1278 </span>            :   // (for the volume referred by the alignment object) including the displacements
+<span class="lineNum">    1279 </span>            :   // of all parent volumes in the brach.
+<span class="lineNum">    1280 </span>            :   //
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :   Int_t index = aao.GetVolUID();</span>
+<span class="lineNum">    1282 </span><span class="lineNoCov">          0 :   if(!index){</span>
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Either the alignment object or its index are not valid&quot;);</span>
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1285 </span>            :   }
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :   return GetDeltaForBranch(index, inclusiveD);</span>
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 : }</span>
+<a name="1288"><span class="lineNum">    1288 </span>            : </a>
+<span class="lineNum">    1289 </span>            : //______________________________________________________________________
+<span class="lineNum">    1290 </span>            : Bool_t AliGeomManager::GetOrigGlobalMatrix(const char* symname, TGeoHMatrix &amp;m) 
+<span class="lineNum">    1291 </span>            : {
+<span class="lineNum">    1292 </span>            :   // Get the global transformation matrix (ideal geometry) for a given alignable volume
+<span class="lineNum">    1293 </span>            :   // The alignable volume is identified by 'symname' which has to be either a valid symbolic
+<span class="lineNum">    1294 </span>            :   // name, the query being performed after alignment, or a valid volume path if the query is
+<span class="lineNum">    1295 </span>            :   // performed before alignment.
+<span class="lineNum">    1296 </span>            :   //
+<span class="lineNum">    1297 </span><span class="lineCov">       8988 :   m.Clear();</span>
+<span class="lineNum">    1298 </span>            : 
+<span class="lineNum">    1299 </span><span class="lineCov">       8988 :   if (!fgGeometry || !fgGeometry-&gt;IsClosed()) {</span>
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;No active geometry or geometry not yet closed!&quot;);</span>
+<span class="lineNum">    1301 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1302 </span>            :   }
+<span class="lineNum">    1303 </span><span class="lineCov">       4494 :   if (!fgGeometry-&gt;GetListOfPhysicalNodes()) {</span>
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :     AliWarningClass(&quot;gGeoManager doesn't contain any aligned nodes!&quot;);</span>
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :     if (!fgGeometry-&gt;cd(symname)) {</span>
+<span class="lineNum">    1306 </span><span class="lineNoCov">          0 :       AliErrorClass(Form(&quot;Volume path %s not valid!&quot;,symname));</span>
+<span class="lineNum">    1307 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">    1308 </span>            :     }
+<span class="lineNum">    1309 </span>            :     else {
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :       m = *fgGeometry-&gt;GetCurrentMatrix();</span>
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">    1312 </span>            :     }
+<span class="lineNum">    1313 </span>            :   }
+<span class="lineNum">    1314 </span>            : 
+<span class="lineNum">    1315 </span><span class="lineCov">       4494 :   TGeoPNEntry* pne = fgGeometry-&gt;GetAlignableEntry(symname);</span>
+<span class="lineNum">    1316 </span>            :   const char* path = NULL;
+<span class="lineNum">    1317 </span><span class="lineCov">       4494 :   if(pne){</span>
+<span class="lineNum">    1318 </span><span class="lineCov">       4494 :     m = *pne-&gt;GetGlobalOrig();</span>
+<span class="lineNum">    1319 </span><span class="lineCov">       4494 :     return kTRUE;</span>
+<span class="lineNum">    1320 </span>            :   }else{
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;The symbolic volume name %s does not correspond to a physical entry. Using it as a volume path!&quot;,symname));</span>
+<span class="lineNum">    1322 </span>            :     path=symname;
+<span class="lineNum">    1323 </span>            :   }
+<span class="lineNum">    1324 </span>            : 
+<span class="lineNum">    1325 </span><span class="lineNoCov">          0 :   return GetOrigGlobalMatrixFromPath(path,m);</span>
+<span class="lineNum">    1326 </span><span class="lineCov">       4494 : }</span>
+<a name="1327"><span class="lineNum">    1327 </span>            : </a>
+<span class="lineNum">    1328 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1329 </span>            : Bool_t AliGeomManager::GetOrigGlobalMatrixFromPath(const char *path, TGeoHMatrix &amp;m)
+<span class="lineNum">    1330 </span>            : {
+<span class="lineNum">    1331 </span>            :   // The method returns the global matrix for the volume identified by 
+<span class="lineNum">    1332 </span>            :   // 'path' in the ideal detector geometry.
+<span class="lineNum">    1333 </span>            :   // The output global matrix is stored in 'm'.
+<span class="lineNum">    1334 </span>            :   // Returns kFALSE in case TGeo has not been initialized or the volume
+<span class="lineNum">    1335 </span>            :   // path is not valid.
+<span class="lineNum">    1336 </span>            :   //
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :   m.Clear();</span>
+<span class="lineNum">    1338 </span>            : 
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :   if (!fgGeometry || !fgGeometry-&gt;IsClosed()) {</span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!&quot;);</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1342 </span>            :   }
+<span class="lineNum">    1343 </span>            : 
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :   if (!fgGeometry-&gt;CheckPath(path)) {</span>
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Volume path %s not valid!&quot;,path));</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1347 </span>            :   }
+<span class="lineNum">    1348 </span>            : 
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :   TIter next(fgGeometry-&gt;GetListOfPhysicalNodes());</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :   fgGeometry-&gt;cd(path);</span>
+<span class="lineNum">    1351 </span>            : 
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :   while(fgGeometry-&gt;GetLevel()){</span>
+<span class="lineNum">    1353 </span>            : 
+<span class="lineNum">    1354 </span>            :     TGeoPhysicalNode *physNode = NULL;
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :     next.Reset();</span>
+<span class="lineNum">    1356 </span><span class="lineNoCov">          0 :     TGeoNode *node = fgGeometry-&gt;GetCurrentNode();</span>
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :     while ((physNode=(TGeoPhysicalNode*)next())) </span>
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :       if (physNode-&gt;GetNode() == node) break;</span>
+<span class="lineNum">    1359 </span>            : 
+<span class="lineNum">    1360 </span>            :     TGeoMatrix *lm = NULL;
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :     if (physNode) {</span>
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :       lm = physNode-&gt;GetOriginalMatrix();</span>
+<span class="lineNum">    1363 </span><span class="lineNoCov">          0 :       if (!lm) lm = node-&gt;GetMatrix();</span>
+<span class="lineNum">    1364 </span>            :     } else
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :       lm = node-&gt;GetMatrix();</span>
+<span class="lineNum">    1366 </span>            : 
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :     m.MultiplyLeft(lm);</span>
+<span class="lineNum">    1368 </span>            : 
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :     fgGeometry-&gt;CdUp();</span>
+<span class="lineNum">    1370 </span>            :   }
+<span class="lineNum">    1371 </span>            : 
+<span class="lineNum">    1372 </span>            :   return kTRUE;
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 : }</span>
+<a name="1374"><span class="lineNum">    1374 </span>            : </a>
+<span class="lineNum">    1375 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1376 </span>            : TGeoHMatrix* AliGeomManager::GetOrigGlobalMatrix(TGeoPNEntry * const pne)
+<span class="lineNum">    1377 </span>            : {
+<span class="lineNum">    1378 </span>            :   // The method returns global matrix for the ideal detector geometry
+<span class="lineNum">    1379 </span>            :   // using the corresponding TGeoPNEntry as an input.
+<span class="lineNum">    1380 </span>            :   // The returned pointer should be copied by the user, since its content could
+<span class="lineNum">    1381 </span>            :   // be overwritten by a following call to the method.
+<span class="lineNum">    1382 </span>            :   // In case of missing TGeoManager the method returns NULL.
+<span class="lineNum">    1383 </span>            :   //
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :   if (!fgGeometry || !fgGeometry-&gt;IsClosed()) {</span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Can't get the global matrix! gGeoManager doesn't exist or it is still opened!&quot;);</span>
+<span class="lineNum">    1386 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">    1387 </span>            :   }
+<span class="lineNum">    1388 </span>            : 
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 :   return pne-&gt;GetGlobalOrig();</span>
+<span class="lineNum">    1390 </span><span class="lineNoCov">          0 : }</span>
+<a name="1391"><span class="lineNum">    1391 </span>            : </a>
+<span class="lineNum">    1392 </span>            : //______________________________________________________________________
+<span class="lineNum">    1393 </span>            : TGeoHMatrix* AliGeomManager::GetOrigGlobalMatrix(Int_t index)
+<span class="lineNum">    1394 </span>            : {
+<span class="lineNum">    1395 </span>            :   // The method returns global matrix from the ideal detector geometry
+<span class="lineNum">    1396 </span>            :   // for the volume identified by its index.
+<span class="lineNum">    1397 </span>            :   // The returned pointer should be copied by the user, since its content could
+<span class="lineNum">    1398 </span>            :   // be overwritten by a following call to the method.
+<span class="lineNum">    1399 </span>            :   // In case of missing TGeoManager the method returns NULL.
+<span class="lineNum">    1400 </span>            :   // If possible, the method uses the LUT of original ideal matrices
+<span class="lineNum">    1401 </span>            :   // for fast access. The LUT is reset in case a
+<span class="lineNum">    1402 </span>            :   // new geometry is loaded.
+<span class="lineNum">    1403 </span>            :   //
+<span class="lineNum">    1404 </span><span class="lineCov">      51756 :   TGeoPNEntry* pne = GetPNEntry(index);</span>
+<span class="lineNum">    1405 </span><span class="lineCov">      25878 :   return pne-&gt;GetGlobalOrig();</span>
+<span class="lineNum">    1406 </span>            : }
+<a name="1407"><span class="lineNum">    1407 </span>            : </a>
+<span class="lineNum">    1408 </span>            : //______________________________________________________________________
+<span class="lineNum">    1409 </span>            : Bool_t AliGeomManager::GetOrigTranslation(Int_t index, Double_t t[3]) 
+<span class="lineNum">    1410 </span>            : {
+<span class="lineNum">    1411 </span>            :   // Get the original translation vector (ideal geometry)
+<span class="lineNum">    1412 </span>            :   // for a given module 'index' by quering the TGeoManager
+<span class="lineNum">    1413 </span>            : 
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :   TGeoHMatrix *m = GetOrigGlobalMatrix(index);</span>
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :   if (!m) return kFALSE;</span>
+<span class="lineNum">    1416 </span>            : 
+<span class="lineNum">    1417 </span><span class="lineNoCov">          0 :   Double_t *trans = m-&gt;GetTranslation();</span>
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 3; i++) t[i] = trans[i];</span>
+<span class="lineNum">    1419 </span>            : 
+<span class="lineNum">    1420 </span>            :   return kTRUE;
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 : }</span>
+<a name="1422"><span class="lineNum">    1422 </span>            : </a>
+<span class="lineNum">    1423 </span>            : //______________________________________________________________________
+<span class="lineNum">    1424 </span>            : Bool_t AliGeomManager::GetOrigRotation(Int_t index, Double_t r[9]) 
+<span class="lineNum">    1425 </span>            : {
+<span class="lineNum">    1426 </span>            :   // Get the original rotation matrix (ideal geometry)
+<span class="lineNum">    1427 </span>            :   // for a given module 'index' by quering the TGeoManager
+<span class="lineNum">    1428 </span>            : 
+<span class="lineNum">    1429 </span><span class="lineCov">      23936 :   TGeoHMatrix *m = GetOrigGlobalMatrix(index);</span>
+<span class="lineNum">    1430 </span><span class="lineCov">      11968 :   if (!m) return kFALSE;</span>
+<span class="lineNum">    1431 </span>            : 
+<span class="lineNum">    1432 </span><span class="lineCov">      11968 :   Double_t *rot = m-&gt;GetRotationMatrix();</span>
+<span class="lineNum">    1433 </span><span class="lineCov">     239360 :   for (Int_t i = 0; i &lt; 9; i++) r[i] = rot[i];</span>
+<span class="lineNum">    1434 </span>            : 
+<span class="lineNum">    1435 </span>            :   return kTRUE;
+<span class="lineNum">    1436 </span><span class="lineCov">      11968 : }</span>
+<a name="1437"><span class="lineNum">    1437 </span>            : </a>
+<span class="lineNum">    1438 </span>            : //______________________________________________________________________
+<span class="lineNum">    1439 </span>            : const TGeoHMatrix* AliGeomManager::GetTracking2LocalMatrix(Int_t index)
+<span class="lineNum">    1440 </span>            : {
+<span class="lineNum">    1441 </span>            :   // Get the matrix which transforms from the tracking to the local RS
+<span class="lineNum">    1442 </span>            :   // The method queries directly the TGeoPNEntry
+<span class="lineNum">    1443 </span>            : 
+<span class="lineNum">    1444 </span><span class="lineCov">      41922 :   TGeoPNEntry *pne = GetPNEntry(index);</span>
+<span class="lineNum">    1445 </span><span class="lineCov">      20961 :   if (!pne) return NULL;</span>
+<span class="lineNum">    1446 </span>            : 
+<span class="lineNum">    1447 </span><span class="lineCov">      20961 :   const TGeoHMatrix *m = pne-&gt;GetMatrix();</span>
+<span class="lineNum">    1448 </span><span class="lineCov">      20961 :   if (!m)</span>
+<span class="lineNum">    1449 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;TGeoPNEntry (%s) contains no tracking-to-local matrix !&quot;,pne-&gt;GetName()));</span>
+<span class="lineNum">    1450 </span>            : 
+<span class="lineNum">    1451 </span>            :   return m;
+<span class="lineNum">    1452 </span><span class="lineCov">      20961 : }</span>
+<a name="1453"><span class="lineNum">    1453 </span>            : </a>
+<span class="lineNum">    1454 </span>            : //______________________________________________________________________
+<span class="lineNum">    1455 </span>            : Bool_t AliGeomManager::GetTrackingMatrix(Int_t index, TGeoHMatrix &amp;m)
+<span class="lineNum">    1456 </span>            : {
+<span class="lineNum">    1457 </span>            :   // Get the matrix which transforms from the tracking r.s. to
+<span class="lineNum">    1458 </span>            :   // the global one.
+<span class="lineNum">    1459 </span>            :   // Returns kFALSE in case of error.
+<span class="lineNum">    1460 </span>            : 
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :   m.Clear();</span>
+<span class="lineNum">    1462 </span>            : 
+<span class="lineNum">    1463 </span><span class="lineNoCov">          0 :   TGeoHMatrix *m1 = GetMatrix(index);</span>
+<span class="lineNum">    1464 </span><span class="lineNoCov">          0 :   if (!m1) return kFALSE;</span>
+<span class="lineNum">    1465 </span>            : 
+<span class="lineNum">    1466 </span><span class="lineNoCov">          0 :   const TGeoHMatrix *m2 = GetTracking2LocalMatrix(index);</span>
+<span class="lineNum">    1467 </span><span class="lineNoCov">          0 :   if (!m2) return kFALSE;</span>
+<span class="lineNum">    1468 </span>            : 
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 :   m = *m1;</span>
+<span class="lineNum">    1470 </span><span class="lineNoCov">          0 :   m.Multiply(m2);</span>
+<span class="lineNum">    1471 </span>            : 
+<span class="lineNum">    1472 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">    1473 </span><span class="lineNoCov">          0 : }</span>
+<a name="1474"><span class="lineNum">    1474 </span>            : </a>
+<span class="lineNum">    1475 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1476 </span>            : TGeoPNEntry* AliGeomManager::GetPNEntry(Int_t voluid) {
+<span class="lineNum">    1477 </span>            :   // Returns the TGeoPNEntry for the given global volume ID &quot;voluid&quot;
+<span class="lineNum">    1478 </span>            :   //
+<span class="lineNum">    1479 </span><span class="lineCov">     129472 :   Int_t modId;</span>
+<span class="lineNum">    1480 </span><span class="lineCov">      64736 :   ELayerID layerId = VolUIDToLayer(voluid,modId);</span>
+<span class="lineNum">    1481 </span><span class="lineCov">     129472 :   return GetPNEntry(layerId,modId);</span>
+<span class="lineNum">    1482 </span><span class="lineCov">      64736 : }</span>
+<a name="1483"><span class="lineNum">    1483 </span>            : </a>
+<span class="lineNum">    1484 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1485 </span>            : TGeoPNEntry* AliGeomManager::GetPNEntry(ELayerID layerId, Int_t modId)
+<span class="lineNum">    1486 </span>            : {
+<span class="lineNum">    1487 </span>            :   // Returns the TGeoPNEntry for a given layer
+<span class="lineNum">    1488 </span>            :   // and module ID
+<span class="lineNum">    1489 </span>            :   //
+<span class="lineNum">    1490 </span>            : 
+<span class="lineNum">    1491 </span><span class="lineCov">     194208 :   if(modId&lt;0 || modId&gt;=fgLayerSize[layerId-kFirstLayer]){</span>
+<span class="lineNum">    1492 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;Module number %d not in the valid range (0-&gt;%d) !&quot;,modId,fgLayerSize[layerId-kFirstLayer]-1));</span>
+<span class="lineNum">    1493 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">    1494 </span>            :   }
+<span class="lineNum">    1495 </span>            : 
+<span class="lineNum">    1496 </span><span class="lineCov">      64736 :   return fgPNEntry[layerId-kFirstLayer][modId];</span>
+<span class="lineNum">    1497 </span><span class="lineCov">      64736 : }</span>
+<a name="1498"><span class="lineNum">    1498 </span>            : </a>
+<span class="lineNum">    1499 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1500 </span>            : void AliGeomManager::CheckOverlapsOverPNs(Double_t threshold)
+<span class="lineNum">    1501 </span>            : {
+<span class="lineNum">    1502 </span>            :   // Check for overlaps/extrusions on physical nodes only;
+<span class="lineNum">    1503 </span>            :   // this overlap-checker is meant to be used to check overlaps/extrusions
+<span class="lineNum">    1504 </span>            :   // originated by the application of alignment objects.
+<span class="lineNum">    1505 </span>            :   //
+<span class="lineNum">    1506 </span>            : 
+<span class="lineNum">    1507 </span>            :   TObjArray* ovexlist = 0x0;
+<span class="lineNum">    1508 </span>            : 
+<span class="lineNum">    1509 </span><span class="lineNoCov">          0 :   AliInfoClass(&quot;********* Checking overlaps/extrusions over physical nodes only *********&quot;);</span>
+<span class="lineNum">    1510 </span><span class="lineNoCov">          0 :   TObjArray* pnList = gGeoManager-&gt;GetListOfPhysicalNodes();</span>
+<span class="lineNum">    1511 </span>            :   TGeoVolume* mvol = 0;
+<span class="lineNum">    1512 </span>            :   TGeoPhysicalNode* pn;
+<span class="lineNum">    1513 </span><span class="lineNoCov">          0 :   TObjArray* overlaps = new TObjArray(64);</span>
+<span class="lineNum">    1514 </span><span class="lineNoCov">          0 :   overlaps-&gt;SetOwner();</span>
+<span class="lineNum">    1515 </span>            : 
+<span class="lineNum">    1516 </span><span class="lineNoCov">          0 :   TStopwatch timer2;</span>
+<span class="lineNum">    1517 </span><span class="lineNoCov">          0 :   timer2.Start();</span>
+<span class="lineNum">    1518 </span><span class="lineNoCov">          0 :   for(Int_t pni=0; pni&lt;pnList-&gt;GetEntriesFast(); pni++){</span>
+<span class="lineNum">    1519 </span><span class="lineNoCov">          0 :     pn = (TGeoPhysicalNode*) pnList-&gt;UncheckedAt(pni);</span>
+<span class="lineNum">    1520 </span>            :     // checking the volume of the mother (go upper in the tree in case it is an assembly)
+<span class="lineNum">    1521 </span>            :     Int_t levup=1;
+<span class="lineNum">    1522 </span><span class="lineNoCov">          0 :     while(((TGeoVolume*)pn-&gt;GetVolume(pn-&gt;GetLevel()-levup))-&gt;IsAssembly()) levup++;</span>
+<span class="lineNum">    1523 </span>            :       //Printf(&quot;Going to upper level&quot;);
+<span class="lineNum">    1524 </span><span class="lineNoCov">          0 :     mvol = pn-&gt;GetVolume(pn-&gt;GetLevel()-levup);</span>
+<span class="lineNum">    1525 </span><span class="lineNoCov">          0 :     if(!mvol-&gt;IsSelected()){</span>
+<span class="lineNum">    1526 </span><span class="lineNoCov">          0 :       AliInfoClass(Form(&quot;Checking overlaps for volume %s&quot;,mvol-&gt;GetName()));</span>
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :       mvol-&gt;CheckOverlaps(threshold);</span>
+<span class="lineNum">    1528 </span><span class="lineNoCov">          0 :       ovexlist = gGeoManager-&gt;GetListOfOverlaps();</span>
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 :       TIter next(ovexlist);</span>
+<span class="lineNum">    1530 </span>            :       TGeoOverlap *ov;
+<span class="lineNum">    1531 </span><span class="lineNoCov">          0 :       while ((ov=(TGeoOverlap*)next())) overlaps-&gt;Add(ov-&gt;Clone());</span>
+<span class="lineNum">    1532 </span><span class="lineNoCov">          0 :       mvol-&gt;SelectVolume();</span>
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1534 </span>            :   }
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 :   mvol-&gt;SelectVolume(kTRUE); // clears the list of selected volumes</span>
+<span class="lineNum">    1536 </span>            : 
+<span class="lineNum">    1537 </span><span class="lineNoCov">          0 :   AliInfoClass(Form(&quot;Number of overlapping/extruding PNs: %d&quot;,overlaps-&gt;GetEntriesFast()));</span>
+<span class="lineNum">    1538 </span><span class="lineNoCov">          0 :   timer2.Stop();</span>
+<span class="lineNum">    1539 </span><span class="lineNoCov">          0 :   timer2.Print();</span>
+<span class="lineNum">    1540 </span>            : 
+<span class="lineNum">    1541 </span><span class="lineNoCov">          0 :   TIter nextN(overlaps);</span>
+<span class="lineNum">    1542 </span>            :   TGeoOverlap *ovlp;
+<span class="lineNum">    1543 </span><span class="lineNoCov">          0 :   while ((ovlp=(TGeoOverlap*)nextN())) ovlp-&gt;PrintInfo();</span>
+<span class="lineNum">    1544 </span>            : 
+<span class="lineNum">    1545 </span><span class="lineNoCov">          0 :   overlaps-&gt;Delete();</span>
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :   delete overlaps;</span>
+<span class="lineNum">    1547 </span><span class="lineNoCov">          0 : }</span>
+<a name="1548"><span class="lineNum">    1548 </span>            : </a>
+<span class="lineNum">    1549 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1550 </span>            : Int_t AliGeomManager::GetNalignable(const char* module)
+<span class="lineNum">    1551 </span>            : {
+<span class="lineNum">    1552 </span>            :   // Get number of declared alignable volumes in current geometry
+<span class="lineNum">    1553 </span>            :   // for the given detector &quot;module&quot; passed as a vaild detector name
+<span class="lineNum">    1554 </span>            :   // if the detector name is invalid return -1
+<span class="lineNum">    1555 </span>            :   
+<span class="lineNum">    1556 </span>            :   // return the detector index corresponding to detector
+<span class="lineNum">    1557 </span>            :   Int_t index = -1 ;
+<span class="lineNum">    1558 </span><span class="lineCov">       1848 :   for (index = 0; index &lt; fgkNDetectors ; index++) {</span>
+<span class="lineNum">    1559 </span><span class="lineCov">        868 :     if ( strcmp(module, fgkDetectorName[index]) == 0 )</span>
+<span class="lineNum">    1560 </span>            :       break ;
+<span class="lineNum">    1561 </span>            :   }
+<span class="lineNum">    1562 </span><span class="lineCov">        112 :   if(index==fgkNDetectors) return -1;</span>
+<span class="lineNum">    1563 </span><span class="lineCov">        112 :   return fgNalignable[index];</span>
+<span class="lineNum">    1564 </span><span class="lineCov">        112 : }</span>
+<a name="1565"><span class="lineNum">    1565 </span>            :   </a>
+<span class="lineNum">    1566 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1567 </span>            : void AliGeomManager::InitNalignable()
+<span class="lineNum">    1568 </span>            : {
+<span class="lineNum">    1569 </span>            :   // Set number of declared alignable volumes for given detector in current geometry
+<span class="lineNum">    1570 </span>            :   // by looping on the list of PNEntries
+<span class="lineNum">    1571 </span>            :   //
+<span class="lineNum">    1572 </span>            :   
+<span class="lineNum">    1573 </span><span class="lineCov">         10 :   Int_t nAlE = gGeoManager-&gt;GetNAlignable(); // total number of alignable entries</span>
+<span class="lineNum">    1574 </span>            :   TGeoPNEntry *pne = 0;
+<span class="lineNum">    1575 </span>            :   const char* detName;
+<span class="lineNum">    1576 </span>            :   
+<span class="lineNum">    1577 </span><span class="lineCov">        190 :   for (Int_t iDet = 0; iDet &lt; fgkNDetectors ; iDet++) {</span>
+<span class="lineNum">    1578 </span><span class="lineCov">         90 :     detName = fgkDetectorName[iDet];</span>
+<span class="lineNum">    1579 </span>            :     Int_t nAlDet = 0;
+<span class="lineNum">    1580 </span>            :     
+<span class="lineNum">    1581 </span><span class="lineCov">     971568 :     for(Int_t iE = 0; iE &lt; nAlE; iE++)</span>
+<span class="lineNum">    1582 </span>            :     {
+<span class="lineNum">    1583 </span><span class="lineCov">     485694 :       pne = gGeoManager-&gt;GetAlignableEntry(iE);</span>
+<span class="lineNum">    1584 </span><span class="lineCov">     485694 :       TString pneName = pne-&gt;GetName();</span>
+<span class="lineNum">    1585 </span><span class="lineCov">     998261 :       if(pneName.Contains(detName)) nAlDet++;</span>
+<span class="lineNum">    1586 </span><span class="lineCov">    1106213 :       if(!strcmp(detName,&quot;GRP&quot;)) if(pneName.Contains(&quot;ABSO&quot;)  || pneName.Contains(&quot;DIPO&quot;) || </span>
+<span class="lineNum">    1587 </span><span class="lineCov">     107752 :                                     pneName.Contains(&quot;FRAME&quot;) || pneName.Contains(&quot;PIPE&quot;) || </span>
+<span class="lineNum">    1588 </span><span class="lineCov">      26983 :                                     pneName.Contains(&quot;SHIL&quot;)) nAlDet++;</span>
+<span class="lineNum">    1589 </span><span class="lineCov">     485694 :     }</span>
+<span class="lineNum">    1590 </span><span class="lineCov">         90 :     fgNalignable[iDet] = nAlDet;</span>
+<span class="lineNum">    1591 </span>            :   }
+<span class="lineNum">    1592 </span>            : 
+<span class="lineNum">    1593 </span><span class="lineCov">          5 : }</span>
+<a name="1594"><span class="lineNum">    1594 </span>            :   </a>
+<span class="lineNum">    1595 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1596 </span>            : Bool_t AliGeomManager::ApplyAlignObjsFromCDB(const char* alignDetsList)
+<span class="lineNum">    1597 </span>            : {
+<span class="lineNum">    1598 </span>            :   // Calls AddAlignObjsFromCDBSingleDet for the detectors appearing in
+<span class="lineNum">    1599 </span>            :   // the list passed as argument (called by AliSimulation and
+<span class="lineNum">    1600 </span>            :   // AliReconstruction)
+<span class="lineNum">    1601 </span>            :   // Read the alignment objects from CDB.
+<span class="lineNum">    1602 </span>            :   // Each detector is supposed to have the
+<span class="lineNum">    1603 </span>            :   // alignment objects in DET/Align/Data CDB path.
+<span class="lineNum">    1604 </span>            :   // All the detector objects are then collected,
+<span class="lineNum">    1605 </span>            :   // sorted by geometry level (starting from ALIC) and
+<span class="lineNum">    1606 </span>            :   // then applied to the TGeo geometry.
+<span class="lineNum">    1607 </span>            :   // Finally an overlaps check is performed.
+<span class="lineNum">    1608 </span>            :   //
+<span class="lineNum">    1609 </span>            :  
+<span class="lineNum">    1610 </span><span class="lineCov">         10 :   TObjArray alignObjArray;</span>
+<span class="lineNum">    1611 </span><span class="lineCov">          5 :   alignObjArray.Clear();        </span>
+<span class="lineNum">    1612 </span><span class="lineCov">          5 :   alignObjArray.SetOwner(0);</span>
+<span class="lineNum">    1613 </span>            : 
+<span class="lineNum">    1614 </span><span class="lineCov">          5 :   TString alObjsNotLoaded=&quot;&quot;;</span>
+<span class="lineNum">    1615 </span><span class="lineCov">          5 :   TString alObjsLoaded=&quot;&quot;;</span>
+<span class="lineNum">    1616 </span>            : 
+<span class="lineNum">    1617 </span><span class="lineCov">          5 :   TString alignDetsString(alignDetsList);</span>
+<span class="lineNum">    1618 </span><span class="lineCov">         15 :   TObjArray *detsarr = alignDetsString.Tokenize(' ');</span>
+<span class="lineNum">    1619 </span><span class="lineCov">          5 :   TIter iter(detsarr);</span>
+<span class="lineNum">    1620 </span>            :   TObjString *str = 0;
+<span class="lineNum">    1621 </span>            :   
+<span class="lineNum">    1622 </span><span class="lineCov">        195 :   while((str = (TObjString*) iter.Next())){</span>
+<span class="lineNum">    1623 </span><span class="lineCov">         60 :     TString det(str-&gt;String());</span>
+<span class="lineNum">    1624 </span><span class="lineCov">        360 :     AliDebugClass(5,Form(&quot;Loading alignment objs for %s&quot;,det.Data()));</span>
+<span class="lineNum">    1625 </span><span class="lineCov">        180 :     if(!LoadAlignObjsFromCDBSingleDet(det.Data(),alignObjArray)){</span>
+<span class="lineNum">    1626 </span><span class="lineNoCov">          0 :       alObjsNotLoaded += det.Data();</span>
+<span class="lineNum">    1627 </span><span class="lineNoCov">          0 :       alObjsNotLoaded += &quot; &quot;;</span>
+<span class="lineNum">    1628 </span>            :     } else {
+<span class="lineNum">    1629 </span><span class="lineCov">        120 :       alObjsLoaded += det.Data();</span>
+<span class="lineNum">    1630 </span><span class="lineCov">         60 :       alObjsLoaded += &quot; &quot;;</span>
+<span class="lineNum">    1631 </span>            :     }
+<span class="lineNum">    1632 </span><span class="lineCov">         60 :   }</span>
+<span class="lineNum">    1633 </span><span class="lineCov">          5 :   detsarr-&gt;Delete();</span>
+<span class="lineNum">    1634 </span><span class="lineCov">         10 :   delete detsarr;</span>
+<span class="lineNum">    1635 </span>            : 
+<span class="lineNum">    1636 </span><span class="lineCov">         35 :   if(!alObjsLoaded.IsNull()) AliInfoClass(Form(&quot;Alignment objects loaded for: %s&quot;,</span>
+<span class="lineNum">    1637 </span>            :                                                alObjsLoaded.Data()));
+<span class="lineNum">    1638 </span><span class="lineCov">         10 :   if(!alObjsNotLoaded.IsNull())</span>
+<span class="lineNum">    1639 </span><span class="lineNoCov">          0 :       AliFatalClass(Form(&quot;Could not load alignment objects from OCDB for: %s&quot;,</span>
+<span class="lineNum">    1640 </span>            :                                                   alObjsNotLoaded.Data()));
+<span class="lineNum">    1641 </span>            :  
+<span class="lineNum">    1642 </span><span class="lineCov">          5 :   return ApplyAlignObjsToGeom(alignObjArray);</span>
+<span class="lineNum">    1643 </span><span class="lineCov">          5 : }</span>
+<a name="1644"><span class="lineNum">    1644 </span>            : </a>
+<span class="lineNum">    1645 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1646 </span>            : Bool_t AliGeomManager::LoadAlignObjsFromCDBSingleDet(const char* detName, TObjArray&amp; alignObjArray)
+<span class="lineNum">    1647 </span>            : {
+<span class="lineNum">    1648 </span>            :   // Adds the alignable objects found in the CDBEntry for the detector
+<span class="lineNum">    1649 </span>            :   // passed as argument to the array of all alignment objects to be applyed
+<span class="lineNum">    1650 </span>            :   // to geometry
+<span class="lineNum">    1651 </span>            :   //
+<span class="lineNum">    1652 </span>            :   // Fills array of single detector's alignable objects from CDB
+<span class="lineNum">    1653 </span>            :   
+<span class="lineNum">    1654 </span><span class="lineCov">        240 :   AliDebugClass(2, Form(&quot;Loading alignment objs for detector: %s&quot;,detName));</span>
+<span class="lineNum">    1655 </span>            :   
+<span class="lineNum">    1656 </span>            :   AliCDBEntry *entry;
+<span class="lineNum">    1657 </span>            :         
+<span class="lineNum">    1658 </span><span class="lineCov">         60 :   AliCDBPath path(detName,&quot;Align&quot;,&quot;Data&quot;);</span>
+<span class="lineNum">    1659 </span>            :         
+<span class="lineNum">    1660 </span><span class="lineCov">        240 :   entry=AliCDBManager::Instance()-&gt;Get(path.GetPath());</span>
+<span class="lineNum">    1661 </span><span class="lineCov">         60 :   if(!entry){ </span>
+<span class="lineNum">    1662 </span><span class="lineNoCov">          0 :         AliDebugClass(2,Form(&quot;Couldn't load alignment data for detector %s&quot;,detName));</span>
+<span class="lineNum">    1663 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">    1664 </span>            :   }
+<span class="lineNum">    1665 </span><span class="lineCov">         60 :   entry-&gt;SetOwner(1);</span>
+<span class="lineNum">    1666 </span><span class="lineCov">         60 :   TClonesArray *alignArray = (TClonesArray*) entry-&gt;GetObject();     </span>
+<span class="lineNum">    1667 </span><span class="lineCov">         60 :   alignArray-&gt;SetOwner(0);</span>
+<span class="lineNum">    1668 </span><span class="lineCov">         60 :   Int_t nAlObjs = alignArray-&gt;GetEntries();</span>
+<span class="lineNum">    1669 </span><span class="lineCov">        360 :   AliDebugClass(2,Form(&quot;Found %d alignment objects for %s&quot;,nAlObjs,detName));</span>
+<span class="lineNum">    1670 </span><span class="lineCov">         60 :   Int_t nAlVols = GetNalignable(detName);</span>
+<span class="lineNum">    1671 </span><span class="lineCov">        140 :   if(nAlObjs!=nAlVols) AliWarningClass(Form(&quot;%d alignment objects loaded for %s, which has %d alignable volumes&quot;,nAlObjs,detName,GetNalignable(detName)));</span>
+<span class="lineNum">    1672 </span>            : 
+<span class="lineNum">    1673 </span>            :   AliAlignObj *alignObj=0;
+<span class="lineNum">    1674 </span><span class="lineCov">         60 :   TIter iter(alignArray);</span>
+<span class="lineNum">    1675 </span>            :         
+<span class="lineNum">    1676 </span>            :   // loop over align objects in detector
+<span class="lineNum">    1677 </span><span class="lineCov">      41966 :   while( ( alignObj=(AliAlignObj *) iter.Next() ) ){</span>
+<span class="lineNum">    1678 </span><span class="lineCov">      20923 :         alignObjArray.Add(alignObj);</span>
+<span class="lineNum">    1679 </span>            :   }
+<span class="lineNum">    1680 </span>            :   // delete entry --- Don't delete, it is cached!
+<span class="lineNum">    1681 </span>            :         
+<span class="lineNum">    1682 </span><span class="lineCov">        360 :   AliDebugClass(2, Form(&quot;fAlignObjArray entries: %d&quot;,alignObjArray.GetEntries() ));</span>
+<span class="lineNum">    1683 </span>            :   return kTRUE;
+<span class="lineNum">    1684 </span>            : 
+<span class="lineNum">    1685 </span><span class="lineCov">        120 : }</span>
+<a name="1686"><span class="lineNum">    1686 </span>            : </a>
+<span class="lineNum">    1687 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1688 </span>            : Bool_t AliGeomManager::ApplyAlignObjsToGeom(TObjArray&amp; alignObjArray, Bool_t ovlpcheck)
+<span class="lineNum">    1689 </span>            : {
+<span class="lineNum">    1690 </span>            :     // Read collection of alignment objects (AliAlignObj derived) saved
+<span class="lineNum">    1691 </span>            :     // in the TClonesArray alObjArray and apply them to gGeoManager
+<span class="lineNum">    1692 </span>            :     //
+<span class="lineNum">    1693 </span><span class="lineCov">          5 :     alignObjArray.Sort();</span>
+<span class="lineNum">    1694 </span><span class="lineCov">          5 :     Int_t nvols = alignObjArray.GetEntriesFast();</span>
+<span class="lineNum">    1695 </span>            : 
+<span class="lineNum">    1696 </span>            :     Bool_t flag = kTRUE;
+<span class="lineNum">    1697 </span>            : 
+<span class="lineNum">    1698 </span><span class="lineCov">      41856 :     for(Int_t j=0; j&lt;nvols; j++)</span>
+<span class="lineNum">    1699 </span>            :     {
+<span class="lineNum">    1700 </span><span class="lineCov">      20923 :         AliAlignObj* alobj = (AliAlignObj*) alignObjArray.UncheckedAt(j);</span>
+<span class="lineNum">    1701 </span><span class="lineCov">      20923 :         if(!alobj-&gt;ApplyToGeometry(ovlpcheck))</span>
+<span class="lineNum">    1702 </span>            :         {
+<span class="lineNum">    1703 </span>            :             flag = kFALSE;
+<span class="lineNum">    1704 </span><span class="lineCov">       2952 :             AliDebugClass(5,Form(&quot;Error applying alignment object for volume %s !&quot;,alobj-&gt;GetSymName()));</span>
+<span class="lineNum">    1705 </span>            :         }else{
+<span class="lineNum">    1706 </span><span class="lineCov">      59817 :             AliDebugClass(5,Form(&quot;Alignment object for volume %s applied successfully&quot;,alobj-&gt;GetSymName()));</span>
+<span class="lineNum">    1707 </span>            :         }
+<span class="lineNum">    1708 </span>            : 
+<span class="lineNum">    1709 </span>            :     }
+<span class="lineNum">    1710 </span>            : 
+<span class="lineNum">    1711 </span><span class="lineCov">         15 :     if (AliDebugLevelClass() &gt; 5) {</span>
+<span class="lineNum">    1712 </span><span class="lineNoCov">          0 :         fgGeometry-&gt;CheckOverlaps(0.001);</span>
+<span class="lineNum">    1713 </span><span class="lineNoCov">          0 :         TObjArray* ovexlist = fgGeometry-&gt;GetListOfOverlaps();</span>
+<span class="lineNum">    1714 </span><span class="lineNoCov">          0 :         if(ovexlist-&gt;GetEntriesFast()){  </span>
+<span class="lineNum">    1715 </span><span class="lineNoCov">          0 :             AliErrorClass(&quot;The application of alignment objects to the geometry caused huge overlaps/extrusions!&quot;);</span>
+<span class="lineNum">    1716 </span><span class="lineNoCov">          0 :             fgGeometry-&gt;PrintOverlaps();</span>
+<span class="lineNum">    1717 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1718 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1719 </span>            : 
+<span class="lineNum">    1720 </span>            :     // Update the TGeoPhysicalNodes
+<span class="lineNum">    1721 </span><span class="lineCov">          5 :     fgGeometry-&gt;RefreshPhysicalNodes();</span>
+<span class="lineNum">    1722 </span>            : 
+<span class="lineNum">    1723 </span><span class="lineCov">          5 :     return flag;</span>
+<span class="lineNum">    1724 </span>            : 
+<span class="lineNum">    1725 </span>            : }
+<a name="1726"><span class="lineNum">    1726 </span>            : </a>
+<span class="lineNum">    1727 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1728 </span>            : Bool_t AliGeomManager::ApplyAlignObjsToGeom(const char* fileName, const char* clArrayName)
+<span class="lineNum">    1729 </span>            : {
+<span class="lineNum">    1730 </span>            :   // read collection of alignment objects (AliAlignObj derived) saved
+<span class="lineNum">    1731 </span>            :   // in the TClonesArray ClArrayName in the file fileName and apply
+<span class="lineNum">    1732 </span>            :   // them to the geometry
+<span class="lineNum">    1733 </span>            :   //
+<span class="lineNum">    1734 </span>            : 
+<span class="lineNum">    1735 </span><span class="lineNoCov">          0 :   TFile* inFile = TFile::Open(fileName,&quot;READ&quot;);</span>
+<span class="lineNum">    1736 </span><span class="lineNoCov">          0 :   if (!inFile || !inFile-&gt;IsOpen()) {</span>
+<span class="lineNum">    1737 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Could not open file %s !&quot;,fileName));</span>
+<span class="lineNum">    1738 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1739 </span>            :   }
+<span class="lineNum">    1740 </span>            : 
+<span class="lineNum">    1741 </span><span class="lineNoCov">          0 :   TClonesArray* alignObjArray = ((TClonesArray*) inFile-&gt;Get(clArrayName));</span>
+<span class="lineNum">    1742 </span><span class="lineNoCov">          0 :   inFile-&gt;Close();</span>
+<span class="lineNum">    1743 </span><span class="lineNoCov">          0 :   if (!alignObjArray) {</span>
+<span class="lineNum">    1744 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Could not get array (%s) from file (%s) !&quot;,clArrayName,fileName));</span>
+<span class="lineNum">    1745 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1746 </span>            :   }
+<span class="lineNum">    1747 </span>            : 
+<span class="lineNum">    1748 </span><span class="lineNoCov">          0 :   return ApplyAlignObjsToGeom(*alignObjArray);</span>
+<span class="lineNum">    1749 </span>            : 
+<span class="lineNum">    1750 </span><span class="lineNoCov">          0 : }</span>
+<a name="1751"><span class="lineNum">    1751 </span>            : </a>
+<span class="lineNum">    1752 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1753 </span>            : Bool_t AliGeomManager::ApplyAlignObjsToGeom(const char* uri, const char* path, Int_t runnum, Int_t version, Int_t sversion)
+<span class="lineNum">    1754 </span>            : {
+<span class="lineNum">    1755 </span>            :   // read collection of alignment objects (AliAlignObj derived) saved
+<span class="lineNum">    1756 </span>            :   // in the TClonesArray ClArrayName in the AliCDBEntry identified by
+<span class="lineNum">    1757 </span>            :   // param (to get the AliCDBStorage) and Id; apply the alignment objects
+<span class="lineNum">    1758 </span>            :   // to the geometry
+<span class="lineNum">    1759 </span>            :   //
+<span class="lineNum">    1760 </span>            : 
+<span class="lineNum">    1761 </span><span class="lineNoCov">          0 :   AliCDBStorage* storage = AliCDBManager::Instance()-&gt;GetStorage(uri);</span>
+<span class="lineNum">    1762 </span><span class="lineNoCov">          0 :   AliCDBId id(path, runnum, runnum, version, sversion);</span>
+<span class="lineNum">    1763 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = storage-&gt;Get(id);</span>
+<span class="lineNum">    1764 </span><span class="lineNoCov">          0 :   TClonesArray* alignObjArray = dynamic_cast&lt;TClonesArray*&gt;(entry-&gt;GetObject());</span>
+<span class="lineNum">    1765 </span>            : 
+<span class="lineNum">    1766 </span><span class="lineNoCov">          0 :   return ApplyAlignObjsToGeom(*alignObjArray);</span>
+<span class="lineNum">    1767 </span>            : 
+<span class="lineNum">    1768 </span><span class="lineNoCov">          0 : }</span>
+<a name="1769"><span class="lineNum">    1769 </span>            : </a>
+<span class="lineNum">    1770 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1771 </span>            : Bool_t AliGeomManager::ApplyAlignObjsToGeom(const char* detName, Int_t runnum, Int_t version, Int_t sversion)
+<span class="lineNum">    1772 </span>            : {
+<span class="lineNum">    1773 </span>            :   // read collection of alignment objects (AliAlignObj derived) saved
+<span class="lineNum">    1774 </span>            :   // in the TClonesArray ClArrayName in the AliCDBEntry identified by
+<span class="lineNum">    1775 </span>            :   // param (to get the AliCDBStorage) and Id; apply the alignment objects
+<span class="lineNum">    1776 </span>            :   // to the geometry
+<span class="lineNum">    1777 </span>            :   //
+<span class="lineNum">    1778 </span>            : 
+<span class="lineNum">    1779 </span><span class="lineNoCov">          0 :   AliCDBPath path(detName,&quot;Align&quot;,&quot;Data&quot;);</span>
+<span class="lineNum">    1780 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = AliCDBManager::Instance()-&gt;Get(path.GetPath(),runnum,version,sversion);</span>
+<span class="lineNum">    1781 </span>            : 
+<span class="lineNum">    1782 </span><span class="lineNoCov">          0 :   if(!entry) return kFALSE;</span>
+<span class="lineNum">    1783 </span><span class="lineNoCov">          0 :   TClonesArray* alignObjArray = ((TClonesArray*) entry-&gt;GetObject());</span>
+<span class="lineNum">    1784 </span>            : 
+<span class="lineNum">    1785 </span><span class="lineNoCov">          0 :   return ApplyAlignObjsToGeom(*alignObjArray);</span>
+<span class="lineNum">    1786 </span><span class="lineNoCov">          0 : }</span>
+<a name="1787"><span class="lineNum">    1787 </span>            : </a>
+<span class="lineNum">    1788 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1789 </span>            : void AliGeomManager::ResetPNEntriesLUT()
+<span class="lineNum">    1790 </span>            : {
+<span class="lineNum">    1791 </span>            :   // cleans static arrays containing the information on currently loaded geometry
+<span class="lineNum">    1792 </span>            :   //
+<span class="lineNum">    1793 </span><span class="lineCov">        301 :   for (Int_t iLayer = 0; iLayer &lt; (kLastLayer - kFirstLayer); iLayer++){</span>
+<span class="lineNum">    1794 </span><span class="lineCov">        140 :     if (!fgPNEntry[iLayer]) continue;</span>
+<span class="lineNum">    1795 </span><span class="lineNoCov">          0 :     for (Int_t modnum=0; modnum&lt;fgLayerSize[iLayer]; modnum++) fgPNEntry[iLayer][modnum] = 0;</span>
+<span class="lineNum">    1796 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1797 </span>            :   //
+<span class="lineNum">    1798 </span><span class="lineCov">          7 : }</span>
+<span class="lineNum">    1799 </span>            :   
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

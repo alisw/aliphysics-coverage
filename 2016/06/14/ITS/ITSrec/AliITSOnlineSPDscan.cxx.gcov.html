@@ -1,0 +1,573 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - ITS/ITSrec/AliITSOnlineSPDscan.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ITS/ITSrec</a> - AliITSOnlineSPDscan.cxx<span style="font-size: 80%;"> (source / <a href="AliITSOnlineSPDscan.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">275</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">61</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : ////////////////////////////////////////////////////////////</a>
+<span class="lineNum">       2 </span>            : // Author: Henrik Tydesjo                                 //
+<span class="lineNum">       3 </span>            : // Interface class to the containers of an online scan.   //
+<span class="lineNum">       4 </span>            : // Directly connected to a TFile with all containers.     //
+<span class="lineNum">       5 </span>            : // Handles reading and writing of this TFile.             //
+<span class="lineNum">       6 </span>            : // Hitmaps and information on nr of events with hits      //
+<span class="lineNum">       7 </span>            : // is stored in this file (AliITSOnlineSPDHitArray and    //
+<span class="lineNum">       8 </span>            : // AliITSOnlineSPDHitEvent). Also some general            //
+<span class="lineNum">       9 </span>            : // information is stored (AliITSOnlineSPDscanInfo).       //
+<span class="lineNum">      10 </span>            : // When switching between different steps of the scan,    //
+<span class="lineNum">      11 </span>            : // the previous step is automatically stored on the file. //
+<span class="lineNum">      12 </span>            : // With this scheme there is no risk of running out of    //
+<span class="lineNum">      13 </span>            : // memory.                                                //
+<span class="lineNum">      14 </span>            : ////////////////////////////////////////////////////////////
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;math.h&gt;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      19 </span>            : #include &quot;AliITSOnlineSPDscan.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;AliITSOnlineSPDscanInfo.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;AliITSOnlineSPDHitArray.h&quot;
+<a name="22"><span class="lineNum">      22 </span>            : #include &quot;AliITSOnlineSPDHitEvent.h&quot;</a>
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : AliITSOnlineSPDscan::AliITSOnlineSPDscan(const Char_t *fileName, Bool_t readFromGridFile) :
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 :   fFile(NULL),</span>
+<span class="lineNum">      26 </span><span class="lineNoCov">          0 :   fWrite(kFALSE),</span>
+<span class="lineNum">      27 </span><span class="lineNoCov">          0 :   fCurrentStep(-1),</span>
+<span class="lineNum">      28 </span><span class="lineNoCov">          0 :   fModified(kFALSE),</span>
+<span class="lineNum">      29 </span><span class="lineNoCov">          0 :   fInfoModified(kFALSE),</span>
+<span class="lineNum">      30 </span><span class="lineNoCov">          0 :   fScanInfo(NULL),</span>
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :   fFileName(fileName)</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      33 </span>            :   // constructor, open file for reading or writing
+<span class="lineNum">      34 </span>            :   // look for a previously saved info object 
+<span class="lineNum">      35 </span>            :   // (if file not found create a new one and return, else read)
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :   for(Int_t ihs=0; ihs&lt;6; ihs++){</span>
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :   fCurrentHitArray[ihs]=0x0; </span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :   fCurrentHitEvent[ihs]=0x0;</span>
+<span class="lineNum">      40 </span>            :   }
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :   Bool_t bRead = readFromGridFile;</span>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   if (!bRead) {</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     FILE* fp0 = fopen(fFileName.Data(), &quot;r&quot;);</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     if (fp0 != NULL) {</span>
+<span class="lineNum">      47 </span>            :       bRead=kTRUE;
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :       fclose(fp0);</span>
+<span class="lineNum">      49 </span>            :     }
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   if (bRead) { // open file for reading</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     fFile = TFile::Open(fFileName.Data(), &quot;READ&quot;);</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     if (fFile==NULL) { // grid file not found, create new local default file</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :       printf(&quot;ERROR: AliITSOnlineSPDscan: File %s not found! Creating 'test999.root' file instead\n&quot;,fFileName.Data());</span>
+<span class="lineNum">      56 </span>            :       // create default empty file:
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :       fFileName = &quot;test999.root&quot;;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :       fScanInfo = new AliITSOnlineSPDscanInfo();</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :       fInfoModified=kTRUE;</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :       fFile = new TFile(fFileName.Data(), &quot;RECREATE&quot;);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :       fWrite=kTRUE;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      63 </span>            :     else { // read from file (grid or local)
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :       fWrite=kFALSE;</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :       fFile-&gt;GetObject(&quot;AliITSOnlineSPDscanInfo&quot;, fScanInfo);</span>
+<span class="lineNum">      66 </span>            :     }
+<span class="lineNum">      67 </span>            :   }
+<span class="lineNum">      68 </span>            :   else { // create new local file
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     fScanInfo = new AliITSOnlineSPDscanInfo();</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     fInfoModified=kTRUE;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     fFile = new TFile(fFileName.Data(), &quot;RECREATE&quot;);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     fWrite=kTRUE;</span>
+<span class="lineNum">      73 </span>            :   }
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   Init();</span>
+<a name="76"><span class="lineNum">      76 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : AliITSOnlineSPDscan::AliITSOnlineSPDscan(const AliITSOnlineSPDscan&amp; /*scan*/) :
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fFile(NULL),</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   fWrite(kFALSE),</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fCurrentStep(-1),</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   fModified(kFALSE),</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   fInfoModified(kFALSE),</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   fScanInfo(NULL),</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   fFileName(&quot;.&quot;)</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   for(Int_t ihs=0; ihs&lt;6; ihs++){</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   fCurrentHitArray[ihs]=0x0;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   fCurrentHitEvent[ihs]=0x0;</span>
+<span class="lineNum">      91 </span>            :   }
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   printf(&quot;This object should not be copied!&quot;);</span>
+<a name="94"><span class="lineNum">      94 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : AliITSOnlineSPDscan::~AliITSOnlineSPDscan() {</span>
+<span class="lineNum">      97 </span>            :   // destructor
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   if (fModified) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     SaveCurrentStep();</span>
+<span class="lineNum">     100 </span>            :   }
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     if (fCurrentHitArray[hs]!=NULL) {</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :       delete fCurrentHitArray[hs];</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :       fCurrentHitArray[hs]=NULL;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     if (fCurrentHitEvent[hs]!=NULL) {</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :       delete fCurrentHitEvent[hs];</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :       fCurrentHitEvent[hs]=NULL;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     110 </span>            :   }
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   if (fInfoModified) {</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     if (!fWrite) {</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :       fFile-&gt;Close();</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       delete fFile;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :       fFile = new TFile(fFileName.Data(), &quot;UPDATE&quot;);</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       fWrite=kTRUE;</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     fFile-&gt;Delete(&quot;AliITSOnlineSPDscanInfo;*&quot;);</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     fFile-&gt;WriteTObject(fScanInfo, &quot;AliITSOnlineSPDscanInfo&quot;);</span>
+<span class="lineNum">     120 </span>            :   }
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   if (fFile!=NULL) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     delete fFile;</span>
+<span class="lineNum">     123 </span>            :   }
+<a name="124"><span class="lineNum">     124 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : AliITSOnlineSPDscan&amp; AliITSOnlineSPDscan::operator=(const AliITSOnlineSPDscan&amp; scan) {
+<span class="lineNum">     127 </span>            :   // assignment operator (should not be used)
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   printf(&quot;This object should not be copied!&quot;);</span>
+<span class="lineNum">     129 </span>            :   if (this!=&amp;scan) {
+<span class="lineNum">     130 </span>            :     // still do nothing...
+<span class="lineNum">     131 </span>            :   }
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="133"><span class="lineNum">     133 </span>            : }</a>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : void AliITSOnlineSPDscan::ClearThis() {
+<span class="lineNum">     136 </span>            :   // clear this scan, close file and open new
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     if (fCurrentHitArray[hs]!=NULL) {</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :       delete fCurrentHitArray[hs];</span>
+<span class="lineNum">     140 </span>            :     }
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     fCurrentHitArray[hs] = NULL;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     if (fCurrentHitEvent[hs]!=NULL) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :       delete fCurrentHitEvent[hs];</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     fCurrentHitEvent[hs] = NULL;</span>
+<span class="lineNum">     146 </span>            :   }
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;ClearThis();</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   fFile-&gt;Close();</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   delete fFile;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   fFile = new TFile(fFileName.Data(), &quot;RECREATE&quot;);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   fWrite=kTRUE;</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   fFile-&gt;WriteTObject(fScanInfo, &quot;AliITSOnlineSPDscanInfo&quot;);</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span>
+<a name="154"><span class="lineNum">     154 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : void AliITSOnlineSPDscan::Init() {
+<span class="lineNum">     157 </span>            :   // init hit arrays and hit events
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     fCurrentHitArray[hs]=NULL;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     fCurrentHitEvent[hs]=NULL;</span>
+<span class="lineNum">     161 </span>            :   }
+<span class="lineNum">     162 </span>            : 
+<a name="163"><span class="lineNum">     163 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : UInt_t AliITSOnlineSPDscan::AddScanStep() {
+<span class="lineNum">     166 </span>            :   // add a new scan step
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   CreateNewStep();</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;AddScanStep();</span>
+<a name="169"><span class="lineNum">     169 </span>            : }</a>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : void AliITSOnlineSPDscan::CreateNewStep() {
+<span class="lineNum">     172 </span>            :   // create a new step
+<span class="lineNum">     173 </span>            :   // save current step to file (if modified)
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   if (fModified) {</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     SaveCurrentStep();</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     177 </span>            :   // create new step
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     if (fCurrentHitArray[hs]!=NULL) {</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :       delete fCurrentHitArray[hs];</span>
+<span class="lineNum">     181 </span>            :     }
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     fCurrentHitArray[hs] = new AliITSOnlineSPDHitArray();</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     if (fCurrentHitEvent[hs]!=NULL) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :       delete fCurrentHitEvent[hs];</span>
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     fCurrentHitEvent[hs] = new AliITSOnlineSPDHitEvent();</span>
+<span class="lineNum">     187 </span>            :   }
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   fCurrentStep = fScanInfo-&gt;GetNSteps();</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   fModified=kTRUE;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span>
+<a name="191"><span class="lineNum">     191 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : void AliITSOnlineSPDscan::SwitchToStep(UInt_t nsi) {
+<span class="lineNum">     194 </span>            :   // switch to step nsi (save current step first if needed)
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   if ((Int_t)nsi!=fCurrentStep) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     if (fModified) {</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :       SaveCurrentStep();</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :       if (fCurrentHitArray[hs]!=NULL) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         delete fCurrentHitArray[hs];</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         fCurrentHitArray[hs]=NULL;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :       if (fCurrentHitEvent[hs]!=NULL) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         delete fCurrentHitEvent[hs];</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         fCurrentHitEvent[hs]=NULL;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     208 </span>            :     }
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     if (nsi&gt;=GetNSteps()) {</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :       FillGap(nsi); // makes fCurrentStep = nsi</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     212 </span>            :     else {
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       fCurrentStep=nsi;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       ReadCurrentStep();</span>
+<span class="lineNum">     215 </span>            :     }
+<span class="lineNum">     216 </span>            :   }
+<a name="217"><span class="lineNum">     217 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : void AliITSOnlineSPDscan::FillGap(UInt_t nsi) {
+<span class="lineNum">     220 </span>            :   //create new steps until nsi is reached
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   while (nsi&gt;=GetNSteps()) {</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     fCurrentStep = AddScanStep();</span>
+<span class="lineNum">     223 </span>            :   }
+<a name="224"><span class="lineNum">     224 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : void AliITSOnlineSPDscan::ReadCurrentStep() {
+<span class="lineNum">     227 </span>            :   // read current step index into memory
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     TString stepName = Form(&quot;HitArray_HS%d_Step%d&quot;,hs,fCurrentStep);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     fFile-&gt;GetObject(stepName.Data(), fCurrentHitArray[hs]);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     TString stepName2 = Form(&quot;HitEvent_HS%d_Step%d&quot;,hs,fCurrentStep);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     fFile-&gt;GetObject(stepName2, fCurrentHitEvent[hs]);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   }</span>
+<a name="234"><span class="lineNum">     234 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : void AliITSOnlineSPDscan::SaveCurrentStep() {
+<span class="lineNum">     237 </span>            :   // save current step to file
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   if (!fWrite) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     fFile-&gt;Close();</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     delete fFile;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     fFile = new TFile(fFileName.Data(), &quot;UPDATE&quot;);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     fWrite=kTRUE;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   for (UInt_t hs=0; hs&lt;6; hs++) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     TString stepName = Form(&quot;HitArray_HS%d_Step%d&quot;,hs,fCurrentStep);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     TString stepDelete = Form(&quot;%s;*&quot;,stepName.Data());</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     fFile-&gt;Delete(stepDelete.Data());</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     fFile-&gt;WriteTObject(fCurrentHitArray[hs], stepName.Data());</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     TString stepName2 = Form(&quot;HitEvent_HS%d_Step%d&quot;,hs,fCurrentStep);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     TString stepDelete2 = Form(&quot;%s;*&quot;,stepName2.Data());</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     fFile-&gt;Delete(stepDelete2.Data());</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     fFile-&gt;WriteTObject(fCurrentHitEvent[hs], stepName2.Data());</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   fModified=kFALSE;</span>
+<a name="255"><span class="lineNum">     255 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            : void AliITSOnlineSPDscan::SetHits(UInt_t nsi, UInt_t hs, UInt_t chipi, UInt_t coli, UInt_t rowi, UInt_t val) {
+<span class="lineNum">     258 </span>            :   // set nr of hits for pixel
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   SwitchToStep(nsi);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   fCurrentHitArray[hs]-&gt;SetHits(chipi,coli,rowi,val);</span>
+<a name="261"><span class="lineNum">     261 </span><span class="lineNoCov">          0 :   fModified=kTRUE;</span></a>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     263 </span>            : void AliITSOnlineSPDscan::IncrementHits(UInt_t nsi, UInt_t hs, UInt_t chipi, UInt_t coli, UInt_t rowi) {
+<span class="lineNum">     264 </span>            :   // increment nr of hits for pixel
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   SwitchToStep(nsi);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   fCurrentHitArray[hs]-&gt;IncrementHits(chipi,coli,rowi);</span>
+<a name="267"><span class="lineNum">     267 </span><span class="lineNoCov">          0 :   fModified=kTRUE;</span></a>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     269 </span>            : void AliITSOnlineSPDscan::SetHitEvents(UInt_t nsi, UInt_t hs, UInt_t chipi, Int_t val) {
+<span class="lineNum">     270 </span>            :   // set nr of hit events for a chip
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   SwitchToStep(nsi);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   fCurrentHitEvent[hs]-&gt;SetHitEvent(chipi,val);</span>
+<a name="273"><span class="lineNum">     273 </span><span class="lineNoCov">          0 :   fModified=kTRUE;</span></a>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     275 </span>            : void AliITSOnlineSPDscan::SetHitEventsTot(UInt_t nsi, UInt_t hs, Int_t val) {
+<span class="lineNum">     276 </span>            :   // set nr of hit events for 10 chips together
+<a name="277"><span class="lineNum">     277 </span><span class="lineNoCov">          0 :   SetHitEvents(nsi,hs,10,val);</span></a>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     279 </span>            : void AliITSOnlineSPDscan::IncrementHitEvents(UInt_t nsi, UInt_t hs, UInt_t chipi) {
+<span class="lineNum">     280 </span>            :   // increment nr of hit events for a chip
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :   SwitchToStep(nsi);</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   fCurrentHitEvent[hs]-&gt;IncrementHitEvent(chipi);</span>
+<a name="283"><span class="lineNum">     283 </span><span class="lineNoCov">          0 :   fModified=kTRUE;</span></a>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     285 </span>            : void AliITSOnlineSPDscan::IncrementHitEventsTot(UInt_t nsi, UInt_t hs) {
+<span class="lineNum">     286 </span>            :   // increment nr of hit events for 10 chips
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   IncrementHitEvents(nsi,hs,10);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 : }</span>
+<a name="289"><span class="lineNum">     289 </span>            : </a>
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            : UInt_t AliITSOnlineSPDscan::GetHits(UInt_t nsi, UInt_t hs, UInt_t chipi, UInt_t coli, UInt_t rowi) {
+<span class="lineNum">     292 </span>            :   // get nr of hits for pixel
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   if (nsi&lt;GetNSteps()) {</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     SwitchToStep(nsi);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     return fCurrentHitArray[hs]-&gt;GetHits(chipi,coli,rowi);</span>
+<span class="lineNum">     296 </span>            :   }
+<span class="lineNum">     297 </span>            :   else {
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="299"><span class="lineNum">     299 </span>            :   }</a>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     301 </span>            : Float_t AliITSOnlineSPDscan::GetHitsEfficiency(UInt_t nsi, UInt_t hs, UInt_t chipi, UInt_t coli, UInt_t rowi) {
+<span class="lineNum">     302 </span>            :   // get the hit efficiency for pixel
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   UInt_t ntr = GetTriggers(nsi);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   if (ntr&gt;0) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     return ((Float_t)GetHits(nsi,hs,chipi,coli,rowi))/ntr;</span>
+<span class="lineNum">     306 </span>            :   }
+<span class="lineNum">     307 </span>            :   else {
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="309"><span class="lineNum">     309 </span>            :   }</a>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     311 </span>            : Float_t AliITSOnlineSPDscan::GetHitsEfficiencyError(UInt_t nsi, UInt_t hs, UInt_t chipi, UInt_t coli, UInt_t rowi) {
+<span class="lineNum">     312 </span>            :   // get error in hit efficiency for pixel
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   Float_t hits = GetHits(nsi,hs,chipi,coli,rowi);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   UInt_t ntr = GetTriggers(nsi);</span>
+<a name="315"><span class="lineNum">     315 </span><span class="lineNoCov">          0 :   return sqrt(hits*(ntr-hits)/ntr)/ntr;</span></a>
+<span class="lineNum">     316 </span>            : }
+<span class="lineNum">     317 </span>            : UInt_t AliITSOnlineSPDscan::GetHitEvents(UInt_t nsi, UInt_t hs, UInt_t chipi) {
+<span class="lineNum">     318 </span>            :   // get nr of hit events for a chip
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   if (nsi&lt;GetNSteps()) {</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     SwitchToStep(nsi);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     return fCurrentHitEvent[hs]-&gt;GetHitEvent(chipi);</span>
+<span class="lineNum">     322 </span>            :   }
+<span class="lineNum">     323 </span>            :   else {
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="325"><span class="lineNum">     325 </span>            :   }</a>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     327 </span>            : UInt_t AliITSOnlineSPDscan::GetHitEventsTot(UInt_t nsi, UInt_t hs) {
+<span class="lineNum">     328 </span>            :   // get nr of hit events for 10 chips
+<a name="329"><span class="lineNum">     329 </span><span class="lineNoCov">          0 :   return GetHitEvents(nsi,hs,10);</span></a>
+<span class="lineNum">     330 </span>            : }
+<span class="lineNum">     331 </span>            : Float_t AliITSOnlineSPDscan::GetHitEventsEfficiency(UInt_t nsi, UInt_t hs, UInt_t chipi) {
+<span class="lineNum">     332 </span>            :   // get the hit events efficiency for a chip
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   UInt_t ntr = GetTriggers(nsi);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :   if (ntr&gt;0) {</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     return ((Float_t)GetHitEvents(nsi,hs,chipi))/ntr;</span>
+<span class="lineNum">     336 </span>            :   }
+<span class="lineNum">     337 </span>            :   else {
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="339"><span class="lineNum">     339 </span>            :   }</a>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     341 </span>            : Float_t AliITSOnlineSPDscan::GetHitEventsTotEfficiency(UInt_t nsi, UInt_t hs) {
+<span class="lineNum">     342 </span>            :   // get the hit events efficiency for 10 chips
+<a name="343"><span class="lineNum">     343 </span><span class="lineNoCov">          0 :   return GetHitEventsEfficiency(nsi,hs,10);</span></a>
+<span class="lineNum">     344 </span>            : }
+<span class="lineNum">     345 </span>            : Float_t AliITSOnlineSPDscan::GetHitEventsEfficiencyError(UInt_t nsi, UInt_t hs, UInt_t chipi) {
+<span class="lineNum">     346 </span>            :   // get error in hit events efficiency for a chip
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :   Float_t hitevents = (Float_t) GetHitEvents(nsi,hs,chipi);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :   UInt_t ntr = GetTriggers(nsi);</span>
+<a name="349"><span class="lineNum">     349 </span><span class="lineNoCov">          0 :   return sqrt(hitevents*(ntr-hitevents)/ntr)/ntr;</span></a>
+<span class="lineNum">     350 </span>            : }
+<span class="lineNum">     351 </span>            : Float_t AliITSOnlineSPDscan::GetHitEventsTotEfficiencyError(UInt_t nsi, UInt_t hs) {
+<span class="lineNum">     352 </span>            :   // get error in hit events efficiency for 10 chips
+<a name="353"><span class="lineNum">     353 </span><span class="lineNoCov">          0 :   return GetHitEventsEfficiencyError(nsi,hs,10);</span></a>
+<span class="lineNum">     354 </span>            : }
+<span class="lineNum">     355 </span>            : Float_t AliITSOnlineSPDscan::GetAverageMultiplicity(UInt_t nsi, UInt_t hs, UInt_t chipi) {
+<span class="lineNum">     356 </span>            :   // get average multiplicity for a chip
+<span class="lineNum">     357 </span>            :   Float_t nrhits = 0;
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   for (UInt_t chip=0;chip&lt;10;chip++) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     if (chipi==10 || chip==chipi) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       for (Int_t col=0; col&lt;32; col++) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         for (Int_t row=0; row&lt;256; row++) {</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :           nrhits+=GetHits(nsi,hs,chip,col,row);</span>
+<span class="lineNum">     363 </span>            :         }
+<span class="lineNum">     364 </span>            :       }
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     366 </span>            :   }
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :   UInt_t ntr = GetTriggers(nsi);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :   if (ntr&gt;0) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     return nrhits/ntr;</span>
+<span class="lineNum">     370 </span>            :   }
+<span class="lineNum">     371 </span>            :   else {
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="373"><span class="lineNum">     373 </span>            :   }</a>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     375 </span>            : Float_t AliITSOnlineSPDscan::GetAverageMultiplicityTot(UInt_t nsi, UInt_t hs) {
+<span class="lineNum">     376 </span>            :   // get average multiplicity for 10 chips
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   return GetAverageMultiplicity(nsi,hs,10);</span>
+<span class="lineNum">     378 </span>            : }
+<a name="379"><span class="lineNum">     379 </span>            : </a>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : void AliITSOnlineSPDscan::SetType(UInt_t val) {
+<span class="lineNum">     382 </span>            :   // set type
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetType(val);</span>
+<a name="384"><span class="lineNum">     384 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     386 </span>            : void AliITSOnlineSPDscan::SetRunNr(UInt_t val) {
+<span class="lineNum">     387 </span>            :   // set run nr
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetRunNr(val);</span>
+<a name="389"><span class="lineNum">     389 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     391 </span>            : void AliITSOnlineSPDscan::SetRouterNr(UInt_t val) {
+<span class="lineNum">     392 </span>            :   // set router nr
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetRouterNr(val);</span>
+<a name="394"><span class="lineNum">     394 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     396 </span>            : void AliITSOnlineSPDscan::SetHalfStaveScanned(UInt_t val, Bool_t b) {
+<span class="lineNum">     397 </span>            :   // set half stave scanned
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetHalfStaveScanned(val,b);</span>
+<a name="399"><span class="lineNum">     399 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     401 </span>            : void AliITSOnlineSPDscan::SetDataFormat(UInt_t val) {
+<span class="lineNum">     402 </span>            :   // set data format (0=normal 1=histogram)
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetDataFormat(val);</span>
+<a name="404"><span class="lineNum">     404 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     406 </span>            : void AliITSOnlineSPDscan::SetTriggers(UInt_t nsi, UInt_t val) {
+<span class="lineNum">     407 </span>            :   // set nr of triggers
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   SwitchToStep(nsi);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetTriggers(nsi,val);</span>
+<a name="410"><span class="lineNum">     410 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     412 </span>            : void AliITSOnlineSPDscan::SetChipPresent(UInt_t hs, UInt_t chipi, Bool_t val){
+<span class="lineNum">     413 </span>            :   // set chip present
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetChipPresent(hs,chipi,val); </span>
+<a name="415"><span class="lineNum">     415 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     417 </span>            : void AliITSOnlineSPDscan::SetRowStart(UInt_t val){
+<span class="lineNum">     418 </span>            :   // set row start
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetRowStart(val); </span>
+<a name="420"><span class="lineNum">     420 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     422 </span>            : void AliITSOnlineSPDscan::SetRowEnd(UInt_t val){
+<span class="lineNum">     423 </span>            :   // set row end
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetRowEnd(val); </span>
+<a name="425"><span class="lineNum">     425 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     427 </span>            : void AliITSOnlineSPDscan::SetDacStart(UInt_t val){
+<span class="lineNum">     428 </span>            :   // set dac start
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetDacStart(val); </span>
+<a name="430"><span class="lineNum">     430 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     432 </span>            : void AliITSOnlineSPDscan::SetDacEnd(UInt_t val){
+<span class="lineNum">     433 </span>            :   // set dac end
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetDacEnd(val); </span>
+<a name="435"><span class="lineNum">     435 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 : }  </span>
+<span class="lineNum">     437 </span>            : void AliITSOnlineSPDscan::SetDacStep(UInt_t val){
+<span class="lineNum">     438 </span>            :   // set dac step
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetDacStep(val); </span>
+<a name="440"><span class="lineNum">     440 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     442 </span>            : void AliITSOnlineSPDscan::SetDCSVersion(UInt_t val){
+<span class="lineNum">     443 </span>            :   // set dcs db version
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;SetDCSVersion(val); </span>
+<a name="445"><span class="lineNum">     445 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span></a>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     447 </span>            : void AliITSOnlineSPDscan::IncrementTriggers(UInt_t nsi) {
+<span class="lineNum">     448 </span>            :   // increment nr of triggers
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   SwitchToStep(nsi);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   fScanInfo-&gt;IncrementTriggers(nsi); </span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   fInfoModified=kTRUE;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     453 </span>            : 
+<a name="454"><span class="lineNum">     454 </span>            : </a>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            : UInt_t AliITSOnlineSPDscan::GetNSteps() const {
+<a name="457"><span class="lineNum">     457 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetNSteps();</span></a>
+<span class="lineNum">     458 </span>            : }
+<span class="lineNum">     459 </span>            : UInt_t AliITSOnlineSPDscan::GetType() const {
+<a name="460"><span class="lineNum">     460 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetType();</span></a>
+<span class="lineNum">     461 </span>            : }
+<span class="lineNum">     462 </span>            : UInt_t AliITSOnlineSPDscan::GetRunNr() const {
+<a name="463"><span class="lineNum">     463 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetRunNr();</span></a>
+<span class="lineNum">     464 </span>            : }
+<span class="lineNum">     465 </span>            : UInt_t AliITSOnlineSPDscan::GetRouterNr() const {
+<a name="466"><span class="lineNum">     466 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetRouterNr();</span></a>
+<span class="lineNum">     467 </span>            : }
+<span class="lineNum">     468 </span>            : Bool_t AliITSOnlineSPDscan::GetHalfStaveScanned(UInt_t val) const {
+<a name="469"><span class="lineNum">     469 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetHalfStaveScanned(val);</span></a>
+<span class="lineNum">     470 </span>            : }
+<span class="lineNum">     471 </span>            : UInt_t AliITSOnlineSPDscan::GetDataFormat() const {
+<a name="472"><span class="lineNum">     472 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetDataFormat();</span></a>
+<span class="lineNum">     473 </span>            : }
+<span class="lineNum">     474 </span>            : UInt_t AliITSOnlineSPDscan::GetTriggers(UInt_t nsi) const {
+<a name="475"><span class="lineNum">     475 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetTriggers(nsi);</span></a>
+<span class="lineNum">     476 </span>            : }
+<span class="lineNum">     477 </span>            : Bool_t AliITSOnlineSPDscan::GetChipPresent(UInt_t hs, UInt_t chipi) const {
+<a name="478"><span class="lineNum">     478 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetChipPresent(hs,chipi);</span></a>
+<span class="lineNum">     479 </span>            : }
+<span class="lineNum">     480 </span>            : UInt_t AliITSOnlineSPDscan::GetRowStart() const {
+<a name="481"><span class="lineNum">     481 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetRowStart();</span></a>
+<span class="lineNum">     482 </span>            : }
+<span class="lineNum">     483 </span>            : UInt_t AliITSOnlineSPDscan::GetRowEnd() const {
+<a name="484"><span class="lineNum">     484 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetRowEnd();</span></a>
+<span class="lineNum">     485 </span>            : }
+<span class="lineNum">     486 </span>            : UInt_t AliITSOnlineSPDscan::GetDacStart() const {
+<a name="487"><span class="lineNum">     487 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetDacStart();</span></a>
+<span class="lineNum">     488 </span>            : }
+<span class="lineNum">     489 </span>            : UInt_t AliITSOnlineSPDscan::GetDacEnd() const {
+<a name="490"><span class="lineNum">     490 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetDacEnd();</span></a>
+<span class="lineNum">     491 </span>            : }
+<span class="lineNum">     492 </span>            : UInt_t AliITSOnlineSPDscan::GetDacStep() const {
+<a name="493"><span class="lineNum">     493 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetDacStep();</span></a>
+<span class="lineNum">     494 </span>            : }
+<span class="lineNum">     495 </span>            : UInt_t AliITSOnlineSPDscan::GetDCSVersion() const {
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   return fScanInfo-&gt;GetDCSVersion();</span>
+<span class="lineNum">     497 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

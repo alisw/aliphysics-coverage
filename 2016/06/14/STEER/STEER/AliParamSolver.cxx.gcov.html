@@ -1,0 +1,417 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliParamSolver.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliParamSolver.cxx<span style="font-size: 80%;"> (source / <a href="AliParamSolver.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">186</td>
+            <td class="headerCovTableEntryLo">0.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntryLo">4.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ----------------------------------------------------------------------------------------</a>
+<span class="lineNum">       2 </span>            :    Class to solve a set of N linearized parametric equations of the type
+<span class="lineNum">       3 </span>            :    Eq(k): sum_i=0^n { g_i G_ik }  + t_k T_k = res_k
+<span class="lineNum">       4 </span>            :    whith n &quot;global&quot; parameters gi and one &quot;local&quot; parameter (per equation) t_k.
+<span class="lineNum">       5 </span>            :    Each measured points provides 3 measured coordinates, with proper covariance matrix.
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            :    Used for Newton-Raphson iteration step in solution of non-linear parametric equations
+<span class="lineNum">       8 </span>            :    F(g,t_k) - res_k = 0, with G_ik = dF(g,t_k)/dg_i and T_k = dF(g,t_k)/dt_k
+<span class="lineNum">       9 </span>            :    Solution is obtained by elimination of local parameters via large (n+N) matrix partitioning 
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            :    Author: ruben.shahoyan@cern.ch
+<span class="lineNum">      12 </span>            : -------------------------------------------------------------------------------------------*/ 
+<span class="lineNum">      13 </span>            : #include &quot;AliParamSolver.h&quot;
+<span class="lineNum">      14 </span>            : #include &quot;AliSymMatrix.h&quot;
+<span class="lineNum">      15 </span>            : #include &quot;AliLog.h&quot;
+<a name="16"><span class="lineNum">      16 </span>            : #include &lt;TMath.h&gt;</a>
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span><span class="lineCov">        126 : ClassImp(AliParamSolver)</span>
+<a name="19"><span class="lineNum">      19 </span>            : </a>
+<span class="lineNum">      20 </span>            : //______________________________________________________________________________________
+<span class="lineNum">      21 </span><span class="lineNoCov">          0 : AliParamSolver::AliParamSolver()</span>
+<span class="lineNum">      22 </span><span class="lineNoCov">          0 : : fMatrix(0),fSolGlo(0),fSolLoc(0),fMaxGlobal(0),fNGlobal(0),fNPoints(0),fMaxPoints(0),</span>
+<span class="lineNum">      23 </span><span class="lineNoCov">          0 :   fRHSGlo(0),fRHSLoc(0),fMatGamma(0),fMatG(0),fCovDGl(0)</span>
+<span class="lineNum">      24 </span><span class="lineNoCov">          0 : { </span>
+<span class="lineNum">      25 </span>            :   // default constructor
+<span class="lineNum">      26 </span><span class="lineNoCov">          0 : }</span>
+<a name="27"><span class="lineNum">      27 </span>            : </a>
+<span class="lineNum">      28 </span>            : //______________________________________________________________________________________
+<span class="lineNum">      29 </span><span class="lineNoCov">          0 : AliParamSolver::AliParamSolver(Int_t maxglo,Int_t locbuff)</span>
+<span class="lineNum">      30 </span><span class="lineNoCov">          0 : : fMatrix(0),fSolGlo(0),fSolLoc(0),fMaxGlobal(maxglo),fNGlobal(maxglo),fNPoints(0),fMaxPoints(0),</span>
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :   fRHSGlo(0),fRHSLoc(0),fMatGamma(0),fMatG(0),fCovDGl(0)</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 : { </span>
+<span class="lineNum">      33 </span>            :   // constructor for nglo globals
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :   Init(locbuff);</span>
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 : }</span>
+<a name="36"><span class="lineNum">      36 </span>            : </a>
+<span class="lineNum">      37 </span>            : //______________________________________________________________________________________
+<span class="lineNum">      38 </span>            : AliParamSolver::AliParamSolver(const AliParamSolver&amp; src)
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :   : TObject(src),fMatrix(0),fSolGlo(0),fSolLoc(0),fMaxGlobal(src.fMaxGlobal),fNGlobal(src.fNGlobal),</span>
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     fNPoints(0),fMaxPoints(0),fRHSGlo(0),fRHSLoc(0),fMatGamma(0),fMatG(0),fCovDGl(0)</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 : { </span>
+<span class="lineNum">      42 </span>            :   // copy constructor 
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :   if (src.fMatrix) {</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     Init(src.fMaxPoints);</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     (*this) = src;</span>
+<span class="lineNum">      46 </span>            :   }
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 : }</span>
+<a name="48"><span class="lineNum">      48 </span>            : </a>
+<span class="lineNum">      49 </span>            : //______________________________________________________________________________________
+<span class="lineNum">      50 </span>            : AliParamSolver&amp; AliParamSolver::operator=(const AliParamSolver&amp; src)
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span>            :   // assignment operator
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   if (this==&amp;src) return *this;</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   TObject::operator=(src);</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   if (src.fMatrix &amp;&amp; (fNGlobal!=src.fNGlobal || fMaxPoints&lt;src.fNPoints)) {</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     fNGlobal   = src.fNGlobal;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     fMaxGlobal = src.fMaxGlobal;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     if (fMatrix)   delete   fMatrix; fMatrix = 0;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     if (fSolGlo)   delete[] fSolGlo; fSolGlo = 0;</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     if (fSolLoc)   delete[] fSolLoc; fSolLoc = 0;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     if (fRHSGlo)   delete[] fRHSGlo; fRHSGlo = 0;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     if (fRHSLoc)   delete[] fRHSLoc; fRHSLoc = 0;</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     if (fMatGamma) delete[] fMatGamma; fMatGamma = 0;</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     if (fMatG)     delete[] fMatG; fMatG = 0;</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     if (fCovDGl)   delete[] fCovDGl; fCovDGl = 0;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     Init(src.fMaxPoints);</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   if (src.fMatrix) {</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     (*fMatrix) = *(src.fMatrix);</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     memcpy(fSolGlo,src.fSolGlo,fNGlobal*sizeof(double));</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     memcpy(fSolLoc,src.fSolLoc,fNPoints*sizeof(double));</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     memcpy(fRHSGlo,src.fRHSGlo,fNGlobal*sizeof(double));</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     memcpy(fRHSLoc,src.fRHSLoc,fNPoints*sizeof(double));</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     memcpy(fMatGamma,src.fMatGamma,fNPoints*sizeof(double));</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     memcpy(fMatG,src.fMatG,fNPoints*fNGlobal*sizeof(double));</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      77 </span>            :   //
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 : }</span>
+<a name="80"><span class="lineNum">      80 </span>            : </a>
+<span class="lineNum">      81 </span>            : //______________________________________________________________________________________
+<span class="lineNum">      82 </span>            : AliParamSolver::~AliParamSolver()
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 : { </span>
+<span class="lineNum">      84 </span>            :   // destructor
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   delete fMatrix;</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   delete[] fSolGlo;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   delete[] fSolLoc;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   delete[] fRHSGlo;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   delete[] fRHSLoc;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   delete[] fMatGamma;</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   delete[] fMatG;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   delete[] fCovDGl;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 : }</span>
+<a name="94"><span class="lineNum">      94 </span>            : </a>
+<span class="lineNum">      95 </span>            : //______________________________________________________________________________________
+<span class="lineNum">      96 </span>            : Bool_t AliParamSolver::SolveGlobals(Bool_t obtainCov)
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span>            :   // solve against global vars.
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   if (fNPoints&lt;fNGlobal/3) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Number of points: %d is not enough for %d globals&quot;,fNPoints,fNGlobal));</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     102 </span>            :   }
+<span class="lineNum">     103 </span>            :   //
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   if (!TestBit(kBitGloSol)) {</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     if (!fMatrix-&gt;SolveChol(fRHSGlo, fSolGlo, obtainCov)) {</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :       AliError(&quot;Solution Failed&quot;);</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     SetBit(kBitGloSol);</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     if (obtainCov) SetBit(kBitCInv);</span>
+<span class="lineNum">     111 </span>            :   }
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 : }</span>
+<a name="114"><span class="lineNum">     114 </span>            : </a>
+<span class="lineNum">     115 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     116 </span>            : Bool_t AliParamSolver::SolveLocals()
+<span class="lineNum">     117 </span>            : {
+<span class="lineNum">     118 </span>            :   // solve for locals
+<span class="lineNum">     119 </span>            :   const double kTiny = 1e-16;
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   if (TestBit(kBitLocSol)) return kTRUE;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   if (!TestBit(kBitGloSol)) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     AliError(&quot;Cannot solve for Locals before SolveGlobals is called&quot;);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     124 </span>            :   }
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   for (int i=fNPoints;i--;) {</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     if (TMath::Abs(fMatGamma[i])&lt;kTiny) {fSolLoc[i] = 0; continue;}</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     double beta = fRHSLoc[i];</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     double *mtG = fMatG + i*fNGlobal;  // G_i</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     for (int j=fNGlobal;j--;) beta -= mtG[j]*fSolGlo[j];</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     fSolLoc[i] = beta/fMatGamma[i];   // Gamma^-1 * (beta - G_i * a)</span>
+<span class="lineNum">     131 </span>            :   }
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   SetBit(kBitLocSol);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 : }</span>
+<a name="135"><span class="lineNum">     135 </span>            : </a>
+<span class="lineNum">     136 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     137 </span>            : AliSymMatrix* AliParamSolver::GetCovMatrix()
+<span class="lineNum">     138 </span>            : {
+<span class="lineNum">     139 </span>            :   // obtain cov.mat
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   if (!TestBit(kBitGloSol)) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     AliError(&quot;Cannot obtain Cov.Matrix before SolveGlobals is called&quot;);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     143 </span>            :   }
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   if (TestBit(kBitCInv)) return fMatrix;</span>
+<span class="lineNum">     145 </span>            :   //
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   if (fMatrix-&gt;InvertChol()) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     SetBit(kBitCInv);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     return fMatrix;</span>
+<span class="lineNum">     149 </span>            :   }
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 : }</span>
+<a name="152"><span class="lineNum">     152 </span>            : </a>
+<span class="lineNum">     153 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     154 </span>            : Bool_t AliParamSolver::Solve(Bool_t obtainCov)
+<span class="lineNum">     155 </span>            : {
+<span class="lineNum">     156 </span>            :   // solve all
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   return (SolveGlobals(obtainCov) &amp;&amp; SolveLocals()) ? kTRUE : kFALSE; </span>
+<span class="lineNum">     158 </span>            : }
+<a name="159"><span class="lineNum">     159 </span>            : </a>
+<span class="lineNum">     160 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     161 </span>            : void AliParamSolver::AddEquation(const Double_t* dGl,const Double_t *dLc,const Double_t *res, const Double_t *covI,Double_t sclErrI)
+<span class="lineNum">     162 </span>            : {
+<span class="lineNum">     163 </span>            :   // add the measured point to chi2 normal equations
+<span class="lineNum">     164 </span>            :   // Input: 
+<span class="lineNum">     165 </span>            :   // dGl : NGlo x 3 matrix of derivative for each of the 3 coordinates vs global params
+<span class="lineNum">     166 </span>            :   // dLc : 3-vector of derivative for each coordinate vs local param
+<span class="lineNum">     167 </span>            :   // res : residual of the point (extrapolated - measured)
+<span class="lineNum">     168 </span>            :   // covI: 3 x (3+1)/2 matrix of the (inverted) errors (symmetric)
+<span class="lineNum">     169 </span>            :   // sclErrI: scaling coefficient to apply to inverted errors (used if &gt;0)
+<span class="lineNum">     170 </span>            :   // The contribution of the point to chi2 is  V * covI * V 
+<span class="lineNum">     171 </span>            :   // with component of the vector V(i) = dGl[i]*glob + dLc[i]*loc - res[i] 
+<span class="lineNum">     172 </span>            :   //
+<span class="lineNum">     173 </span>            :   // Instead of the NGlo + NMeasPoints size matrix we create only NGlo size matrix using the 
+<span class="lineNum">     174 </span>            :   // reduction a la millepede : http://www.desy.de/~blobel/millepede1.ps
+<span class="lineNum">     175 </span>            :   const double kTiny = 1e-16;
+<span class="lineNum">     176 </span>            :   //
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   if (fNPoints+1 == fMaxPoints) ExpandStorage((fNPoints+1)*2);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   ResetBit(kBitGloSol|kBitLocSol);</span>
+<span class="lineNum">     179 </span>            :   //
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   if (TestBit(kBitCInv)) { // solution was obtained and the matrix was inverted for previous points</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     fMatrix-&gt;InvertChol();</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     ResetBit(kBitCInv);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     184 </span>            :   //
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   double *mtG   = fMatG + fNPoints*fNGlobal;  // G_i</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   double &amp;beta  = fRHSLoc[fNPoints];</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   double &amp;gamma = fMatGamma[fNPoints];</span>
+<span class="lineNum">     188 </span>            :   double cDl[3];
+<span class="lineNum">     189 </span>            :   //
+<span class="lineNum">     190 </span>            :   // cov * dR/dloc
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   cDl[kX] = covI[kXX]*dLc[kX] + covI[kXY]*dLc[kY] + covI[kXZ]*dLc[kZ];</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   cDl[kY] = covI[kXY]*dLc[kX] + covI[kYY]*dLc[kY] + covI[kYZ]*dLc[kZ];</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   cDl[kZ] = covI[kXZ]*dLc[kX] + covI[kYZ]*dLc[kY] + covI[kZZ]*dLc[kZ];</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   if (sclErrI&gt;0) { cDl[kX] *= sclErrI; cDl[kY] *= sclErrI; cDl[kZ] *= sclErrI;}</span>
+<span class="lineNum">     195 </span>            :   //
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   for (int i=fNGlobal;i--;) {</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     const double *dGli = dGl+i*3;  // derivatives of XYZ vs i-th global param</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     double *cDgi = fCovDGl+i*3;    // cov * dR/dGl_i</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     cDgi[kX] = covI[kXX]*dGli[kX] + covI[kXY]*dGli[kY] + covI[kXZ]*dGli[kZ];</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     cDgi[kY] = covI[kXY]*dGli[kX] + covI[kYY]*dGli[kY] + covI[kYZ]*dGli[kZ];</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     cDgi[kZ] = covI[kXZ]*dGli[kX] + covI[kYZ]*dGli[kY] + covI[kZZ]*dGli[kZ];</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     if (sclErrI&gt;0) { cDgi[kX] *= sclErrI; cDgi[kY] *= sclErrI; cDgi[kZ] *= sclErrI;}</span>
+<span class="lineNum">     203 </span>            :     //
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     mtG[i]   = cDl[kX]*dGli[kX] + cDl[kY]*dGli[kY] + cDl[kZ]*dGli[kZ];  // dR/dGl_i * cov * dR/dLoc</span>
+<span class="lineNum">     205 </span>            :   }
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   beta    = res[kX]*cDl[kX] + res[kY]*cDl[kY] + res[kZ]*cDl[kZ];  //RHS: res*cov*dR/dloc</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   gamma   = dLc[kX]*cDl[kX] + dLc[kY]*cDl[kY] + dLc[kZ]*cDl[kZ];  //RHS: dR/dloc*cov*dR/dloc</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   double locSol  = TMath::Abs(gamma)&lt;kTiny ? 0. : beta/gamma;     //local solution: gamma^-1 beta</span>
+<span class="lineNum">     209 </span>            :   //
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   AliSymMatrix &amp;matC = *fMatrix;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   for (int i=fNGlobal;i--;) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     const double *cDgi = fCovDGl+i*3;    // cov * dR/dGl_i</span>
+<span class="lineNum">     213 </span>            :     //
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     fRHSGlo[i] += cDgi[kX]*res[kX] + cDgi[kY]*res[kY] + cDgi[kZ]*res[kZ]      // b_i = dR/dGi * cov * res</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :       -           mtG[i]*locSol;                                              //     - [G gamma^-1 beta ]_i</span>
+<span class="lineNum">     216 </span>            :     //
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     for (int j=i+1;j--;) {</span>
+<span class="lineNum">     218 </span>            :       //      const double *cDgj = fCovDGl+j*3;  // cov * dR/dGl_j
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :       const double *dGlj = dGl+j*3;        // derivatives of XYZ vs i-th global param</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :       double add = dGlj[kX]*cDgi[kX] + dGlj[kY]*cDgi[kY] + dGlj[kZ]*cDgi[kZ];  // C_ij = dR/dGi * cov * dR/dGj</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :       if (TMath::Abs(gamma)&gt;kTiny) add -= mtG[i]*mtG[j]/gamma;                 //        - [G gamma^-1 T(G) ]_ij      </span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :       matC(i,j) += add;       </span>
+<span class="lineNum">     223 </span>            :     }
+<span class="lineNum">     224 </span>            :   }
+<span class="lineNum">     225 </span>            :   //
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   fNPoints++;</span>
+<span class="lineNum">     227 </span>            :   //
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 : }</span>
+<a name="229"><span class="lineNum">     229 </span>            : </a>
+<span class="lineNum">     230 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     231 </span>            : void AliParamSolver::AddConstraint(Int_t parID, Double_t val, Double_t err2inv)
+<span class="lineNum">     232 </span>            : {
+<span class="lineNum">     233 </span>            :   // add gassian constriant to parameter parID
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   if (parID&gt;=fNGlobal) {</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Attempt to constraint non-existing parameter %d&quot;,parID));</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     237 </span>            :   }
+<span class="lineNum">     238 </span>            :   //
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   (*fMatrix)(parID,parID) += err2inv;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   fRHSGlo[parID] += val*err2inv;</span>
+<span class="lineNum">     241 </span>            :   //
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 : }</span>
+<a name="243"><span class="lineNum">     243 </span>            : </a>
+<span class="lineNum">     244 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     245 </span>            : void AliParamSolver::Init(Int_t npini)
+<span class="lineNum">     246 </span>            : {
+<span class="lineNum">     247 </span>            :   // create storage assuming maximum npini measured points
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   fMatrix = new AliSymMatrix(fMaxGlobal);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   fSolGlo = new Double_t[fMaxGlobal];</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   fRHSGlo = new Double_t[fMaxGlobal];</span>
+<span class="lineNum">     251 </span>            :   //
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :   fCovDGl = new Double_t[3*fMaxGlobal];</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   ExpandStorage(npini);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   fMatrix-&gt;SetSizeUsed(fNGlobal);</span>
+<span class="lineNum">     255 </span>            :   //
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 : }</span>
+<a name="257"><span class="lineNum">     257 </span>            : </a>
+<span class="lineNum">     258 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     259 </span>            : void AliParamSolver::ExpandStorage(Int_t newSize)
+<span class="lineNum">     260 </span>            : {
+<span class="lineNum">     261 </span>            :   // increase space to newSize measured points
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   newSize = newSize&gt;fMaxPoints ? newSize : fMaxPoints+1;</span>
+<span class="lineNum">     263 </span>            :   double* tmp;
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   tmp = new Double_t[newSize];</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   if (fSolLoc) delete[] fSolLoc; </span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   fSolLoc = tmp;</span>
+<span class="lineNum">     267 </span>            :   //
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   tmp = new Double_t[newSize];</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   if (fMatGamma) {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     memcpy(tmp,fMatGamma,fNPoints*sizeof(Double_t));</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     delete[] fMatGamma;</span>
+<span class="lineNum">     272 </span>            :   }
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   fMatGamma = tmp;</span>
+<span class="lineNum">     274 </span>            :   //
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   tmp = new Double_t[newSize];</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   if (fRHSLoc) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     memcpy(tmp,fRHSLoc,fNPoints*sizeof(Double_t));</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     delete[] fRHSLoc;</span>
+<span class="lineNum">     279 </span>            :   }
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   fRHSLoc = tmp;</span>
+<span class="lineNum">     281 </span>            :   //
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   tmp = new Double_t[newSize*fMaxGlobal];</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   if (fMatG) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     memcpy(tmp,fMatG,fNPoints*fMaxGlobal*sizeof(Double_t));</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     delete[] fMatG;</span>
+<span class="lineNum">     286 </span>            :   }
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   fMatG = tmp;</span>
+<span class="lineNum">     288 </span>            :   //
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   fMaxPoints = newSize;</span>
+<span class="lineNum">     290 </span>            :   //
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 : }</span>
+<a name="292"><span class="lineNum">     292 </span>            : </a>
+<span class="lineNum">     293 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     294 </span>            : void AliParamSolver::Clear(Option_t*)
+<span class="lineNum">     295 </span>            : {
+<span class="lineNum">     296 </span>            :   // reset all
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :   fNPoints = 0;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   fMatrix-&gt;Reset();</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :   for (int i=fNGlobal;i--;) fRHSGlo[i] = 0;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   ResetBit(kBitGloSol | kBitLocSol | kBitCInv);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 : }</span>
+<a name="302"><span class="lineNum">     302 </span>            : </a>
+<span class="lineNum">     303 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     304 </span>            : void AliParamSolver::Print(Option_t*) const
+<span class="lineNum">     305 </span>            : {
+<span class="lineNum">     306 </span>            :   // print itself
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Solver with %d globals for %d points&quot;,fNGlobal,fNPoints));</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 : }</span>
+<a name="309"><span class="lineNum">     309 </span>            : </a>
+<span class="lineNum">     310 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     311 </span>            : void AliParamSolver::SetNGlobal(Int_t n) 
+<span class="lineNum">     312 </span>            : {
+<span class="lineNum">     313 </span>            :   // set N global params
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   if (n&gt;fMaxGlobal) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Maximum number of globals was set to %d&quot;,fMaxGlobal));</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     317 </span>            :   }
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   fNGlobal = n;</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   fMatrix-&gt;SetSizeUsed(fNGlobal);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 : }</span>
+<a name="321"><span class="lineNum">     321 </span>            : </a>
+<span class="lineNum">     322 </span>            : //______________________________________________________________________________________
+<span class="lineNum">     323 </span>            : void AliParamSolver::SetMaxGlobal(Int_t n) 
+<span class="lineNum">     324 </span>            : {
+<span class="lineNum">     325 </span>            :   // set limit on N glob.
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   if (n&gt;0 &amp;&amp; n==fMaxGlobal) return;</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :   fMaxGlobal = n;</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   fNGlobal = n;</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   if (fMatrix)   delete   fMatrix;   fMatrix = 0;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   if (fSolGlo)   delete[] fSolGlo;   fSolGlo = 0;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   if (fSolLoc)   delete[] fSolLoc;   fSolLoc = 0;</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   if (fRHSGlo)   delete[] fRHSGlo;   fRHSGlo = 0;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   if (fRHSLoc)   delete[] fRHSLoc;   fRHSLoc = 0;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :   if (fMatGamma) delete[] fMatGamma; fMatGamma = 0;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   if (fMatG)     delete[] fMatG;     fMatG = 0;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   if (fCovDGl)   delete[] fCovDGl;   fCovDGl = 0;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   n = TMath::Max(16,fMaxPoints);</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   Init(n);</span>
+<span class="lineNum">     339 </span>            :   //
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     341 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,952 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/BASE/util/AliHLTCompStatCollector.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">HLT/BASE/util</a> - AliHLTCompStatCollector.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTCompStatCollector.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">61</td>
+            <td class="headerCovTableEntry">533</td>
+            <td class="headerCovTableEntryLo">11.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">36</td>
+            <td class="headerCovTableEntryLo">22.2 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : //**************************************************************************
+<span class="lineNum">       4 </span>            : //* This file is property of and copyright by the ALICE HLT Project        * 
+<span class="lineNum">       5 </span>            : //* ALICE Experiment at CERN, All rights reserved.                         *
+<span class="lineNum">       6 </span>            : //*                                                                        *
+<span class="lineNum">       7 </span>            : //* Primary Authors: Matthias Richter &lt;Matthias.Richter@ift.uib.no&gt;        *
+<span class="lineNum">       8 </span>            : //*                  for The ALICE HLT Project.                            *
+<span class="lineNum">       9 </span>            : //*                                                                        *
+<span class="lineNum">      10 </span>            : //* Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      11 </span>            : //* documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      12 </span>            : //* without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      13 </span>            : //* copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      14 </span>            : //* appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      15 </span>            : //* about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      16 </span>            : //* provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      17 </span>            : //**************************************************************************
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : /// @file   AliHLTCompStatCollector.cxx
+<span class="lineNum">      20 </span>            : /// @author Matthias Richter
+<span class="lineNum">      21 </span>            : /// @date   
+<span class="lineNum">      22 </span>            : /// @brief  Collector component for the component statistics information.
+<span class="lineNum">      23 </span>            : ///
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;AliHLTCompStatCollector.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliHLTErrorGuard.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;TFile.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;TStopwatch.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;TH1F.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;TH2F.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;TH2C.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;TTree.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;TFolder.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;TNamed.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;TString.h&quot;
+<span class="lineNum">      36 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      37 </span>            : #include &lt;algorithm&gt;
+<span class="lineNum">      38 </span>            : using std::sort;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #define HLTSTAT_FOLDER_NAME               &quot;HLTstat&quot;
+<span class="lineNum">      41 </span>            : #define HLTSTAT_FOLDER_DESC               &quot;ALICE HLT component statistics&quot;
+<span class="lineNum">      42 </span>            : #define HLTSTAT_ENTRY_PARENT_FOLDER_NAME  &quot;parents&quot;
+<span class="lineNum">      43 </span>            : #define HLTSTAT_ENTRY_PARENT_FOLDER_DESC  &quot;parent components&quot;
+<span class="lineNum">      44 </span>            : #define HLTSTAT_ENTRY_PROPS_FOLDER_NAME   &quot;props&quot;
+<span class="lineNum">      45 </span>            : #define HLTSTAT_ENTRY_PROPS_FOLDER_DESC   &quot;component properties&quot;
+<span class="lineNum">      46 </span>            : #define HLTSTAT_ENTRY_PROPS_IDOBJ_NAME    &quot;id&quot;
+<span class="lineNum">      47 </span>            : #define HLTSTAT_ENTRY_PROPS_IDOBJ_DESC    &quot;numerical id calculated from chain id&quot;
+<a name="48"><span class="lineNum">      48 </span>            : </a>
+<span class="lineNum">      49 </span>            : /** ROOT macro for the implementation of ROOT specific class methods */
+<a name="50"><span class="lineNum">      50 </span><span class="lineCov">          8 : ClassImp(AliHLTCompStatCollector)</span></a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : AliHLTCompStatCollector::AliHLTCompStatCollector()
+<span class="lineNum">      53 </span>            :   :
+<span class="lineNum">      54 </span><span class="lineCov">          3 :   AliHLTProcessor(),</span>
+<span class="lineNum">      55 </span><span class="lineCov">          3 :   fpTimer(NULL),</span>
+<span class="lineNum">      56 </span><span class="lineCov">          3 :   fpFolder(NULL),</span>
+<span class="lineNum">      57 </span><span class="lineCov">          3 :   fInstances(),</span>
+<span class="lineNum">      58 </span><span class="lineCov">          3 :   fpStatTree(NULL),</span>
+<span class="lineNum">      59 </span><span class="lineCov">          3 :   fCycleTime(0),</span>
+<span class="lineNum">      60 </span><span class="lineCov">          3 :   fNofSets(0),</span>
+<span class="lineNum">      61 </span><span class="lineCov">          3 :   fArraySize(0),</span>
+<span class="lineNum">      62 </span><span class="lineCov">          3 :   fPosition(0),</span>
+<span class="lineNum">      63 </span><span class="lineCov">          3 :   fpLevelArray(NULL),</span>
+<span class="lineNum">      64 </span><span class="lineCov">          3 :   fpSpecArray(NULL),</span>
+<span class="lineNum">      65 </span><span class="lineCov">          3 :   fpBlockNoArray(NULL),</span>
+<span class="lineNum">      66 </span><span class="lineCov">          3 :   fpIdArray(NULL),</span>
+<span class="lineNum">      67 </span><span class="lineCov">          3 :   fpTimeArray(NULL),</span>
+<span class="lineNum">      68 </span><span class="lineCov">          3 :   fpCTimeArray(NULL),</span>
+<span class="lineNum">      69 </span><span class="lineCov">          3 :   fpInputBlockCountArray(NULL),</span>
+<span class="lineNum">      70 </span><span class="lineCov">          3 :   fpTotalInputSizeArray(NULL),</span>
+<span class="lineNum">      71 </span><span class="lineCov">          3 :   fpNormalizedInputSizeArray(NULL),</span>
+<span class="lineNum">      72 </span><span class="lineCov">          3 :   fpOutputBlockCountArray(NULL),</span>
+<span class="lineNum">      73 </span><span class="lineCov">          3 :   fpTotalOutputSizeArray(NULL)</span>
+<span class="lineNum">      74 </span><span class="lineCov">          3 :   , fpInputOutputRatioArray(NULL)</span>
+<span class="lineNum">      75 </span><span class="lineCov">          3 :   , fpNormalizedInputOutputRatioArray(NULL)</span>
+<span class="lineNum">      76 </span><span class="lineCov">          3 :   , fpComponentCycleTimeArray(NULL)</span>
+<span class="lineNum">      77 </span><span class="lineCov">          3 :   , fpEventTypeArray(NULL)</span>
+<span class="lineNum">      78 </span><span class="lineCov">          3 :   , fpEventCountArray(NULL)</span>
+<span class="lineNum">      79 </span><span class="lineCov">          3 :   , fSizeEstimator(1000)</span>
+<span class="lineNum">      80 </span><span class="lineCov">          3 :   , fMode(kPublishObjects)</span>
+<span class="lineNum">      81 </span><span class="lineCov">          3 :   , fFileName()</span>
+<span class="lineNum">      82 </span><span class="lineCov">          3 :   , fFile(NULL)</span>
+<span class="lineNum">      83 </span><span class="lineCov">          6 :   , fLastTime(time(NULL))</span>
+<span class="lineNum">      84 </span><span class="lineCov">          3 :   , fPeriod(0)</span>
+<span class="lineNum">      85 </span><span class="lineCov">          3 :   , fEventModulo(0)</span>
+<span class="lineNum">      86 </span><span class="lineCov">         15 : {</span>
+<span class="lineNum">      87 </span>            :   // see header file for class documentation
+<span class="lineNum">      88 </span>            :   // or
+<span class="lineNum">      89 </span>            :   // refer to README to build package
+<span class="lineNum">      90 </span>            :   // or
+<span class="lineNum">      91 </span>            :   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+<a name="92"><span class="lineNum">      92 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : AliHLTCompStatCollector::~AliHLTCompStatCollector()
+<span class="lineNum">      95 </span><span class="lineCov">         18 : {</span>
+<span class="lineNum">      96 </span>            :   // see header file for class documentation
+<span class="lineNum">      97 </span><span class="lineCov">          3 :   ClearAll();</span>
+<a name="98"><span class="lineNum">      98 </span><span class="lineCov">          9 : }</span></a>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : void AliHLTCompStatCollector::GetInputDataTypes( vector&lt;AliHLTComponentDataType&gt;&amp; list)
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span>            :   // see header file for class documentation
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   list.push_back(kAliHLTDataTypeComponentStatistics);</span>
+<a name="104"><span class="lineNum">     104 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : AliHLTComponentDataType AliHLTCompStatCollector::GetOutputDataType()
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span>            :   // see header file for class documentation
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   return kAliHLTMultipleDataType;</span>
+<a name="110"><span class="lineNum">     110 </span>            : }</a>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : int AliHLTCompStatCollector::GetOutputDataTypes(AliHLTComponentDataTypeList&amp; tgtList)
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            :   // see header file for class documentation
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   tgtList.clear();</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   tgtList.push_back(kAliHLTDataTypeHistogram);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   tgtList.push_back(kAliHLTDataTypeTTree);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   return tgtList.size();</span>
+<a name="119"><span class="lineNum">     119 </span>            : }</a>
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : void AliHLTCompStatCollector::GetOutputDataSize( unsigned long&amp; constBase, double&amp; inputMultiplier )
+<span class="lineNum">     122 </span>            : {
+<span class="lineNum">     123 </span>            :   // see header file for class documentation
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   constBase=fSizeEstimator;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   inputMultiplier=100.0;</span>
+<a name="126"><span class="lineNum">     126 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            : int AliHLTCompStatCollector::DoInit( int argc, const char** argv )
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span>            :   // see header file for class documentation
+<span class="lineNum">     131 </span>            :   int iResult=0;
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   TString argument=&quot;&quot;;</span>
+<span class="lineNum">     133 </span>            :   int bMissingParam=0;
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;argc &amp;&amp; iResult&gt;=0; i++) {</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     argument=argv[i];</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     if (argument.IsNull()) continue;</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     // -file
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     if (argument.CompareTo(&quot;-file&quot;)==0) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :       fFileName=argv[i];</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :       fMode|=kSaveObjects;</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :     // -modulo
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-modulo&quot;)==0) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :       TString param=argv[i];</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :       if (param.IsDigit()) {</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         fEventModulo=param.Atoi();</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         HLTError(&quot;expecting number as parameter for option %s&quot;, argument.Data());</span>
+<span class="lineNum">     152 </span>            :         iResult=-EINVAL;
+<span class="lineNum">     153 </span>            :       }
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :     // -period
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-period&quot;)==0) {</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :       TString param=argv[i];</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :       if (param.IsDigit()) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         fPeriod=param.Atoi();</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         HLTError(&quot;expecting number as parameter for option %s&quot;, argument.Data());</span>
+<span class="lineNum">     163 </span>            :         iResult=-EINVAL;
+<span class="lineNum">     164 </span>            :       }
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            :     // -publish
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-publish&quot;)==0) {</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :       TString param=argv[i];</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :       if (param.IsDigit()) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         if (param.Atoi()==1) fMode|=kPublishObjects;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         else if (param.Atoi()==0) fMode&amp;=~kPublishObjects;</span>
+<span class="lineNum">     173 </span>            :         else {
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :           HLTError(&quot;expecting 0 or 1 as parameter for option %s&quot;, argument.Data());</span>
+<span class="lineNum">     175 </span>            :           iResult=-EINVAL;
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span>            :       } else {
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         HLTError(&quot;expecting number as parameter for option %s&quot;, argument.Data());</span>
+<span class="lineNum">     179 </span>            :         iResult=-EINVAL;
+<span class="lineNum">     180 </span>            :       }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :     // -arraysize
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-arraysize&quot;)==0) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :       TString param=argv[i];</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :       if (param.IsDigit()) {</span>
+<span class="lineNum">     187 </span>            :         //fArraySize=param.Atoi();
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         HLTWarning(&quot;argument -arraysize is deprecated, array size adjusted dynamically&quot;);</span>
+<span class="lineNum">     189 </span>            :       } else {
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         HLTError(&quot;expecting number as parameter for option %s&quot;, argument.Data());</span>
+<span class="lineNum">     191 </span>            :         iResult=-EINVAL;
+<span class="lineNum">     192 </span>            :       }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :       HLTError(&quot;unknown argument %s&quot;, argument.Data());</span>
+<span class="lineNum">     196 </span>            :       iResult=-EINVAL;
+<span class="lineNum">     197 </span>            :     }
+<span class="lineNum">     198 </span>            :   }
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   if (bMissingParam) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     HLTError(&quot;missing parameter for argument %s&quot;, argument.Data());</span>
+<span class="lineNum">     201 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   if (!fFileName.empty()) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     fFile=new TFile(fFileName.c_str(), &quot;RECREATE&quot;);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     207 </span>            :   return iResult;
+<a name="208"><span class="lineNum">     208 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : int AliHLTCompStatCollector::DoDeinit( )
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :   // see header file for class documentation
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   ClearAll();</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   if (fFile) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     fFile-&gt;Close();</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     delete fFile;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     fFile=NULL;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="221"><span class="lineNum">     221 </span>            : }</a>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : int AliHLTCompStatCollector::DoEvent( const AliHLTComponentEventData&amp; /*evtData*/, AliHLTComponentTriggerData&amp; /*trigData*/)
+<span class="lineNum">     224 </span>            : {
+<span class="lineNum">     225 </span>            :   // see header file for class documentation
+<span class="lineNum">     226 </span>            :   int iResult=0;
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   AliHLTUInt32_t eventType=gkAliEventTypeUnknown;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   IsDataEvent(&amp;eventType);</span>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   ResetFillingVariables();</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   if (fpTimer) {</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     fCycleTime=fpTimer-&gt;RealTime()*1000000;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :   // only if the map of instances is empty it can be initialized from the
+<span class="lineNum">     237 </span>            :   // component table entries
+<span class="lineNum">     238 </span>            :   // the logical check fo eventType==gkAliEventTypeStartOfRun does not work
+<span class="lineNum">     239 </span>            :   // for simulated data where the blocks of the SOR are stored inside the
+<span class="lineNum">     240 </span>            :   // first event
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   bool bMapInitialization=fInstances.empty();</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   vector&lt;AliHLTCompStatCollector::AliHLTCompStatInstance&gt; sortedInstances;</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            :   bool bEmbeddedTree=false;
+<span class="lineNum">     245 </span>            :   bool bFolderCreated=false;
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   if ((bFolderCreated=(fpFolder==NULL))) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     fpFolder=new TFolder(HLTSTAT_FOLDER_NAME, HLTSTAT_FOLDER_DESC);</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     if (bEmbeddedTree) fpFolder-&gt;Add(fpStatTree);</span>
+<span class="lineNum">     249 </span>            :   }
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   if (!fpFolder) return -ENOMEM;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   vector&lt;TFolder*&gt; newFolders;</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeComponentTable);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :        pBlock &amp;&amp; iResult&gt;=0;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :        pBlock=GetNextInputBlock()) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     string chainId, compId, compArgs;</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     vector&lt;AliHLTUInt32_t&gt; parents;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     int level=0;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     iResult=ExtractComponentTableEntry((const AliHLTUInt8_t*)pBlock-&gt;fPtr, pBlock-&gt;fSize,</span>
+<span class="lineNum">     260 </span>            :                                        chainId, compId, compArgs,
+<span class="lineNum">     261 </span>            :                                        parents, level);
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     if (iResult&gt;0) {</span>
+<span class="lineNum">     263 </span>            :       HLTDebug(&quot;%s(%s) 0x%08x&quot;, chainId.c_str(), compId.c_str(), pBlock-&gt;fSpecification);
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       if (bMapInitialization) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         map&lt;AliHLTUInt32_t, AliHLTCompStatInstance&gt;::const_iterator element=fInstances.find(pBlock-&gt;fSpecification);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         AliHLTCompStatInstance newInstance(pBlock-&gt;fSpecification, chainId, compId, compArgs, parents, level);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         if (element==fInstances.end()) {</span>
+<span class="lineNum">     268 </span>            :           // new instance
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :           fInstances[pBlock-&gt;fSpecification]=newInstance;</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :           sortedInstances.push_back(newInstance);</span>
+<span class="lineNum">     271 </span>            :         } else {
+<span class="lineNum">     272 </span>            :           // check existing instance
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :           if (element-&gt;second!=newInstance) {</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :             HLTWarning(&quot;component table entries have identical CRC ids but different content\n  in list: %s\n  skipping: %s&quot;,        </span>
+<span class="lineNum">     275 </span>            :                        element-&gt;second.Description().c_str(), newInstance.Description().c_str());
+<span class="lineNum">     276 </span>            :           }
+<span class="lineNum">     277 </span>            :         }
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :       TObject* pObj=NULL;
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       TFolder* pEntry=NULL;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :       if ((pObj=fpFolder-&gt;FindObjectAny(chainId.c_str()))!=NULL &amp;&amp;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :           (pEntry=dynamic_cast&lt;TFolder*&gt;(pObj))!=NULL ) {</span>
+<span class="lineNum">     284 </span>            :         
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :       } else if (pObj) {</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         HLTError(&quot;entry %s exists in folder, but is not a sub-folder&quot;, chainId.c_str());</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :       } else if (chainId.size()&gt;0) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         pEntry=new TFolder(chainId.c_str(), chainId.c_str());</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :         if (pEntry) {</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :           pEntry-&gt;SetOwner();</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :           TFolder* pProps=pEntry-&gt;AddFolder(HLTSTAT_ENTRY_PROPS_FOLDER_NAME, HLTSTAT_ENTRY_PROPS_FOLDER_DESC);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :           if (pProps) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             pProps-&gt;Add(new TObjString(compId.c_str()));</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             if (!compArgs.empty())</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :               pProps-&gt;Add(new TObjString(compArgs.c_str()));</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             TNamed* pCRC=new TNamed(HLTSTAT_ENTRY_PROPS_IDOBJ_NAME, HLTSTAT_ENTRY_PROPS_IDOBJ_DESC);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             if (pCRC) {</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :               pCRC-&gt;SetUniqueID(pBlock-&gt;fSpecification);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :               pProps-&gt;Add(pCRC);</span>
+<span class="lineNum">     300 </span>            :             }
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :           TFolder* pParents=pEntry-&gt;AddFolder(HLTSTAT_ENTRY_PARENT_FOLDER_NAME, HLTSTAT_ENTRY_PARENT_FOLDER_DESC);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :           if (pParents) {</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             for (vector&lt;AliHLTUInt32_t&gt;::iterator parent=parents.begin();</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                  parent!=parents.end(); parent++) {</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :               TString name; name.Form(&quot;0x%08x&quot;, *parent);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :               pParents-&gt;Add(new TObjString(name));</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :           if (parents.size()==0) {</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             newFolders.push_back(pEntry);</span>
+<span class="lineNum">     312 </span>            :           } else {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :             vector&lt;TFolder*&gt;::iterator iter=newFolders.begin();</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             vector&lt;AliHLTUInt32_t&gt;::iterator parent=parents.begin();</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             while (iter!=newFolders.end() &amp;&amp; parent!=parents.end()) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :               TObject* idobj=(*iter)-&gt;FindObjectAny(HLTSTAT_ENTRY_PROPS_IDOBJ_NAME);</span>
+<span class="lineNum">     317 </span>            :               AliHLTUInt32_t crcid=0;
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :               if (idobj) crcid=idobj-&gt;GetUniqueID();</span>
+<span class="lineNum">     319 </span>            :               HLTDebug(&quot;check: %s 0x%08x&quot;, (*iter)-&gt;GetName(), crcid);
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :               if (idobj &amp;&amp; crcid==*parent) break;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :               if ((++parent!=parents.end())) continue;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :               parent=parents.begin();</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :               iter++;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :             newFolders.insert(iter,pEntry);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     328 </span>            :       } else {
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         HLTError(&quot;missing chain id for table entry 0x%08x (%p %d), skipping ...&quot;, pBlock-&gt;fSpecification, pBlock-&gt;fPtr, pBlock-&gt;fSize);</span>
+<span class="lineNum">     330 </span>            :       }
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     } else if (iResult!=0) {</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       HLTError(&quot;extraction of table entry 0x%08x (%p %d) failed with %d&quot;, pBlock-&gt;fSpecification, pBlock-&gt;fPtr, pBlock-&gt;fSize, iResult);</span>
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span>            :     iResult=0;
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   if (bMapInitialization) {</span>
+<span class="lineNum">     338 </span>            :     // assign tags to all instances in the map
+<span class="lineNum">     339 </span>            :     int level=-1;
+<span class="lineNum">     340 </span>            :     int tag=-1;
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     TString componentId;</span>
+<span class="lineNum">     342 </span>            :     TObjArray* taglist=NULL;
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     sort(sortedInstances.begin(), sortedInstances.end(), AliHLTCompStatInstance::SortByLevelAndComponentId);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     for (vector&lt; AliHLTCompStatInstance&gt;::const_iterator element=sortedInstances.begin();</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :          element!=sortedInstances.end();</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :          element++) {</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :       if (level!=element-&gt;GetLevel() ||</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :           componentId.CompareTo(element-&gt;GetComponentId().c_str())!=0) {</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         tag++;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         level=element-&gt;GetLevel();</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         componentId=element-&gt;GetComponentId().c_str();</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         if (fpFolder) {</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :           if (!taglist) {</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             taglist=new TObjArray;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             taglist-&gt;SetName(&quot;CompStatMap&quot;);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             fpFolder-&gt;Add(taglist);</span>
+<span class="lineNum">     357 </span>            :           }
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :           if (taglist) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             TString entry;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             entry.Form(&quot;%02d &quot;, tag); entry+=componentId;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :             taglist-&gt;Add(new TObjString(entry));</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     363 </span>            :         }
+<span class="lineNum">     364 </span>            :       }
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       fInstances[element-&gt;GetCRCId()].SetTag(tag);</span>
+<span class="lineNum">     366 </span>            :     }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     if (fpStatTree==NULL &amp;&amp; !fInstances.empty()) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :       iResult=AllocateStatTree(fInstances.size());</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :       if (!fpStatTree || iResult&lt;0) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         ALIHLTERRORGUARD(1, &quot;failed to allocate tree for statistics collection, error %d&quot;, iResult);</span>
+<span class="lineNum">     372 </span>            :       }
+<span class="lineNum">     373 </span>            :     }
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   if (newFolders.size()&gt;0) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     vector&lt;TFolder*&gt; revert;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     vector&lt;TFolder*&gt;::iterator iter=newFolders.begin();</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     while (iter!=newFolders.end()) {</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :       revert.insert(revert.begin(), *iter);</span>
+<span class="lineNum">     381 </span>            :       HLTDebug(&quot;%s&quot;, (*iter)-&gt;GetName());
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :       iter++;</span>
+<span class="lineNum">     383 </span>            :     }
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     newFolders.empty();</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     newFolders.assign(revert.begin(), revert.end());</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     vector&lt;TFolder*&gt;::iterator publisher=newFolders.begin();</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     while (publisher!=newFolders.end()) {</span>
+<span class="lineNum">     389 </span>            :       bool bRemove=false;
+<span class="lineNum">     390 </span>            :       HLTDebug(&quot;checking %s for parents&quot;, (*publisher)-&gt;GetName());
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :       TFolder* propsFolder=dynamic_cast&lt;TFolder*&gt;((*publisher)-&gt;FindObject(HLTSTAT_ENTRY_PROPS_FOLDER_NAME));</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :       assert(propsFolder);</span>
+<span class="lineNum">     393 </span>            :       TObject* idobj=NULL;
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :       if (propsFolder) idobj=propsFolder-&gt;FindObject(HLTSTAT_ENTRY_PROPS_IDOBJ_NAME);</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :       assert(idobj);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :       if (idobj) {</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         AliHLTUInt32_t crcid=idobj-&gt;GetUniqueID();</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         TString idstr; idstr.Form(&quot;0x%08x&quot;, crcid);</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         for (vector&lt;TFolder*&gt;::iterator consumer=publisher+1;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :              consumer!=newFolders.end(); consumer++) {</span>
+<span class="lineNum">     401 </span>            :           HLTDebug(&quot;   checking %s&quot;, (*consumer)-&gt;GetName());
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :           TFolder* parentFolder=dynamic_cast&lt;TFolder*&gt;((*consumer)-&gt;FindObject(HLTSTAT_ENTRY_PARENT_FOLDER_NAME));</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :           assert(parentFolder);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :           if (parentFolder) {</span>
+<span class="lineNum">     405 </span>            : #ifdef __DEBUG
+<span class="lineNum">     406 </span>            :             TIter entries(parentFolder-&gt;GetListOfFolders());
+<span class="lineNum">     407 </span>            :             while (TObject* entry=entries.Next())
+<span class="lineNum">     408 </span>            :               if (entry) {
+<span class="lineNum">     409 </span>            :                 HLTDebug(&quot;   searching %s in %s: %s&quot;, idstr.Data(), (*consumer)-&gt;GetName(), entry-&gt;GetName());
+<span class="lineNum">     410 </span>            :               }
+<span class="lineNum">     411 </span>            : #endif
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :             TObject* parent=parentFolder-&gt;FindObjectAny(idstr);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :             if (parent) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :               parentFolder-&gt;Add(*publisher);</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :               parentFolder-&gt;Remove(parent);</span>
+<span class="lineNum">     416 </span>            :               bRemove=true;
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     419 </span>            :         }
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :       if (bRemove) publisher=newFolders.erase(publisher);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       else publisher++;</span>
+<span class="lineNum">     423 </span>            :     }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     for (publisher=newFolders.begin();</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :          publisher!=newFolders.end(); publisher++) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :       RemoveRecurrence(*publisher);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       fpFolder-&gt;Add(*publisher);</span>
+<span class="lineNum">     429 </span>            :     }
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            :   int blockNo=0;
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeComponentStatistics);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :        pBlock &amp;&amp; iResult&gt;=0;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :        pBlock=GetNextInputBlock(), blockNo++) {</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     unsigned int current=fPosition;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     iResult=FillVariablesSorted(pBlock-&gt;fPtr, pBlock-&gt;fSize, eventType);</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     for (; current&lt;fPosition; current++) {</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :       fpSpecArray[current]=pBlock-&gt;fSpecification;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :       fpBlockNoArray[current]=blockNo;</span>
+<span class="lineNum">     441 </span>            :     }
+<span class="lineNum">     442 </span>            :     // indicate availability of component statistic block
+<span class="lineNum">     443 </span>            :     iResult=1;
+<span class="lineNum">     444 </span>            :   }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            :   int totalOutputSize=0;
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   if (iResult&gt;0 &amp;&amp; eventType) {</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     fNofSets=fPosition;</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     if (fpStatTree) fpStatTree-&gt;Fill();</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span>            :     // init the timer for the next cycle
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     if (!fpTimer)  fpTimer=new TStopwatch;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     if (fpTimer) {</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :       fpTimer-&gt;Reset();</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :       fpTimer-&gt;Start();</span>
+<span class="lineNum">     456 </span>            :     }
+<span class="lineNum">     457 </span>            :   }
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   if (eventType==gkAliEventTypeEndOfRun ||</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :       (iResult&gt;=0 &amp;&amp; CheckPeriod())) {</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :     // publish objects to component output
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     if ((fMode&amp;kPublishObjects)!=0) {</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :       if (!bEmbeddedTree &amp;&amp; fpStatTree) {</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :         iResult=PushBack(fpStatTree, kAliHLTDataTypeTTree|kAliHLTDataOriginOut);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         totalOutputSize+=GetLastObjectSize();</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :       iResult=PushBack(fpFolder, kAliHLTDataTypeTObject|kAliHLTDataOriginOut);</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :       totalOutputSize+=GetLastObjectSize();</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :     // save objects to file
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     if ((fMode&amp;kSaveObjects)!=0 &amp;&amp; fFile!=NULL) {</span>
+<span class="lineNum">     474 </span>            :       HLTDebug(&quot;saving objects to file %s&quot;, fFileName.c_str());
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       fFile-&gt;cd();</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :       if (!bEmbeddedTree &amp;&amp; fpStatTree) {</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :         fpStatTree-&gt;Write(&quot;&quot;, TObject::kOverwrite);</span>
+<span class="lineNum">     478 </span>            :       }
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :       fpFolder-&gt;Write(&quot;&quot;, TObject::kOverwrite);</span>
+<span class="lineNum">     480 </span>            :     }
+<span class="lineNum">     481 </span>            :   }
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   if (iResult==-ENOSPC) {</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     fSizeEstimator+=totalOutputSize;</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   if (iResult&gt;0) iResult=0;</span>
+<span class="lineNum">     488 </span>            :   return iResult;
+<a name="489"><span class="lineNum">     489 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span>            : void AliHLTCompStatCollector::ResetFillingVariables()
+<span class="lineNum">     492 </span>            : {
+<span class="lineNum">     493 </span>            :   // see header file for class documentation
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :   for (map&lt;AliHLTUInt32_t, AliHLTCompStatInstance&gt;::iterator element=fInstances.begin();</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :        element!=fInstances.end();</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :        element++) {</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     element-&gt;second.ResetProcessed();</span>
+<span class="lineNum">     499 </span>            :   }
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :   fCycleTime=0;</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :   fNofSets=0;</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :   fPosition=0;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   if (fArraySize==0) return;</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   memset(fpLevelArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   memset(fpSpecArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   memset(fpBlockNoArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :   memset(fpIdArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   memset(fpTimeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   memset(fpCTimeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   memset(fpInputBlockCountArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   memset(fpTotalInputSizeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   memset(fpNormalizedInputSizeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   memset(fpOutputBlockCountArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :   memset(fpTotalOutputSizeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :   memset(fpInputOutputRatioArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :   memset(fpNormalizedInputOutputRatioArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :   memset(fpComponentCycleTimeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   memset(fpEventTypeArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   memset(fpEventCountArray, 0, sizeof(UInt_t)*fArraySize);</span>
+<a name="521"><span class="lineNum">     521 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span>            : int AliHLTCompStatCollector::FillVariablesSorted(void* ptr, int size, AliHLTUInt32_t eventType)
+<span class="lineNum">     524 </span>            : {
+<span class="lineNum">     525 </span>            :   // see header file for class documentation
+<span class="lineNum">     526 </span>            :   int iResult=0;
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   if (size%sizeof(AliHLTComponentStatistics)) {</span>
+<span class="lineNum">     528 </span>            :     // older or invalid structure
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     HLTError(&quot;data block is not aligned to the size of the AliHLTComponentStatistics struct&quot;);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     return -EINVAL;</span>
+<span class="lineNum">     531 </span>            :   }
+<span class="lineNum">     532 </span>            :   
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   AliHLTComponentStatistics* pStat=reinterpret_cast&lt;AliHLTComponentStatistics*&gt;(ptr);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   UInt_t nofStats=size/sizeof(AliHLTComponentStatistics);</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :   vector&lt;int&gt; indexList;</span>
+<span class="lineNum">     536 </span>            :   UInt_t i=0;
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   for (i=0; i&lt;nofStats; i++) {</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     vector&lt;int&gt;::iterator element=indexList.begin();</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     for (; element!=indexList.end(); element++) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       if (pStat[i].fLevel&gt;pStat[*element].fLevel) {</span>
+<span class="lineNum">     541 </span>            :         break;
+<span class="lineNum">     542 </span>            :       }
+<span class="lineNum">     543 </span>            :     }
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     indexList.insert(element, i);</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   i=fPosition;</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :   for (vector&lt;int&gt;::iterator element=indexList.begin();</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :        element!=indexList.end();</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :        element++) {</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     map&lt;AliHLTUInt32_t, AliHLTCompStatInstance&gt;::iterator instance=fInstances.find(pStat[*element].fId);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (i&lt;fArraySize &amp;&amp; instance!=fInstances.end()) {</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :       if (instance-&gt;second.IsProcessed()) {</span>
+<span class="lineNum">     554 </span>            :         //HLTWarning(&quot;already processed instance %s, skip&quot;, instance-&gt;second.Description().c_str());
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     556 </span>            :       }
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :       instance-&gt;second.MarkProcessed();</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :       if ((int)pStat[*element].fLevel!=instance-&gt;second.GetLevel()) {</span>
+<span class="lineNum">     559 </span>            :         // TODO: there is currently a mismatch of the level set in the statistics entry and
+<span class="lineNum">     560 </span>            :         // the one in the component table entries. However this does not matter for
+<span class="lineNum">     561 </span>            :         // archiving because the CRC id is related to a tag/level
+<span class="lineNum">     562 </span>            :         //HLTWarning(&quot;level does not match for instance %s, expected %d&quot;, instance-&gt;second.Description().c_str(), pStat[*element].fLevel);
+<span class="lineNum">     563 </span>            :       }
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :       fpLevelArray[i]=pStat[*element].fLevel;</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :       fpIdArray[i]=pStat[*element].fId;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :       fpTimeArray[i]=pStat[*element].fTime;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :       fpCTimeArray[i]=pStat[*element].fCTime;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :       fpInputBlockCountArray[i]=pStat[*element].fInputBlockCount;</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :       fpTotalInputSizeArray[i]=pStat[*element].fTotalInputSize;</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :       fpNormalizedInputSizeArray[i]=pStat[*element].fTotalInputSize;</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :       if (pStat[*element].fInputBlockCount&gt;0) </span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :         fpNormalizedInputSizeArray[i]/=pStat[*element].fInputBlockCount;</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :       fpOutputBlockCountArray[i]=pStat[*element].fOutputBlockCount;</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :       fpTotalOutputSizeArray[i]=pStat[*element].fTotalOutputSize;</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       if (pStat[*element].fTotalOutputSize&gt;0)</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         fpInputOutputRatioArray[i]=pStat[*element].fTotalInputSize/pStat[*element].fTotalOutputSize;</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :       if (pStat[*element].fInputBlockCount&gt;0)</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         fpNormalizedInputOutputRatioArray[i]=fpInputOutputRatioArray[i]*pStat[*element].fOutputBlockCount/pStat[*element].fInputBlockCount;</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :       fpComponentCycleTimeArray[i]=pStat[*element].fComponentCycleTime;</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :       fpEventTypeArray[i]=eventType;</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :       fpEventCountArray[i]=GetEventCount();</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :       i++;</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     } else if (instance==fInstances.end()) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;can not find instance of CRC id 0x%08x&quot;, pStat[*element].fId);</span>
+<span class="lineNum">     585 </span>            :     }
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :   if (i&gt;fArraySize) {</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     HLTWarning(&quot;too little space in branch variables to fill %d statistics blocks, total available %d, current position %d&quot;, i, fArraySize, fPosition);</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :     fPosition=fArraySize;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     fPosition=i;</span>
+<span class="lineNum">     593 </span>            :   }
+<span class="lineNum">     594 </span>            :   
+<span class="lineNum">     595 </span>            :   return iResult;
+<a name="596"><span class="lineNum">     596 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span>            : int AliHLTCompStatCollector::AllocateStatTree(AliHLTUInt32_t size)
+<span class="lineNum">     599 </span>            : {
+<span class="lineNum">     600 </span>            :   // allocate the statistics tree and the branch arrays
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :   if (fArraySize&gt;0) {</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     ClearStatTree();</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   fArraySize=size;</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :   if (fArraySize==0) return 0;</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   fpLevelArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :   fpSpecArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :   fpBlockNoArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   fpIdArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :   fpTimeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :   fpCTimeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :   fpInputBlockCountArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :   fpTotalInputSizeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :   fpNormalizedInputSizeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   fpOutputBlockCountArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :   fpTotalOutputSizeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :   fpInputOutputRatioArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   fpNormalizedInputOutputRatioArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :   fpComponentCycleTimeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   fpEventTypeArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :   fpEventCountArray=new UInt_t[fArraySize];</span>
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   fpStatTree=new TTree(&quot;CompStat&quot;, &quot;HLT component statistics&quot;);</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :   if (fpStatTree) {</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;SetDirectory(0);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;cycleTime&quot;,        &amp;fCycleTime, &quot;cycleTime/F&quot;);</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;nofSets&quot;,          &amp;fNofSets, &quot;nofSets/I&quot;);</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;Level&quot;,            fpLevelArray, &quot;Level[nofSets]/i&quot;);</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;Specification&quot;,    fpSpecArray, &quot;Specification[nofSets]/i&quot;);</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;BlockNo&quot;,          fpBlockNoArray, &quot;BlockNo[nofSets]/i&quot;);</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;Id&quot;,               fpIdArray, &quot;Id[nofSets]/i&quot;);</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;Time&quot;,             fpTimeArray, &quot;Time[nofSets]/i&quot;);</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;CTime&quot;,            fpCTimeArray, &quot;CTime[nofSets]/i&quot;);</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;InputBlockCount&quot;,  fpInputBlockCountArray, &quot;InputBlockCount[nofSets]/i&quot;);</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;TotalInputSize&quot;,   fpTotalInputSizeArray, &quot;TotalInputSize[nofSets]/i&quot;);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;NormalizedInputSize&quot;,   fpNormalizedInputSizeArray, &quot;NormalizedInputSize[nofSets]/i&quot;);</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;OutputBlockCount&quot;, fpOutputBlockCountArray, &quot;OutputBlockCount[nofSets]/i&quot;);</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;TotalOutputSize&quot;,  fpTotalOutputSizeArray, &quot;TotalOutputSize[nofSets]/i&quot;);</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;InputOutputRatio&quot;,  fpInputOutputRatioArray, &quot;InputOutputRatio[nofSets]/i&quot;);</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;NormalizedInputOutputRatio&quot;,  fpNormalizedInputOutputRatioArray, &quot;NormalizedInputOutputRatio[nofSets]/i&quot;);</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;ComponentCycleTime&quot;,fpComponentCycleTimeArray, &quot;ComponentCycleTime[nofSets]/i&quot;);</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;EventType&quot;,fpEventTypeArray, &quot;EventType[nofSets]/i&quot;);</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     fpStatTree-&gt;Branch(&quot;EventCount&quot;,fpEventCountArray, &quot;EventCount[nofSets]/i&quot;);</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="648"><span class="lineNum">     648 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span>            : void AliHLTCompStatCollector::ClearAll()
+<span class="lineNum">     651 </span>            : {
+<span class="lineNum">     652 </span>            :   // see header file for class documentation
+<span class="lineNum">     653 </span><span class="lineCov">          9 :   if (fpTimer) delete fpTimer; fpTimer=NULL;</span>
+<span class="lineNum">     654 </span><span class="lineCov">          6 :   if (fpFolder) delete fpFolder; fpFolder=NULL;</span>
+<span class="lineNum">     655 </span><span class="lineCov">          3 :   ClearStatTree();</span>
+<a name="656"><span class="lineNum">     656 </span><span class="lineCov">          3 : }</span></a>
+<span class="lineNum">     657 </span>            : 
+<span class="lineNum">     658 </span>            : void AliHLTCompStatCollector::ClearStatTree()
+<span class="lineNum">     659 </span>            : {
+<span class="lineNum">     660 </span>            :   // clear the statistics tree and the branch arrays
+<span class="lineNum">     661 </span><span class="lineCov">          9 :   if (fpStatTree) delete fpStatTree; fpStatTree=NULL;</span>
+<span class="lineNum">     662 </span><span class="lineCov">          6 :   if (fpLevelArray) delete fpLevelArray; fpLevelArray=NULL;</span>
+<span class="lineNum">     663 </span><span class="lineCov">          6 :   if (fpSpecArray) delete fpSpecArray; fpSpecArray=NULL;</span>
+<span class="lineNum">     664 </span><span class="lineCov">          6 :   if (fpBlockNoArray) delete fpBlockNoArray; fpBlockNoArray=NULL;</span>
+<span class="lineNum">     665 </span><span class="lineCov">          6 :   if (fpIdArray) delete fpIdArray; fpIdArray=NULL;</span>
+<span class="lineNum">     666 </span><span class="lineCov">          6 :   if (fpTimeArray) delete fpTimeArray; fpTimeArray=NULL;</span>
+<span class="lineNum">     667 </span><span class="lineCov">          6 :   if (fpCTimeArray) delete fpCTimeArray; fpCTimeArray=NULL;</span>
+<span class="lineNum">     668 </span><span class="lineCov">          6 :   if (fpInputBlockCountArray) delete fpInputBlockCountArray; fpInputBlockCountArray=NULL;</span>
+<span class="lineNum">     669 </span><span class="lineCov">          6 :   if (fpTotalInputSizeArray) delete fpTotalInputSizeArray; fpTotalInputSizeArray=NULL;</span>
+<span class="lineNum">     670 </span><span class="lineCov">          6 :   if (fpNormalizedInputSizeArray) delete fpNormalizedInputSizeArray; fpNormalizedInputSizeArray=NULL;</span>
+<span class="lineNum">     671 </span><span class="lineCov">          6 :   if (fpOutputBlockCountArray) delete fpOutputBlockCountArray; fpOutputBlockCountArray=NULL;</span>
+<span class="lineNum">     672 </span><span class="lineCov">          6 :   if (fpTotalOutputSizeArray) delete fpTotalOutputSizeArray; fpTotalOutputSizeArray=NULL;</span>
+<span class="lineNum">     673 </span><span class="lineCov">          6 :   if (fpInputOutputRatioArray) delete fpInputOutputRatioArray; fpInputOutputRatioArray=NULL;</span>
+<span class="lineNum">     674 </span><span class="lineCov">          6 :   if (fpNormalizedInputOutputRatioArray) delete fpNormalizedInputOutputRatioArray; fpNormalizedInputOutputRatioArray=NULL;</span>
+<span class="lineNum">     675 </span><span class="lineCov">          6 :   if (fpComponentCycleTimeArray) delete fpComponentCycleTimeArray; fpComponentCycleTimeArray=NULL;</span>
+<span class="lineNum">     676 </span><span class="lineCov">          6 :   if (fpEventTypeArray) delete fpEventTypeArray; fpEventTypeArray=NULL;</span>
+<span class="lineNum">     677 </span><span class="lineCov">          6 :   if (fpEventCountArray) delete fpEventCountArray; fpEventCountArray=NULL;</span>
+<span class="lineNum">     678 </span><span class="lineCov">          3 :   fArraySize=0;</span>
+<a name="679"><span class="lineNum">     679 </span><span class="lineCov">          3 : }</span></a>
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span>            : int AliHLTCompStatCollector::RemoveRecurrence(TFolder* pRoot) const
+<span class="lineNum">     682 </span>            : {
+<span class="lineNum">     683 </span>            :   // see header file for class documentation
+<span class="lineNum">     684 </span>            :   int iResult=0;
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :   if (!pRoot) return -EINVAL;</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :   TFolder* parentFolder=dynamic_cast&lt;TFolder*&gt;(pRoot-&gt;FindObject(HLTSTAT_ENTRY_PARENT_FOLDER_NAME));</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   assert(parentFolder);</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   vector&lt;TFolder*&gt; listRemove;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   if (parentFolder) {</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     TIter entries(parentFolder-&gt;GetListOfFolders());</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     TFolder* entry=NULL;</span>
+<span class="lineNum">     692 </span>            :     TObject* obj=NULL;
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     while ((obj=entries.Next())!=NULL &amp;&amp; (entry=dynamic_cast&lt;TFolder*&gt;(obj))!=NULL) {</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :       TString name=entry-&gt;GetName();</span>
+<span class="lineNum">     695 </span>            :       HLTDebug(&quot;checking %s for recurrence&quot;, name.Data());
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :       TIter tokens(parentFolder-&gt;GetListOfFolders());</span>
+<span class="lineNum">     697 </span>            :       TFolder* token=NULL;
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :       while ((obj=tokens.Next())!=NULL &amp;&amp; (token=dynamic_cast&lt;TFolder*&gt;(obj))!=NULL) {</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         if (name.CompareTo(token-&gt;GetName())==0) continue;</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :         if (token-&gt;FindObjectAny(name)!=NULL) {</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :           listRemove.push_back(entry);</span>
+<span class="lineNum">     702 </span>            :           HLTDebug(&quot;found recurrence in %s&quot;, token-&gt;GetName());
+<span class="lineNum">     703 </span>            :           break;
+<span class="lineNum">     704 </span>            :         } else {
+<span class="lineNum">     705 </span>            :           HLTDebug(&quot;no recurrence found in %s&quot;, token-&gt;GetName());
+<span class="lineNum">     706 </span>            :         }
+<span class="lineNum">     707 </span>            :       }
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :       RemoveRecurrence(entry);</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     for (vector&lt;TFolder*&gt;::iterator removeElement=listRemove.begin();</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :          removeElement!=listRemove.end(); removeElement++) {</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :       parentFolder-&gt;Remove(*removeElement);</span>
+<span class="lineNum">     713 </span>            :     }
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     715 </span>            :   
+<span class="lineNum">     716 </span>            :   return iResult;  
+<a name="717"><span class="lineNum">     717 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span>            : bool AliHLTCompStatCollector::CheckPeriod(bool bUpdate)
+<span class="lineNum">     720 </span>            : {
+<span class="lineNum">     721 </span>            :   // see header file for class documentation
+<span class="lineNum">     722 </span>            :   bool result=true;
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   if (fEventModulo&gt;0) {</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :     if ((result=((GetEventCount()+1)%fEventModulo)==0)) {</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :       return true;</span>
+<span class="lineNum">     726 </span>            :     }
+<span class="lineNum">     727 </span>            :   }
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :   if (fPeriod&gt;0) {</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     if ((result=((difftime(time(NULL), fLastTime)&gt;(double)fPeriod))) &amp;&amp;</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :         bUpdate) {</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :       fLastTime=time(NULL);</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     733 </span>            :   }
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :   return result;</span>
+<a name="735"><span class="lineNum">     735 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            : void AliHLTCompStatCollector::Print(const char* option) const
+<span class="lineNum">     738 </span>            : {
+<span class="lineNum">     739 </span>            :   // print information
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   if (strcmp(option, &quot;instances&quot;)==0) {</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     vector&lt;AliHLTCompStatInstance&gt; sortedInstances;</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     for (map&lt;AliHLTUInt32_t, AliHLTCompStatInstance&gt;::const_iterator element=fInstances.begin();</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :          element!=fInstances.end();</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :          element++) {</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :       sortedInstances.push_back(element-&gt;second);</span>
+<span class="lineNum">     746 </span>            :     }
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     sort(sortedInstances.begin(), sortedInstances.end(), AliHLTCompStatInstance::SortByLevelAndComponentId);</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     for (vector&lt;AliHLTCompStatInstance&gt;::const_iterator element=sortedInstances.begin();</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :          element!=sortedInstances.end();</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :          element++) {</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :       element-&gt;Print(&quot;&quot;);</span>
+<span class="lineNum">     752 </span>            :     }
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :   }</span>
+<a name="754"><span class="lineNum">     754 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span>            : AliHLTCompStatCollector::AliHLTCompStatInstance::AliHLTCompStatInstance()
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   : fCRCId(0)</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   , fChainId()</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :   , fComponentId()</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :   , fComponentParam()</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :   , fParents()</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :   , fLevel(-1)</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :   , fTag(-1)</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :   , fProcessed(false)</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     766 </span>            :   /// default constructor
+<a name="767"><span class="lineNum">     767 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     768 </span>            : 
+<span class="lineNum">     769 </span>            : AliHLTCompStatCollector::AliHLTCompStatInstance::AliHLTCompStatInstance(AliHLTUInt32_t CRCId,
+<span class="lineNum">     770 </span>            :                                                                         const char* chainId,
+<span class="lineNum">     771 </span>            :                                                                         const char* componentId,
+<span class="lineNum">     772 </span>            :                                                                         const char* componentParam,
+<span class="lineNum">     773 </span>            :                                                                         const vector&lt;AliHLTUInt32_t&gt;&amp; parents,
+<span class="lineNum">     774 </span>            :                                                                         int level,
+<span class="lineNum">     775 </span>            :                                                                         int tag)
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :   : fCRCId(CRCId)</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :   , fChainId(chainId)</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :   , fComponentId(componentId)</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :   , fComponentParam(componentParam)</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :   , fParents(parents)</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :   , fLevel(level)</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :   , fTag(tag)</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :   , fProcessed(false)</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 : {</span>
+<a name="785"><span class="lineNum">     785 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span>            : AliHLTCompStatCollector::AliHLTCompStatInstance::AliHLTCompStatInstance(AliHLTUInt32_t CRCId,
+<span class="lineNum">     788 </span>            :                                                                         const string&amp; chainId,
+<span class="lineNum">     789 </span>            :                                                                         const string&amp; componentId,
+<span class="lineNum">     790 </span>            :                                                                         const string&amp; componentParam,
+<span class="lineNum">     791 </span>            :                                                                         const vector&lt;AliHLTUInt32_t&gt;&amp; parents,
+<span class="lineNum">     792 </span>            :                                                                         int level,
+<span class="lineNum">     793 </span>            :                                                                         int tag)
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :   : fCRCId(CRCId)</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :   , fChainId(chainId)</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :   , fComponentId(componentId)</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :   , fComponentParam(componentParam)</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :   , fParents(parents)</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :   , fLevel(level)</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :   , fTag(tag)</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :   , fProcessed(false)</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 : {</span>
+<a name="803"><span class="lineNum">     803 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span>            : AliHLTCompStatCollector::AliHLTCompStatInstance::AliHLTCompStatInstance(const AliHLTCompStatCollector::AliHLTCompStatInstance&amp; src)
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   : fCRCId(src.fCRCId)</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :   , fChainId(src.fChainId)</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :   , fComponentId(src.fComponentId)</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   , fComponentParam(src.fComponentParam)</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :   , fParents(src.fParents)</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   , fLevel(src.fLevel)</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :   , fTag(src.fTag)</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :   , fProcessed(src.fProcessed)</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     815 </span>            :   /// copy constructor
+<a name="816"><span class="lineNum">     816 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span>            : AliHLTCompStatCollector::AliHLTCompStatInstance&amp; AliHLTCompStatCollector::AliHLTCompStatInstance::operator=(const AliHLTCompStatCollector::AliHLTCompStatInstance&amp; src)
+<span class="lineNum">     819 </span>            : {
+<span class="lineNum">     820 </span>            :   /// assignment operator
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :   if (&amp;src==this) return *this;</span>
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :   fCRCId=src.fCRCId;</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   fChainId=src.fChainId;</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :   fComponentId=src.fComponentId;</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   fComponentParam=src.fComponentParam;</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   fParents.assign(src.fParents.begin(), src.fParents.end());</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :   fLevel=src.fLevel;</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :   fTag=src.fTag;</span>
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="832"><span class="lineNum">     832 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     833 </span>            : 
+<span class="lineNum">     834 </span>            : AliHLTCompStatCollector::AliHLTCompStatInstance::~AliHLTCompStatInstance()
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     836 </span>            :   /// destructor
+<a name="837"><span class="lineNum">     837 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     838 </span>            : 
+<span class="lineNum">     839 </span>            : string AliHLTCompStatCollector::AliHLTCompStatInstance::Description(const char* /*option*/) const
+<span class="lineNum">     840 </span>            : {
+<span class="lineNum">     841 </span>            :   // get a description string
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :   TString description;</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :   description.Form(&quot;0x%08x level %d tag %d: %s (%s) %s&quot;,</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :                    fCRCId, fLevel, fTag, fChainId.c_str(), fComponentId.c_str(), fComponentParam.c_str());</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :   string ret=description.Data();</span>
+<span class="lineNum">     846 </span>            :   return ret;
+<a name="847"><span class="lineNum">     847 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span>            : void AliHLTCompStatCollector::AliHLTCompStatInstance::Print(const char* /*option*/) const
+<span class="lineNum">     850 </span>            : {
+<span class="lineNum">     851 </span>            :   // print info to cout
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   cout &lt;&lt; Description() &lt;&lt; endl;</span>
+<a name="853"><span class="lineNum">     853 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span>            : bool AliHLTCompStatCollector::AliHLTCompStatInstance::operator==(const AliHLTCompStatInstance &amp;b) const
+<span class="lineNum">     856 </span>            : {
+<span class="lineNum">     857 </span>            :   // check if two instances are equal
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :   if (fChainId       !=b.fChainId)          return false;</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :   if (fComponentId   !=b.fComponentId)      return false;</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :   if (fComponentParam!=b.fComponentParam)   return false;</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :   if (fCRCId         !=b.fCRCId)            return false;</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :   if (fLevel         !=b.fLevel)            return false;</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :   if (fTag&gt;=0 &amp;&amp; fTag!=b.fTag &amp;&amp; b.fTag&gt;=0) return false;</span>
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :   return true;</span>
+<a name="866"><span class="lineNum">     866 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     867 </span>            : 
+<span class="lineNum">     868 </span>            : bool AliHLTCompStatCollector::AliHLTCompStatInstance::SortByLevelAndComponentId(const AliHLTCompStatInstance &amp;a,
+<span class="lineNum">     869 </span>            :                                                                                 const AliHLTCompStatInstance &amp;b)
+<span class="lineNum">     870 </span>            : {
+<span class="lineNum">     871 </span>            :   // helper function for std::sort
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :   if ( a.fLevel       != b.fLevel )       return ( a.fLevel       &lt; b.fLevel );</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :   if ( a.fComponentId != b.fComponentId ) return ( a.fComponentId &lt; b.fComponentId );</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :   if ( a.fChainId     != b.fChainId )     return ( a.fChainId     &lt; b.fChainId );</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

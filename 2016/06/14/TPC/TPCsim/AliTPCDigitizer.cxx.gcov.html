@@ -1,0 +1,1237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCsim/AliTPCDigitizer.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCsim</a> - AliTPCDigitizer.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCDigitizer.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">642</td>
+            <td class="headerCovTableEntryLo">0.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">7.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-2000, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : /*
+<span class="lineNum">      19 </span>            :   Class for creating of the sumable digits and digits from MC data
+<span class="lineNum">      20 </span>            :   //
+<span class="lineNum">      21 </span>            :   The input :  ideal signals (Hits-&gt;Diffusion-&gt;Attachment -Ideal signal)
+<span class="lineNum">      22 </span>            :   The output:  &quot;raw digits&quot;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            :   Effect implemented:
+<span class="lineNum">      25 </span>            :   1. Pad by pad gain map
+<span class="lineNum">      26 </span>            :   2. Noise map  
+<span class="lineNum">      27 </span>            :   3. The dead channels identified  - zerro noise for corresponding pads
+<span class="lineNum">      28 </span>            :      In this case the outpu equal zerro
+<span class="lineNum">      29 </span>            :      
+<span class="lineNum">      30 </span>            : */
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;TTree.h&gt; 
+<span class="lineNum">      37 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;TDirectory.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;TParameter.h&gt;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #include &quot;AliTPCDigitizer.h&quot;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #include &quot;AliTPC.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;AliTPCParam.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;AliTPCParamSR.h&quot; 
+<span class="lineNum">      48 </span>            : #include &quot;AliRun.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliLoader.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliPDG.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliDigitizationInput.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;AliSimDigits.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #include &quot;AliTPCcalibDB.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliTPCCalPad.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;AliTPCCalROC.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;TTreeStream.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;AliTPCReconstructor.h&quot;
+<span class="lineNum">      60 </span>            : #include &lt;TGraphErrors.h&gt;
+<span class="lineNum">      61 </span>            : #include &quot;AliTPCSAMPAEmulator.h&quot;
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : AliTPCSAMPAEmulator *  AliTPCDigitizer::fgSAMPAEmulator=0;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : using std::cout;
+<a name="67"><span class="lineNum">      67 </span>            : using std::cerr;</a>
+<span class="lineNum">      68 </span>            : using std::endl;
+<span class="lineNum">      69 </span><span class="lineCov">         12 : ClassImp(AliTPCDigitizer)</span>
+<a name="70"><span class="lineNum">      70 </span>            : </a>
+<span class="lineNum">      71 </span>            : //___________________________________________
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   AliTPCDigitizer::AliTPCDigitizer() :AliDigitizer(),fDebug(0), fDebugStreamer(0)</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      74 </span>            :   //
+<span class="lineNum">      75 </span>            : // Default ctor - don't use it
+<span class="lineNum">      76 </span>            : //
+<span class="lineNum">      77 </span>            :   
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 : }</span>
+<a name="79"><span class="lineNum">      79 </span>            : </a>
+<span class="lineNum">      80 </span>            : //___________________________________________
+<span class="lineNum">      81 </span>            : AliTPCDigitizer::AliTPCDigitizer(AliDigitizationInput* digInput) 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   :AliDigitizer(digInput),fDebug(0), fDebugStreamer(0)</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      84 </span>            :   //
+<span class="lineNum">      85 </span>            : // ctor which should be used
+<span class="lineNum">      86 </span>            : //  
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   AliDebug(2,&quot;(AliDigitizationInput* digInput) was processed&quot;);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   if (AliTPCReconstructor::StreamLevel()&gt;0)  fDebugStreamer = new TTreeSRedirector(&quot;TPCDigitDebug.root&quot;,&quot;recreate&quot;);</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : }</span>
+<a name="91"><span class="lineNum">      91 </span>            : </a>
+<span class="lineNum">      92 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">      93 </span>            : AliTPCDigitizer::~AliTPCDigitizer()
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      95 </span>            : // Destructor
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   if (fDebugStreamer) delete fDebugStreamer;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : 
+<a name="100"><span class="lineNum">     100 </span>            : </a>
+<span class="lineNum">     101 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">     102 </span>            : Bool_t AliTPCDigitizer::Init()
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span>            : // Initialization 
+<span class="lineNum">     105 </span>            :     
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :  return kTRUE;</span>
+<span class="lineNum">     107 </span>            : }
+<span class="lineNum">     108 </span>            : 
+<a name="109"><span class="lineNum">     109 </span>            : </a>
+<span class="lineNum">     110 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">     111 </span>            : void AliTPCDigitizer::Digitize(Option_t* option)
+<span class="lineNum">     112 </span>            : {
+<span class="lineNum">     113 </span>            :   //DigitizeFast(option);  
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   DigitizeWithTailAndCrossTalk(option);</span>
+<span class="lineNum">     115 </span>            :   
+<a name="116"><span class="lineNum">     116 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     117 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">     118 </span>            : void AliTPCDigitizer::DigitizeFast(Option_t* option)
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span>            :   
+<span class="lineNum">     121 </span>            :   // merge input tree's with summable digits
+<span class="lineNum">     122 </span>            :   //output stored in TreeTPCD
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   char s[100]; </span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   char ss[100];</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   TString optionString = option;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   if (!strcmp(optionString.Data(),&quot;deb&quot;)) {</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     cout&lt;&lt;&quot;AliTPCDigitizer:::DigitizeFast called with option deb &quot;&lt;&lt;endl;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     fDebug = 3;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     130 </span>            :   //get detector and geometry
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :   AliRunLoader *rl, *orl;
+<span class="lineNum">     134 </span>            :   AliLoader *gime, *ogime;
+<span class="lineNum">     135 </span>            :   
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   if (gAlice == 0x0)</span>
+<span class="lineNum">     137 </span>            :    {
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :      Warning(&quot;DigitizeFast&quot;,&quot;gAlice is NULL. Loading from input 0&quot;);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :      rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(0));</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :      if (rl == 0x0)</span>
+<span class="lineNum">     141 </span>            :       {
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         Error(&quot;DigitizeFast&quot;,&quot;Can not find Run Loader for input 0. Can not proceed.&quot;);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     144 </span>            :       }
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :      rl-&gt;LoadgAlice();</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :      rl-&gt;GetAliRun();</span>
+<span class="lineNum">     147 </span>            :    }
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   AliTPC *pTPC  = (AliTPC *) gAlice-&gt;GetModule(&quot;TPC&quot;);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   AliTPCParam * param = pTPC-&gt;GetParam();</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   const Bool_t useGlitchFilter=param-&gt;GetUseGlitchFilter();</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :   //sprintf(s,param-&gt;GetTitle());
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   snprintf(s,100,&quot;%s&quot;,param-&gt;GetTitle());</span>
+<span class="lineNum">     154 </span>            :   //sprintf(ss,&quot;75x40_100x60&quot;);
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   snprintf(ss,100,&quot;75x40_100x60&quot;);</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   if(strcmp(s,ss)==0){</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     printf(&quot;2 pad-length geom hits with 3 pad-lenght geom digits...\n&quot;);</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     delete param;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     param=new AliTPCParamSR();</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     161 </span>            :   else{
+<span class="lineNum">     162 </span>            :     //sprintf(ss,&quot;75x40_100x60_150x60&quot;);
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     snprintf(ss,100,&quot;75x40_100x60_150x60&quot;);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :    if(strcmp(s,ss)!=0) {</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :      printf(&quot;No TPC parameters found...\n&quot;);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :      exit(2); </span>
+<span class="lineNum">     167 </span>            :    }
+<span class="lineNum">     168 </span>            :   }
+<span class="lineNum">     169 </span>            :   
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   pTPC-&gt;GenerNoise(500000, kFALSE); //create table with noise</span>
+<span class="lineNum">     171 </span>            :   //
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   Int_t nInputs = fDigInput-&gt;GetNinputs();</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   Int_t * masks = new Int_t[nInputs];</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nInputs;i++)</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     masks[i]= fDigInput-&gt;GetMask(i);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   Short_t **pdig= new Short_t*[nInputs];   //pointers to the expanded digits array</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   Int_t **ptr=  new Int_t*[nInputs];       //pointers to the expanded tracks array</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   Bool_t *active=  new Bool_t[nInputs];    //flag for active input segments</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   Char_t phname[100];</span>
+<span class="lineNum">     180 </span>            :   
+<span class="lineNum">     181 </span>            :   //create digits array for given sectors
+<span class="lineNum">     182 </span>            :   // make indexes
+<span class="lineNum">     183 </span>            :   //
+<span class="lineNum">     184 </span>            :   //create branch's in TPC treeD
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   orl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetOutputFolderName());</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   ogime = orl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   TTree * tree  = ogime-&gt;TreeD();</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   AliSimDigits * digrow = new AliSimDigits;  </span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   if (tree == 0x0)</span>
+<span class="lineNum">     191 </span>            :    {
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :      ogime-&gt;MakeTree(&quot;D&quot;);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :      tree  = ogime-&gt;TreeD();</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;Segment&quot;,&quot;AliSimDigits&quot;,&amp;digrow);</span>
+<span class="lineNum">     196 </span>            :   //  
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   AliSimDigits ** digarr = new AliSimDigits*[nInputs]; </span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   for (Int_t i1=0;i1&lt;nInputs; i1++)</span>
+<span class="lineNum">     199 </span>            :     {
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :       digarr[i1]=0;</span>
+<span class="lineNum">     201 </span>            :      //    intree[i1]
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i1));</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :       gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :       gime-&gt;LoadSDigits(&quot;read&quot;);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       TTree * treear =  gime-&gt;TreeS();</span>
+<span class="lineNum">     206 </span>            :      
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       if (!treear) </span>
+<span class="lineNum">     208 </span>            :        {
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         cerr&lt;&lt;&quot;AliTPCDigitizer: Input tree with SDigits not found in&quot;</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             &lt;&lt;&quot; input &quot;&lt;&lt; i1&lt;&lt;endl;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         for (Int_t i2=0;i2&lt;i1+1; i2++){ </span>
+<span class="lineNum">     212 </span>            :           
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :           if(digarr[i2])  delete digarr[i2];</span>
+<span class="lineNum">     214 </span>            :         }
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         delete [] digarr;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         delete [] active;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         delete []masks;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         delete []pdig;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         delete []ptr;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     221 </span>            :        }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :       //sprintf(phname,&quot;lhcphase%d&quot;,i1);
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :       snprintf(phname,100,&quot;lhcphase%d&quot;,i1);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :       TParameter&lt;float&gt; *ph = (TParameter&lt;float&gt;*)treear-&gt;GetUserInfo()</span>
+<span class="lineNum">     226 </span>            :                                -&gt;FindObject(&quot;lhcphase0&quot;);
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :       if(!ph){</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         cerr&lt;&lt;&quot;AliTPCDigitizer: LHC phase  not found in&quot;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :             &lt;&lt;&quot; input &quot;&lt;&lt; i1&lt;&lt;endl;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         for (Int_t i2=0;i2&lt;i1+1; i2++){ </span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :           if(digarr[i2])  delete digarr[i2];</span>
+<span class="lineNum">     232 </span>            :         }
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         delete [] digarr;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         delete [] active;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         delete []masks;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         delete []pdig;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         delete []ptr;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     239 </span>            :       }
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       tree-&gt;GetUserInfo()-&gt;Add(new TParameter&lt;float&gt;(phname,ph-&gt;GetVal()));</span>
+<span class="lineNum">     241 </span>            :               //
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :       if (treear-&gt;GetIndex()==0)  </span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         treear-&gt;BuildIndex(&quot;fSegmentID&quot;,&quot;fSegmentID&quot;);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       treear-&gt;GetBranch(&quot;Segment&quot;)-&gt;SetAddress(&amp;digarr[i1]);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            :   //
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   Int_t zerosup = param-&gt;GetZeroSup(); </span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()-&gt;GetDedxGainFactor(); </span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   AliTPCCalPad * noiseTPC = AliTPCcalibDB::Instance()-&gt;GetPadNoise(); </span>
+<span class="lineNum">     256 </span>            :   //
+<span class="lineNum">     257 </span>            :   //Loop over segments of the TPC
+<span class="lineNum">     258 </span>            :     
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   for (Int_t segmentID=0; segmentID&lt;param-&gt;GetNRowsTotal(); segmentID++) </span>
+<span class="lineNum">     260 </span>            :    {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     Int_t sector, padRow;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     if (!param-&gt;AdjustSectorRow(segmentID,sector,padRow)) </span>
+<span class="lineNum">     263 </span>            :      {
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot;AliTPC warning: invalid segment ID ! &quot;&lt;&lt;segmentID&lt;&lt;endl;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     266 </span>            :      }
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     AliTPCCalROC * gainROC = gainTPC-&gt;GetCalROC(sector);  // pad gains per given sector</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     AliTPCCalROC * noiseROC = noiseTPC-&gt;GetCalROC(sector);  // noise per given sector</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     digrow-&gt;SetID(segmentID);</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            :     Int_t nTimeBins = 0;
+<span class="lineNum">     272 </span>            :     Int_t nPads = 0;
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            :     Bool_t digitize = kFALSE;
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nInputs; i++) </span>
+<span class="lineNum">     276 </span>            :      { 
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :       rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i));</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :       gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     280 </span>            :       
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       if (gime-&gt;TreeS()-&gt;GetEntryWithIndex(segmentID,segmentID) &gt;= 0) {</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         digarr[i]-&gt;ExpandBuffer();</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         digarr[i]-&gt;ExpandTrackBuffer();</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         nTimeBins = digarr[i]-&gt;GetNRows();</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         nPads = digarr[i]-&gt;GetNCols();</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         active[i] = kTRUE;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         if (!GetRegionOfInterest() || (i == 0)) digitize = kTRUE;</span>
+<span class="lineNum">     288 </span>            :       } else {
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :         active[i] = kFALSE;</span>
+<span class="lineNum">     290 </span>            :       }
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :       if (GetRegionOfInterest() &amp;&amp; !digitize) break;</span>
+<span class="lineNum">     292 </span>            :      }   
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     if (!digitize) continue;</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     digrow-&gt;Allocate(nTimeBins,nPads);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     digrow-&gt;AllocateTrack(3);</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            :     Float_t q=0;
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     Int_t label[1000]; //stack for 300 events </span>
+<span class="lineNum">     300 </span>            :     Int_t labptr = 0;
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     Int_t nElems = nTimeBins*nPads;     </span>
+<span class="lineNum">     303 </span>            :  
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nInputs; i++)</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :      if (active[i]) { </span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :        pdig[i] = digarr[i]-&gt;GetDigits();</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :        ptr[i]  = digarr[i]-&gt;GetTracks();</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     309 </span>            :      
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     Short_t *pdig1= digrow-&gt;GetDigits();</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     Int_t   *ptr1= digrow-&gt;GetTracks() ;</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     for (Int_t elem=0;elem&lt;nElems; elem++)</span>
+<span class="lineNum">     316 </span>            :      {    
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            :        q=0;
+<span class="lineNum">     319 </span>            :        labptr=0;
+<span class="lineNum">     320 </span>            :        // looop over digits 
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;nInputs; i++) if (active[i]) </span>
+<span class="lineNum">     322 </span>            :          { 
+<span class="lineNum">     323 </span>            :           //          q  += digarr[i]-&gt;GetDigitFast(rows,col);
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             q  += *(pdig[i]);</span>
+<span class="lineNum">     325 </span>            :          
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :            for (Int_t tr=0;tr&lt;3;tr++) </span>
+<span class="lineNum">     327 </span>            :             {
+<span class="lineNum">     328 </span>            :              //             Int_t lab = digarr[i]-&gt;GetTrackIDFast(rows,col,tr);
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :              Int_t lab = ptr[i][tr*nElems];</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :              if ( (lab &gt; 1) &amp;&amp; *(pdig[i])&gt;zerosup) </span>
+<span class="lineNum">     331 </span>            :               {
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 label[labptr]=lab+masks[i];</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                 labptr++;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :               }          </span>
+<span class="lineNum">     335 </span>            :             }
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :            pdig[i]++;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :            ptr[i]++;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :          }</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         q/=16.;  //conversion factor</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         Float_t gain = gainROC-&gt;GetValue(padRow,elem/nTimeBins);  // get gain for given - pad-row pad</span>
+<span class="lineNum">     341 </span>            :         //if (gain&lt;0.5){
+<span class="lineNum">     342 </span>            :           //printf(&quot;problem\n&quot;);
+<span class="lineNum">     343 </span>            :         //}
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         q*= gain;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         Float_t noisePad = noiseROC-&gt;GetValue(padRow,elem/nTimeBins);</span>
+<span class="lineNum">     346 </span>            :         //       Float_t noise  = gRandom-&gt;Gaus(0,param-&gt;GetNoise()*param-&gt;GetNoiseNormFac());  
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         Float_t noise  = pTPC-&gt;GetNoise();</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         q+=noise*noisePad;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         q=TMath::Nint(q);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         if (q &gt; zerosup)</span>
+<span class="lineNum">     351 </span>            :          { 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :           if(q &gt;= param-&gt;GetADCSat()) q = (Short_t)(param-&gt;GetADCSat() - 1);</span>
+<span class="lineNum">     353 </span>            :           //digrow-&gt;SetDigitFast((Short_t)q,rows,col);  
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :           *pdig1 =Short_t(q);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :           for (Int_t tr=0;tr&lt;3;tr++)</span>
+<span class="lineNum">     356 </span>            :            {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :             if (tr&lt;labptr) </span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :              ptr1[tr*nElems] = label[tr];</span>
+<span class="lineNum">     359 </span>            :            }
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         pdig1++;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         ptr1++;</span>
+<span class="lineNum">     363 </span>            :      }
+<span class="lineNum">     364 </span>            :     //
+<span class="lineNum">     365 </span>            :     //  glitch filter
+<span class="lineNum">     366 </span>            :     //
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     if (useGlitchFilter) digrow-&gt;GlitchFilter();</span>
+<span class="lineNum">     368 </span>            :     //
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     digrow-&gt;CompresBuffer(1,zerosup);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     digrow-&gt;CompresTrackBuffer(1);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     tree-&gt;Fill();</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     if (fDebug&gt;0) cerr&lt;&lt;sector&lt;&lt;&quot;\t&quot;&lt;&lt;padRow&lt;&lt;&quot;\n&quot;;  </span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :    } //for (Int_t n=0; n&lt;param-&gt;GetNRowsTotal(); n++) </span>
+<span class="lineNum">     374 </span>            :   
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   orl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetOutputFolderName());</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   ogime = orl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   ogime-&gt;WriteDigits(&quot;OVERWRITE&quot;);</span>
+<span class="lineNum">     379 </span>            :   
+<span class="lineNum">     380 </span>            :   //fDigInput-&gt;GetTreeDTPC()-&gt;Write(0,TObject::kOverwrite);
+<span class="lineNum">     381 </span>            :   
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :   delete digrow;     </span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :   for (Int_t i1=0;i1&lt;nInputs; i1++) delete digarr[i1];</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :   delete []masks;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   delete []pdig;</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :   delete []ptr;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   delete []active;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   delete []digarr;  </span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span>            : 
+<a name="392"><span class="lineNum">     392 </span>            : </a>
+<span class="lineNum">     393 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">     394 </span>            : void AliTPCDigitizer::DigitizeSave(Option_t* option)
+<span class="lineNum">     395 </span>            : {
+<span class="lineNum">     396 </span>            :   //
+<span class="lineNum">     397 </span>            :   // Merge input tree's with summable digits
+<span class="lineNum">     398 </span>            :   // Output digits stored in TreeTPCD
+<span class="lineNum">     399 </span>            :   // 
+<span class="lineNum">     400 </span>            :   // Not active for long time.
+<span class="lineNum">     401 </span>            :   // Before adding modification (for ion tail calucation and for the crorsstalk) it should be 
+<span class="lineNum">     402 </span>            :   //  checked one by one with currenlty used AliTPCDigitizer::DigitizeFast
+<span class="lineNum">     403 </span>            :   //
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   TString optionString = option;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   if (!strcmp(optionString.Data(),&quot;deb&quot;)) {</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     cout&lt;&lt;&quot;AliTPCDigitizer::Digitize: called with option deb &quot;&lt;&lt;endl;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     fDebug = 3;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     409 </span>            :   //get detector and geometry 
+<span class="lineNum">     410 </span>            :   AliRunLoader *rl, *orl;
+<span class="lineNum">     411 </span>            :   AliLoader *gime, *ogime;
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span>            :   
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   orl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetOutputFolderName());</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   ogime = orl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     416 </span>            :   
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(0));</span>
+<span class="lineNum">     418 </span>            :   //gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :   rl-&gt;LoadgAlice();</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :   AliRun* alirun = rl-&gt;GetAliRun();</span>
+<span class="lineNum">     422 </span>            :   
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   AliTPC *pTPC  = (AliTPC *) alirun-&gt;GetModule(&quot;TPC&quot;);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   AliTPCParam * param = pTPC-&gt;GetParam();</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :   pTPC-&gt;GenerNoise(500000); //create teble with noise</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :   printf(&quot;noise %f \n&quot;,  param-&gt;GetNoise()*param-&gt;GetNoiseNormFac());</span>
+<span class="lineNum">     427 </span>            :   //
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :   Int_t nInputs = fDigInput-&gt;GetNinputs();</span>
+<span class="lineNum">     429 </span>            :   // stupid protection...
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   if (nInputs &lt;= 0) return;</span>
+<span class="lineNum">     431 </span>            :   //
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   Int_t * masks = new Int_t[nInputs];</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nInputs;i++)</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     masks[i]= fDigInput-&gt;GetMask(i);</span>
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :   AliSimDigits ** digarr = new AliSimDigits*[nInputs]; </span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   for(Int_t ii=0;ii&lt;nInputs;ii++) digarr[ii]=0;</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   for (Int_t i1=0;i1&lt;nInputs; i1++)</span>
+<span class="lineNum">     440 </span>            :    {
+<span class="lineNum">     441 </span>            :      //digarr[i1]=0;
+<span class="lineNum">     442 </span>            :     //    intree[i1]
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i1));</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     TTree * treear =  gime-&gt;TreeS();</span>
+<span class="lineNum">     447 </span>            :     //
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     if (!treear) {      </span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot; TPC -  not existing input = \n&quot;&lt;&lt;i1&lt;&lt;&quot; &quot;; </span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :       delete [] masks;  </span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       for(Int_t i=0; i&lt;nInputs; i++) delete digarr[i];</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :       delete [] digarr;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       return;   </span>
+<span class="lineNum">     454 </span>            :     } 
+<span class="lineNum">     455 </span>            :     //
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     TBranch * br = treear-&gt;GetBranch(&quot;fSegmentID&quot;);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     if (br) br-&gt;GetFile()-&gt;cd();</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     treear-&gt;GetBranch(&quot;Segment&quot;)-&gt;SetAddress(&amp;digarr[i1]);</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     460 </span>            :   
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(0));</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   Stat_t nentries = gime-&gt;TreeS()-&gt;GetEntries();</span>
+<span class="lineNum">     464 </span>            :   
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            :   //create branch's in TPC treeD
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   AliSimDigits * digrow = new AliSimDigits;</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   TTree * tree  = ogime-&gt;TreeD();</span>
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;Segment&quot;,&quot;AliSimDigits&quot;,&amp;digrow);</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   Int_t zerosup = param-&gt;GetZeroSup();</span>
+<span class="lineNum">     473 </span>            :   //Loop over segments of the TPC
+<span class="lineNum">     474 </span>            :     
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()-&gt;GetDedxGainFactor();</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :   AliTPCCalPad * noiseTPC = AliTPCcalibDB::Instance()-&gt;GetPadNoise();</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :   for (Int_t n=0; n&lt;nentries; n++) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(0));</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     gime-&gt;TreeS()-&gt;GetEvent(n);</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     digarr[0]-&gt;ExpandBuffer();</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     digarr[0]-&gt;ExpandTrackBuffer();</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     for (Int_t i=1;i&lt;nInputs; i++){ </span>
+<span class="lineNum">     487 </span>            : //      fDigInput-&gt;GetInputTreeTPCS(i)-&gt;GetEntryWithIndex(digarr[0]-&gt;GetID(),digarr[0]-&gt;GetID());      
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :       rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i));</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :       gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :       gime-&gt;TreeS()-&gt;GetEntryWithIndex(digarr[0]-&gt;GetID(),digarr[0]-&gt;GetID());  </span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :       digarr[i]-&gt;ExpandBuffer();</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :       digarr[i]-&gt;ExpandTrackBuffer();</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       if ((digarr[0]-&gt;GetID()-digarr[i]-&gt;GetID())&gt;0) </span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :        printf(&quot;problem\n&quot;);</span>
+<span class="lineNum">     495 </span>            :     
+<span class="lineNum">     496 </span>            :     }   
+<span class="lineNum">     497 </span>            :     
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     Int_t sector, padRow;</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     if (!param-&gt;AdjustSectorRow(digarr[0]-&gt;GetID(),sector,padRow)) {</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot;AliTPC warning: invalid segment ID ! &quot;&lt;&lt;digarr[0]-&gt;GetID()&lt;&lt;endl;</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     502 </span>            :     }
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     AliTPCCalROC * gainROC = gainTPC-&gt;GetCalROC(sector);  // pad gains per given sector</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     AliTPCCalROC * noiseROC = noiseTPC-&gt;GetCalROC(sector);  // noise per given sector</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     digrow-&gt;SetID(digarr[0]-&gt;GetID());</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     Int_t nTimeBins = digarr[0]-&gt;GetNRows();</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     Int_t nPads = digarr[0]-&gt;GetNCols();</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     digrow-&gt;Allocate(nTimeBins,nPads);</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     digrow-&gt;AllocateTrack(3);</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            :     Float_t q=0;
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     Int_t label[1000]; //stack for 300 events </span>
+<span class="lineNum">     515 </span>            :     Int_t labptr = 0;
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            :     
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     for (Int_t iTimeBin=0;iTimeBin&lt;nTimeBins; iTimeBin++){   // iTimeBin</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :       for (Int_t iPad=0;iPad&lt;nPads; iPad++){    // pad</span>
+<span class="lineNum">     521 </span>            :     
+<span class="lineNum">     522 </span>            :        q=0;
+<span class="lineNum">     523 </span>            :        labptr=0;
+<span class="lineNum">     524 </span>            :        // looop over digits 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;nInputs; i++){ </span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :          q  += digarr[i]-&gt;GetDigitFast(iTimeBin,iPad);</span>
+<span class="lineNum">     527 </span>            :           //q  += *(pdig[i]);
+<span class="lineNum">     528 </span>            :          
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :           for (Int_t tr=0;tr&lt;3;tr++) {</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :            Int_t lab = digarr[i]-&gt;GetTrackIDFast(iTimeBin,iPad,tr);</span>
+<span class="lineNum">     531 </span>            :            //Int_t lab = ptr[i][tr*nElems];
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :             if ( (lab &gt; 1) ) {</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :               label[labptr]=lab+masks[i];</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :               labptr++;</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :             }          </span>
+<span class="lineNum">     536 </span>            :           }
+<span class="lineNum">     537 </span>            :          // pdig[i]++;
+<span class="lineNum">     538 </span>            :          //ptr[i]++;
+<span class="lineNum">     539 </span>            :          
+<span class="lineNum">     540 </span>            :         }
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :        q/=16.;  //conversion factor</span>
+<span class="lineNum">     542 </span>            :        //       Float_t noise  = gRandom-&gt;Gaus(0,param-&gt;GetNoise()*param-&gt;GetNoiseNormFac());  
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :        Float_t gain = gainROC-&gt;GetValue(padRow,iPad);</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :        q*= gain;</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :        Float_t noisePad = noiseROC-&gt;GetValue(padRow, iPad);</span>
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :        Float_t noise  = pTPC-&gt;GetNoise();</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :        q+=noise*noisePad;</span>
+<span class="lineNum">     549 </span>            :        //
+<span class="lineNum">     550 </span>            :        // here we can get digits from past and add signal
+<span class="lineNum">     551 </span>            :        //
+<span class="lineNum">     552 </span>            :        //
+<span class="lineNum">     553 </span>            :        //for (Int_t jTimeBin=0; jTimeBin&lt;iTimeBin; jTimeBin++)
+<span class="lineNum">     554 </span>            :        //  q+=ionTail
+<span class="lineNum">     555 </span>            :        //
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         q=TMath::Nint(q);</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :         if (q &gt; zerosup){ </span>
+<span class="lineNum">     559 </span>            :          
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :          if(q &gt;= param-&gt;GetADCSat()) q = (Short_t)(param-&gt;GetADCSat() - 1);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :          digrow-&gt;SetDigitFast((Short_t)q,iTimeBin,iPad);  </span>
+<span class="lineNum">     562 </span>            :          // *pdig1 =Short_t(q);
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :          for (Int_t tr=0;tr&lt;3;tr++){</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :            if (tr&lt;labptr) </span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :              ((AliSimDigits*)digrow)-&gt;SetTrackIDFast(label[tr],iTimeBin,iPad,tr);</span>
+<span class="lineNum">     566 </span>            :            //ptr1[tr*nElems] = label[tr];
+<span class="lineNum">     567 </span>            :            //else
+<span class="lineNum">     568 </span>            :              //           ((AliSimDigits*)digrow)-&gt;SetTrackIDFast(-1,iTimeBin,iPad,tr);          
+<span class="lineNum">     569 </span>            :            //  ptr1[tr*nElems] = 1;
+<span class="lineNum">     570 </span>            :          }
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     572 </span>            :        //pdig1++;
+<span class="lineNum">     573 </span>            :        //ptr1++;
+<span class="lineNum">     574 </span>            :     }
+<span class="lineNum">     575 </span>            :     }
+<span class="lineNum">     576 </span>            :     
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     digrow-&gt;CompresBuffer(1,zerosup);</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     digrow-&gt;CompresTrackBuffer(1);</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     tree-&gt;Fill();</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     if (fDebug&gt;0) cerr&lt;&lt;sector&lt;&lt;&quot;\t&quot;&lt;&lt;padRow&lt;&lt;&quot;\n&quot;;  </span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     582 </span>            : //  printf(&quot;end TPC merging - end -Tree %s\t%p\n&quot;,fDigInput-&gt;GetInputTreeH(0)-&gt;GetName(),fDigInput-&gt;GetInputTreeH(0)-&gt;GetListOfBranches()-&gt;At(3));
+<span class="lineNum">     583 </span>            :   //fDigInput-&gt;GetTreeDTPC()-&gt;Write(0,TObject::kOverwrite);
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     ogime-&gt;WriteDigits(&quot;OVERWRITE&quot;);</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     for (Int_t i=1;i&lt;nInputs; i++) </span>
+<span class="lineNum">     587 </span>            :      { 
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :       rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i));</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :       gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :       gime-&gt;UnloadSDigits();</span>
+<span class="lineNum">     591 </span>            :      }
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     ogime-&gt;UnloadDigits();</span>
+<span class="lineNum">     593 </span>            :     
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :   delete digrow;     </span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :   for (Int_t i1=0;i1&lt;nInputs; i1++) delete digarr[i1];</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :   delete [] masks;</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :   delete [] digarr;  </span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            : 
+<a name="605"><span class="lineNum">     605 </span>            : </a>
+<span class="lineNum">     606 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">     607 </span>            : void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option) 
+<span class="lineNum">     608 </span>            : {
+<span class="lineNum">     609 </span>            :   // Modified version of the digitization function
+<span class="lineNum">     610 </span>            :   // Modification: adding the ion tail and crosstalk:
+<span class="lineNum">     611 </span>            :   //
+<span class="lineNum">     612 </span>            :   // pcstream used in order to visually inspect data
+<span class="lineNum">     613 </span>            :   //
+<span class="lineNum">     614 </span>            :   //
+<span class="lineNum">     615 </span>            :   // Crosstalk simulation:
+<span class="lineNum">     616 </span>            :   //   1.) Calculate per time bin mean charge (per pad)  within anode wire segment 
+<span class="lineNum">     617 </span>            :   //   2.) Subsract for the clusters at given time bin fraction of (mean charge) normalized by add hoc constant
+<span class="lineNum">     618 </span>            :   //       AliTPCRecoParam::GetCrosstalkCorrection() (0 if not crosstalk, 1 if ideal crosstalk)
+<span class="lineNum">     619 </span>            :   //       for simplicity we are assuming that wire segents are related to pad-rows
+<span class="lineNum">     620 </span>            :   //       Wire segmentationn is obtatined from the      
+<span class="lineNum">     621 </span>            :   //       AliTPCParam::GetWireSegment(Int_t sector, Int_t row); // to be implemented
+<span class="lineNum">     622 </span>            :   //       AliTPCParam::GetNPadsPerSegment(Int_t segmentID); // to be implemented
+<span class="lineNum">     623 </span>            :   //   3.) Substract form the signal contribution from the previous tracks - Ion tail in case speified in the AliTPCRecoParam
+<span class="lineNum">     624 </span>            :   //        AliTPCRecoParam::GetUseIonTailCorrection()
+<span class="lineNum">     625 </span>            :   //
+<span class="lineNum">     626 </span>            :   // Ion tail simulation:
+<span class="lineNum">     627 </span>            :   //    1.) Needs signal from pad+-1, taking signal from history
+<span class="lineNum">     628 </span>            :   // merge input tree's with summable digits
+<span class="lineNum">     629 </span>            :   // output stored in TreeTPCD 
+<span class="lineNum">     630 </span>            :   //  
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :   AliTPCcalibDB* const calib=AliTPCcalibDB::Instance();</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :   AliTPCRecoParam *recoParam = calib-&gt;GetRecoParam(0); </span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :   AliDebug(1, Form(&quot; recoParam-&gt;GetCrosstalkCorrection()  =   %f&quot;, recoParam-&gt;GetCrosstalkCorrection())); </span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :   AliDebug(1,Form(&quot; recoParam-&gt;GetUseIonTailCorrection() =  %d &quot;, recoParam-&gt;GetUseIonTailCorrection()));</span>
+<span class="lineNum">     635 </span>            :   Int_t nROCs = 72;
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :   char s[100]; </span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :   char ss[100];</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :   TString optionString = option;</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :   if (!strcmp(optionString.Data(),&quot;deb&quot;)) {</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     cout&lt;&lt;&quot;AliTPCDigitizer:::DigitizeFast called with option deb &quot;&lt;&lt;endl;</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     fDebug = 3;</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span>            :   // ======== get detector and geometry =======
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span>            :   AliRunLoader *rl, *orl;
+<span class="lineNum">     647 </span>            :   AliLoader *gime, *ogime;
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :   if (gAlice == 0x0)</span>
+<span class="lineNum">     650 </span>            :   {
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     Warning(&quot;DigitizeFast&quot;,&quot;gAlice is NULL. Loading from input 0&quot;);</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :     rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(0));</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     if (rl == 0x0)</span>
+<span class="lineNum">     654 </span>            :     {
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :       Error(&quot;DigitizeFast&quot;,&quot;Can not find Run Loader for input 0. Can not proceed.&quot;);</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     657 </span>            :     }
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     rl-&gt;LoadgAlice();</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :     rl-&gt;GetAliRun();</span>
+<span class="lineNum">     660 </span>            :   }
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :   AliTPC *pTPC  = (AliTPC *) gAlice-&gt;GetModule(&quot;TPC&quot;);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   AliTPCParam * param = pTPC-&gt;GetParam();</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   const Bool_t useGlitchFilter=param-&gt;GetUseGlitchFilter();</span>
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span>            :   //sprintf(s,param-&gt;GetTitle());
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   snprintf(s,100,&quot;%s&quot;,param-&gt;GetTitle());</span>
+<span class="lineNum">     667 </span>            :   //sprintf(ss,&quot;75x40_100x60&quot;);
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :   snprintf(ss,100,&quot;75x40_100x60&quot;);</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   if(strcmp(s,ss)==0){</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     printf(&quot;2 pad-length geom hits with 3 pad-lenght geom digits...\n&quot;);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :     delete param;</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     param=new AliTPCParamSR();</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     674 </span>            :     //sprintf(ss,&quot;75x40_100x60_150x60&quot;);
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     snprintf(ss,100,&quot;75x40_100x60_150x60&quot;);</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     if(strcmp(s,ss)!=0) {</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :       printf(&quot;No TPC parameters found...\n&quot;);</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :       exit(2); </span>
+<span class="lineNum">     679 </span>            :     }
+<span class="lineNum">     680 </span>            :   }
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :   pTPC-&gt;GenerNoise(500000); //create table with noise</span>
+<span class="lineNum">     683 </span>            :   //
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :   Int_t nInputs = fDigInput-&gt;GetNinputs();</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :   Int_t * masks = new Int_t[nInputs];</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nInputs;i++)</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :     masks[i]= fDigInput-&gt;GetMask(i);</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   Short_t **pdig= new Short_t*[nInputs];   //pointers to the expanded digits array</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   Int_t **ptr=  new Int_t*[nInputs];       //pointers to the expanded tracks array</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :   Bool_t *active=  new Bool_t[nInputs];    //flag for active input segments</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   Char_t phname[100];</span>
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span>            :   //create digits array for given sectors
+<span class="lineNum">     694 </span>            :   // make indexes
+<span class="lineNum">     695 </span>            :   //
+<span class="lineNum">     696 </span>            :   //create branch's in TPC treeD
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   orl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetOutputFolderName());</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :   ogime = orl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :   TTree * tree  = ogime-&gt;TreeD();</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   AliSimDigits * digrow = new AliSimDigits;  </span>
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :   if (tree == 0x0)</span>
+<span class="lineNum">     703 </span>            :   {
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     ogime-&gt;MakeTree(&quot;D&quot;);</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     tree  = ogime-&gt;TreeD();</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;Segment&quot;,&quot;AliSimDigits&quot;,&amp;digrow);</span>
+<span class="lineNum">     708 </span>            :   //  
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :   AliSimDigits ** digarr = new AliSimDigits*[nInputs]; </span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :   for (Int_t i1=0;i1&lt;nInputs; i1++)</span>
+<span class="lineNum">     711 </span>            :   {
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     digarr[i1]=0;</span>
+<span class="lineNum">     713 </span>            :     //    intree[i1]
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i1));</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     gime-&gt;LoadSDigits(&quot;read&quot;);</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     TTree * treear =  gime-&gt;TreeS();</span>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     if (!treear) </span>
+<span class="lineNum">     720 </span>            :     {
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot;AliTPCDigitizer: Input tree with SDigits not found in&quot;</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :         &lt;&lt;&quot; input &quot;&lt;&lt; i1&lt;&lt;endl;</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :       for (Int_t i2=0;i2&lt;i1+1; i2++){ </span>
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :         if(digarr[i2])  delete digarr[i2];</span>
+<span class="lineNum">     726 </span>            :       }
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :       delete [] digarr;</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :       delete [] active;</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :       delete []masks;</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :       delete []pdig;</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :       delete []ptr;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     733 </span>            :     }
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span>            :     //sprintf(phname,&quot;lhcphase%d&quot;,i1);
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     snprintf(phname,100,&quot;lhcphase%d&quot;,i1);</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     TParameter&lt;float&gt; *ph = (TParameter&lt;float&gt;*)treear-&gt;GetUserInfo()</span>
+<span class="lineNum">     738 </span>            :       -&gt;FindObject(&quot;lhcphase0&quot;);
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :     if(!ph)</span>
+<span class="lineNum">     740 </span>            :     {
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot;AliTPCDigitizer: LHC phase  not found in&quot;</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :         &lt;&lt;&quot; input &quot;&lt;&lt; i1&lt;&lt;endl;</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :       for (Int_t i2=0;i2&lt;i1+1; i2++){ </span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :         if(digarr[i2])  delete digarr[i2];</span>
+<span class="lineNum">     745 </span>            :       }
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :       delete [] digarr;</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :       delete [] active;</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :       delete []masks;</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :       delete []pdig;</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :       delete []ptr;</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     752 </span>            :     }
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     tree-&gt;GetUserInfo()-&gt;Add(new TParameter&lt;float&gt;(phname,ph-&gt;GetVal()));</span>
+<span class="lineNum">     754 </span>            :     //
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     if (treear-&gt;GetIndex()==0)  </span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :       treear-&gt;BuildIndex(&quot;fSegmentID&quot;,&quot;fSegmentID&quot;);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     treear-&gt;GetBranch(&quot;Segment&quot;)-&gt;SetAddress(&amp;digarr[i1]);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span>            :   //
+<span class="lineNum">     764 </span>            :   // zero supp, take gain and noise map of TPC from OCDB 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :   Int_t zerosup = param-&gt;GetZeroSup(); </span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()-&gt;GetDedxGainFactor(); </span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :   AliTPCCalPad * noiseTPC = AliTPCcalibDB::Instance()-&gt;GetPadNoise(); </span>
+<span class="lineNum">     768 </span>            : 
+<span class="lineNum">     769 </span>            :  
+<span class="lineNum">     770 </span>            :   // 
+<span class="lineNum">     771 </span>            :   // Cache the ion tail objects form OCDB
+<span class="lineNum">     772 </span>            :   //      
+<span class="lineNum">     773 </span>            :  
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :   TObjArray *ionTailArr = (TObjArray*)AliTPCcalibDB::Instance()-&gt;GetIonTailArray();</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :   if (!ionTailArr) {AliFatal(&quot;TPC - Missing IonTail OCDB object&quot;);}</span>
+<span class="lineNum">     776 </span>            :  //  TObject *rocFactorIROC  = ionTailArr-&gt;FindObject(&quot;factorIROC&quot;);
+<span class="lineNum">     777 </span>            : //   TObject *rocFactorOROC  = ionTailArr-&gt;FindObject(&quot;factorOROC&quot;);
+<span class="lineNum">     778 </span>            : //   Float_t factorIROC      = (atof(rocFactorIROC-&gt;GetTitle()));
+<span class="lineNum">     779 </span>            : //   Float_t factorOROC      = (atof(rocFactorOROC-&gt;GetTitle()));
+<span class="lineNum">     780 </span>            :   Int_t nIonTailBins =0;
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :   TObjArray timeResFunc(nROCs); </span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :   for (Int_t isec = 0;isec&lt;nROCs;isec++){        //loop overs sectors</span>
+<span class="lineNum">     783 </span>            :     // Array of TGraphErrors for a given sector
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     TGraphErrors ** graphRes   = new TGraphErrors *[20];</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :     Float_t * trfIndexArr    = new Float_t[20];</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :     for (Int_t icache=0; icache&lt;20; icache++)</span>
+<span class="lineNum">     787 </span>            :     {
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :       graphRes[icache]       = NULL;</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :       trfIndexArr[icache] = 0;</span>
+<span class="lineNum">     790 </span>            :     }
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     if (!AliTPCcalibDB::Instance()-&gt;GetTailcancelationGraphs(isec,graphRes,trfIndexArr)) continue;</span>
+<span class="lineNum">     792 </span>            :     
+<span class="lineNum">     793 </span>            :     // fill all TGraphErrors of trfs (time response function) of a given sector to a TObjArray
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :     TObjArray *timeResArr = new TObjArray(20);  timeResArr -&gt; SetOwner(kTRUE); </span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     for (Int_t ires = 0;ires&lt;20;ires++) timeResArr-&gt;AddAt(graphRes[ires],ires);</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     timeResFunc.AddAt(timeResArr,isec); // Fill all trfs into a single TObjArray </span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :     nIonTailBins = graphRes[3]-&gt;GetN();</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            :   //
+<span class="lineNum">     801 </span>            :   // 1.) Make first loop to calculate mean amplitude per pad per segment for cross talk 
+<span class="lineNum">     802 </span>            :   //
+<span class="lineNum">     803 </span>            :   
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   TObjArray   crossTalkSignalArray(nROCs);  // for 36 sectors </span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :   TVectorD  * qTotSector  = new TVectorD(nROCs);</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   TVectorD  * nTotSector  = new TVectorD(nROCs);</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :   Float_t qTotTPC = 0.;</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :   Float_t qTotPerSector = 0.;</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   Float_t nTotPerSector = 0.;</span>
+<span class="lineNum">     810 </span>            :   Int_t nTimeBinsAll = 1100;
+<span class="lineNum">     811 </span>            :   Int_t nWireSegments=11;
+<span class="lineNum">     812 </span>            :   // 1.a) crorstalk matrix initialization
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :   for (Int_t sector=0; sector&lt;nROCs; sector++){</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :     TMatrixD *pcrossTalkSignal = new TMatrixD(nWireSegments,nTimeBinsAll);</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     for (Int_t imatrix = 0; imatrix&lt;11; imatrix++)</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :       for (Int_t jmatrix = 0; jmatrix&lt;nTimeBinsAll; jmatrix++){</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :         (*pcrossTalkSignal)[imatrix][jmatrix]=0.;</span>
+<span class="lineNum">     818 </span>            :       }
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :     crossTalkSignalArray.AddAt(pcrossTalkSignal,sector);</span>
+<span class="lineNum">     820 </span>            :   }
+<span class="lineNum">     821 </span>            :   //  
+<span class="lineNum">     822 </span>            :   // main loop over rows of whole TPC
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :   for (Int_t globalRowID=0; globalRowID&lt;param-&gt;GetNRowsTotal(); globalRowID++) {</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :     Int_t sector, padRow;</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :     if (!param-&gt;AdjustSectorRow(globalRowID,sector,padRow)) {</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot;AliTPC warning: invalid segment ID ! &quot;&lt;&lt;globalRowID&lt;&lt;endl;</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     828 </span>            :     }
+<span class="lineNum">     829 </span>            :     // Calculate number of pads in a anode wire segment for normalization
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :     Int_t wireSegmentID    = param-&gt;GetWireSegment(sector,padRow);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     Float_t nPadsPerSegment = (Float_t)(param-&gt;GetNPadsPerSegment(wireSegmentID));</span>
+<span class="lineNum">     832 </span>            :     // structure with mean signal per pad to be filled for each timebin in first loop (11 anodeWireSegment and 1100 timebin)
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :     TMatrixD &amp;crossTalkSignal =  *((TMatrixD*)crossTalkSignalArray.At(sector));</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :     AliTPCCalROC * gainROC = gainTPC-&gt;GetCalROC(sector);  // pad gains per given sector</span>
+<span class="lineNum">     835 </span>            :     //  digrow-&gt;SetID(globalRowID);
+<span class="lineNum">     836 </span>            :     Int_t nTimeBins = 0;
+<span class="lineNum">     837 </span>            :     Int_t nPads = 0;
+<span class="lineNum">     838 </span>            :     Bool_t digitize = kFALSE;
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nInputs; i++){   //here we can have more than one input  - merging of separate events, signal1+signal2+background </span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :       rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i));</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :       gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :       if (gime-&gt;TreeS()-&gt;GetEntryWithIndex(globalRowID,globalRowID) &gt;= 0) {</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :         digarr[i]-&gt;ExpandBuffer();</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :         digarr[i]-&gt;ExpandTrackBuffer();</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :         nTimeBins = digarr[i]-&gt;GetNRows();</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :         nPads = digarr[i]-&gt;GetNCols();</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :         active[i] = kTRUE;</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :         if (!GetRegionOfInterest() || (i == 0)) digitize = kTRUE;</span>
+<span class="lineNum">     849 </span>            :       } else {
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         active[i] = kFALSE;</span>
+<span class="lineNum">     851 </span>            :       }
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :       if (GetRegionOfInterest() &amp;&amp; !digitize) break;</span>
+<span class="lineNum">     853 </span>            :     }   
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     if (!digitize) continue;</span>
+<span class="lineNum">     855 </span>            :     //digrow-&gt;Allocate(nTimeBins,nPads);
+<span class="lineNum">     856 </span>            :     Float_t q    = 0;
+<span class="lineNum">     857 </span>            :     Int_t labptr = 0;
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :     Int_t nElems = nTimeBins*nPads; // element is a unit of a given row's pad-timebin space        </span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nInputs; i++)</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :       if (active[i]) { </span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :         pdig[i] = digarr[i]-&gt;GetDigits();</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     863 </span>            :     //    
+<span class="lineNum">     864 </span>            :     // loop over elements i.e pad-timebin space of a row, &quot;padNumber=elem/nTimeBins&quot;, &quot;timeBin=elem%nTimeBins&quot;
+<span class="lineNum">     865 </span>            :     // 
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :     for (Int_t elem=0;elem&lt;nElems; elem++) {    </span>
+<span class="lineNum">     867 </span>            :       q=0;
+<span class="lineNum">     868 </span>            :       labptr=0;
+<span class="lineNum">     869 </span>            :       // looop over digits 
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :       for (Int_t i=0;i&lt;nInputs; i++) if (active[i])       { </span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :         q  += *(pdig[i]);</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :         pdig[i]++;</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :       if (q&lt;=0) continue;   </span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :       Int_t padNumber = elem/nTimeBins;</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :       Int_t timeBin   = elem%nTimeBins;      </span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :       Float_t gain = gainROC-&gt;GetValue(padRow,padNumber);  // get gain for given - pad-row pad</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :       q*= gain;</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :       crossTalkSignal[wireSegmentID][timeBin]+= q/nPadsPerSegment;        // Qtot per segment for a given timebin</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :       qTotSector -&gt; GetMatrixArray()[sector] += q;                      // Qtot for each sector</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :       nTotSector -&gt; GetMatrixArray()[sector] += 1;                      // Ntot digit counter for each sector</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :       qTotTPC += q;                                                        // Qtot for whole TPC       </span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :     } // end of q loop</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :   } // end of global row loop</span>
+<span class="lineNum">     885 </span>            : 
+<span class="lineNum">     886 </span>            :   //
+<span class="lineNum">     887 </span>            :   // 1.b) Dump the content of the crossTalk signal to the debug stremer - to be corealted later with the same crosstalk correction
+<span class="lineNum">     888 </span>            :   //      assumed during reconstruction 
+<span class="lineNum">     889 </span>            :   //
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :   if ((AliTPCReconstructor::StreamLevel()&amp;kStreamCrosstalk)&gt;0) {</span>
+<span class="lineNum">     891 </span>            :     //
+<span class="lineNum">     892 </span>            :     // dump the crosstalk matrices to tree for further investigation
+<span class="lineNum">     893 </span>            :     //     a.) to estimate fluctuation of pedestal in indiviula wire segments
+<span class="lineNum">     894 </span>            :     //     b.) to check correlation between regions
+<span class="lineNum">     895 </span>            :     //     c.) to check relative conribution of signal below threshold to crosstalk
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :     for (Int_t isector=0; isector&lt;nROCs; isector++){  //set all ellemts of crosstalk matrix to 0</span>
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :       TMatrixD * crossTalkMatrix = (TMatrixD*)crossTalkSignalArray.At(isector);</span>
+<span class="lineNum">     898 </span>            :       //TMatrixD * crossTalkMatrixBelow = (TMatrixD*)fCrossTalkSignalArray-&gt;At(isector+nROCs);
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :       TVectorD vecAll(crossTalkMatrix-&gt;GetNrows());</span>
+<span class="lineNum">     900 </span>            :       //TVectorD vecBelow(crossTalkMatrix-&gt;GetNrows());
+<span class="lineNum">     901 </span>            :       //
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :       for (Int_t itime=0; itime&lt;crossTalkMatrix-&gt;GetNcols(); itime++){</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :         for (Int_t iwire=0; iwire&lt;crossTalkMatrix-&gt;GetNrows(); iwire++){</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :           vecAll[iwire]=(*crossTalkMatrix)(iwire,itime);</span>
+<span class="lineNum">     905 </span>            :           //vecBelow[iwire]=(*crossTalkMatrixBelow)(iwire,itime);
+<span class="lineNum">     906 </span>            :         }
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :         (*fDebugStreamer)&lt;&lt;&quot;crosstalkMatrix&quot;&lt;&lt;</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :           &quot;sector=&quot;&lt;&lt;isector&lt;&lt;</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :           &quot;itime=&quot;&lt;&lt;itime&lt;&lt;</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :           &quot;vecAll.=&quot;&lt;&lt;&amp;vecAll&lt;&lt;                // crosstalk charge + charge below threshold</span>
+<span class="lineNum">     911 </span>            :           //&quot;vecBelow.=&quot;&lt;&lt;&amp;vecBelow&lt;&lt;            // crosstalk contribution from signal below threshold
+<span class="lineNum">     912 </span>            :           &quot;\n&quot;;
+<span class="lineNum">     913 </span>            :       }
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     916 </span>            : 
+<span class="lineNum">     917 </span>            : 
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span>            : 
+<span class="lineNum">     920 </span>            :   //
+<span class="lineNum">     921 </span>            :   // 2.) Loop over segments (padrows) of the TPC 
+<span class="lineNum">     922 </span>            :   //  
+<span class="lineNum">     923 </span>            :   // 
+<span class="lineNum">     924 </span>            :   TTree * treeStreamer=0;
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   for (Int_t globalRowID=0; globalRowID&lt;param-&gt;GetNRowsTotal(); globalRowID++) {</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :     Int_t sector, padRow;</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :     if (!param-&gt;AdjustSectorRow(globalRowID,sector,padRow)) {</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :       cerr&lt;&lt;&quot;AliTPC warning: invalid segment ID ! &quot;&lt;&lt;globalRowID&lt;&lt;endl;</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     930 </span>            :     }
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :     TObjArray *arrTRF = (TObjArray*)timeResFunc.At(sector);  </span>
+<span class="lineNum">     932 </span>            :     //    TGraphErrors  *graphTRF = (TGraphErrors*)arrTRF-&gt;At(1);
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :     Int_t wireSegmentID    = param-&gt;GetWireSegment(sector,padRow);</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :     Float_t nPadsPerSegment = (Float_t)(param-&gt;GetNPadsPerSegment(wireSegmentID));</span>
+<span class="lineNum">     935 </span>            :     //    const Float_t ampfactor = (sector&lt;36)?factorIROC:factorOROC;      // factor for the iontail which is ROC type dependent
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :     AliTPCCalROC * gainROC  = gainTPC-&gt;GetCalROC(sector);  // pad gains per given sector</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     AliTPCCalROC * noiseROC = noiseTPC-&gt;GetCalROC(sector);  // noise per given sector</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :     digrow-&gt;SetID(globalRowID);</span>
+<span class="lineNum">     939 </span>            :     Int_t nTimeBins = 0;
+<span class="lineNum">     940 </span>            :     Int_t nPads = 0;
+<span class="lineNum">     941 </span>            :     Bool_t digitize = kFALSE;
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nInputs; i++) {   //here we can have more than one input  - merging of separate events, signal1+signal2+background</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :       rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(i));</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :       gime = rl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :       if (gime-&gt;TreeS()-&gt;GetEntryWithIndex(globalRowID,globalRowID) &gt;= 0) {</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :         digarr[i]-&gt;ExpandBuffer();</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :         digarr[i]-&gt;ExpandTrackBuffer();</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :         nTimeBins = digarr[i]-&gt;GetNRows();</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :         nPads = digarr[i]-&gt;GetNCols();</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :         active[i] = kTRUE;</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :         if (!GetRegionOfInterest() || (i == 0)) digitize = kTRUE;</span>
+<span class="lineNum">     952 </span>            :       } else {
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :         active[i] = kFALSE;</span>
+<span class="lineNum">     954 </span>            :       }
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :       if (GetRegionOfInterest() &amp;&amp; !digitize) break;</span>
+<span class="lineNum">     956 </span>            :     }   
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :     if (!digitize) continue;</span>
+<span class="lineNum">     958 </span>            :     
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :     digrow-&gt;Allocate(nTimeBins,nPads);</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :     digrow-&gt;AllocateTrack(3);</span>
+<span class="lineNum">     961 </span>            :     
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :     Int_t localPad = 0;</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :     Float_t q    = 0.;</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :     Float_t qXtalk   = 0.;</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :     Float_t qIonTail = 0.;</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :     Float_t qOrig = 0.;</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :     Int_t label[1000]; //stack for 300 events </span>
+<span class="lineNum">     968 </span>            :     Int_t labptr = 0;
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :     Int_t nElems = nTimeBins*nPads; // element is a unit of a given row's pad-timebin space    </span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nInputs; i++)</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :       if (active[i]) { </span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :         pdig[i] = digarr[i]-&gt;GetDigits();</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :         ptr[i]  = digarr[i]-&gt;GetTracks();</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :     Short_t *pdig1= digrow-&gt;GetDigits();</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :     Int_t   *ptr1= digrow-&gt;GetTracks() ;</span>
+<span class="lineNum">     977 </span>            :     // loop over elements i.e pad-timebin space of a row
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     for (Int_t elem=0;elem&lt;nElems; elem++)     {     </span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :       q=0; </span>
+<span class="lineNum">     980 </span>            :       labptr=0;
+<span class="lineNum">     981 </span>            :       // looop over digits 
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :       for (Int_t i=0;i&lt;nInputs; i++) if (active[i]){ </span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :         q  += *(pdig[i]);</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :         for (Int_t tr=0;tr&lt;3;tr++)         {</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :           Int_t lab = ptr[i][tr*nElems];</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :           if ( (lab &gt; 1) &amp;&amp; *(pdig[i])&gt;zerosup) {</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :             label[labptr]=lab+masks[i];</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :             labptr++;</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :           }          </span>
+<span class="lineNum">     990 </span>            :         }
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :         pdig[i]++;</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :         ptr[i]++;</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :       Int_t padNumber = elem/nTimeBins;</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :       Int_t timeBin   = elem%nTimeBins;</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :       localPad = padNumber-nPads/2;</span>
+<span class="lineNum">     997 </span>            :       
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :       Float_t gain = gainROC-&gt;GetValue(padRow,padNumber);  // get gain for given - pad-row pad</span>
+<span class="lineNum">     999 </span>            :       //if (gain&lt;0.5){
+<span class="lineNum">    1000 </span>            :       //printf(&quot;problem\n&quot;);
+<span class="lineNum">    1001 </span>            :       //}
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :       q*= gain;</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :       qOrig = q;</span>
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :       Float_t noisePad = noiseROC-&gt;GetValue(padRow,padNumber);</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :       Float_t noise  = pTPC-&gt;GetNoise()*noisePad;</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :       if ( (q/16.+noise)&gt; zerosup  || ((AliTPCReconstructor::StreamLevel()&amp;kStreamSignalAll)&gt;0)){</span>
+<span class="lineNum">    1007 </span>            :         // Crosstalk correction 
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :         qXtalk = (*(TMatrixD*)crossTalkSignalArray.At(sector))[wireSegmentID][timeBin];</span>
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :         qTotPerSector = qTotSector -&gt; GetMatrixArray()[sector];    </span>
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :         nTotPerSector = nTotSector -&gt; GetMatrixArray()[sector];    </span>
+<span class="lineNum">    1011 </span>            :         
+<span class="lineNum">    1012 </span>            :         // Ion tail correction: being elem=padNumber*nTimeBins+timeBin;
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :         Int_t lowerElem=elem-nIonTailBins;    </span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :         Int_t zeroElem =(elem/nTimeBins)*nTimeBins;</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :         if (zeroElem&lt;0) zeroElem=0;</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :         if (lowerElem&lt;zeroElem) lowerElem=zeroElem;</span>
+<span class="lineNum">    1017 </span>            :         // 
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :         qIonTail=0;</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :         if (q&gt;0 &amp;&amp; recoParam-&gt;GetUseIonTailCorrection()){</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :           for (Int_t i=0;i&lt;nInputs; i++) if (active[i]){ </span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :             Short_t *pdigC= digarr[i]-&gt;GetDigits();</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :             if (padNumber==0) continue;</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :             if (padNumber&gt;=nPads-1) continue;</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :             for (Int_t dpad=-1; dpad&lt;=1; dpad++){          // calculate iontail due signals from neigborhood pads</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :               for (Int_t celem=elem-1; celem&gt;lowerElem; celem--){</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :                 Int_t celemPad=celem+dpad*nTimeBins;</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :                 Double_t qCElem=pdigC[celemPad];</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :                 if ( qCElem&lt;=0) continue;</span>
+<span class="lineNum">    1029 </span>            :                 //here we substract ion tail    
+<span class="lineNum">    1030 </span>            :                 Double_t COG=0;
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :                 if (celemPad-nTimeBins&gt;nTimeBins &amp;&amp; celemPad+nTimeBins&lt;nElems){   // COG calculation in respect to current pad in pad units</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :                   Double_t sumAmp=pdigC[celemPad-nTimeBins]+pdigC[celemPad]+pdigC[celemPad+nTimeBins];</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :                   COG=(-1.0*pdigC[celemPad-nTimeBins]+pdigC[celemPad+nTimeBins])/sumAmp;</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :                 Int_t indexTRFPRF = (TMath::Nint(TMath::Abs(COG*10.))%20);</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :                 TGraphErrors  *graphTRFPRF = (TGraphErrors*)arrTRF-&gt;At(indexTRFPRF);</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :                 if (graphTRFPRF==NULL) continue;</span>
+<span class="lineNum">    1038 </span>            :                 // here we should get index and point of TRF corresponding to given COG position
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :                 if (graphTRFPRF-&gt;GetY()[elem-celem]&lt;0)qIonTail+=qCElem*graphTRFPRF-&gt;GetY()[elem-celem];</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">    1041 </span>            :             }
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1045 </span>            :       //
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :       q -= qXtalk*recoParam-&gt;GetCrosstalkCorrection();</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :       q+=qIonTail;</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :       q/=16.;                                              //conversion factor</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :       q+=noise; </span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :       q=TMath::Nint(q);  // round to the nearest integer</span>
+<span class="lineNum">    1051 </span>            :       
+<span class="lineNum">    1052 </span>            :       
+<span class="lineNum">    1053 </span>            :       // fill info for degugging
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :       if ( ((AliTPCReconstructor::StreamLevel()&amp;kStreamSignal)&gt;0) &amp;&amp; ((qOrig &gt; zerosup)||((AliTPCReconstructor::StreamLevel()&amp;kStreamSignalAll)&gt;0) )) {</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :         TTreeSRedirector &amp;cstream = *fDebugStreamer;</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :         UInt_t uid = AliTPCROC::GetTPCUniqueID(sector, padRow, padNumber);</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :         qXtalk = (*(TMatrixD*)crossTalkSignalArray.At(sector))[wireSegmentID][timeBin];</span>
+<span class="lineNum">    1058 </span>            :         //
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :         if (treeStreamer==0){</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :           cstream &lt;&lt;&quot;ionTailXtalk&quot;&lt;&lt;</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :             &quot;uid=&quot;&lt;&lt;uid&lt;&lt;                        // globla unique identifier</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :             &quot;sector=&quot;&lt;&lt; sector&lt;&lt;   </span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :             &quot;globalRowID=&quot;&lt;&lt;globalRowID&lt;&lt;</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :             &quot;padRow=&quot;&lt;&lt; padRow&lt;&lt;                 //pad row</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :             &quot;wireSegmentID=&quot;&lt;&lt; wireSegmentID&lt;&lt;   //wire segment 0-11, 0-3 in IROC 4-10 in OROC </span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :             &quot;localPad=&quot;&lt;&lt;localPad&lt;&lt;              // pad number -npads/2 .. npads/2</span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :             &quot;padNumber=&quot;&lt;&lt;padNumber&lt;&lt;            // pad number 0..npads </span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :             &quot;timeBin=&quot;&lt;&lt; timeBin&lt;&lt;               // time bin </span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :             &quot;nPadsPerSegment=&quot;&lt;&lt;nPadsPerSegment&lt;&lt;// number of pads per wire segment         </span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :             &quot;qTotPerSector=&quot;&lt;&lt;qTotPerSector&lt;&lt;    // total charge in sector </span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :             &quot;nTotPerSector=&quot;&lt;&lt;nTotPerSector&lt;&lt;    // total number of digit (above threshold) in sector </span>
+<span class="lineNum">    1072 </span>            :             //
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :             &quot;noise=&quot;&lt;&lt;noise&lt;&lt;                    // electornic noise contribution</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :             &quot;qTotTPC=&quot;&lt;&lt;qTotTPC&lt;&lt;                // acumulated charge without crosstalk and ion tail in full TPC</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :             &quot;qOrig=&quot;&lt;&lt; qOrig&lt;&lt;                   // charge in given pad-row,pad,time-bin</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :             &quot;q=&quot;&lt;&lt;q&lt;&lt;                            // q=qOrig-qXtalk-qIonTail - to check sign of the effects</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :             &quot;qXtalk=&quot;&lt;&lt;qXtalk&lt;&lt;                  // crosstal contribtion at given position</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :             &quot;qIonTail=&quot;&lt;&lt;qIonTail&lt;&lt;              // ion tail cotribution from past signal</span>
+<span class="lineNum">    1079 </span>            :             &quot;\n&quot;;
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :           treeStreamer=(cstream &lt;&lt;&quot;ionTailXtalk&quot;).GetTree();</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :         }else{</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :           treeStreamer-&gt;Fill();</span>
+<span class="lineNum">    1083 </span>            :         } // dump the results to the debug streamer if in debug mode
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :       if (q &gt; zerosup || fgSAMPAEmulator!=NULL){ </span>
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :         if(q &gt;= param-&gt;GetADCSat()) q = (Short_t)(param-&gt;GetADCSat() - 1);</span>
+<span class="lineNum">    1087 </span>            :         //digrow-&gt;SetDigitFast((Short_t)q,rows,col);  
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :         *pdig1 =Short_t(q);</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :         for (Int_t tr=0;tr&lt;3;tr++)</span>
+<span class="lineNum">    1090 </span>            :           {
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :             if (tr&lt;labptr) </span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :               ptr1[tr*nElems] = label[tr];</span>
+<span class="lineNum">    1093 </span>            :           }
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :       if (fgSAMPAEmulator &amp;&amp; (timeBin==nTimeBins-1)) {  // pocess Emulator for given pad</span>
+<span class="lineNum">    1096 </span>            :         //
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :         TVectorD vecSAMPAIn(nTimeBins); // allocate workin array for SAMPA emulator processing (if set)</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :         TVectorD vecSAMPAOut(nTimeBins); // allocate workin array for SAMPA emulator processing (if set)</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :         Double_t baseline=0;</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :         for (Int_t itime=0; itime&lt;nTimeBins;itime++) vecSAMPAIn[itime]=pdig1[1+itime-nTimeBins];  // set workin array for SAMPA emulator </span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :         for (Int_t itime=0; itime&lt;nTimeBins;itime++) vecSAMPAOut[itime]=pdig1[1+itime-nTimeBins];  // set workin array for SAMPA emulator </span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :         fgSAMPAEmulator-&gt;DigitalFilterFloat(nTimeBins, vecSAMPAOut.GetMatrixArray(), baseline);</span>
+<span class="lineNum">    1103 </span>            :         //
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :         if ( ((AliTPCReconstructor::StreamLevel()&amp;kStreamSignal)&gt;0)){      </span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :           (*fDebugStreamer)&lt;&lt;&quot;sampaEmulator&quot;&lt;&lt;</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :             &quot;sector=&quot;&lt;&lt; sector&lt;&lt;   </span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :             &quot;globalRowID=&quot;&lt;&lt;globalRowID&lt;&lt;</span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :             &quot;padRow=&quot;&lt;&lt; padRow&lt;&lt;                 //pad row</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :             &quot;wireSegmentID=&quot;&lt;&lt; wireSegmentID&lt;&lt;   //wire segment 0-11, 0-3 in IROC 4-10 in OROC </span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :             &quot;localPad=&quot;&lt;&lt;localPad&lt;&lt;              // pad number -npads/2 .. npads/2</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :             &quot;padNumber=&quot;&lt;&lt;padNumber&lt;&lt;            // pad number 0..npads </span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :             &quot;timeBin=&quot;&lt;&lt; timeBin&lt;&lt;               // time bin </span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :             &quot;nPadsPerSegment=&quot;&lt;&lt;nPadsPerSegment&lt;&lt;// number of pads per wire segment         </span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :             &quot;qTotPerSector=&quot;&lt;&lt;qTotPerSector&lt;&lt;    // total charge in sector </span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :             &quot;nTotPerSector=&quot;&lt;&lt;nTotPerSector&lt;&lt;    // total number of digit (above threshold) in sector </span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :             &quot;vSAMPAin.=&quot;&lt;&lt;&amp;vecSAMPAIn&lt;&lt;          // input  data</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :             &quot;vSAMPAout.=&quot;&lt;&lt;&amp;vecSAMPAOut&lt;&lt;        // ouptut data</span>
+<span class="lineNum">    1118 </span>            :             &quot;\n&quot;;
+<span class="lineNum">    1119 </span>            :         }
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :         for (Int_t itime=0; itime&lt;nTimeBins;itime++) {</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :           if ( TMath::Nint(vecSAMPAOut[itime]) &lt;  zerosup) pdig1[1+itime-nTimeBins]=0;</span>
+<span class="lineNum">    1122 </span>            :           else{
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :             pdig1[1+itime-nTimeBins]=TMath::Nint(vecSAMPAOut[itime]);</span>
+<span class="lineNum">    1124 </span>            :           }
+<span class="lineNum">    1125 </span>            :         }
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :       pdig1++;</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :       ptr1++;</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1130 </span>            :     
+<span class="lineNum">    1131 </span>            :     //
+<span class="lineNum">    1132 </span>            :     //  glitch filter
+<span class="lineNum">    1133 </span>            :     //
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :     if (useGlitchFilter) digrow-&gt;GlitchFilter();</span>
+<span class="lineNum">    1135 </span>            :     //
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :     digrow-&gt;CompresBuffer(1,zerosup);</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :     digrow-&gt;CompresTrackBuffer(1);</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     tree-&gt;Fill();</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     if (fDebug&gt;0) cerr&lt;&lt;sector&lt;&lt;&quot;\t&quot;&lt;&lt;padRow&lt;&lt;&quot;\n&quot;; </span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     if (padRow==0 &amp;&amp; fDebugStreamer) {</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :       ((*fDebugStreamer)&lt;&lt;&quot;ionTailXtalk&quot;).GetTree()-&gt;FlushBaskets();</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :       ((*fDebugStreamer)&lt;&lt;&quot;ionTailXtalk&quot;).GetTree()-&gt;Write();</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :       (fDebugStreamer-&gt;GetFile())-&gt;Flush();</span>
+<span class="lineNum">    1144 </span>            :     }
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :   } //for (Int_t n=0; n&lt;param-&gt;GetNRowsTotal(); n++) </span>
+<span class="lineNum">    1146 </span>            : 
+<span class="lineNum">    1147 </span>            : 
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :   orl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetOutputFolderName());</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :   ogime = orl-&gt;GetLoader(&quot;TPCLoader&quot;);</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :   ogime-&gt;WriteDigits(&quot;OVERWRITE&quot;);</span>
+<span class="lineNum">    1151 </span>            : 
+<span class="lineNum">    1152 </span>            :   //fDigInput-&gt;GetTreeDTPC()-&gt;Write(0,TObject::kOverwrite);
+<span class="lineNum">    1153 </span>            : 
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :   delete digrow;     </span>
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :   for (Int_t i1=0;i1&lt;nInputs; i1++) delete digarr[i1];</span>
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :   delete []masks;</span>
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :   delete []pdig;</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :   delete []ptr;</span>
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :   delete []active;</span>
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :   delete []digarr;  </span>
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

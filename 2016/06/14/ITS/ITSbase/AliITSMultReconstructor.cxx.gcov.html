@@ -1,0 +1,1365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - ITS/ITSbase/AliITSMultReconstructor.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ITS/ITSbase</a> - AliITSMultReconstructor.cxx<span style="font-size: 80%;"> (source / <a href="AliITSMultReconstructor.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">516</td>
+            <td class="headerCovTableEntry">714</td>
+            <td class="headerCovTableEntryLo">72.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryMed">77.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 2007-2009, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : //_________________________________________________________________________
+<span class="lineNum">      17 </span>            : // 
+<span class="lineNum">      18 </span>            : //        Implementation of the ITS-SPD trackleter class
+<span class="lineNum">      19 </span>            : //
+<span class="lineNum">      20 </span>            : // It retrieves clusters in the pixels (theta and phi) and finds tracklets.
+<span class="lineNum">      21 </span>            : // These can be used to extract charged particle multiplicity from the ITS.
+<span class="lineNum">      22 </span>            : //
+<span class="lineNum">      23 </span>            : // A tracklet consists of two ITS clusters, one in the first pixel layer and 
+<span class="lineNum">      24 </span>            : // one in the second. The clusters are associated if the differences in 
+<span class="lineNum">      25 </span>            : // Phi (azimuth) and Theta (polar angle) are within fiducial windows.
+<span class="lineNum">      26 </span>            : // In case of multiple candidates the candidate with minimum
+<span class="lineNum">      27 </span>            : // distance is selected. 
+<span class="lineNum">      28 </span>            : //
+<span class="lineNum">      29 </span>            : // Two methods return the number of tracklets and the number of unassociated 
+<span class="lineNum">      30 </span>            : // clusters (i.e. not used in any tracklet) in the first SPD layer
+<span class="lineNum">      31 </span>            : // (GetNTracklets and GetNSingleClusters)
+<span class="lineNum">      32 </span>            : //
+<span class="lineNum">      33 </span>            : // The cuts on phi and theta depend on the interacting system (p-p or Pb-Pb)
+<span class="lineNum">      34 </span>            : // and can be set via AliITSRecoParam class
+<span class="lineNum">      35 </span>            : // (SetPhiWindow and SetThetaWindow)  
+<span class="lineNum">      36 </span>            : // 
+<span class="lineNum">      37 </span>            : // Origin: Tiziano Virgili 
+<span class="lineNum">      38 </span>            : //
+<span class="lineNum">      39 </span>            : // Current support and development: 
+<span class="lineNum">      40 </span>            : //         Domenico Elia, Maria Nicassio (INFN Bari) 
+<span class="lineNum">      41 </span>            : //         Domenico.Elia@ba.infn.it, Maria.Nicassio@ba.infn.it
+<span class="lineNum">      42 </span>            : //
+<span class="lineNum">      43 </span>            : // Most recent updates:
+<span class="lineNum">      44 </span>            : //     - multiple association forbidden (fOnlyOneTrackletPerC2 = kTRUE)    
+<span class="lineNum">      45 </span>            : //     - phi definition changed to ALICE convention (0,2*TMath::pi()) 
+<span class="lineNum">      46 </span>            : //     - cluster coordinates taken with GetGlobalXYZ()
+<span class="lineNum">      47 </span>            : //     - fGeometry removed
+<span class="lineNum">      48 </span>            : //     - number of fired chips on the two layers
+<span class="lineNum">      49 </span>            : //     - option to cut duplicates in the overlaps
+<span class="lineNum">      50 </span>            : //     - options and fiducial cuts via AliITSRecoParam
+<span class="lineNum">      51 </span>            : //     - move from DeltaZeta to DeltaTheta cut
+<span class="lineNum">      52 </span>            : //     - update to the new algorithm by Mariella and Jan Fiete
+<span class="lineNum">      53 </span>            : //     - store also DeltaTheta in the ESD 
+<span class="lineNum">      54 </span>            : //     - less new and delete calls when creating the needed arrays
+<span class="lineNum">      55 </span>            : //
+<span class="lineNum">      56 </span>            : //     - RS: to decrease the number of new/deletes the clusters data are stored 
+<span class="lineNum">      57 </span>            : //           not in float[6] attached to float**, but in 1-D array.
+<span class="lineNum">      58 </span>            : //     - RS: Clusters are sorted in Z in roder to have the same numbering as in the ITS reco
+<span class="lineNum">      59 </span>            : //     - RS: Clusters used by ESDtrack are flagged, this information is passed to AliMulitiplicity object 
+<span class="lineNum">      60 </span>            : //           when storing the tracklets and single cluster info
+<span class="lineNum">      61 </span>            : //     - MN: first MC label of single clusters stored  
+<span class="lineNum">      62 </span>            : //_________________________________________________________________________
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : #include &lt;TClonesArray.h&gt;
+<span class="lineNum">      65 </span>            : #include &lt;TH1F.h&gt;
+<span class="lineNum">      66 </span>            : #include &lt;TH2F.h&gt;
+<span class="lineNum">      67 </span>            : #include &lt;TTree.h&gt;
+<span class="lineNum">      68 </span>            : #include &lt;TBits.h&gt;
+<span class="lineNum">      69 </span>            : #include &lt;TArrayI.h&gt;
+<span class="lineNum">      70 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : #include &quot;AliITSMultReconstructor.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;AliITSReconstructor.h&quot;
+<span class="lineNum">      74 </span>            : #include &quot;AliITSRecPoint.h&quot;
+<span class="lineNum">      75 </span>            : #include &quot;AliITSRecPointContainer.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;AliITSgeom.h&quot;
+<span class="lineNum">      77 </span>            : #include &quot;AliITSgeomTGeo.h&quot;
+<span class="lineNum">      78 </span>            : #include &quot;AliITSDetTypeRec.h&quot;
+<span class="lineNum">      79 </span>            : #include &quot;AliESDEvent.h&quot;
+<span class="lineNum">      80 </span>            : #include &quot;AliESDVertex.h&quot;
+<span class="lineNum">      81 </span>            : #include &quot;AliESDtrack.h&quot;
+<span class="lineNum">      82 </span>            : #include &quot;AliMultiplicity.h&quot;
+<span class="lineNum">      83 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      84 </span>            : #include &quot;TGeoGlobalMagField.h&quot;
+<span class="lineNum">      85 </span>            : #include &quot;AliMagF.h&quot;
+<span class="lineNum">      86 </span>            : #include &quot;AliESDv0.h&quot;
+<span class="lineNum">      87 </span>            : #include &quot;AliV0.h&quot;
+<span class="lineNum">      88 </span>            : #include &quot;AliKFParticle.h&quot;
+<span class="lineNum">      89 </span>            : #include &quot;AliKFVertex.h&quot;
+<span class="lineNum">      90 </span>            : #include &quot;AliRefArray.h&quot;
+<a name="91"><span class="lineNum">      91 </span>            : </a>
+<span class="lineNum">      92 </span>            : //____________________________________________________________________
+<span class="lineNum">      93 </span><span class="lineCov">        118 : ClassImp(AliITSMultReconstructor)</span>
+<span class="lineNum">      94 </span>            : 
+<a name="95"><span class="lineNum">      95 </span>            : </a>
+<span class="lineNum">      96 </span>            : //____________________________________________________________________
+<span class="lineNum">      97 </span><span class="lineCov">          8 : AliITSMultReconstructor::AliITSMultReconstructor():</span>
+<span class="lineNum">      98 </span><span class="lineCov">          8 : fDetTypeRec(0),fESDEvent(0),fTreeRP(0),fTreeRPMix(0),</span>
+<span class="lineNum">      99 </span><span class="lineCov">          8 : fTracklets(0),</span>
+<span class="lineNum">     100 </span><span class="lineCov">          8 : fSClusters(0),</span>
+<span class="lineNum">     101 </span><span class="lineCov">          8 : fNTracklets(0),</span>
+<span class="lineNum">     102 </span><span class="lineCov">          8 : fNSingleCluster(0),</span>
+<span class="lineNum">     103 </span><span class="lineCov">          8 : fNSingleClusterSPD2(0),</span>
+<span class="lineNum">     104 </span><span class="lineCov">          8 : fDPhiWindow(0),</span>
+<span class="lineNum">     105 </span><span class="lineCov">          8 : fDThetaWindow(0),</span>
+<span class="lineNum">     106 </span><span class="lineCov">          8 : fPhiShift(0),</span>
+<span class="lineNum">     107 </span><span class="lineCov">          8 : fRemoveClustersFromOverlaps(0),</span>
+<span class="lineNum">     108 </span><span class="lineCov">          8 : fPhiOverlapCut(0),</span>
+<span class="lineNum">     109 </span><span class="lineCov">          8 : fZetaOverlapCut(0),</span>
+<span class="lineNum">     110 </span><span class="lineCov">          8 : fPhiRotationAngle(0),</span>
+<span class="lineNum">     111 </span><span class="lineCov">          8 : fScaleDTBySin2T(0),</span>
+<span class="lineNum">     112 </span><span class="lineCov">          8 : fNStdDev(1.0),</span>
+<span class="lineNum">     113 </span><span class="lineCov">          8 : fNStdDevSq(1.0),</span>
+<span class="lineNum">     114 </span>            : //
+<span class="lineNum">     115 </span><span class="lineCov">          8 : fCutPxDrSPDin(0.1),</span>
+<span class="lineNum">     116 </span><span class="lineCov">          8 : fCutPxDrSPDout(0.15),</span>
+<span class="lineNum">     117 </span><span class="lineCov">          8 : fCutPxDz(0.2),</span>
+<span class="lineNum">     118 </span><span class="lineCov">          8 : fCutDCArz(0.5),</span>
+<span class="lineNum">     119 </span><span class="lineCov">          8 : fCutMinElectronProbTPC(0.5),</span>
+<span class="lineNum">     120 </span><span class="lineCov">          8 : fCutMinElectronProbESD(0.1),</span>
+<span class="lineNum">     121 </span><span class="lineCov">          8 : fCutMinP(0.05),</span>
+<span class="lineNum">     122 </span><span class="lineCov">          8 : fCutMinRGamma(2.),</span>
+<span class="lineNum">     123 </span><span class="lineCov">          8 : fCutMinRK0(1.),</span>
+<span class="lineNum">     124 </span><span class="lineCov">          8 : fCutMinPointAngle(0.98),</span>
+<span class="lineNum">     125 </span><span class="lineCov">          8 : fCutMaxDCADauther(0.5),</span>
+<span class="lineNum">     126 </span><span class="lineCov">          8 : fCutMassGamma(0.03),</span>
+<span class="lineNum">     127 </span><span class="lineCov">          8 : fCutMassGammaNSigma(5.),</span>
+<span class="lineNum">     128 </span><span class="lineCov">          8 : fCutMassK0(0.03),</span>
+<span class="lineNum">     129 </span><span class="lineCov">          8 : fCutMassK0NSigma(5.),</span>
+<span class="lineNum">     130 </span><span class="lineCov">          8 : fCutChi2cGamma(2.),</span>
+<span class="lineNum">     131 </span><span class="lineCov">          8 : fCutChi2cK0(2.),</span>
+<span class="lineNum">     132 </span><span class="lineCov">          8 : fCutGammaSFromDecay(-10.),</span>
+<span class="lineNum">     133 </span><span class="lineCov">          8 : fCutK0SFromDecay(-10.),</span>
+<span class="lineNum">     134 </span><span class="lineCov">          8 : fCutMaxDCA(1.),</span>
+<span class="lineNum">     135 </span>            : //
+<span class="lineNum">     136 </span><span class="lineCov">          8 : fHistOn(0),</span>
+<span class="lineNum">     137 </span><span class="lineCov">          8 : fhClustersDPhiAcc(0),</span>
+<span class="lineNum">     138 </span><span class="lineCov">          8 : fhClustersDThetaAcc(0),</span>
+<span class="lineNum">     139 </span><span class="lineCov">          8 : fhClustersDPhiAll(0),</span>
+<span class="lineNum">     140 </span><span class="lineCov">          8 : fhClustersDThetaAll(0),</span>
+<span class="lineNum">     141 </span><span class="lineCov">          8 : fhDPhiVsDThetaAll(0),</span>
+<span class="lineNum">     142 </span><span class="lineCov">          8 : fhDPhiVsDThetaAcc(0),</span>
+<span class="lineNum">     143 </span><span class="lineCov">          8 : fhetaTracklets(0),</span>
+<span class="lineNum">     144 </span><span class="lineCov">          8 : fhphiTracklets(0),</span>
+<span class="lineNum">     145 </span><span class="lineCov">          8 : fhetaClustersLay1(0),</span>
+<span class="lineNum">     146 </span><span class="lineCov">          8 : fhphiClustersLay1(0),</span>
+<span class="lineNum">     147 </span>            : //
+<span class="lineNum">     148 </span><span class="lineCov">          8 :   fDPhiShift(0),</span>
+<span class="lineNum">     149 </span><span class="lineCov">          8 :   fDPhiWindow2(0),</span>
+<span class="lineNum">     150 </span><span class="lineCov">          8 :   fDThetaWindow2(0),</span>
+<span class="lineNum">     151 </span><span class="lineCov">          8 :   fPartners(0),</span>
+<span class="lineNum">     152 </span><span class="lineCov">          8 :   fAssociatedLay1(0),</span>
+<span class="lineNum">     153 </span><span class="lineCov">          8 :   fMinDists(0),</span>
+<span class="lineNum">     154 </span><span class="lineCov">          8 :   fBlackList(0),</span>
+<span class="lineNum">     155 </span>            : //
+<span class="lineNum">     156 </span><span class="lineCov">          8 :   fCreateClustersCopy(0),</span>
+<span class="lineNum">     157 </span><span class="lineCov">          8 :   fClustersLoaded(0),</span>
+<span class="lineNum">     158 </span><span class="lineCov">          8 :   fRecoDone(0),</span>
+<span class="lineNum">     159 </span><span class="lineCov">          8 :   fBuildRefs(kTRUE),</span>
+<span class="lineNum">     160 </span><span class="lineCov">          8 :   fStoreSPD2SingleCl(kFALSE),</span>
+<span class="lineNum">     161 </span><span class="lineCov">          8 :   fSPDSeg()</span>
+<span class="lineNum">     162 </span><span class="lineCov">         40 : {</span>
+<span class="lineNum">     163 </span>            :   // default c-tor
+<span class="lineNum">     164 </span><span class="lineCov">         48 :   for (int i=0;i&lt;2;i++) {</span>
+<span class="lineNum">     165 </span><span class="lineCov">         16 :     fNFiredChips[i] = 0;</span>
+<span class="lineNum">     166 </span><span class="lineCov">         16 :     fClArr[i] = 0;</span>
+<span class="lineNum">     167 </span><span class="lineCov">         96 :     for (int j=0;j&lt;2;j++) fUsedClusLay[i][j] = 0;</span>
+<span class="lineNum">     168 </span><span class="lineCov">         16 :     fDetectorIndexClustersLay[i] = 0;</span>
+<span class="lineNum">     169 </span><span class="lineCov">         16 :     fClusterCopyIndex[i] = 0;</span>
+<span class="lineNum">     170 </span><span class="lineCov">         16 :     fOverlapFlagClustersLay[i] = 0;</span>
+<span class="lineNum">     171 </span><span class="lineCov">         16 :     fNClustersLay[i] = 0;</span>
+<span class="lineNum">     172 </span><span class="lineCov">         16 :     fClustersLay[i] = 0;</span>
+<span class="lineNum">     173 </span>            :   }
+<span class="lineNum">     174 </span>            :   // Method to reconstruct the charged particles multiplicity with the 
+<span class="lineNum">     175 </span>            :   // SPD (tracklets).
+<span class="lineNum">     176 </span>            :   
+<span class="lineNum">     177 </span><span class="lineCov">          8 :   SetHistOn();</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">         16 :   if (AliITSReconstructor::GetRecoParam()) { </span>
+<span class="lineNum">     180 </span><span class="lineCov">         16 :     SetPhiWindow(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterPhiWindow());</span>
+<span class="lineNum">     181 </span><span class="lineCov">         16 :     SetThetaWindow(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterThetaWindow());</span>
+<span class="lineNum">     182 </span><span class="lineCov">         16 :     SetPhiShift(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterPhiShift());</span>
+<span class="lineNum">     183 </span><span class="lineCov">         16 :     SetRemoveClustersFromOverlaps(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterRemoveClustersFromOverlaps());</span>
+<span class="lineNum">     184 </span><span class="lineCov">         16 :     SetPhiOverlapCut(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterPhiOverlapCut());</span>
+<span class="lineNum">     185 </span><span class="lineCov">         16 :     SetZetaOverlapCut(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterZetaOverlapCut());</span>
+<span class="lineNum">     186 </span><span class="lineCov">         16 :     SetPhiRotationAngle(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterPhiRotationAngle());</span>
+<span class="lineNum">     187 </span><span class="lineCov">         16 :     SetNStdDev(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterNStdDevCut());</span>
+<span class="lineNum">     188 </span><span class="lineCov">         16 :     SetScaleDThetaBySin2T(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterScaleDThetaBySin2T());</span>
+<span class="lineNum">     189 </span><span class="lineCov">         16 :     SetBuildRefs(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterBuildCl2TrkRefs());</span>
+<span class="lineNum">     190 </span><span class="lineCov">         16 :     SetStoreSPD2SingleCl(AliITSReconstructor::GetRecoParam()-&gt;GetTrackleterStoreSPD2SingleCl());</span>
+<span class="lineNum">     191 </span>            :     //
+<span class="lineNum">     192 </span><span class="lineCov">         16 :     SetCutPxDrSPDin(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutPxDrSPDin());</span>
+<span class="lineNum">     193 </span><span class="lineCov">         16 :     SetCutPxDrSPDout(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutPxDrSPDout());</span>
+<span class="lineNum">     194 </span><span class="lineCov">         16 :     SetCutPxDz(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutPxDz());</span>
+<span class="lineNum">     195 </span><span class="lineCov">         16 :     SetCutDCArz(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutDCArz());</span>
+<span class="lineNum">     196 </span><span class="lineCov">         16 :     SetCutMinElectronProbTPC(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMinElectronProbTPC());</span>
+<span class="lineNum">     197 </span><span class="lineCov">         16 :     SetCutMinElectronProbESD(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMinElectronProbESD());</span>
+<span class="lineNum">     198 </span><span class="lineCov">         16 :     SetCutMinP(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMinP());</span>
+<span class="lineNum">     199 </span><span class="lineCov">         16 :     SetCutMinRGamma(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMinRGamma());</span>
+<span class="lineNum">     200 </span><span class="lineCov">         16 :     SetCutMinRK0(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMinRK0());</span>
+<span class="lineNum">     201 </span><span class="lineCov">         16 :     SetCutMinPointAngle(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMinPointAngle());</span>
+<span class="lineNum">     202 </span><span class="lineCov">         16 :     SetCutMaxDCADauther(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMaxDCADauther());</span>
+<span class="lineNum">     203 </span><span class="lineCov">         16 :     SetCutMassGamma(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMassGamma());</span>
+<span class="lineNum">     204 </span><span class="lineCov">         16 :     SetCutMassGammaNSigma(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMassGammaNSigma());</span>
+<span class="lineNum">     205 </span><span class="lineCov">         16 :     SetCutMassK0(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMassK0());</span>
+<span class="lineNum">     206 </span><span class="lineCov">         16 :     SetCutMassK0NSigma(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMassK0NSigma());</span>
+<span class="lineNum">     207 </span><span class="lineCov">         16 :     SetCutChi2cGamma(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutChi2cGamma());</span>
+<span class="lineNum">     208 </span><span class="lineCov">         16 :     SetCutChi2cK0(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutChi2cK0());</span>
+<span class="lineNum">     209 </span><span class="lineCov">         16 :     SetCutGammaSFromDecay(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutGammaSFromDecay());</span>
+<span class="lineNum">     210 </span><span class="lineCov">         16 :     SetCutK0SFromDecay(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutK0SFromDecay());</span>
+<span class="lineNum">     211 </span><span class="lineCov">         16 :     SetCutMaxDCA(AliITSReconstructor::GetRecoParam()-&gt;GetMultCutMaxDCA());</span>
+<span class="lineNum">     212 </span>            :     //
+<span class="lineNum">     213 </span><span class="lineCov">          8 :   } else {</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     SetPhiWindow();</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     SetThetaWindow();</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     SetPhiShift();</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     SetRemoveClustersFromOverlaps();</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     SetPhiOverlapCut();</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     SetZetaOverlapCut();</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     SetPhiRotationAngle();</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :     //
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     SetCutPxDrSPDin();</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     SetCutPxDrSPDout();</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     SetCutPxDz();</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     SetCutDCArz();</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     SetCutMinElectronProbTPC();</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     SetCutMinElectronProbESD();</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     SetCutMinP();</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     SetCutMinRGamma();</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     SetCutMinRK0();</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     SetCutMinPointAngle();</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     SetCutMaxDCADauther();</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     SetCutMassGamma();</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     SetCutMassGammaNSigma();</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     SetCutMassK0();</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     SetCutMassK0NSigma();</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     SetCutChi2cGamma();</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     SetCutChi2cK0();</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     SetCutGammaSFromDecay();</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     SetCutK0SFromDecay();</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     SetCutMaxDCA();</span>
+<span class="lineNum">     243 </span>            :   } 
+<span class="lineNum">     244 </span>            :   //
+<span class="lineNum">     245 </span><span class="lineCov">          8 :   fTracklets                 = 0;</span>
+<span class="lineNum">     246 </span><span class="lineCov">          8 :   fSClusters                 = 0;</span>
+<span class="lineNum">     247 </span>            :   //
+<span class="lineNum">     248 </span>            :   // definition of histograms
+<span class="lineNum">     249 </span><span class="lineCov">         16 :   Bool_t oldStatus = TH1::AddDirectoryStatus();</span>
+<span class="lineNum">     250 </span><span class="lineCov">          8 :   TH1::AddDirectory(kFALSE);</span>
+<span class="lineNum">     251 </span>            :   
+<span class="lineNum">     252 </span><span class="lineCov">         24 :   fhClustersDPhiAcc   = new TH1F(&quot;dphiacc&quot;,  &quot;dphi&quot;,  100,-0.1,0.1);</span>
+<span class="lineNum">     253 </span><span class="lineCov">         24 :   fhClustersDThetaAcc = new TH1F(&quot;dthetaacc&quot;,&quot;dtheta&quot;,100,-0.1,0.1);</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineCov">         24 :   fhDPhiVsDThetaAcc = new TH2F(&quot;dphiVsDthetaAcc&quot;,&quot;&quot;,100,-0.1,0.1,100,-0.1,0.1);</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">         24 :   fhClustersDPhiAll   = new TH1F(&quot;dphiall&quot;,  &quot;dphi&quot;,  100,0.0,0.5);</span>
+<span class="lineNum">     258 </span><span class="lineCov">         24 :   fhClustersDThetaAll = new TH1F(&quot;dthetaall&quot;,&quot;dtheta&quot;,100,0.0,0.5);</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineCov">         24 :   fhDPhiVsDThetaAll = new TH2F(&quot;dphiVsDthetaAll&quot;,&quot;&quot;,100,0.,0.5,100,0.,0.5);</span>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineCov">         24 :   fhetaTracklets  = new TH1F(&quot;etaTracklets&quot;,  &quot;eta&quot;,  100,-2.,2.);</span>
+<span class="lineNum">     263 </span><span class="lineCov">         24 :   fhphiTracklets  = new TH1F(&quot;phiTracklets&quot;,  &quot;phi&quot;,  100, 0., 2*TMath::Pi());</span>
+<span class="lineNum">     264 </span><span class="lineCov">         24 :   fhetaClustersLay1  = new TH1F(&quot;etaClustersLay1&quot;,  &quot;etaCl1&quot;,  100,-2.,2.);</span>
+<span class="lineNum">     265 </span><span class="lineCov">         24 :   fhphiClustersLay1  = new TH1F(&quot;phiClustersLay1&quot;, &quot;phiCl1&quot;, 100, 0., 2*TMath::Pi());</span>
+<span class="lineNum">     266 </span><span class="lineCov">         48 :   for (int i=2;i--;) fStoreRefs[i][0] =  fStoreRefs[i][1] = kFALSE;</span>
+<span class="lineNum">     267 </span><span class="lineCov">          8 :   TH1::AddDirectory(oldStatus);</span>
+<span class="lineNum">     268 </span><span class="lineCov">         16 : }</span>
+<span class="lineNum">     269 </span>            : /*
+<span class="lineNum">     270 </span>            : //______________________________________________________________________
+<span class="lineNum">     271 </span>            : AliITSMultReconstructor::AliITSMultReconstructor(const AliITSMultReconstructor &amp;mr) : 
+<span class="lineNum">     272 </span>            : AliTrackleter(mr),
+<span class="lineNum">     273 </span>            : fDetTypeRec(0),fESDEvent(0),fTreeRP(0),fTreeRPMix(0),
+<span class="lineNum">     274 </span>            : fTracklets(0),
+<span class="lineNum">     275 </span>            : fSClusters(0),
+<span class="lineNum">     276 </span>            : fNTracklets(0),
+<span class="lineNum">     277 </span>            : fNSingleCluster(0),
+<span class="lineNum">     278 </span>            : fNSingleClusterSPD2(0),
+<span class="lineNum">     279 </span>            : fDPhiWindow(0),
+<span class="lineNum">     280 </span>            : fDThetaWindow(0),
+<span class="lineNum">     281 </span>            : fPhiShift(0),
+<span class="lineNum">     282 </span>            : fRemoveClustersFromOverlaps(0),
+<span class="lineNum">     283 </span>            : fPhiOverlapCut(0),
+<span class="lineNum">     284 </span>            : fZetaOverlapCut(0),
+<span class="lineNum">     285 </span>            : fPhiRotationAngle(0),
+<span class="lineNum">     286 </span>            : fScaleDTBySin2T(0),
+<span class="lineNum">     287 </span>            : fNStdDev(1.0),
+<span class="lineNum">     288 </span>            : fNStdDevSq(1.0),
+<span class="lineNum">     289 </span>            : //
+<span class="lineNum">     290 </span>            : fCutPxDrSPDin(0.1),
+<span class="lineNum">     291 </span>            : fCutPxDrSPDout(0.15),
+<span class="lineNum">     292 </span>            : fCutPxDz(0.2),
+<span class="lineNum">     293 </span>            : fCutDCArz(0.5),
+<span class="lineNum">     294 </span>            : fCutMinElectronProbTPC(0.5),
+<span class="lineNum">     295 </span>            : fCutMinElectronProbESD(0.1),
+<span class="lineNum">     296 </span>            : fCutMinP(0.05),
+<span class="lineNum">     297 </span>            : fCutMinRGamma(2.),
+<span class="lineNum">     298 </span>            : fCutMinRK0(1.),
+<span class="lineNum">     299 </span>            : fCutMinPointAngle(0.98),
+<span class="lineNum">     300 </span>            : fCutMaxDCADauther(0.5),
+<span class="lineNum">     301 </span>            : fCutMassGamma(0.03),
+<span class="lineNum">     302 </span>            : fCutMassGammaNSigma(5.),
+<span class="lineNum">     303 </span>            : fCutMassK0(0.03),
+<span class="lineNum">     304 </span>            : fCutMassK0NSigma(5.),
+<span class="lineNum">     305 </span>            : fCutChi2cGamma(2.),
+<span class="lineNum">     306 </span>            : fCutChi2cK0(2.),
+<span class="lineNum">     307 </span>            : fCutGammaSFromDecay(-10.),
+<span class="lineNum">     308 </span>            : fCutK0SFromDecay(-10.),
+<span class="lineNum">     309 </span>            : fCutMaxDCA(1.),
+<span class="lineNum">     310 </span>            : //
+<span class="lineNum">     311 </span>            : fHistOn(0),
+<span class="lineNum">     312 </span>            : fhClustersDPhiAcc(0),
+<span class="lineNum">     313 </span>            : fhClustersDThetaAcc(0),
+<span class="lineNum">     314 </span>            : fhClustersDPhiAll(0),
+<span class="lineNum">     315 </span>            : fhClustersDThetaAll(0),
+<span class="lineNum">     316 </span>            : fhDPhiVsDThetaAll(0),
+<span class="lineNum">     317 </span>            : fhDPhiVsDThetaAcc(0),
+<span class="lineNum">     318 </span>            : fhetaTracklets(0),
+<span class="lineNum">     319 </span>            : fhphiTracklets(0),
+<span class="lineNum">     320 </span>            : fhetaClustersLay1(0),
+<span class="lineNum">     321 </span>            : fhphiClustersLay1(0),
+<span class="lineNum">     322 </span>            : fDPhiShift(0),
+<span class="lineNum">     323 </span>            : fDPhiWindow2(0),
+<span class="lineNum">     324 </span>            : fDThetaWindow2(0),
+<span class="lineNum">     325 </span>            : fPartners(0),
+<span class="lineNum">     326 </span>            : fAssociatedLay1(0),
+<span class="lineNum">     327 </span>            : fMinDists(0),
+<span class="lineNum">     328 </span>            : fBlackList(0),
+<span class="lineNum">     329 </span>            : //
+<span class="lineNum">     330 </span>            : fCreateClustersCopy(0),
+<span class="lineNum">     331 </span>            : fClustersLoaded(0),
+<span class="lineNum">     332 </span>            : fRecoDone(0),
+<span class="lineNum">     333 </span>            : fBuildRefs(kTRUE),
+<span class="lineNum">     334 </span>            : fStoreSPD2SingleCl(kFALSE),
+<span class="lineNum">     335 </span>            : fSPDSeg()
+<span class="lineNum">     336 </span>            :  {
+<span class="lineNum">     337 </span>            :   // Copy constructor :!!! RS ATTENTION: old c-tor reassigned the pointers instead of creating a new copy -&gt; would crash on delete
+<span class="lineNum">     338 </span>            :    AliError(&quot;May not use&quot;);
+<span class="lineNum">     339 </span>            : }
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            : //______________________________________________________________________
+<span class="lineNum">     342 </span>            : AliITSMultReconstructor&amp; AliITSMultReconstructor::operator=(const AliITSMultReconstructor&amp; mr){
+<span class="lineNum">     343 </span>            :   // Assignment operator
+<span class="lineNum">     344 </span>            :   if (this != &amp;mr) {
+<span class="lineNum">     345 </span>            :     this-&gt;~AliITSMultReconstructor();
+<span class="lineNum">     346 </span>            :     new(this) AliITSMultReconstructor(mr);
+<span class="lineNum">     347 </span>            :   }
+<span class="lineNum">     348 </span>            :   return *this;
+<span class="lineNum">     349 </span>            : }
+<span class="lineNum">     350 </span>            : */
+<a name="351"><span class="lineNum">     351 </span>            : </a>
+<span class="lineNum">     352 </span>            : //______________________________________________________________________
+<span class="lineNum">     353 </span><span class="lineCov">         48 : AliITSMultReconstructor::~AliITSMultReconstructor(){</span>
+<span class="lineNum">     354 </span>            :   // Destructor
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            :   // delete histograms
+<span class="lineNum">     357 </span><span class="lineCov">         16 :   delete fhClustersDPhiAcc;</span>
+<span class="lineNum">     358 </span><span class="lineCov">         16 :   delete fhClustersDThetaAcc;</span>
+<span class="lineNum">     359 </span><span class="lineCov">         16 :   delete fhClustersDPhiAll;</span>
+<span class="lineNum">     360 </span><span class="lineCov">         16 :   delete fhClustersDThetaAll;</span>
+<span class="lineNum">     361 </span><span class="lineCov">         16 :   delete fhDPhiVsDThetaAll;</span>
+<span class="lineNum">     362 </span><span class="lineCov">         16 :   delete fhDPhiVsDThetaAcc;</span>
+<span class="lineNum">     363 </span><span class="lineCov">         16 :   delete fhetaTracklets;</span>
+<span class="lineNum">     364 </span><span class="lineCov">         16 :   delete fhphiTracklets;</span>
+<span class="lineNum">     365 </span><span class="lineCov">         16 :   delete fhetaClustersLay1;</span>
+<span class="lineNum">     366 </span><span class="lineCov">         16 :   delete fhphiClustersLay1;</span>
+<span class="lineNum">     367 </span>            :   //
+<span class="lineNum">     368 </span>            :   // delete arrays    
+<span class="lineNum">     369 </span><span class="lineCov">        208 :   for(Int_t i=0; i&lt;fNTracklets; i++) delete [] fTracklets[i];</span>
+<span class="lineNum">     370 </span>            :     
+<span class="lineNum">     371 </span><span class="lineCov">        176 :   for(Int_t i=0; i&lt;fNSingleCluster; i++) delete [] fSClusters[i];</span>
+<span class="lineNum">     372 </span>            :   
+<span class="lineNum">     373 </span>            :   // 
+<span class="lineNum">     374 </span><span class="lineCov">         48 :   for (int i=0;i&lt;2;i++) {</span>
+<span class="lineNum">     375 </span><span class="lineCov">         32 :     delete[] fClustersLay[i];</span>
+<span class="lineNum">     376 </span><span class="lineCov">         32 :     delete[] fDetectorIndexClustersLay[i];</span>
+<span class="lineNum">     377 </span><span class="lineCov">         16 :     delete[] fClusterCopyIndex[i];</span>
+<span class="lineNum">     378 </span><span class="lineCov">         32 :     delete[] fOverlapFlagClustersLay[i];</span>
+<span class="lineNum">     379 </span><span class="lineCov">         16 :     delete   fClArr[i];</span>
+<span class="lineNum">     380 </span><span class="lineCov">        160 :     for (int j=0;j&lt;2;j++) delete fUsedClusLay[i][j];</span>
+<span class="lineNum">     381 </span>            :   }
+<span class="lineNum">     382 </span><span class="lineCov">         16 :   delete [] fTracklets;</span>
+<span class="lineNum">     383 </span><span class="lineCov">         16 :   delete [] fSClusters;</span>
+<span class="lineNum">     384 </span>            :   //
+<span class="lineNum">     385 </span><span class="lineCov">         24 :   delete[] fPartners;      fPartners = 0;</span>
+<span class="lineNum">     386 </span><span class="lineCov">         24 :   delete[] fMinDists;      fMinDists = 0;</span>
+<span class="lineNum">     387 </span><span class="lineCov">         24 :   delete   fBlackList;     fBlackList = 0;</span>
+<span class="lineNum">     388 </span>            :   //
+<span class="lineNum">     389 </span><span class="lineCov">         24 : }</span>
+<a name="390"><span class="lineNum">     390 </span>            : </a>
+<span class="lineNum">     391 </span>            : //____________________________________________________________________
+<span class="lineNum">     392 </span>            : void AliITSMultReconstructor::Reconstruct(AliESDEvent* esd, TTree* treeRP) 
+<span class="lineNum">     393 </span>            : {  
+<span class="lineNum">     394 </span><span class="lineCov">         16 :   if (!treeRP) { AliError(&quot; Invalid ITS cluster tree !\n&quot;); return; }</span>
+<span class="lineNum">     395 </span><span class="lineCov">          8 :   if (!esd) {AliError(&quot;ESDEvent is not available, use old reconstructor&quot;); return;}</span>
+<span class="lineNum">     396 </span>            :   // reset counters
+<span class="lineNum">     397 </span><span class="lineCov">         16 :   if (fMult) delete fMult; fMult = 0;</span>
+<span class="lineNum">     398 </span><span class="lineCov">          8 :   fNClustersLay[0] = 0;</span>
+<span class="lineNum">     399 </span><span class="lineCov">          8 :   fNClustersLay[1] = 0;</span>
+<span class="lineNum">     400 </span><span class="lineCov">          8 :   fNTracklets = 0; </span>
+<span class="lineNum">     401 </span><span class="lineCov">          8 :   fNSingleCluster = 0;</span>
+<span class="lineNum">     402 </span><span class="lineCov">          8 :   fNSingleClusterSPD2 = 0;</span>
+<span class="lineNum">     403 </span>            :   //
+<span class="lineNum">     404 </span><span class="lineCov">          8 :   fESDEvent = esd;</span>
+<span class="lineNum">     405 </span><span class="lineCov">          8 :   fTreeRP = treeRP;</span>
+<span class="lineNum">     406 </span>            :   //
+<span class="lineNum">     407 </span>            :   // &gt;&gt;&gt;&gt; RS: this part is equivalent to former AliITSVertexer::FindMultiplicity
+<span class="lineNum">     408 </span>            :   //
+<span class="lineNum">     409 </span>            :   // see if there is a SPD vertex 
+<span class="lineNum">     410 </span>            :   Bool_t isVtxOK=kTRUE, isCosmics=kFALSE;
+<span class="lineNum">     411 </span><span class="lineCov">          8 :   AliESDVertex* vtx = (AliESDVertex*)fESDEvent-&gt;GetPrimaryVertexSPD();</span>
+<span class="lineNum">     412 </span><span class="lineCov">         16 :   if (!vtx || vtx-&gt;GetNContributors()&lt;1) isVtxOK = kFALSE;</span>
+<span class="lineNum">     413 </span><span class="lineCov">         16 :   if (vtx &amp;&amp; strstr(vtx-&gt;GetTitle(),&quot;cosmics&quot;)) {</span>
+<span class="lineNum">     414 </span>            :     isVtxOK = kFALSE;
+<span class="lineNum">     415 </span>            :     isCosmics = kTRUE;
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     417 </span>            :   //
+<span class="lineNum">     418 </span><span class="lineCov">          8 :   if (!isVtxOK) {</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     if (!isCosmics) {</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :       AliDebug(1,&quot;Tracklets multiplicity not determined because the primary vertex was not found&quot;);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :       AliDebug(1,&quot;Just counting the number of cluster-fired chips on the SPD layers&quot;);</span>
+<span class="lineNum">     422 </span>            :     }
+<span class="lineNum">     423 </span>            :     vtx = 0;
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     425 </span><span class="lineCov">          8 :   if(vtx){</span>
+<span class="lineNum">     426 </span><span class="lineCov">          8 :     float vtxf[3] = {static_cast&lt;float&gt;(vtx-&gt;GetX()),static_cast&lt;float&gt;(vtx-&gt;GetY()),static_cast&lt;float&gt;(vtx-&gt;GetZ())};</span>
+<span class="lineNum">     427 </span><span class="lineCov">          8 :     FindTracklets(vtxf);</span>
+<span class="lineNum">     428 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">     429 </span>            :   else {
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     FindTracklets(0);</span>
+<span class="lineNum">     431 </span>            :   }
+<span class="lineNum">     432 </span>            :   //
+<span class="lineNum">     433 </span><span class="lineCov">          8 :   CreateMultiplicityObject();</span>
+<span class="lineNum">     434 </span><span class="lineCov">         16 : }</span>
+<a name="435"><span class="lineNum">     435 </span>            : </a>
+<span class="lineNum">     436 </span>            : //____________________________________________________________________
+<span class="lineNum">     437 </span>            : void AliITSMultReconstructor::Reconstruct(TTree* clusterTree, Float_t* vtx, Float_t* /* vtxRes*/) {
+<span class="lineNum">     438 </span>            :   //
+<span class="lineNum">     439 </span>            :   // RS NOTE - this is old reconstructor invocation, to be used from VertexFinder and in analysis mode
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :   if (fMult) delete fMult; fMult = 0;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   fNClustersLay[0] = 0;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   fNClustersLay[1] = 0;</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   fNTracklets = 0; </span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :   fNSingleCluster = 0;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :   fNSingleClusterSPD2 = 0;</span>
+<span class="lineNum">     447 </span>            :   //
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   if (!clusterTree) { AliError(&quot; Invalid ITS cluster tree !\n&quot;); return; }</span>
+<span class="lineNum">     449 </span>            :   //
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   fESDEvent = 0;</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   SetTreeRP(clusterTree);</span>
+<span class="lineNum">     452 </span>            :   //
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :   FindTracklets(vtx);</span>
+<span class="lineNum">     454 </span>            :   //
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     456 </span>            : 
+<a name="457"><span class="lineNum">     457 </span>            : </a>
+<span class="lineNum">     458 </span>            : //____________________________________________________________________
+<span class="lineNum">     459 </span>            : void AliITSMultReconstructor::ReconstructMix(TTree* clusterTree, TTree* clusterTreeMix, const Float_t* vtx, Float_t*) 
+<span class="lineNum">     460 </span>            : {
+<span class="lineNum">     461 </span>            :   //
+<span class="lineNum">     462 </span>            :   // RS NOTE - this is old reconstructor invocation, to be used from VertexFinder and in analysis mode
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   if (fMult) delete fMult; fMult = 0;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   fNClustersLay[0] = 0;</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   fNClustersLay[1] = 0;</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   fNTracklets = 0; </span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   fNSingleCluster = 0;</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   fNSingleClusterSPD2 = 0;</span>
+<span class="lineNum">     470 </span>            :   //
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   if (!clusterTree) { AliError(&quot; Invalid ITS cluster tree !\n&quot;); return; }</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   if (!clusterTreeMix) { AliError(&quot; Invalid ITS cluster tree 2nd event !\n&quot;); return; }</span>
+<span class="lineNum">     473 </span>            :   //
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   fESDEvent = 0;</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :   SetTreeRP(clusterTree);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :   SetTreeRPMix(clusterTreeMix);</span>
+<span class="lineNum">     477 </span>            :   //
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   FindTracklets(vtx);</span>
+<span class="lineNum">     479 </span>            :   //
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     481 </span>            : 
+<a name="482"><span class="lineNum">     482 </span>            : </a>
+<span class="lineNum">     483 </span>            : //____________________________________________________________________
+<span class="lineNum">     484 </span>            : void AliITSMultReconstructor::FindTracklets(const Float_t *vtx) 
+<span class="lineNum">     485 </span>            : {
+<span class="lineNum">     486 </span>            :   // - calls LoadClusterArrays that finds the position of the clusters
+<span class="lineNum">     487 </span>            :   //   (in global coord) 
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span>            :   // - convert the cluster coordinates to theta, phi (seen from the
+<span class="lineNum">     490 </span>            :   //   interaction vertex). Clusters in the inner layer can be now
+<span class="lineNum">     491 </span>            :   //   rotated for combinatorial studies 
+<span class="lineNum">     492 </span>            :   // - makes an array of tracklets 
+<span class="lineNum">     493 </span>            :   //   
+<span class="lineNum">     494 </span>            :   // After this method has been called, the clusters of the two layers
+<span class="lineNum">     495 </span>            :   // and the tracklets can be retrieved by calling the Get'er methods.
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            :   // Find tracklets converging to vertex
+<span class="lineNum">     499 </span>            :   //
+<span class="lineNum">     500 </span><span class="lineCov">         16 :   LoadClusterArrays(fTreeRP,fTreeRPMix);</span>
+<span class="lineNum">     501 </span>            :   // flag clusters used by ESD tracks
+<span class="lineNum">     502 </span><span class="lineCov">         16 :   if (fESDEvent) ProcessESDTracks();</span>
+<span class="lineNum">     503 </span><span class="lineCov">          8 :   fRecoDone = kTRUE;</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineCov">          8 :   if (!vtx) return;</span>
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span><span class="lineCov">          8 :   InitAux();</span>
+<span class="lineNum">     508 </span>            :   
+<span class="lineNum">     509 </span>            :   // find the tracklets
+<span class="lineNum">     510 </span><span class="lineCov">         24 :   AliDebug(1,&quot;Looking for tracklets... &quot;);  </span>
+<span class="lineNum">     511 </span>            :   
+<span class="lineNum">     512 </span><span class="lineCov">          8 :   ClusterPos2Angles(vtx); // convert cluster position to angles wrt vtx</span>
+<span class="lineNum">     513 </span>            :   //
+<span class="lineNum">     514 </span>            :   // Step1: find all tracklets allowing double assocation: 
+<span class="lineNum">     515 </span>            :   int found = 1;
+<span class="lineNum">     516 </span><span class="lineCov">         48 :   while (found &gt; 0) {</span>
+<span class="lineNum">     517 </span>            :     found = 0;
+<span class="lineNum">     518 </span><span class="lineCov">        384 :     for (Int_t iC1=0; iC1&lt;fNClustersLay[0]; iC1++) found += AssociateClusterOfL1(iC1);</span>
+<span class="lineNum">     519 </span>            :   }
+<span class="lineNum">     520 </span>            :   //
+<span class="lineNum">     521 </span>            :   // Step2: store tracklets; remove used clusters 
+<span class="lineNum">     522 </span><span class="lineCov">        132 :   for (Int_t iC2=0; iC2&lt;fNClustersLay[1]; iC2++) StoreTrackletForL2Cluster(iC2);</span>
+<span class="lineNum">     523 </span>            :   //
+<span class="lineNum">     524 </span>            :   // store unused single clusters of L1 (optionally for L2 too)
+<span class="lineNum">     525 </span><span class="lineCov">          8 :   StoreL1Singles();</span>
+<span class="lineNum">     526 </span>            :   //
+<span class="lineNum">     527 </span><span class="lineCov">         24 :   AliDebug(1,Form(&quot;%d tracklets found&quot;, fNTracklets));</span>
+<span class="lineNum">     528 </span><span class="lineCov">         16 : }</span>
+<a name="529"><span class="lineNum">     529 </span>            : </a>
+<span class="lineNum">     530 </span>            : //____________________________________________________________________
+<span class="lineNum">     531 </span>            : void AliITSMultReconstructor::CreateMultiplicityObject()
+<span class="lineNum">     532 </span>            : {
+<span class="lineNum">     533 </span>            :   // create AliMultiplicity object and store it in the ESD event
+<span class="lineNum">     534 </span>            :   //
+<span class="lineNum">     535 </span><span class="lineCov">         16 :   TBits fastOrFiredMap,firedChipMap;</span>
+<span class="lineNum">     536 </span><span class="lineCov">          8 :   if (fDetTypeRec) {</span>
+<span class="lineNum">     537 </span><span class="lineCov">         24 :    fastOrFiredMap  = fDetTypeRec-&gt;GetFastOrFiredMap();</span>
+<span class="lineNum">     538 </span><span class="lineCov">         24 :    firedChipMap    = fDetTypeRec-&gt;GetFiredChipMap(fTreeRP);</span>
+<span class="lineNum">     539 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">     540 </span>            :   //
+<span class="lineNum">     541 </span><span class="lineCov">         24 :   fMult = new AliMultiplicity(fNTracklets,fNSingleCluster,fNFiredChips[0],fNFiredChips[1],fastOrFiredMap);</span>
+<span class="lineNum">     542 </span><span class="lineCov">          8 :   fMult-&gt;SetMultTrackRefs( fBuildRefs );</span>
+<span class="lineNum">     543 </span><span class="lineCov">          8 :   fMult-&gt;SetSPD2SinglesStored(fStoreSPD2SingleCl);</span>
+<span class="lineNum">     544 </span><span class="lineCov">          8 :   fMult-&gt;SetNumberOfSingleClustersSPD2(fNSingleClusterSPD2);</span>
+<span class="lineNum">     545 </span>            :   // store some details of reco:
+<span class="lineNum">     546 </span><span class="lineCov">          8 :   fMult-&gt;SetScaleDThetaBySin2T(fScaleDTBySin2T);</span>
+<span class="lineNum">     547 </span><span class="lineCov">          8 :   fMult-&gt;SetDPhiWindow2(fDPhiWindow2);</span>
+<span class="lineNum">     548 </span><span class="lineCov">          8 :   fMult-&gt;SetDThetaWindow2(fDThetaWindow2);</span>
+<span class="lineNum">     549 </span><span class="lineCov">          8 :   fMult-&gt;SetDPhiShift(fDPhiShift);</span>
+<span class="lineNum">     550 </span><span class="lineCov">          8 :   fMult-&gt;SetNStdDev(fNStdDev);</span>
+<span class="lineNum">     551 </span>            :   //
+<span class="lineNum">     552 </span><span class="lineCov">          8 :   fMult-&gt;SetFiredChipMap(firedChipMap);</span>
+<span class="lineNum">     553 </span><span class="lineCov">          8 :   AliITSRecPointContainer* rcont = AliITSRecPointContainer::Instance();</span>
+<span class="lineNum">     554 </span><span class="lineCov">         16 :   fMult-&gt;SetITSClusters(0,rcont-&gt;GetNClustersInLayer(1,fTreeRP));</span>
+<span class="lineNum">     555 </span><span class="lineCov">        176 :   for(Int_t kk=2;kk&lt;=6;kk++) fMult-&gt;SetITSClusters(kk-1,rcont-&gt;GetNClustersInLayerFast(kk));</span>
+<span class="lineNum">     556 </span>            :   //
+<span class="lineNum">     557 </span><span class="lineCov">          8 :   UInt_t shared[100]; </span>
+<span class="lineNum">     558 </span><span class="lineCov">          8 :   AliRefArray *refs[2][2] = {{0,0},{0,0}};</span>
+<span class="lineNum">     559 </span><span class="lineCov">          8 :   if (fBuildRefs) {</span>
+<span class="lineNum">     560 </span><span class="lineCov">         48 :     for (int il=2;il--;) </span>
+<span class="lineNum">     561 </span><span class="lineCov">         64 :       for (int it=2;it--;)  // tracklet_clusters-&gt;track references to stor</span>
+<span class="lineNum">     562 </span><span class="lineCov">         80 :         if (fStoreRefs[il][it]) refs[il][it] = new AliRefArray(fNTracklets,0);</span>
+<span class="lineNum">     563 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">     564 </span>            :   //
+<span class="lineNum">     565 </span><span class="lineCov">         64 :   for (int i=fNTracklets;i--;)  {</span>
+<span class="lineNum">     566 </span><span class="lineCov">         48 :     float* tlInfo = fTracklets[i];</span>
+<span class="lineNum">     567 </span><span class="lineCov">         48 :     fMult-&gt;SetTrackletData(i,tlInfo);</span>
+<span class="lineNum">     568 </span>            :     //
+<span class="lineNum">     569 </span><span class="lineCov">         48 :     if (!fBuildRefs) continue; // do we need references?</span>
+<span class="lineNum">     570 </span><span class="lineCov">        288 :     for (int itp=0;itp&lt;2;itp++) {    </span>
+<span class="lineNum">     571 </span><span class="lineCov">        576 :       for (int ilr=0;ilr&lt;2;ilr++) {</span>
+<span class="lineNum">     572 </span><span class="lineCov">        192 :         if (!fStoreRefs[ilr][itp]) continue; // nothing to store</span>
+<span class="lineNum">     573 </span><span class="lineCov">         96 :         int clID = int(tlInfo[ilr ? kClID2:kClID1]);</span>
+<span class="lineNum">     574 </span><span class="lineCov">         96 :         int nref = fUsedClusLay[ilr][itp]-&gt;GetReferences(clID,shared,100);</span>
+<span class="lineNum">     575 </span><span class="lineCov">         96 :         if (!nref) continue;</span>
+<span class="lineNum">     576 </span><span class="lineCov">        192 :         else if (nref==1) refs[ilr][itp]-&gt;AddReference(i,shared[0]);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         else refs[ilr][itp]-&gt;AddReferences(i,shared,nref);</span>
+<span class="lineNum">     578 </span><span class="lineCov">         96 :       }</span>
+<span class="lineNum">     579 </span>            :     }
+<span class="lineNum">     580 </span><span class="lineCov">         48 :   }</span>
+<span class="lineNum">     581 </span><span class="lineCov">         16 :   if (fBuildRefs) fMult-&gt;AttachTracklet2TrackRefs(refs[0][0],refs[0][1],refs[1][0],refs[1][1]); </span>
+<span class="lineNum">     582 </span>            :   //
+<span class="lineNum">     583 </span><span class="lineCov">          8 :   AliRefArray *refsc[2] = {0,0};</span>
+<span class="lineNum">     584 </span><span class="lineCov">         88 :   if (fBuildRefs) for (int it=2;it--;) if (fStoreRefs[0][it]) refsc[it] = new AliRefArray(fNClustersLay[0]);</span>
+<span class="lineNum">     585 </span><span class="lineCov">         56 :   for (int i=fNSingleCluster;i--;) {</span>
+<span class="lineNum">     586 </span><span class="lineCov">         40 :     float* clInfo = fSClusters[i];</span>
+<span class="lineNum">     587 </span><span class="lineCov">         40 :     fMult-&gt;SetSingleClusterData(i,clInfo); </span>
+<span class="lineNum">     588 </span>            :     //
+<span class="lineNum">     589 </span><span class="lineCov">         40 :     if (!fBuildRefs) continue; // do we need references?</span>
+<span class="lineNum">     590 </span><span class="lineCov">         40 :     int ilr = i&gt;=(fNSingleCluster-fNSingleClusterSPD2) ? 1:0;</span>
+<span class="lineNum">     591 </span><span class="lineCov">         40 :     int clID = int(clInfo[kSCID]);</span>
+<span class="lineNum">     592 </span><span class="lineCov">        240 :     for (int itp=0;itp&lt;2;itp++) {</span>
+<span class="lineNum">     593 </span><span class="lineCov">         80 :       if (!fStoreRefs[ilr][itp]) continue;</span>
+<span class="lineNum">     594 </span><span class="lineCov">         40 :       int nref = fUsedClusLay[ilr][itp]-&gt;GetReferences(clID,shared,100);</span>
+<span class="lineNum">     595 </span><span class="lineCov">         52 :       if (!nref) continue;</span>
+<span class="lineNum">     596 </span><span class="lineCov">         56 :       else if (nref==1) refsc[itp]-&gt;AddReference(i,shared[0]);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :       else refsc[itp]-&gt;AddReferences(i,shared,nref);</span>
+<span class="lineNum">     598 </span><span class="lineCov">         28 :     }</span>
+<span class="lineNum">     599 </span><span class="lineCov">         40 :   }</span>
+<span class="lineNum">     600 </span>            :   //
+<span class="lineNum">     601 </span><span class="lineCov">         16 :   if (fBuildRefs) fMult-&gt;AttachCluster2TrackRefs(refsc[0],refsc[1]); </span>
+<span class="lineNum">     602 </span><span class="lineCov">          8 :   fMult-&gt;CompactBits();</span>
+<span class="lineNum">     603 </span>            :   //
+<span class="lineNum">     604 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     605 </span>            : 
+<a name="606"><span class="lineNum">     606 </span>            : </a>
+<span class="lineNum">     607 </span>            : //____________________________________________________________________
+<span class="lineNum">     608 </span>            : void AliITSMultReconstructor::LoadClusterArrays(TTree* tree, TTree* treeMix)
+<span class="lineNum">     609 </span>            : {
+<span class="lineNum">     610 </span>            :   // load cluster info and prepare tracklets arrays
+<span class="lineNum">     611 </span>            :   //
+<span class="lineNum">     612 </span><span class="lineCov">         16 :   if (AreClustersLoaded()) {AliInfo(&quot;Clusters are already loaded&quot;); return;}</span>
+<span class="lineNum">     613 </span><span class="lineCov">          8 :   LoadClusterArrays(tree,0);</span>
+<span class="lineNum">     614 </span><span class="lineCov">          8 :   LoadClusterArrays(treeMix ? treeMix:tree,1);</span>
+<span class="lineNum">     615 </span><span class="lineCov">          8 :   int nmaxT = TMath::Min(fNClustersLay[0], fNClustersLay[1]);</span>
+<span class="lineNum">     616 </span><span class="lineCov">          8 :   if (fTracklets) delete[] fTracklets;</span>
+<span class="lineNum">     617 </span><span class="lineCov">          8 :   fTracklets = new Float_t*[nmaxT];</span>
+<span class="lineNum">     618 </span><span class="lineCov">          8 :   memset(fTracklets,0,nmaxT*sizeof(Float_t*));</span>
+<span class="lineNum">     619 </span>            :   //
+<span class="lineNum">     620 </span><span class="lineCov">          8 :   if (fSClusters) delete[] fSClusters;</span>
+<span class="lineNum">     621 </span><span class="lineCov">         16 :   int nSlots = GetStoreSPD2SingleCl() ? fNClustersLay[0]+fNClustersLay[1] : fNClustersLay[0];</span>
+<span class="lineNum">     622 </span><span class="lineCov">          8 :   fSClusters = new Float_t*[nSlots]; </span>
+<span class="lineNum">     623 </span><span class="lineCov">          8 :   memset(fSClusters,0,nSlots*sizeof(Float_t*));</span>
+<span class="lineNum">     624 </span>            :   //
+<span class="lineNum">     625 </span><span class="lineCov">         24 :   AliDebug(1,Form(&quot;(clusters in layer 1 : %d,  layer 2: %d)&quot;,fNClustersLay[0],fNClustersLay[1]));</span>
+<span class="lineNum">     626 </span><span class="lineCov">         24 :   AliDebug(1,Form(&quot;(cluster-fired chips in layer 1 : %d,  layer 2: %d)&quot;,fNFiredChips[0],fNFiredChips[1]));</span>
+<span class="lineNum">     627 </span><span class="lineCov">          8 :   SetClustersLoaded();</span>
+<span class="lineNum">     628 </span><span class="lineCov">         16 : }</span>
+<a name="629"><span class="lineNum">     629 </span>            : </a>
+<span class="lineNum">     630 </span>            : //____________________________________________________________________
+<span class="lineNum">     631 </span>            : void AliITSMultReconstructor::LoadClusterArrays(TTree* itsClusterTree, int il) 
+<span class="lineNum">     632 </span>            : {
+<span class="lineNum">     633 </span>            :   // This method
+<span class="lineNum">     634 </span>            :   // - gets the clusters from the cluster tree for layer il
+<span class="lineNum">     635 </span>            :   // - convert them into global coordinates 
+<span class="lineNum">     636 </span>            :   // - store them in the internal arrays
+<span class="lineNum">     637 </span>            :   // - count the number of cluster-fired chips
+<span class="lineNum">     638 </span>            :   //
+<span class="lineNum">     639 </span>            :   // RS: This method was strongly modified wrt original. In order to have the same numbering 
+<span class="lineNum">     640 </span>            :   // of clusters as in the ITS reco I had to introduce sorting in Z
+<span class="lineNum">     641 </span>            :   // Also note that now the clusters data are stored not in float[6] attached to float**, but in 1-D array
+<span class="lineNum">     642 </span><span class="lineCov">         64 :   AliDebug(1,Form(&quot;Loading clusters and cluster-fired chips for layer %d&quot;,il));</span>
+<span class="lineNum">     643 </span>            :   //
+<span class="lineNum">     644 </span><span class="lineCov">         16 :   fNClustersLay[il] = 0;</span>
+<span class="lineNum">     645 </span><span class="lineCov">         16 :   fNFiredChips[il]  = 0;</span>
+<span class="lineNum">     646 </span><span class="lineCov">         96 :   for (int i=2;i--;) fStoreRefs[il][i] = kFALSE;</span>
+<span class="lineNum">     647 </span>            :   //
+<span class="lineNum">     648 </span>            :   AliITSRecPointContainer* rpcont = 0;
+<span class="lineNum">     649 </span><span class="lineCov">         22 :   static TClonesArray statITSrec(&quot;AliITSRecPoint&quot;);</span>
+<span class="lineNum">     650 </span><span class="lineCov">         22 :   static TObjArray clArr(100);</span>
+<span class="lineNum">     651 </span>            :   TBranch* branch = 0;
+<span class="lineNum">     652 </span><span class="lineCov">         16 :   TClonesArray* itsClusters = 0;</span>
+<span class="lineNum">     653 </span>            :   //
+<span class="lineNum">     654 </span><span class="lineCov">         16 :   if (!fCreateClustersCopy) {</span>
+<span class="lineNum">     655 </span><span class="lineCov">         16 :     rpcont=AliITSRecPointContainer::Instance();</span>
+<span class="lineNum">     656 </span><span class="lineCov">         16 :     itsClusters = rpcont-&gt;FetchClusters(0,itsClusterTree);</span>
+<span class="lineNum">     657 </span><span class="lineCov">         16 :     if(!rpcont-&gt;IsSPDActive()){</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :       AliWarning(&quot;No SPD rec points found, multiplicity not calculated&quot;);</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     660 </span>            :     } 
+<span class="lineNum">     661 </span>            :   }
+<span class="lineNum">     662 </span>            :   else {
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     itsClusters = &amp;statITSrec;</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     branch = itsClusterTree-&gt;GetBranch(&quot;ITSRecPoints&quot;);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     branch-&gt;SetAddress(&amp;itsClusters);</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :     if (!fClArr[il]) fClArr[il] = new TClonesArray(&quot;AliITSRecPoint&quot;,100);</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     delete[] fClusterCopyIndex[il];</span>
+<span class="lineNum">     668 </span>            :   }    
+<span class="lineNum">     669 </span>            :   //
+<span class="lineNum">     670 </span>            :   // count clusters
+<span class="lineNum">     671 </span>            :   // loop over the SPD subdetectors
+<span class="lineNum">     672 </span>            :   int nclLayer = 0;
+<span class="lineNum">     673 </span><span class="lineCov">         16 :   int detMin = TMath::Max(0,AliITSgeomTGeo::GetModuleIndex(il+1,1,1));</span>
+<span class="lineNum">     674 </span><span class="lineCov">         16 :   int detMax = AliITSgeomTGeo::GetModuleIndex(il+2,1,1);</span>
+<span class="lineNum">     675 </span><span class="lineCov">       3872 :   for (int idt=detMin;idt&lt;detMax;idt++) {</span>
+<span class="lineNum">     676 </span><span class="lineCov">       3840 :     if (!fCreateClustersCopy) itsClusters = rpcont-&gt;UncheckedGetClusters(idt);</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     else                      branch-&gt;GetEvent(idt); </span>
+<span class="lineNum">     678 </span><span class="lineCov">       1920 :     int nClusters = itsClusters-&gt;GetEntriesFast();</span>
+<span class="lineNum">     679 </span><span class="lineCov">       3710 :     if (!nClusters) continue;</span>
+<span class="lineNum">     680 </span><span class="lineCov">        130 :     Int_t nClustersInChip[5] = {0,0,0,0,0};</span>
+<span class="lineNum">     681 </span><span class="lineCov">        406 :     while(nClusters--) {</span>
+<span class="lineNum">     682 </span><span class="lineCov">        146 :       AliITSRecPoint* cluster = (AliITSRecPoint*)itsClusters-&gt;UncheckedAt(nClusters);</span>
+<span class="lineNum">     683 </span><span class="lineCov">        146 :       if (!cluster) continue;</span>
+<span class="lineNum">     684 </span><span class="lineCov">        146 :       if (fCreateClustersCopy)  cluster = new ((*fClArr[il])[nclLayer]) AliITSRecPoint(*cluster);</span>
+<span class="lineNum">     685 </span><span class="lineCov">        146 :       clArr.AddAtAndExpand(cluster,nclLayer++);</span>
+<span class="lineNum">     686 </span><span class="lineCov">        146 :       Int_t chipNo = fSPDSeg.GetChipFromLocal(0,cluster-&gt;GetDetLocalZ());</span>
+<span class="lineNum">     687 </span><span class="lineCov">        292 :       if(chipNo&gt;=0)nClustersInChip[ chipNo ]++; </span>
+<span class="lineNum">     688 </span><span class="lineCov">        146 :     }</span>
+<span class="lineNum">     689 </span><span class="lineCov">       1698 :     for(Int_t ifChip=5;ifChip--;) if (nClustersInChip[ifChip]) fNFiredChips[il]++;</span>
+<span class="lineNum">     690 </span><span class="lineCov">        130 :   }</span>
+<span class="lineNum">     691 </span>            :   // sort the clusters in Z (to have the same numbering as in ITS reco
+<span class="lineNum">     692 </span><span class="lineCov">         16 :   Float_t *z     = new Float_t[nclLayer];</span>
+<span class="lineNum">     693 </span><span class="lineCov">         16 :   Int_t   *index = new Int_t[nclLayer];</span>
+<span class="lineNum">     694 </span><span class="lineCov">        324 :   for (int ic=0;ic&lt;nclLayer;ic++) z[ic] = ((AliITSRecPoint*)clArr[ic])-&gt;GetZ();</span>
+<span class="lineNum">     695 </span><span class="lineCov">         16 :   TMath::Sort(nclLayer,z,index,kFALSE);</span>
+<span class="lineNum">     696 </span><span class="lineCov">         16 :   Float_t*   clustersLay              = new Float_t[nclLayer*kClNPar];</span>
+<span class="lineNum">     697 </span><span class="lineCov">         16 :   Int_t*     detectorIndexClustersLay = new Int_t[nclLayer];</span>
+<span class="lineNum">     698 </span><span class="lineCov">         16 :   Bool_t*    overlapFlagClustersLay   = new Bool_t[nclLayer];</span>
+<span class="lineNum">     699 </span><span class="lineCov">         16 :   if (fCreateClustersCopy) fClusterCopyIndex[il] = new Int_t[nclLayer];</span>
+<span class="lineNum">     700 </span>            :   //
+<span class="lineNum">     701 </span><span class="lineCov">        324 :   for (int ic=0;ic&lt;nclLayer;ic++) {</span>
+<span class="lineNum">     702 </span><span class="lineCov">        146 :     AliITSRecPoint* cluster = (AliITSRecPoint*)clArr[index[ic]];</span>
+<span class="lineNum">     703 </span><span class="lineCov">        146 :     float* clPar = &amp;clustersLay[ic*kClNPar];</span>
+<span class="lineNum">     704 </span>            :     //      
+<span class="lineNum">     705 </span><span class="lineCov">        146 :     cluster-&gt;GetGlobalXYZ( clPar );</span>
+<span class="lineNum">     706 </span><span class="lineCov">        146 :     detectorIndexClustersLay[ic] = cluster-&gt;GetDetectorIndex(); </span>
+<span class="lineNum">     707 </span><span class="lineCov">        146 :     overlapFlagClustersLay[ic]   = kFALSE;</span>
+<span class="lineNum">     708 </span><span class="lineCov">       1168 :     for (Int_t i=3;i--;) clPar[kClMC0+i] = cluster-&gt;GetLabel(i);</span>
+<span class="lineNum">     709 </span><span class="lineCov">        146 :     if (fCreateClustersCopy) fClusterCopyIndex[il][ic] = index[ic];</span>
+<span class="lineNum">     710 </span>            :   }
+<span class="lineNum">     711 </span><span class="lineCov">         16 :   clArr.Clear();</span>
+<span class="lineNum">     712 </span><span class="lineCov">         32 :   delete[] z;</span>
+<span class="lineNum">     713 </span><span class="lineCov">         32 :   delete[] index;</span>
+<span class="lineNum">     714 </span>            :   //
+<span class="lineNum">     715 </span><span class="lineCov">         16 :   if (fOverlapFlagClustersLay[il]) delete[] fOverlapFlagClustersLay[il];</span>
+<span class="lineNum">     716 </span><span class="lineCov">         16 :   fOverlapFlagClustersLay[il]   = overlapFlagClustersLay;</span>
+<span class="lineNum">     717 </span>            :   //
+<span class="lineNum">     718 </span><span class="lineCov">         16 :   if (fDetectorIndexClustersLay[il]) delete[] fDetectorIndexClustersLay[il]; </span>
+<span class="lineNum">     719 </span><span class="lineCov">         16 :   fDetectorIndexClustersLay[il] = detectorIndexClustersLay;</span>
+<span class="lineNum">     720 </span>            :   //
+<span class="lineNum">     721 </span><span class="lineCov">         16 :   if (fBuildRefs) {</span>
+<span class="lineNum">     722 </span><span class="lineCov">         96 :     for (int it=0;it&lt;2;it++) {</span>
+<span class="lineNum">     723 </span><span class="lineCov">         32 :       if (fUsedClusLay[il][it]) delete fUsedClusLay[il][it];</span>
+<span class="lineNum">     724 </span><span class="lineCov">         64 :       fUsedClusLay[il][it] = new AliRefArray(nclLayer);</span>
+<span class="lineNum">     725 </span>            :     }
+<span class="lineNum">     726 </span><span class="lineCov">         16 :   }</span>
+<span class="lineNum">     727 </span>            :   //
+<span class="lineNum">     728 </span><span class="lineCov">         16 :   if (fClustersLay[il]) delete[] fClustersLay[il]; </span>
+<span class="lineNum">     729 </span><span class="lineCov">         16 :   fClustersLay[il] = clustersLay;</span>
+<span class="lineNum">     730 </span><span class="lineCov">         16 :   fNClustersLay[il] = nclLayer;</span>
+<span class="lineNum">     731 </span>            :   //
+<span class="lineNum">     732 </span><span class="lineCov">         32 : }</span>
+<a name="733"><span class="lineNum">     733 </span>            : </a>
+<span class="lineNum">     734 </span>            : //____________________________________________________________________
+<span class="lineNum">     735 </span>            : void AliITSMultReconstructor::LoadClusterFiredChips(TTree* itsClusterTree) {
+<span class="lineNum">     736 </span>            :   // This method    
+<span class="lineNum">     737 </span>            :   // - gets the clusters from the cluster tree 
+<span class="lineNum">     738 </span>            :   // - counts the number of (cluster)fired chips
+<span class="lineNum">     739 </span>            :   
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   AliDebug(1,&quot;Loading cluster-fired chips ...&quot;);</span>
+<span class="lineNum">     741 </span>            :   
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :   fNFiredChips[0] = 0;</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :   fNFiredChips[1] = 0;</span>
+<span class="lineNum">     744 </span>            :   
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :   AliITSRecPointContainer* rpcont=AliITSRecPointContainer::Instance();</span>
+<span class="lineNum">     746 </span>            :   TClonesArray* itsClusters=NULL;
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :   rpcont-&gt;FetchClusters(0,itsClusterTree);</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :   if(!rpcont-&gt;IsSPDActive()){</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     AliWarning(&quot;No SPD rec points found, multiplicity not calculated&quot;);</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     751 </span>            :   } 
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span>            :   // loop over the its subdetectors
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :   Int_t nSPDmodules=AliITSgeomTGeo::GetModuleIndex(3,1,1);</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :   for (Int_t iIts=0; iIts &lt; nSPDmodules; iIts++) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     itsClusters=rpcont-&gt;UncheckedGetClusters(iIts);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     Int_t nClusters = itsClusters-&gt;GetEntriesFast();</span>
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span>            :     // number of clusters in each chip of the current module
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     Int_t nClustersInChip[5] = {0,0,0,0,0};</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     Int_t layer = 0;</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     Int_t ladder=0;</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     Int_t det=0;</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     AliITSgeomTGeo::GetModuleId(iIts,layer,ladder,det);</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     --layer;  // layer is from 1 to 6 in AliITSgeomTGeo, but from 0 to 5 here</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     if(layer&lt;0 || layer &gt;1)continue;</span>
+<span class="lineNum">     767 </span>            :     
+<span class="lineNum">     768 </span>            :     // loop over clusters
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     while(nClusters--) {</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :       AliITSRecPoint* cluster = (AliITSRecPoint*)itsClusters-&gt;UncheckedAt(nClusters);</span>
+<span class="lineNum">     771 </span>            :           
+<span class="lineNum">     772 </span>            :       // find the chip for the current cluster
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :       Float_t locz = cluster-&gt;GetDetLocalZ();</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :       Int_t iChip = fSPDSeg.GetChipFromLocal(0,locz);</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       if (iChip&gt;=0) nClustersInChip[iChip]++; </span>
+<span class="lineNum">     776 </span>            :       
+<span class="lineNum">     777 </span>            :     }// end of cluster loop
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span>            :     // get number of fired chips in the current module
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     for(Int_t ifChip=0; ifChip&lt;5; ifChip++) {</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :       if(nClustersInChip[ifChip] &gt;= 1)  fNFiredChips[layer]++;</span>
+<span class="lineNum">     782 </span>            :     }
+<span class="lineNum">     783 </span>            : 
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :   } // end of its &quot;subdetector&quot; loop  </span>
+<span class="lineNum">     785 </span>            :   
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   AliDebug(1,Form(&quot;(cluster-fired chips in layer 1 : %d,  layer 2: %d)&quot;,fNFiredChips[0],fNFiredChips[1]));</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 : }</span>
+<a name="789"><span class="lineNum">     789 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     790 </span>            : void
+<span class="lineNum">     791 </span>            : AliITSMultReconstructor::SaveHists() {
+<span class="lineNum">     792 </span>            :   // This method save the histograms on the output file
+<span class="lineNum">     793 </span>            :   // (only if fHistOn is TRUE). 
+<span class="lineNum">     794 </span>            :   
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :   if (!fHistOn)</span>
+<span class="lineNum">     796 </span>            :     return;
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :   fhClustersDPhiAll-&gt;Write();</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :   fhClustersDThetaAll-&gt;Write();</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :   fhDPhiVsDThetaAll-&gt;Write();</span>
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :   fhClustersDPhiAcc-&gt;Write();</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :   fhClustersDThetaAcc-&gt;Write();</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   fhDPhiVsDThetaAcc-&gt;Write();</span>
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   fhetaTracklets-&gt;Write();</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :   fhphiTracklets-&gt;Write();</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :   fhetaClustersLay1-&gt;Write();</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   fhphiClustersLay1-&gt;Write();</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 : }</span>
+<a name="811"><span class="lineNum">     811 </span>            : </a>
+<span class="lineNum">     812 </span>            : //____________________________________________________________________
+<span class="lineNum">     813 </span>            : void AliITSMultReconstructor::FlagClustersInOverlapRegions (Int_t iC1, Int_t iC2WithBestDist) 
+<span class="lineNum">     814 </span>            : {
+<span class="lineNum">     815 </span>            :   // Flags clusters in the overlapping regions
+<span class="lineNum">     816 </span>            :   Float_t distClSameMod=0.;
+<span class="lineNum">     817 </span>            :   Float_t meanRadiusLay1 = 3.99335; // average radius inner layer
+<span class="lineNum">     818 </span>            :   Float_t meanRadiusLay2 = 7.37935; // average radius outer layer;
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span>            :   Float_t zproj1=0.;
+<span class="lineNum">     821 </span>            :   Float_t zproj2=0.;
+<span class="lineNum">     822 </span>            :   Float_t deZproj=0.;
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :   Float_t* clPar1  = GetClusterLayer1(iC1);</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   Float_t* clPar2B = GetClusterLayer2(iC2WithBestDist);</span>
+<span class="lineNum">     825 </span>            :   // Loop on inner layer clusters
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   for (Int_t iiC1=0; iiC1&lt;fNClustersLay[0]; iiC1++) {</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     if (!fOverlapFlagClustersLay[0][iiC1]) {</span>
+<span class="lineNum">     828 </span>            :       // only for adjacent modules
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :       if ((TMath::Abs(fDetectorIndexClustersLay[0][iC1]-fDetectorIndexClustersLay[0][iiC1])==4)||</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :          (TMath::Abs(fDetectorIndexClustersLay[0][iC1]-fDetectorIndexClustersLay[0][iiC1])==76)) {</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :         Float_t *clPar11 = GetClusterLayer1(iiC1);</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         Float_t dePhi=TMath::Abs(clPar11[kClPh]-clPar1[kClPh]);</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         if (dePhi&gt;TMath::Pi()) dePhi=2.*TMath::Pi()-dePhi;</span>
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :         zproj1=meanRadiusLay1/TMath::Tan(clPar1[kClTh]);</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :         zproj2=meanRadiusLay1/TMath::Tan(clPar11[kClTh]);</span>
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :         deZproj=TMath::Abs(zproj1-zproj2);</span>
+<span class="lineNum">     839 </span>            : 
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         distClSameMod = TMath::Sqrt(TMath::Power(deZproj/fZetaOverlapCut,2)+TMath::Power(dePhi/fPhiOverlapCut,2));</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :         if (distClSameMod&lt;=1.) fOverlapFlagClustersLay[0][iiC1]=kTRUE;</span>
+<span class="lineNum">     842 </span>            : 
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :       } // end adjacent modules</span>
+<span class="lineNum">     844 </span>            :     } 
+<span class="lineNum">     845 </span>            :   } // end Loop on inner layer clusters
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span>            :   distClSameMod=0.;
+<span class="lineNum">     849 </span>            :   // Loop on outer layer clusters
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   for (Int_t iiC2=0; iiC2&lt;fNClustersLay[1]; iiC2++) {</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :     if (!fOverlapFlagClustersLay[1][iiC2]) {</span>
+<span class="lineNum">     852 </span>            :       // only for adjacent modules
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :       Float_t *clPar2 = GetClusterLayer2(iiC2);</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :       if ((TMath::Abs(fDetectorIndexClustersLay[1][iC2WithBestDist]-fDetectorIndexClustersLay[1][iiC2])==4) ||</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :          (TMath::Abs(fDetectorIndexClustersLay[1][iC2WithBestDist]-fDetectorIndexClustersLay[1][iiC2])==156)) {</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :         Float_t dePhi=TMath::Abs(clPar2[kClPh]-clPar2B[kClPh]);</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :         if (dePhi&gt;TMath::Pi()) dePhi=2.*TMath::Pi()-dePhi;</span>
+<span class="lineNum">     858 </span>            : 
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :         zproj1=meanRadiusLay2/TMath::Tan(clPar2B[kClTh]);</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :         zproj2=meanRadiusLay2/TMath::Tan(clPar2[kClTh]);</span>
+<span class="lineNum">     861 </span>            : 
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :         deZproj=TMath::Abs(zproj1-zproj2);</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :         distClSameMod = TMath::Sqrt(TMath::Power(deZproj/fZetaOverlapCut,2)+TMath::Power(dePhi/fPhiOverlapCut,2));</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :         if (distClSameMod&lt;=1.) fOverlapFlagClustersLay[1][iiC2]=kTRUE;</span>
+<span class="lineNum">     865 </span>            : 
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :       } // end adjacent modules</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     868 </span>            :   } // end Loop on outer layer clusters
+<span class="lineNum">     869 </span>            : 
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 : }</span>
+<a name="871"><span class="lineNum">     871 </span>            : </a>
+<span class="lineNum">     872 </span>            : //____________________________________________________________________
+<span class="lineNum">     873 </span>            : void AliITSMultReconstructor::InitAux()
+<span class="lineNum">     874 </span>            : {
+<span class="lineNum">     875 </span>            :   // init arrays/parameters for tracklet reconstruction
+<span class="lineNum">     876 </span>            :   
+<span class="lineNum">     877 </span>            :   // dPhi shift is field dependent, get average magnetic field
+<span class="lineNum">     878 </span>            :   Float_t bz = 0;
+<span class="lineNum">     879 </span>            :   AliMagF* field = 0;
+<span class="lineNum">     880 </span><span class="lineCov">         40 :   if (TGeoGlobalMagField::Instance()) field = dynamic_cast&lt;AliMagF*&gt;(TGeoGlobalMagField::Instance()-&gt;GetField());</span>
+<span class="lineNum">     881 </span><span class="lineCov">          8 :   if (!field) {</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     AliError(&quot;Could not retrieve magnetic field. Assuming no field. Delta Phi shift will be deactivated in AliITSMultReconstructor.&quot;);</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     884 </span><span class="lineCov">          8 :   else bz = TMath::Abs(field-&gt;SolenoidField());</span>
+<span class="lineNum">     885 </span><span class="lineCov">          8 :   fDPhiShift = fPhiShift / 5 * bz; </span>
+<span class="lineNum">     886 </span><span class="lineCov">         24 :   AliDebug(1, Form(&quot;Using phi shift of %f&quot;, fDPhiShift));</span>
+<span class="lineNum">     887 </span>            :   //
+<span class="lineNum">     888 </span><span class="lineCov">         16 :   if (fPartners) delete[] fPartners; fPartners = new Int_t[fNClustersLay[1]];</span>
+<span class="lineNum">     889 </span><span class="lineCov">         16 :   if (fMinDists) delete[] fMinDists; fMinDists = new Float_t[fNClustersLay[1]];</span>
+<span class="lineNum">     890 </span><span class="lineCov">         16 :   if (fAssociatedLay1) delete[] fAssociatedLay1; fAssociatedLay1 = new Int_t[fNClustersLay[0]];</span>
+<span class="lineNum">     891 </span>            :   //
+<span class="lineNum">     892 </span><span class="lineCov">         24 :   if (fBlackList) delete fBlackList; fBlackList = new AliRefArray(fNClustersLay[0]);</span>
+<span class="lineNum">     893 </span>            :   //
+<span class="lineNum">     894 </span>            :   //  Printf(&quot;Vertex in find tracklets...%f %f %f&quot;,vtx[0],vtx[1],vtx[2]);
+<span class="lineNum">     895 </span><span class="lineCov">        132 :   for (Int_t i=0; i&lt;fNClustersLay[1]; i++) {</span>
+<span class="lineNum">     896 </span><span class="lineCov">         58 :     fPartners[i] = -1;</span>
+<span class="lineNum">     897 </span><span class="lineCov">         58 :     fMinDists[i] = 2*fNStdDev;</span>
+<span class="lineNum">     898 </span>            :   }
+<span class="lineNum">     899 </span><span class="lineCov">          8 :   memset(fAssociatedLay1,0,fNClustersLay[0]*sizeof(Int_t));</span>
+<span class="lineNum">     900 </span>            :   //
+<span class="lineNum">     901 </span><span class="lineCov">          8 : }</span>
+<a name="902"><span class="lineNum">     902 </span>            : </a>
+<span class="lineNum">     903 </span>            : //____________________________________________________________________
+<span class="lineNum">     904 </span>            : void AliITSMultReconstructor::ClusterPos2Angles(const Float_t *vtx)
+<span class="lineNum">     905 </span>            : {
+<span class="lineNum">     906 </span>            :   // convert cluster coordinates to angles wrt vertex
+<span class="lineNum">     907 </span><span class="lineCov">         56 :   for (int ilr=0;ilr&lt;2;ilr++) {</span>
+<span class="lineNum">     908 </span><span class="lineCov">        324 :     for (Int_t iC=0; iC&lt;fNClustersLay[ilr]; iC++) {    </span>
+<span class="lineNum">     909 </span><span class="lineCov">        146 :       float* clPar = GetClusterOfLayer(ilr,iC);</span>
+<span class="lineNum">     910 </span><span class="lineCov">        146 :       CalcThetaPhi(clPar[kClTh]-vtx[0],clPar[kClPh]-vtx[1],clPar[kClZ]-vtx[2],clPar[kClTh],clPar[kClPh]);</span>
+<span class="lineNum">     911 </span><span class="lineCov">        146 :       if (ilr==0) {</span>
+<span class="lineNum">     912 </span><span class="lineCov">         88 :         clPar[kClPh] = clPar[kClPh] + fPhiRotationAngle;   // rotation of inner layer for comb studies  </span>
+<span class="lineNum">     913 </span><span class="lineCov">         88 :         if (fHistOn) {</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :           Float_t eta = clPar[kClTh];</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :           eta= TMath::Tan(eta/2.);</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :           eta=-TMath::Log(eta);</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :           fhetaClustersLay1-&gt;Fill(eta);    </span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :           fhphiClustersLay1-&gt;Fill(clPar[kClPh]);</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     920 </span>            :       }      
+<span class="lineNum">     921 </span>            :     }
+<span class="lineNum">     922 </span>            :   }
+<span class="lineNum">     923 </span>            :   //
+<span class="lineNum">     924 </span><span class="lineCov">          8 : }</span>
+<a name="925"><span class="lineNum">     925 </span>            : </a>
+<span class="lineNum">     926 </span>            : //____________________________________________________________________
+<span class="lineNum">     927 </span>            : Int_t AliITSMultReconstructor::AssociateClusterOfL1(Int_t iC1)
+<span class="lineNum">     928 </span>            : {
+<span class="lineNum">     929 </span>            :   // search association of cluster iC1 of L1 with all clusters of L2
+<span class="lineNum">     930 </span><span class="lineCov">        440 :   if (fAssociatedLay1[iC1] != 0) return 0;</span>
+<span class="lineNum">     931 </span>            :   Int_t  iC2WithBestDist = -1;   // reset
+<span class="lineNum">     932 </span><span class="lineCov">         88 :   Double_t minDist       =  2*fNStdDev;   // reset</span>
+<span class="lineNum">     933 </span><span class="lineCov">         88 :   float* clPar1 = GetClusterLayer1(iC1);</span>
+<span class="lineNum">     934 </span><span class="lineCov">       1452 :   for (Int_t iC2=0; iC2&lt;fNClustersLay[1]; iC2++) {</span>
+<span class="lineNum">     935 </span>            :     //
+<span class="lineNum">     936 </span><span class="lineCov">        638 :     if (fBlackList-&gt;IsReferred(iC1,iC2)) continue;</span>
+<span class="lineNum">     937 </span><span class="lineCov">        638 :     float* clPar2 = GetClusterLayer2(iC2);</span>
+<span class="lineNum">     938 </span>            :     //
+<span class="lineNum">     939 </span>            :     // find the difference in angles
+<span class="lineNum">     940 </span><span class="lineCov">        638 :     Double_t dTheta = TMath::Abs(clPar2[kClTh] - clPar1[kClTh]); </span>
+<span class="lineNum">     941 </span><span class="lineCov">        638 :     Double_t dPhi   = TMath::Abs(clPar2[kClPh] - clPar1[kClPh]);</span>
+<span class="lineNum">     942 </span>            :     //        Printf(&quot;detheta %f  dephi %f&quot;, dTheta,dPhi);
+<span class="lineNum">     943 </span>            :     //
+<span class="lineNum">     944 </span><span class="lineCov">        712 :     if (dPhi&gt;TMath::Pi()) dPhi=2.*TMath::Pi()-dPhi;     // take into account boundary condition</span>
+<span class="lineNum">     945 </span>            :     //
+<span class="lineNum">     946 </span><span class="lineCov">        638 :     if (fHistOn) {</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :       fhClustersDPhiAll-&gt;Fill(dPhi);</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :       fhClustersDThetaAll-&gt;Fill(dTheta);    </span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :       fhDPhiVsDThetaAll-&gt;Fill(dTheta, dPhi);</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     951 </span><span class="lineCov">        638 :     Float_t d = CalcDist(dPhi,clPar2[kClTh] - clPar1[kClTh],clPar1[kClTh]);     // make &quot;elliptical&quot; cut in Phi and Theta! </span>
+<span class="lineNum">     952 </span>            :     // look for the minimum distance: the minimum is in iC2WithBestDist
+<span class="lineNum">     953 </span><span class="lineCov">        734 :     if (d&lt;fNStdDev &amp;&amp; d&lt;minDist) { minDist=d; iC2WithBestDist = iC2; }</span>
+<span class="lineNum">     954 </span><span class="lineCov">        638 :   }</span>
+<span class="lineNum">     955 </span>            :   //
+<span class="lineNum">     956 </span><span class="lineCov">         88 :   if (minDist&lt;fNStdDev) { // This means that a cluster in layer 2 was found that matches with iC1</span>
+<span class="lineNum">     957 </span>            :     //
+<span class="lineNum">     958 </span><span class="lineCov">         48 :     if (fMinDists[iC2WithBestDist] &gt; minDist) {</span>
+<span class="lineNum">     959 </span><span class="lineCov">         48 :       Int_t oldPartner = fPartners[iC2WithBestDist];</span>
+<span class="lineNum">     960 </span><span class="lineCov">         48 :       fPartners[iC2WithBestDist] = iC1;</span>
+<span class="lineNum">     961 </span><span class="lineCov">         48 :       fMinDists[iC2WithBestDist] = minDist;</span>
+<span class="lineNum">     962 </span>            :       //
+<span class="lineNum">     963 </span><span class="lineCov">         48 :       fAssociatedLay1[iC1] = 1;      // mark as assigned</span>
+<span class="lineNum">     964 </span>            :       //
+<span class="lineNum">     965 </span><span class="lineCov">         48 :       if (oldPartner != -1) {</span>
+<span class="lineNum">     966 </span>            :         // redo partner search for cluster in L0 (oldPartner), putting this one (iC2WithBestDist) on its fBlackList
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :         fBlackList-&gt;AddReference(oldPartner,iC2WithBestDist);</span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :         fAssociatedLay1[oldPartner] = 0;       // mark as free   </span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     970 </span><span class="lineCov">         48 :     } else {</span>
+<span class="lineNum">     971 </span>            :       // try again to find a cluster without considering iC2WithBestDist 
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :       fBlackList-&gt;AddReference(iC1,iC2WithBestDist);</span>
+<span class="lineNum">     973 </span>            :     } 
+<span class="lineNum">     974 </span>            :     //
+<span class="lineNum">     975 </span>            :   }
+<span class="lineNum">     976 </span><span class="lineCov">         40 :   else fAssociatedLay1[iC1] = 2;// cluster has no partner; remove</span>
+<span class="lineNum">     977 </span>            :   //
+<span class="lineNum">     978 </span>            :   return 1;
+<span class="lineNum">     979 </span><span class="lineCov">        176 : }</span>
+<a name="980"><span class="lineNum">     980 </span>            : </a>
+<span class="lineNum">     981 </span>            : //____________________________________________________________________
+<span class="lineNum">     982 </span>            : Int_t AliITSMultReconstructor::StoreTrackletForL2Cluster(Int_t iC2)
+<span class="lineNum">     983 </span>            : {
+<span class="lineNum">     984 </span>            :   // build tracklet for cluster iC2 of layer 2
+<span class="lineNum">     985 </span><span class="lineCov">        126 :   if (fPartners[iC2] == -1) return 0;</span>
+<span class="lineNum">     986 </span><span class="lineCov">         48 :   if (fRemoveClustersFromOverlaps) FlagClustersInOverlapRegions (fPartners[iC2],iC2);</span>
+<span class="lineNum">     987 </span>            :   // Printf(&quot;saving tracklets&quot;);
+<span class="lineNum">     988 </span><span class="lineCov">         96 :   if (fOverlapFlagClustersLay[0][fPartners[iC2]] || fOverlapFlagClustersLay[1][iC2]) return 0;</span>
+<span class="lineNum">     989 </span><span class="lineCov">         48 :   float* clPar2 = GetClusterLayer2(iC2);</span>
+<span class="lineNum">     990 </span><span class="lineCov">         48 :   float* clPar1 = GetClusterLayer1(fPartners[iC2]);</span>
+<span class="lineNum">     991 </span>            :   //
+<span class="lineNum">     992 </span><span class="lineCov">         48 :   Float_t* tracklet = fTracklets[fNTracklets] = new Float_t[kTrNPar]; // RS Add also the cluster id's</span>
+<span class="lineNum">     993 </span>            :   //
+<span class="lineNum">     994 </span><span class="lineCov">         48 :   tracklet[kTrTheta] = clPar1[kClTh];    // use the theta from the clusters in the first layer</span>
+<span class="lineNum">     995 </span><span class="lineCov">         48 :   tracklet[kTrPhi]   = clPar1[kClPh];    // use the phi from the clusters in the first layer</span>
+<span class="lineNum">     996 </span><span class="lineCov">         48 :   tracklet[kTrDPhi] = clPar1[kClPh] - clPar2[kClPh];  // store the difference between phi1 and phi2</span>
+<span class="lineNum">     997 </span>            :   //
+<span class="lineNum">     998 </span>            :   // define dphi in the range [0,pi] with proper sign (track charge correlated)
+<span class="lineNum">     999 </span><span class="lineCov">         48 :   if (tracklet[kTrDPhi] &gt; TMath::Pi())   tracklet[kTrDPhi] = tracklet[kTrDPhi]-2.*TMath::Pi();</span>
+<span class="lineNum">    1000 </span><span class="lineCov">         48 :   if (tracklet[kTrDPhi] &lt; -TMath::Pi())  tracklet[kTrDPhi] = tracklet[kTrDPhi]+2.*TMath::Pi();</span>
+<span class="lineNum">    1001 </span>            :   //
+<span class="lineNum">    1002 </span><span class="lineCov">         48 :   tracklet[kTrDTheta] = clPar1[kClTh] - clPar2[kClTh]; // store the theta1-theta2</span>
+<span class="lineNum">    1003 </span>            :   //
+<span class="lineNum">    1004 </span><span class="lineCov">         48 :   if (fHistOn) {</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :     fhClustersDPhiAcc-&gt;Fill(tracklet[kTrDPhi]); </span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :     fhClustersDThetaAcc-&gt;Fill(tracklet[kTrDTheta]);    </span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     fhDPhiVsDThetaAcc-&gt;Fill(tracklet[kTrDTheta],tracklet[kTrDPhi]);</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1009 </span>            :   //
+<span class="lineNum">    1010 </span>            :   // find label
+<span class="lineNum">    1011 </span>            :   // if equal label in both clusters found this label is assigned
+<span class="lineNum">    1012 </span>            :   // if no equal label can be found the first labels of the L1 AND L2 cluster are assigned
+<span class="lineNum">    1013 </span>            :   Int_t label1=0,label2=0;
+<span class="lineNum">    1014 </span><span class="lineCov">        313 :   while (label2 &lt; 3) {</span>
+<span class="lineNum">    1015 </span><span class="lineCov">        266 :     if ( int(clPar1[kClMC0+label1])!=-2 &amp;&amp; int(clPar1[kClMC0+label1])==int(clPar2[kClMC0+label2])) break;</span>
+<span class="lineNum">    1016 </span><span class="lineCov">        289 :     if (++label1 == 3) { label1 = 0; label2++; }</span>
+<span class="lineNum">    1017 </span>            :   }
+<span class="lineNum">    1018 </span><span class="lineCov">         48 :   if (label2 &lt; 3) {</span>
+<span class="lineNum">    1019 </span><span class="lineCov">        120 :     AliDebug(AliLog::kDebug, Form(&quot;Found label %d == %d for tracklet candidate %d\n&quot;, </span>
+<span class="lineNum">    1020 </span>            :                                   (Int_t) clPar1[kClMC0+label1], (Int_t) clPar1[kClMC0+label2], fNTracklets));
+<span class="lineNum">    1021 </span><span class="lineCov">         24 :     tracklet[kTrLab1] = tracklet[kTrLab2] = clPar1[kClMC0+label1];</span>
+<span class="lineNum">    1022 </span><span class="lineCov">         24 :   } else {</span>
+<span class="lineNum">    1023 </span><span class="lineCov">         72 :     AliDebug(AliLog::kDebug, Form(&quot;Did not find label %d %d %d %d %d %d for tracklet candidate %d\n&quot;, </span>
+<span class="lineNum">    1024 </span>            :                                   (Int_t) clPar1[kClMC0], (Int_t) clPar1[kClMC1], (Int_t) clPar1[kClMC2], 
+<span class="lineNum">    1025 </span>            :                                   (Int_t) clPar2[kClMC0], (Int_t) clPar2[kClMC1], (Int_t) clPar2[kClMC2], fNTracklets));
+<span class="lineNum">    1026 </span><span class="lineCov">         24 :     tracklet[kTrLab1] = clPar1[kClMC0];</span>
+<span class="lineNum">    1027 </span><span class="lineCov">         24 :     tracklet[kTrLab2] = clPar2[kClMC0];</span>
+<span class="lineNum">    1028 </span>            :   }
+<span class="lineNum">    1029 </span>            :   //
+<span class="lineNum">    1030 </span><span class="lineCov">         48 :   if (fHistOn) {</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :     Float_t eta = tracklet[kTrTheta];</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :     eta= TMath::Tan(eta/2.);</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :     eta=-TMath::Log(eta);</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :     fhetaTracklets-&gt;Fill(eta);</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :     fhphiTracklets-&gt;Fill(tracklet[kTrPhi]);</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1037 </span>            :   //
+<span class="lineNum">    1038 </span><span class="lineCov">         48 :   tracklet[kClID1] = fPartners[iC2];</span>
+<span class="lineNum">    1039 </span><span class="lineCov">         48 :   tracklet[kClID2] = iC2;</span>
+<span class="lineNum">    1040 </span>            :   //
+<span class="lineNum">    1041 </span>            :   // Printf(&quot;Adding tracklet candidate&quot;);
+<span class="lineNum">    1042 </span><span class="lineCov">        144 :   AliDebug(1,Form(&quot; Adding tracklet candidate %d &quot;, fNTracklets));</span>
+<span class="lineNum">    1043 </span><span class="lineCov">        144 :   AliDebug(1,Form(&quot; Cl. %d of Layer 1 and %d of Layer 2&quot;, fPartners[iC2], iC2));</span>
+<span class="lineNum">    1044 </span><span class="lineCov">         48 :   fNTracklets++;</span>
+<span class="lineNum">    1045 </span><span class="lineCov">         48 :   fAssociatedLay1[fPartners[iC2]] = 1;</span>
+<span class="lineNum">    1046 </span>            :   // 
+<span class="lineNum">    1047 </span>            :   return 1;
+<span class="lineNum">    1048 </span><span class="lineCov">         58 : }</span>
+<a name="1049"><span class="lineNum">    1049 </span>            : </a>
+<span class="lineNum">    1050 </span>            : //____________________________________________________________________
+<span class="lineNum">    1051 </span>            : void AliITSMultReconstructor::StoreL1Singles()
+<span class="lineNum">    1052 </span>            : {
+<span class="lineNum">    1053 </span>            :   // Printf(&quot;saving single clusters...&quot;);
+<span class="lineNum">    1054 </span><span class="lineCov">        200 :   for (Int_t iC1=0; iC1&lt;fNClustersLay[0]; iC1++) {</span>
+<span class="lineNum">    1055 </span><span class="lineCov">         88 :     float* clPar1 = GetClusterLayer1(iC1);</span>
+<span class="lineNum">    1056 </span><span class="lineCov">        136 :     if (fAssociatedLay1[iC1]==2||fAssociatedLay1[iC1]==0) { </span>
+<span class="lineNum">    1057 </span><span class="lineCov">         40 :       fSClusters[fNSingleCluster] = new Float_t[kClNPar];</span>
+<span class="lineNum">    1058 </span><span class="lineCov">         40 :       fSClusters[fNSingleCluster][kSCTh] = clPar1[kClTh];</span>
+<span class="lineNum">    1059 </span><span class="lineCov">         40 :       fSClusters[fNSingleCluster][kSCPh] = clPar1[kClPh];</span>
+<span class="lineNum">    1060 </span><span class="lineCov">         40 :       fSClusters[fNSingleCluster][kSCLab] = clPar1[kClMC0]; </span>
+<span class="lineNum">    1061 </span><span class="lineCov">         40 :       fSClusters[fNSingleCluster][kSCID] = iC1;</span>
+<span class="lineNum">    1062 </span><span class="lineCov">        120 :       AliDebug(1,Form(&quot; Adding a single cluster %d (cluster %d  of layer 1)&quot;,</span>
+<span class="lineNum">    1063 </span>            :                       fNSingleCluster, iC1));
+<span class="lineNum">    1064 </span><span class="lineCov">         40 :       fNSingleCluster++;</span>
+<span class="lineNum">    1065 </span><span class="lineCov">         40 :     }</span>
+<span class="lineNum">    1066 </span>            :   }
+<span class="lineNum">    1067 </span>            :   //
+<span class="lineNum">    1068 </span><span class="lineCov">          8 :   if (GetStoreSPD2SingleCl()) {</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :     for (Int_t iC2=0; iC2&lt;fNClustersLay[1]; iC2++) {</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :       if (fPartners[iC2]&lt;0 || (fOverlapFlagClustersLay[0][fPartners[iC2]] || fOverlapFlagClustersLay[1][iC2])) {</span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :         float* clPar2 = GetClusterLayer2(iC2);</span>
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :         fSClusters[fNSingleCluster] = new Float_t[kClNPar];</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :         fSClusters[fNSingleCluster][kSCTh] = clPar2[kClTh];</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :         fSClusters[fNSingleCluster][kSCPh] = clPar2[kClPh];</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :         fSClusters[fNSingleCluster][kSCLab] = clPar2[kClMC0]; </span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :         fSClusters[fNSingleCluster][kSCID] = iC2;</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :         AliDebug(1,Form(&quot; Adding a single cluster %d (cluster %d  of layer 2)&quot;,</span>
+<span class="lineNum">    1078 </span>            :                         fNSingleCluster, iC2));
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :         fNSingleCluster++;</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :         fNSingleClusterSPD2++;</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1082 </span>            :     }
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1084 </span>            :   //
+<span class="lineNum">    1085 </span><span class="lineCov">          8 : }</span>
+<a name="1086"><span class="lineNum">    1086 </span>            : </a>
+<span class="lineNum">    1087 </span>            : //____________________________________________________________________
+<span class="lineNum">    1088 </span>            : void AliITSMultReconstructor::ProcessESDTracks()
+<span class="lineNum">    1089 </span>            : {
+<span class="lineNum">    1090 </span>            :   // Flag the clusters used by ESD tracks
+<span class="lineNum">    1091 </span>            :   // Flag primary tracks to be used for multiplicity counting 
+<span class="lineNum">    1092 </span>            :   //
+<span class="lineNum">    1093 </span><span class="lineCov">         24 :   if (!fESDEvent || !fBuildRefs) return;</span>
+<span class="lineNum">    1094 </span><span class="lineCov">          8 :   AliESDVertex* vtx = (AliESDVertex*)fESDEvent-&gt;GetPrimaryVertexTracks();</span>
+<span class="lineNum">    1095 </span><span class="lineCov">         16 :   if (!vtx || vtx-&gt;GetNContributors()&lt;1) vtx = (AliESDVertex*)fESDEvent-&gt;GetPrimaryVertexSPD();</span>
+<span class="lineNum">    1096 </span><span class="lineCov">         16 :   if (!vtx || vtx-&gt;GetNContributors()&lt;1) {</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :     AliDebug(1,&quot;No primary vertex: cannot flag primary tracks&quot;);</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1099 </span>            :   }
+<span class="lineNum">    1100 </span><span class="lineCov">          8 :   Int_t ntracks = fESDEvent-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">    1101 </span><span class="lineCov">        300 :   for(Int_t itr=0; itr&lt;ntracks; itr++) {</span>
+<span class="lineNum">    1102 </span><span class="lineCov">        142 :     AliESDtrack* track = fESDEvent-&gt;GetTrack(itr);</span>
+<span class="lineNum">    1103 </span><span class="lineCov">        186 :     if (!track-&gt;IsOn(AliESDtrack::kITSin)) continue; // use only tracks propagated in ITS to vtx</span>
+<span class="lineNum">    1104 </span><span class="lineCov">         98 :     FlagTrackClusters(itr);</span>
+<span class="lineNum">    1105 </span><span class="lineCov">         98 :     FlagIfSecondary(track,vtx);</span>
+<span class="lineNum">    1106 </span><span class="lineCov">         98 :   }</span>
+<span class="lineNum">    1107 </span><span class="lineCov">          8 :   FlagV0s(vtx);</span>
+<span class="lineNum">    1108 </span>            :   //
+<span class="lineNum">    1109 </span><span class="lineCov">         16 : }</span>
+<a name="1110"><span class="lineNum">    1110 </span>            : </a>
+<span class="lineNum">    1111 </span>            : //____________________________________________________________________
+<span class="lineNum">    1112 </span>            : void AliITSMultReconstructor::FlagTrackClusters(Int_t id)
+<span class="lineNum">    1113 </span>            : {
+<span class="lineNum">    1114 </span>            :   // RS: flag the SPD clusters of the track if it is useful for the multiplicity estimation
+<span class="lineNum">    1115 </span>            :   //
+<span class="lineNum">    1116 </span><span class="lineCov">        196 :   const AliESDtrack* track = fESDEvent-&gt;GetTrack(id);</span>
+<span class="lineNum">    1117 </span><span class="lineCov">         98 :   Int_t idx[12];</span>
+<span class="lineNum">    1118 </span><span class="lineCov">         98 :   if ( track-&gt;GetITSclusters(idx)&lt;3 ) return; // at least 3 clusters must be used in the fit</span>
+<span class="lineNum">    1119 </span><span class="lineCov">         98 :   Int_t itsType = track-&gt;IsOn(AliESDtrack::kITSpureSA) ? 1:0;</span>
+<span class="lineNum">    1120 </span>            :   
+<span class="lineNum">    1121 </span><span class="lineCov">        784 :   for (int i=6/*AliESDfriendTrack::kMaxITScluster*/;i--;) { // ignore extras: note: i&gt;=6 is for extra clusters</span>
+<span class="lineNum">    1122 </span><span class="lineCov">        588 :     if (idx[i]&lt;0) continue;</span>
+<span class="lineNum">    1123 </span><span class="lineCov">        514 :     int layID= (idx[i] &amp; 0xf0000000) &gt;&gt; 28; </span>
+<span class="lineNum">    1124 </span><span class="lineCov">        894 :     if (layID&gt;1) continue; // SPD only</span>
+<span class="lineNum">    1125 </span><span class="lineCov">        134 :     int clID = (idx[i] &amp; 0x0fffffff);</span>
+<span class="lineNum">    1126 </span><span class="lineCov">        134 :     fUsedClusLay[layID][itsType]-&gt;AddReference(clID,id);</span>
+<span class="lineNum">    1127 </span><span class="lineCov">        134 :     fStoreRefs[layID][itsType] = kTRUE;</span>
+<span class="lineNum">    1128 </span><span class="lineCov">        134 :   }</span>
+<span class="lineNum">    1129 </span>            :   //
+<span class="lineNum">    1130 </span><span class="lineCov">        196 : }</span>
+<a name="1131"><span class="lineNum">    1131 </span>            : </a>
+<span class="lineNum">    1132 </span>            : //____________________________________________________________________
+<span class="lineNum">    1133 </span>            : void AliITSMultReconstructor::FlagIfSecondary(AliESDtrack* track, const AliVertex* vtx)
+<span class="lineNum">    1134 </span>            : {
+<span class="lineNum">    1135 </span>            :   // RS: check if the track is primary and set the flag
+<span class="lineNum">    1136 </span><span class="lineCov">        414 :   double cut = (track-&gt;HasPointOnITSLayer(0)||track-&gt;HasPointOnITSLayer(1)) ? fCutPxDrSPDin:fCutPxDrSPDout;</span>
+<span class="lineNum">    1137 </span><span class="lineCov">         98 :   float xz[2];</span>
+<span class="lineNum">    1138 </span><span class="lineCov">         98 :   track-&gt;GetDZ(vtx-&gt;GetX(),vtx-&gt;GetY(),vtx-&gt;GetZ(), fESDEvent-&gt;GetMagneticField(), xz);</span>
+<span class="lineNum">    1139 </span><span class="lineCov">        278 :   if (TMath::Abs(xz[0]*track-&gt;P())&gt;cut || TMath::Abs(xz[1]*track-&gt;P())&gt;fCutPxDz ||</span>
+<span class="lineNum">    1140 </span><span class="lineCov">        180 :       TMath::Abs(xz[0])&gt;fCutDCArz   || TMath::Abs(xz[1])&gt;fCutDCArz) </span>
+<span class="lineNum">    1141 </span><span class="lineCov">          8 :     track-&gt;SetStatus(AliESDtrack::kMultSec);</span>
+<span class="lineNum">    1142 </span><span class="lineCov">         90 :   else track-&gt;ResetStatus(AliESDtrack::kMultSec);</span>
+<span class="lineNum">    1143 </span><span class="lineCov">         98 : }</span>
+<a name="1144"><span class="lineNum">    1144 </span>            : </a>
+<span class="lineNum">    1145 </span>            : //____________________________________________________________________
+<span class="lineNum">    1146 </span>            : void AliITSMultReconstructor::FlagV0s(const AliESDVertex *vtx)
+<span class="lineNum">    1147 </span>            : {
+<span class="lineNum">    1148 </span>            :   // flag tracks belonging to v0s
+<span class="lineNum">    1149 </span>            :   //
+<span class="lineNum">    1150 </span>            :   const double kK0Mass = 0.4976;
+<span class="lineNum">    1151 </span>            :   //
+<span class="lineNum">    1152 </span><span class="lineCov">         16 :   AliV0 pvertex;</span>
+<span class="lineNum">    1153 </span><span class="lineCov">          8 :   AliKFVertex vertexKF;</span>
+<span class="lineNum">    1154 </span><span class="lineCov">         56 :   AliKFParticle epKF0,epKF1,pipmKF0,piKF0,piKF1,gammaKF,k0KF;</span>
+<span class="lineNum">    1155 </span><span class="lineCov">          8 :   Double_t mass,massErr,chi2c;</span>
+<span class="lineNum">    1156 </span>            :   enum {kKFIni=BIT(14)};
+<span class="lineNum">    1157 </span>            :   //
+<span class="lineNum">    1158 </span><span class="lineCov">          8 :   double recVtx[3];</span>
+<span class="lineNum">    1159 </span><span class="lineCov">          8 :   float recVtxF[3];</span>
+<span class="lineNum">    1160 </span><span class="lineCov">          8 :   vtx-&gt;GetXYZ(recVtx);</span>
+<span class="lineNum">    1161 </span><span class="lineCov">         64 :   for (int i=3;i--;) recVtxF[i] = recVtx[i];</span>
+<span class="lineNum">    1162 </span>            :   //
+<span class="lineNum">    1163 </span><span class="lineCov">          8 :   int ntracks = fESDEvent-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">    1164 </span><span class="lineCov">          8 :   if (ntracks&lt;2) return;</span>
+<span class="lineNum">    1165 </span>            :   //
+<span class="lineNum">    1166 </span><span class="lineCov">         16 :   vertexKF.X() = recVtx[0];</span>
+<span class="lineNum">    1167 </span><span class="lineCov">         16 :   vertexKF.Y() = recVtx[1];</span>
+<span class="lineNum">    1168 </span><span class="lineCov">         16 :   vertexKF.Z() = recVtx[2];</span>
+<span class="lineNum">    1169 </span><span class="lineCov">         16 :   vertexKF.Covariance(0,0) = vtx-&gt;GetXRes()*vtx-&gt;GetXRes();</span>
+<span class="lineNum">    1170 </span><span class="lineCov">         16 :   vertexKF.Covariance(1,2) = vtx-&gt;GetYRes()*vtx-&gt;GetYRes();</span>
+<span class="lineNum">    1171 </span><span class="lineCov">         16 :   vertexKF.Covariance(2,2) = vtx-&gt;GetZRes()*vtx-&gt;GetZRes();</span>
+<span class="lineNum">    1172 </span>            :   //
+<span class="lineNum">    1173 </span>            :   AliESDtrack *trc0,*trc1;
+<span class="lineNum">    1174 </span><span class="lineCov">        300 :   for (int it0=0;it0&lt;ntracks;it0++) {</span>
+<span class="lineNum">    1175 </span><span class="lineCov">        142 :     trc0 = fESDEvent-&gt;GetTrack(it0);</span>
+<span class="lineNum">    1176 </span><span class="lineCov">        284 :     if (trc0-&gt;IsOn(AliESDtrack::kMultInV0)) continue;</span>
+<span class="lineNum">    1177 </span><span class="lineCov">        284 :     if (!trc0-&gt;IsOn(AliESDtrack::kITSin)) continue;</span>
+<span class="lineNum">    1178 </span><span class="lineCov">        196 :     Bool_t isSAP = trc0-&gt;IsPureITSStandalone();</span>
+<span class="lineNum">    1179 </span><span class="lineCov">        196 :     Int_t  q0 = trc0-&gt;Charge();</span>
+<span class="lineNum">    1180 </span><span class="lineCov">        196 :     Bool_t testGamma = CanBeElectron(trc0);</span>
+<span class="lineNum">    1181 </span><span class="lineCov">         98 :     epKF0.ResetBit(kKFIni);</span>
+<span class="lineNum">    1182 </span><span class="lineCov">         98 :     piKF0.ResetBit(kKFIni);</span>
+<span class="lineNum">    1183 </span>            :     double bestChi2=1e16;
+<span class="lineNum">    1184 </span>            :     int bestID = -1;
+<span class="lineNum">    1185 </span>            :     //    
+<span class="lineNum">    1186 </span><span class="lineCov">       2236 :     for (int it1=it0+1;it1&lt;ntracks;it1++) {</span>
+<span class="lineNum">    1187 </span><span class="lineCov">       1020 :       trc1 = fESDEvent-&gt;GetTrack(it1);</span>
+<span class="lineNum">    1188 </span><span class="lineCov">       2040 :       if (trc1-&gt;IsOn(AliESDtrack::kMultInV0)) continue;</span>
+<span class="lineNum">    1189 </span><span class="lineCov">       2040 :       if (!trc1-&gt;IsOn(AliESDtrack::kITSin)) continue;</span>
+<span class="lineNum">    1190 </span><span class="lineCov">       1140 :       if (trc1-&gt;IsPureITSStandalone() != isSAP) continue; // pair separately ITS_SA_Pure tracks and TPC/ITS+ITS_SA</span>
+<span class="lineNum">    1191 </span><span class="lineCov">       1140 :       if ( (q0+trc1-&gt;Charge())!=0 ) continue;             // don't pair like signs</span>
+<span class="lineNum">    1192 </span>            :       //
+<span class="lineNum">    1193 </span><span class="lineCov">        306 :       pvertex.SetParamN(q0&lt;0 ? *trc0:*trc1);</span>
+<span class="lineNum">    1194 </span><span class="lineCov">        306 :       pvertex.SetParamP(q0&gt;0 ? *trc0:*trc1);</span>
+<span class="lineNum">    1195 </span><span class="lineCov">        306 :       pvertex.Update(recVtxF);</span>
+<span class="lineNum">    1196 </span><span class="lineCov">        612 :       if (pvertex.P()&lt;fCutMinP) continue;</span>
+<span class="lineNum">    1197 </span><span class="lineCov">        306 :       if (pvertex.GetV0CosineOfPointingAngle()&lt;fCutMinPointAngle) continue;</span>
+<span class="lineNum">    1198 </span><span class="lineCov">         54 :       if (pvertex.GetDcaV0Daughters()&gt;fCutMaxDCADauther) continue;</span>
+<span class="lineNum">    1199 </span><span class="lineCov">         76 :       double d = pvertex.GetD(recVtx[0],recVtx[1],recVtx[2]);</span>
+<span class="lineNum">    1200 </span><span class="lineCov">         38 :       if (d&gt;fCutMaxDCA) continue;</span>
+<span class="lineNum">    1201 </span><span class="lineCov">        114 :       double dx=recVtx[0]-pvertex.Xv(), dy=recVtx[1]-pvertex.Yv();</span>
+<span class="lineNum">    1202 </span><span class="lineCov">         38 :       double rv = TMath::Sqrt(dx*dx+dy*dy);</span>
+<span class="lineNum">    1203 </span>            :       //
+<span class="lineNum">    1204 </span>            :       // check gamma conversion hypothesis -----------------------------------------------------------&gt;&gt;&gt;
+<span class="lineNum">    1205 </span>            :       Bool_t gammaOK = kFALSE;
+<span class="lineNum">    1206 </span><span class="lineCov">        114 :       while (testGamma &amp;&amp; CanBeElectron(trc1)) {</span>
+<span class="lineNum">    1207 </span><span class="lineCov">         38 :         if (rv&lt;fCutMinRGamma) break;</span>
+<span class="lineNum">    1208 </span><span class="lineCov">          8 :         if (!epKF0.TestBit(kKFIni)) {</span>
+<span class="lineNum">    1209 </span><span class="lineCov">          8 :           new(&amp;epKF0) AliKFParticle(*trc0,q0&gt;0 ? kPositron:kElectron);</span>
+<span class="lineNum">    1210 </span><span class="lineCov">          4 :           epKF0.SetBit(kKFIni);</span>
+<span class="lineNum">    1211 </span><span class="lineCov">          4 :         }</span>
+<span class="lineNum">    1212 </span><span class="lineCov">         16 :         new(&amp;epKF1) AliKFParticle(*trc1,q0&lt;0 ? kPositron:kElectron);</span>
+<span class="lineNum">    1213 </span><span class="lineCov">          8 :         gammaKF.Initialize();</span>
+<span class="lineNum">    1214 </span><span class="lineCov">          8 :         gammaKF += epKF0;</span>
+<span class="lineNum">    1215 </span><span class="lineCov">          8 :         gammaKF += epKF1;      </span>
+<span class="lineNum">    1216 </span><span class="lineCov">          8 :         gammaKF.SetProductionVertex(vertexKF);</span>
+<span class="lineNum">    1217 </span><span class="lineCov">          8 :         gammaKF.GetMass(mass,massErr);</span>
+<span class="lineNum">    1218 </span><span class="lineCov">         16 :         if (mass&gt;fCutMassGamma || (massErr&gt;0&amp;&amp;(mass&gt;massErr*fCutMassGammaNSigma))) break;</span>
+<span class="lineNum">    1219 </span><span class="lineCov">          8 :         if (gammaKF.GetS()&lt;fCutGammaSFromDecay) break;</span>
+<span class="lineNum">    1220 </span><span class="lineCov">          4 :         gammaKF.SetMassConstraint(0.,0.001);</span>
+<span class="lineNum">    1221 </span><span class="lineCov">         24 :         chi2c = (gammaKF.GetNDF()!=0) ? gammaKF.GetChi2()/gammaKF.GetNDF() : 1000;</span>
+<span class="lineNum">    1222 </span><span class="lineCov">          4 :         if (chi2c&gt;fCutChi2cGamma) break;</span>
+<span class="lineNum">    1223 </span>            :         gammaOK = kTRUE;
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :         if (chi2c&gt;bestChi2) break;</span>
+<span class="lineNum">    1225 </span>            :         bestChi2 = chi2c;
+<span class="lineNum">    1226 </span>            :         bestID = it1;
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1228 </span>            :       }
+<span class="lineNum">    1229 </span><span class="lineCov">         38 :       if (gammaOK) continue;</span>
+<span class="lineNum">    1230 </span>            :       // check gamma conversion hypothesis -----------------------------------------------------------&lt;&lt;&lt;
+<span class="lineNum">    1231 </span>            :       // check K0 conversion hypothesis    -----------------------------------------------------------&gt;&gt;&gt;
+<span class="lineNum">    1232 </span>            :       while (1) {
+<span class="lineNum">    1233 </span><span class="lineCov">         38 :         if (rv&lt;fCutMinRK0) break;</span>
+<span class="lineNum">    1234 </span><span class="lineCov">         10 :         if (!piKF0.TestBit(kKFIni)) {</span>
+<span class="lineNum">    1235 </span><span class="lineCov">         12 :           new(&amp;piKF0) AliKFParticle(*trc0,q0&gt;0 ? kPiPlus:kPiMinus);</span>
+<span class="lineNum">    1236 </span><span class="lineCov">          6 :           piKF0.SetBit(kKFIni);</span>
+<span class="lineNum">    1237 </span><span class="lineCov">          6 :         }</span>
+<span class="lineNum">    1238 </span><span class="lineCov">         20 :         new(&amp;piKF1) AliKFParticle(*trc1,q0&lt;0 ? kPiPlus:kPiMinus);</span>
+<span class="lineNum">    1239 </span><span class="lineCov">         10 :         k0KF.Initialize();</span>
+<span class="lineNum">    1240 </span><span class="lineCov">         10 :         k0KF += piKF0;</span>
+<span class="lineNum">    1241 </span><span class="lineCov">         10 :         k0KF += piKF1;      </span>
+<span class="lineNum">    1242 </span><span class="lineCov">         10 :         k0KF.SetProductionVertex(vertexKF);</span>
+<span class="lineNum">    1243 </span><span class="lineCov">         10 :         k0KF.GetMass(mass,massErr);</span>
+<span class="lineNum">    1244 </span><span class="lineCov">         10 :         mass -= kK0Mass;</span>
+<span class="lineNum">    1245 </span><span class="lineCov">         10 :         if (TMath::Abs(mass)&gt;fCutMassK0 || (massErr&gt;0&amp;&amp;(std::abs(mass)&gt;massErr*fCutMassK0NSigma))) break;</span>
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :         if (k0KF.GetS()&lt;fCutK0SFromDecay) break;</span>
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :         k0KF.SetMassConstraint(kK0Mass,0.001);</span>
+<span class="lineNum">    1248 </span><span class="lineNoCov">          0 :         chi2c = (k0KF.GetNDF()!=0) ? k0KF.GetChi2()/k0KF.GetNDF() : 1000;</span>
+<span class="lineNum">    1249 </span><span class="lineNoCov">          0 :         if (chi2c&gt;fCutChi2cK0) break;</span>
+<span class="lineNum">    1250 </span><span class="lineNoCov">          0 :         if (chi2c&gt;bestChi2) break;</span>
+<span class="lineNum">    1251 </span>            :         bestChi2 = chi2c;
+<span class="lineNum">    1252 </span>            :         bestID = it1;
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1254 </span>            :       }
+<span class="lineNum">    1255 </span>            :       // check K0 conversion hypothesis    -----------------------------------------------------------&lt;&lt;&lt;
+<span class="lineNum">    1256 </span><span class="lineCov">         38 :     }</span>
+<span class="lineNum">    1257 </span>            :     //
+<span class="lineNum">    1258 </span><span class="lineCov">         98 :     if (bestID&gt;=0) {</span>
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :       trc0-&gt;SetStatus(AliESDtrack::kMultInV0);</span>
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :       fESDEvent-&gt;GetTrack(bestID)-&gt;SetStatus(AliESDtrack::kMultInV0);</span>
+<span class="lineNum">    1261 </span>            :     }
+<span class="lineNum">    1262 </span><span class="lineCov">         98 :   }</span>
+<span class="lineNum">    1263 </span>            :   //
+<span class="lineNum">    1264 </span><span class="lineCov">         16 : }</span>
+<a name="1265"><span class="lineNum">    1265 </span>            : </a>
+<span class="lineNum">    1266 </span>            : //____________________________________________________________________
+<span class="lineNum">    1267 </span>            : Bool_t AliITSMultReconstructor::CanBeElectron(const AliESDtrack* trc) const
+<span class="lineNum">    1268 </span>            : {
+<span class="lineNum">    1269 </span>            :   // check if the track can be electron
+<span class="lineNum">    1270 </span><span class="lineCov">        272 :   Double_t pid[AliPID::kSPECIES];</span>
+<span class="lineNum">    1271 </span><span class="lineCov">        272 :   if (!trc-&gt;IsOn(AliESDtrack::kESDpid)) return kTRUE;</span>
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 :   trc-&gt;GetESDpid(pid);</span>
+<span class="lineNum">    1273 </span><span class="lineNoCov">          0 :   return (trc-&gt;IsOn(AliESDtrack::kTPCpid)) ? </span>
+<span class="lineNum">    1274 </span><span class="lineNoCov">          0 :     pid[AliPID::kElectron]&gt;fCutMinElectronProbTPC : </span>
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :     pid[AliPID::kElectron]&gt;fCutMinElectronProbESD;</span>
+<span class="lineNum">    1276 </span>            :   //
+<span class="lineNum">    1277 </span><span class="lineCov">        136 : }</span>
+<a name="1278"><span class="lineNum">    1278 </span>            : </a>
+<span class="lineNum">    1279 </span>            : //____________________________________________________________________
+<span class="lineNum">    1280 </span>            : AliITSRecPoint* AliITSMultReconstructor::GetRecPoint(Int_t lr, Int_t n) const
+<span class="lineNum">    1281 </span>            : {
+<span class="lineNum">    1282 </span>            :   // return a cluster of lr corresponding to orderer cluster index n
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :   if (fClArr[lr] &amp;&amp; fClusterCopyIndex[lr] &amp;&amp; n&lt;fNClustersLay[lr]) </span>
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :     return (AliITSRecPoint*) fClArr[lr]-&gt;At(fClusterCopyIndex[lr][n]);</span>
+<span class="lineNum">    1285 </span>            :   else {
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :     AliError(&quot;To access the clusters SetCreateClustersCopy should have been called&quot;);</span>
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">    1288 </span>            :   }
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

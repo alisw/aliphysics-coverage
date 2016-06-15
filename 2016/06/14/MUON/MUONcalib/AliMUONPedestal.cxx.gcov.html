@@ -1,0 +1,631 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - MUON/MUONcalib/AliMUONPedestal.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">MUON/MUONcalib</a> - AliMUONPedestal.cxx<span style="font-size: 80%;"> (source / <a href="AliMUONPedestal.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">290</td>
+            <td class="headerCovTableEntryLo">0.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">6.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            : * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            : *                                                                        *
+<span class="lineNum">       4 </span>            : * Author: The ALICE Off-line Project.                                    * 
+<span class="lineNum">       5 </span>            : * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            : *                                                                        *
+<span class="lineNum">       7 </span>            : * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            : * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            : * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            : * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            : * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            : * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            : * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            : **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : // $Id$
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &quot;AliMUONPedestal.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;AliMUONErrorCounter.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;AliMUONVStore.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;AliMUON2DMap.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;AliMUONCalibParamND.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliMpConstants.h&quot;
+<span class="lineNum">      24 </span>            : #include &lt;TString.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;TTimeStamp.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;TTree.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;TH1F.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;THashList.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &lt;sstream&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      36 </span>            : /// \class AliMUONPedestal
+<span class="lineNum">      37 </span>            : ///
+<span class="lineNum">      38 </span>            : /// Implementation of the pedestal computing
+<span class="lineNum">      39 </span>            : ///
+<span class="lineNum">      40 </span>            : /// add
+<span class="lineNum">      41 </span>            : /// 
+<span class="lineNum">      42 </span>            : ///
+<span class="lineNum">      43 </span>            : /// \author Alberto Baldisseri, JL Charvet (05/05/2009)
+<span class="lineNum">      44 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : using std::ostream;
+<span class="lineNum">      47 </span>            : using std::ifstream;
+<span class="lineNum">      48 </span>            : using std::endl;
+<span class="lineNum">      49 </span>            : using std::cout;
+<a name="50"><span class="lineNum">      50 </span>            : using std::ios;</a>
+<span class="lineNum">      51 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      52 </span><span class="lineCov">         18 : ClassImp(AliMUONPedestal)</span>
+<span class="lineNum">      53 </span>            : /// \endcond
+<a name="54"><span class="lineNum">      54 </span>            : </a>
+<span class="lineNum">      55 </span>            : //______________________________________________________________________________
+<span class="lineNum">      56 </span>            : AliMUONPedestal::AliMUONPedestal()
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : : TObject(),</span>
+<span class="lineNum">      58 </span>            : //fN(0),
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : fNCurrentEvents(0),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 : fNEvthreshold(0),</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : fSorting(0),</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 : fNEvents(0),</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 : fRunNumber(0),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : fNChannel(0),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : fNManu(0),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 : fNManuConfig(0),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : fConfig(1),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : fStatusDA(0),</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 : fHistos(0),</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : fErrorBuspatchTable(new AliMUON2DMap(kFALSE)),</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 : fManuBuspatchTable(new AliMUON2DMap(kFALSE)),</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 : fManuBPoutofconfigTable(new AliMUON2DMap(kFALSE)),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : fDate(new TTimeStamp()),</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 : fFilcout(0),</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 : fHistoFileName(),</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : fPedestalStore(new AliMUON2DMap(kTRUE)),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 : fIndex(-1),</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 : fPrefixDA(),</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 : fPrefixLDC(),</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : fHistoFile(0),</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 : fTree(0)</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      83 </span>            : /// Default constructor
+<a name="84"><span class="lineNum">      84 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      85 </span>            : //______________________________________________________________________________
+<span class="lineNum">      86 </span>            : AliMUONPedestal::AliMUONPedestal(TRootIOCtor* /*dummy*/)
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 : : TObject(),</span>
+<span class="lineNum">      88 </span>            : //fN(0),
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 : fNCurrentEvents(0),</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : fNEvthreshold(0),</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 : fSorting(0),</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 : fNEvents(0),</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 : fRunNumber(0),</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : fNChannel(0),</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 : fNManu(0),</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : fNManuConfig(0),</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 : fConfig(1),</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 : fStatusDA(0),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 : fHistos(0),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 : fErrorBuspatchTable(0),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 : fManuBuspatchTable(0),</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 : fManuBPoutofconfigTable(0),</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 : fDate(0),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 : fFilcout(0),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 : fHistoFileName(),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 : fPedestalStore(0),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 : fIndex(-1),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 : fPrefixDA(),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 : fPrefixLDC(),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 : fHistoFile(0),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : fTree(0)</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     113 </span>            : /// Root IO constructor
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 : }</span>
+<a name="115"><span class="lineNum">     115 </span>            : </a>
+<span class="lineNum">     116 </span>            : //______________________________________________________________________________
+<span class="lineNum">     117 </span>            : AliMUONPedestal::~AliMUONPedestal()
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     119 </span>            : /// Destructor
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   delete fErrorBuspatchTable;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   delete fManuBuspatchTable;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   delete fPedestalStore;</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   delete fManuBPoutofconfigTable;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     125 </span>            : 
+<a name="126"><span class="lineNum">     126 </span>            : //______________________________________________________________________________</a>
+<span class="lineNum">     127 </span>            : const char* 
+<span class="lineNum">     128 </span>            : AliMUONPedestal::GetHistoFileName() const
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span>            :   /// Return the name of file we use to store histograms
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   return fHistoFileName.Data();</span>
+<span class="lineNum">     132 </span>            : }
+<a name="133"><span class="lineNum">     133 </span>            : </a>
+<span class="lineNum">     134 </span>            : //______________________________________________________________________________
+<span class="lineNum">     135 </span>            : void AliMUONPedestal::LoadConfig(const char* dbfile)
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :   /// Load MUONTRK configuration from ascii file &quot;dbfile&quot; (in DetDB)
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   Int_t manuId;</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   Int_t busPatchId;</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   ifstream filein(dbfile,ios::in);</span>
+<span class="lineNum">     143 </span>            :   
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   while (!filein.eof())</span>
+<span class="lineNum">     145 </span>            :     { 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :       filein &gt;&gt; busPatchId &gt;&gt; manuId;</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :       AliMUONVCalibParam* ped = 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         static_cast&lt;AliMUONVCalibParam*&gt;(fPedestalStore -&gt;FindObject(busPatchId, manuId));</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :       if (!ped) {</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         fNManuConfig++;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         fNChannel+=64;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   ped = new AliMUONCalibParamND(2, AliMpConstants::ManuNofChannels(),busPatchId, manuId, -1.); // put default wise -1, not connected channel</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         fPedestalStore -&gt;Add(ped);  </span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         if ( ! fManuBuspatchTable-&gt;FindObject(busPatchId,manuId) )</span>
+<span class="lineNum">     158 </span>            :           {
+<span class="lineNum">     159 </span>            :             // New (buspatch,manu)
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             AliMUONErrorCounter* manuCounter = new AliMUONErrorCounter(busPatchId,manuId);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             fManuBuspatchTable-&gt;Add(manuCounter);</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     163 </span>            :       }
+<span class="lineNum">     164 </span>            :     }
+<a name="165"><span class="lineNum">     165 </span><span class="lineNoCov">          0 : } </span></a>
+<span class="lineNum">     166 </span>            : //______________________________________________________________________________
+<span class="lineNum">     167 </span>            : void AliMUONPedestal::MakePed(Int_t busPatchId, Int_t manuId, Int_t channelId, Int_t charge)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :   static Int_t tree_charge=0;
+<span class="lineNum">     170 </span>            :   static Int_t warn=0;
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   Int_t DDL= busPatchId/100+2560;</span>
+<span class="lineNum">     172 </span>            :   /// Compute pedestals values
+<span class="lineNum">     173 </span>            :   AliMUONVCalibParam* ped = 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     static_cast&lt;AliMUONVCalibParam*&gt;(fPedestalStore -&gt;FindObject(busPatchId, manuId));</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   if(!tree_charge &amp;&amp; fHistos==2)</span>
+<span class="lineNum">     178 </span>            :     {
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :       fTree = new TTree(&quot;tc&quot;,&quot;Charge tree&quot;);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :       fTree-&gt;Branch(&quot;bp&quot;,&amp;busPatchId,&quot;bp/I&quot;);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :       fTree-&gt;Branch(&quot;manu&quot;,&amp;manuId,&quot;,manu/I&quot;);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :       fTree-&gt;Branch(&quot;channel&quot;,&amp;channelId,&quot;,channel/I&quot;);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :       fTree-&gt;Branch(&quot;DDL&quot;,&amp;DDL,&quot;,DDL/I&quot;);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :       fTree-&gt;Branch(&quot;charge&quot;,&amp;charge,&quot;charge/I&quot;);</span>
+<span class="lineNum">     185 </span>            :       //      fTree-&gt;Branch(&quot;Pedestal&quot;,&amp;Pedestal,&quot;Pedestal/D&quot;);
+<span class="lineNum">     186 </span>            :       //      fTree-&gt;Branch(&quot;chargetrue&quot;,&amp;chargeminusPed,&quot;chargetrue/D&quot;);
+<span class="lineNum">     187 </span>            :       //      fTree-&gt;Branch(&quot;evt&quot;,&amp;evt,&quot;evt/I&quot;);
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :       tree_charge=1;</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   if (!ped)   </span>
+<span class="lineNum">     193 </span>            :     {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :       if(fConfig) </span>
+<span class="lineNum">     195 </span>            :         {  // Fill out_of_config (buspatch,manu) table
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :           if (!(static_cast&lt;AliMUONErrorCounter*&gt;(fManuBPoutofconfigTable-&gt;FindObject(busPatchId,manuId))))</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :             fManuBPoutofconfigTable-&gt;Add(new AliMUONErrorCounter(busPatchId,manuId));</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :           if(warn&lt;10) cout &lt;&lt; fPrefixLDC.Data() &lt;&lt; &quot; : !!! WARNING  : busPatchId = &quot; &lt;&lt; busPatchId &lt;&lt; &quot; manuId = &quot; &lt;&lt; manuId &lt;&lt; &quot; not in the Detector configuration &quot; &lt;&lt; endl;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :           else if(warn==10) cout &lt;&lt; fPrefixLDC.Data() &lt;&lt; &quot; : !!! see .log file for an exhaustive list of (busPatchId, manuId) out of Detector configuration \n&quot; &lt;&lt; endl; </span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :            warn++;</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :            (*fFilcout) &lt;&lt;&quot; !!! WARNING  : busPatchId = &quot; &lt;&lt; busPatchId &lt;&lt; &quot; manuId = &quot; &lt;&lt; manuId &lt;&lt; &quot; not in the Detector configuration &quot; &lt;&lt; endl; </span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :       else {fNManu++;}</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :       fNChannel+=64;</span>
+<span class="lineNum">     205 </span>            :       // put default wise -1, not connected channel
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :       ped = new AliMUONCalibParamND(2, AliMpConstants::ManuNofChannels(),busPatchId, manuId, -1.); </span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       fPedestalStore -&gt;Add(ped);  </span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :   // Initialization for the first value
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   if (ped-&gt;ValueAsDouble(channelId, 0) == -1)  </span>
+<span class="lineNum">     212 </span>            :     { 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       if(fConfig &amp;&amp; channelId == 0){fNManu++;}</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       ped-&gt;SetValueAsDouble(channelId, 0, 0.);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   if (ped-&gt;ValueAsDouble(channelId, 1) == -1) ped-&gt;SetValueAsDouble(channelId, 1, 0.);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   if(fHistos==2) fTree-&gt;Fill();  </span>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   Double_t pedMean  = ped-&gt;ValueAsDouble(channelId, 0) + (Double_t) charge;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   Double_t pedSigma = ped-&gt;ValueAsDouble(channelId, 1) + (Double_t) charge*charge;</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   ped-&gt;SetValueAsDouble(channelId, 0, pedMean);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   ped-&gt;SetValueAsDouble(channelId, 1, pedSigma);</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :   AliMUONErrorCounter* manuCounter;
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   if (!(manuCounter = static_cast&lt;AliMUONErrorCounter*&gt;(fManuBuspatchTable-&gt;FindObject(busPatchId,manuId))))</span>
+<span class="lineNum">     228 </span>            :     {
+<span class="lineNum">     229 </span>            :       // New (buspatch,manu)
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :       manuCounter = new AliMUONErrorCounter(busPatchId,manuId);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :       fManuBuspatchTable-&gt;Add(manuCounter);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     233 </span>            :   else
+<span class="lineNum">     234 </span>            :     {
+<span class="lineNum">     235 </span>            :       // Existing buspatch
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :       manuCounter-&gt;Increment();</span>
+<span class="lineNum">     237 </span>            :     }   
+<a name="238"><span class="lineNum">     238 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     239 </span>            : //______________________________________________________________________________
+<span class="lineNum">     240 </span>            : void AliMUONPedestal::Finalize()
+<span class="lineNum">     241 </span>            : {
+<span class="lineNum">     242 </span>            :   /// final polishing of the store
+<span class="lineNum">     243 </span>            :   
+<span class="lineNum">     244 </span>            :   Double_t pedMean;
+<span class="lineNum">     245 </span>            :   Double_t pedSigma;
+<span class="lineNum">     246 </span>            :   Double_t pedSigmalimit=0.5;
+<span class="lineNum">     247 </span>            :   Int_t busPatchId;
+<span class="lineNum">     248 </span>            :   Int_t manuId;
+<span class="lineNum">     249 </span>            :   Int_t channelId;
+<span class="lineNum">     250 </span>            :   Int_t status=0;
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            :   // print in logfile
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   if (fErrorBuspatchTable-&gt;GetSize())</span>
+<span class="lineNum">     254 </span>            :     {
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :       cout&lt;&lt; &quot;\n&quot; &lt;&lt; fPrefixLDC.Data() &lt;&lt; &quot; : See list of Buspatches with lower statistics (due to parity errors) in .log or .ped file &quot;&lt;&lt;endl;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :       (*fFilcout)&lt;&lt;&quot;\nWarning: Buspatches with less statistics (due to parity errors)&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       TIter nextParityError(fErrorBuspatchTable-&gt;CreateIterator());</span>
+<span class="lineNum">     258 </span>            :       AliMUONErrorCounter* parityerror;
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       while((parityerror = static_cast&lt;AliMUONErrorCounter*&gt;(nextParityError())))</span>
+<span class="lineNum">     260 </span>            :         {
+<span class="lineNum">     261 </span>            :           //      cout&lt;&lt;&quot;  bp &quot;&lt;&lt;parityerror-&gt;BusPatch()&lt;&lt;&quot;: used events = &quot;&lt;&lt;fNEvents-parityerror-&gt;Events()&lt;&lt;endl;
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :           (*fFilcout)&lt;&lt;&quot;  bp &quot;&lt;&lt;parityerror-&gt;BusPatch()&lt;&lt;&quot;: used events = &quot;&lt;&lt;fNEvents-parityerror-&gt;Events()&lt;&lt;endl;</span>
+<span class="lineNum">     263 </span>            :         }
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     265 </span>            :   
+<span class="lineNum">     266 </span>            :   Int_t nADC4090=0;
+<span class="lineNum">     267 </span>            :   Int_t nADCmax=0;
+<span class="lineNum">     268 </span>            :   // iterator over pedestal
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   TIter next(fPedestalStore -&gt;CreateIterator());</span>
+<span class="lineNum">     270 </span>            :   AliMUONVCalibParam* ped;
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   while ( ( ped = dynamic_cast&lt;AliMUONVCalibParam*&gt;(next() ) ) )</span>
+<span class="lineNum">     273 </span>            :     {
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       busPatchId              = ped-&gt;ID0();</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :       manuId                  = ped-&gt;ID1();</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :       if(manuId==0)</span>
+<span class="lineNum">     277 </span>            :         {
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :           cout &lt;&lt; fPrefixLDC.Data() &lt;&lt; &quot; : Warning: ManuId = &quot; &lt;&lt; manuId &lt;&lt; &quot; !!! in  BP = &quot; &lt;&lt; busPatchId &lt;&lt; endl;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :           (*fFilcout) &lt;&lt; &quot;Warning: ManuId = &quot; &lt;&lt; manuId &lt;&lt; &quot; !!! in  BP = &quot; &lt;&lt; busPatchId &lt;&lt; endl;</span>
+<span class="lineNum">     280 </span>            :         }
+<span class="lineNum">     281 </span>            :       Int_t eventCounter;
+<span class="lineNum">     282 </span>            :       // Correct the number of events for buspatch with errors
+<span class="lineNum">     283 </span>            :       AliMUONErrorCounter* errorCounter;
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :       if ((errorCounter = (AliMUONErrorCounter*)fErrorBuspatchTable-&gt;FindObject(busPatchId)))</span>
+<span class="lineNum">     285 </span>            :         {
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :           eventCounter = fNEvents - errorCounter-&gt;Events();</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     288 </span>            :       else
+<span class="lineNum">     289 </span>            :         {
+<span class="lineNum">     290 </span>            :           eventCounter = fNEvents;
+<span class="lineNum">     291 </span>            :         }
+<span class="lineNum">     292 </span>            :       Int_t occupancy=0; // channel missing in raw data or read but rejected (case of parity error)
+<span class="lineNum">     293 </span>            :       // value of (buspatch, manu) occupancy
+<span class="lineNum">     294 </span>            :       AliMUONErrorCounter* manuCounter;
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :       manuCounter = static_cast&lt;AliMUONErrorCounter*&gt;(fManuBuspatchTable-&gt;FindObject(busPatchId,manuId));</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       if(eventCounter&gt;0)occupancy = manuCounter-&gt;Events()/64/eventCounter;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :       if(occupancy&gt;1)</span>
+<span class="lineNum">     298 </span>            :         {
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :           cout &lt;&lt; fPrefixLDC.Data() &lt;&lt; &quot; : Warning: ManuId = &quot; &lt;&lt; manuId &lt;&lt; &quot; !!! in  BP = &quot; &lt;&lt; busPatchId &lt;&lt; &quot; occupancy (&gt;1) = &quot; &lt;&lt; occupancy &lt;&lt; endl;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :           (*fFilcout) &lt;&lt; &quot;Warning: ManuId = &quot; &lt;&lt; manuId &lt;&lt; &quot; !!! in  BP = &quot; &lt;&lt; busPatchId &lt;&lt; &quot; occupancy (&gt;1) = &quot; &lt;&lt; occupancy &lt;&lt;endl;</span>
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :       for (channelId = 0; channelId &lt; ped-&gt;Size() ; ++channelId) </span>
+<span class="lineNum">     304 </span>            :         {
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :           pedMean  = ped-&gt;ValueAsDouble(channelId, 0);</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :           if (pedMean &gt;= 0) // connected channels</span>
+<span class="lineNum">     308 </span>            :             {
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :               ped-&gt;SetValueAsDouble(channelId, 0, pedMean/(Double_t)eventCounter);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :               pedMean  = ped-&gt;ValueAsDouble(channelId, 0);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :               pedSigma = ped-&gt;ValueAsDouble(channelId, 1);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :               ped-&gt;SetValueAsDouble(channelId, 1, TMath::Sqrt(TMath::Abs(pedSigma/(Double_t)eventCounter - pedMean*pedMean)));</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :               if(eventCounter &lt; fNEvthreshold )</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                 { nADCmax++; ped-&gt;SetValueAsDouble(channelId, 0, ADCMax());</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                   ped-&gt;SetValueAsDouble(channelId, 1, ADCMax());}</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :               if( ped-&gt;ValueAsDouble(channelId, 1) &lt; pedSigmalimit )</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 { nADC4090++; ped-&gt;SetValueAsDouble(channelId, 0, ADCMax()-5);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                   ped-&gt;SetValueAsDouble(channelId, 1, ADCMax()-5);}</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :               if(manuId == 0 || occupancy&gt;1)</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 { nADCmax++; ped-&gt;SetValueAsDouble(channelId, 0, ADCMax());</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                   ped-&gt;SetValueAsDouble(channelId, 1, ADCMax());</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                   if(occupancy&gt;1 &amp;&amp; channelId==0)ped-&gt;SetValueAsDouble(channelId, 0, ADCMax()+occupancy);}</span>
+<span class="lineNum">     324 </span>            :             }
+<span class="lineNum">     325 </span>            :           else
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             { nADCmax++; ped-&gt;SetValueAsDouble(channelId, 0, ADCMax());</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :               ped-&gt;SetValueAsDouble(channelId, 1, ADCMax());}</span>
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span>            :     }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :   float frac1=0. , frac2=0. ;
+<span class="lineNum">     332 </span>            :   float frac_badped = 0.25 ; // maximal acceptable ratio of bad pedestals
+<span class="lineNum">     333 </span>            :   char* detail;
+<span class="lineNum">     334 </span>            :  
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   if(fNChannel)</span>
+<span class="lineNum">     336 </span>            :     {
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :       if(nADCmax&gt;0)</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         { frac1 = float(nADCmax)/float(fNChannel); </span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :           detail=Form(&quot;%s : Warning: Nb of Channels with bad Pedestal (Ped=4095) = %d over %d (%6.2f%)&quot;,fPrefixLDC.Data(),nADCmax,fNChannel,frac1*100.);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :           printf(&quot;%s\n&quot;,detail);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :           (*fFilcout) &lt;&lt;  detail &lt;&lt; endl;}</span>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :       if(nADC4090&gt;0)</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         { frac2 = 1.*nADC4090/fNChannel; </span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :           detail=Form(&quot;%s : Warning: Nb of Channels with PedSigma&lt;0.5 (Ped=4090) = %d over %d (%6.2f%)&quot;,fPrefixLDC.Data(),nADC4090,fNChannel,frac2*100.);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :           printf(&quot;%s\n&quot;,detail);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :           (*fFilcout) &lt;&lt;  detail &lt;&lt; endl; }</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :       if (frac1+frac2 &gt; frac_badped) { status=-1 ;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         detail=Form(&quot;\n%s !!! ERROR : fraction of Channels with Pedestal&gt;=4090 = %6.2f% (&gt; %5.2f%)  (status= %d) \n&quot;,fPrefixLDC.Data(),(frac1+frac2)*100.,frac_badped*100.,status);</span>
+<span class="lineNum">     351 </span>            :         //2015-02-08    (*fFilcout) &lt;&lt;  detail &lt;&lt; endl; printf(&quot;%s&quot;,detail) ;}
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         (*fFilcout) &lt;&lt;  detail &lt;&lt; endl; fprintf(stderr,&quot;%s&quot;,detail) ;}</span>
+<span class="lineNum">     353 </span>            :     }
+<span class="lineNum">     354 </span>            :   else { status= -1;
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     detail=Form(&quot;\n%s !!! ERROR : Nb good channel = 0 (all pedestals are forced to 4095) !!! (status= %d)\n&quot;,fPrefixLDC.Data(),status); </span>
+<span class="lineNum">     356 </span>            :     //2015-02-08    cout &lt;&lt; detail; 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     (*fFilcout) &lt;&lt; detail ; fprintf(stderr,&quot;%s&quot;,detail) ; } </span>
+<span class="lineNum">     358 </span>            :    
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :   SetStatusDA(status);</span>
+<a name="360"><span class="lineNum">     360 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     361 </span>            : //______________________________________________________________________________
+<span class="lineNum">     362 </span>            : void AliMUONPedestal::MakeASCIIoutput(ostream&amp; out) const
+<span class="lineNum">     363 </span>            : {
+<span class="lineNum">     364 </span>            : /// put pedestal store in the output stream
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//===========================================================================&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//                 Pedestal file calculated by &quot;&lt;&lt; fPrefixDA.Data() &lt;&lt; endl;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//===========================================================================&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Run           : &quot; &lt;&lt; fRunNumber &lt;&lt; endl; </span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Date          : &quot; &lt;&lt; fDate-&gt;AsString(&quot;l&quot;) &lt;&lt;endl;</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Statictics    : &quot; &lt;&lt; fNEvents &lt;&lt; endl;</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :   if(fConfig)</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     out&lt;&lt;&quot;//     * Nb of MANUS   : &quot; &lt;&lt; fNManuConfig &lt;&lt; &quot; read in the Det. config. &quot; &lt;&lt; endl;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Nb of MANUS   : &quot; &lt;&lt; fNManu &lt;&lt; &quot; read in raw data &quot; &lt;&lt; endl;</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Nb of MANUS   : &quot; &lt;&lt; fNChannel/64 &lt;&lt; &quot; written in pedestal file &quot; &lt;&lt; endl;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Nb of channels: &quot; &lt;&lt; fNChannel &lt;&lt; endl;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * Below &quot; &lt;&lt; fNEvthreshold &lt;&lt; &quot; events=&gt; Ped.&amp;sig.=4095&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//     * PedSigma &lt; 0.5 =&gt; Ped.&amp;sig.=4090&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :   if (fErrorBuspatchTable-&gt;GetSize())</span>
+<span class="lineNum">     382 </span>            :     {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :       out&lt;&lt;&quot;//&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       out&lt;&lt;&quot;//    * Buspatches with less statistics (due to parity errors)&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :       TIter next(fErrorBuspatchTable-&gt;CreateIterator());</span>
+<span class="lineNum">     386 </span>            :       AliMUONErrorCounter* parityerror;
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       while((parityerror = static_cast&lt;AliMUONErrorCounter*&gt;(next())))</span>
+<span class="lineNum">     388 </span>            :         {
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :           if(fNEvents-parityerror-&gt;Events()&gt;fNEvthreshold)</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             { out&lt;&lt;&quot;//      BusPatch = &quot;&lt;&lt;parityerror-&gt;BusPatch()&lt;&lt;&quot;\t Nevents used = &quot;&lt;&lt;fNEvents-parityerror-&gt;Events()&lt;&lt;endl; }</span>
+<span class="lineNum">     391 </span>            :           else
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :             { out&lt;&lt;&quot;//      BusPatch = &quot;&lt;&lt;parityerror-&gt;BusPatch()&lt;&lt;&quot;\t Nevents used = &quot;&lt;&lt;fNEvents-parityerror-&gt;Events()&lt;&lt; &quot; (Ped.&amp;sig.=4095)&quot; &lt;&lt; endl; }</span>
+<span class="lineNum">     393 </span>            :         }
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     }  </span>
+<span class="lineNum">     395 </span>            :   Int_t writitle=0;
+<span class="lineNum">     396 </span>            :   Int_t occupancy=1;
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   if(occupancy)</span>
+<span class="lineNum">     398 </span>            :     {
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :       TIter next(fPedestalStore -&gt;CreateIterator());</span>
+<span class="lineNum">     400 </span>            :       AliMUONVCalibParam* ped;
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :       while ( ( ped = dynamic_cast&lt;AliMUONVCalibParam*&gt;(next() ) ) )</span>
+<span class="lineNum">     402 </span>            :         {
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :           Int_t busPatchId = ped-&gt;ID0();</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :           Int_t manuId = ped-&gt;ID1();</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :           Double_t pedMean  = ped-&gt;ValueAsDouble(0, 0); // check pedestal value for channelId=0</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :           if(pedMean&gt;ADCMax()) </span>
+<span class="lineNum">     408 </span>            :             {
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :               writitle++;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :               if(writitle==1){ </span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                 out&lt;&lt;&quot;//&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 out&lt;&lt;&quot;//    * Puzzling (Buspatch,Manu) read in raw data ? (Ped.&amp;sig.=4095)&quot;&lt;&lt;endl;}</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :               occupancy=TMath::Nint(pedMean-ADCMax());</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :               ped-&gt;SetValueAsDouble(0, 0, ADCMax());</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :               out&lt;&lt;&quot;//      BusPatch = &quot;&lt;&lt; busPatchId &lt;&lt;&quot;\t ManuId =  &quot;&lt;&lt; manuId &lt;&lt; &quot;\t occupancy = &quot; &lt;&lt; occupancy  &lt;&lt; endl;</span>
+<span class="lineNum">     416 </span>            :             }
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :           if (manuId==0 || (fConfig &amp;&amp; static_cast&lt;AliMUONErrorCounter*&gt;(fManuBPoutofconfigTable-&gt;FindObject(busPatchId,manuId))))</span>
+<span class="lineNum">     419 </span>            :             {
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :               writitle++;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :               if(writitle==1){ </span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :                 out&lt;&lt;&quot;//&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                 out&lt;&lt;&quot;//    * Puzzling (Buspatch,Manu) read in raw data ? (Ped.&amp;sig.=4095)&quot;&lt;&lt;endl;}</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :               out&lt;&lt;&quot;//      BusPatch = &quot;&lt;&lt; busPatchId &lt;&lt;&quot;\t ManuId =  &quot;&lt;&lt; manuId &lt;&lt; &quot;\t missing in the mapping&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     425 </span>            :             }
+<span class="lineNum">     426 </span>            :         }
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//---------------------------------------------------------------------------&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//---------------------------------------------------------------------------&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//      BP     MANU     CH.      MEAN    SIGMA&quot;&lt;&lt;endl;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   out&lt;&lt;&quot;//---------------------------------------------------------------------------&quot; &lt;&lt; endl;</span>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   TIter next(fPedestalStore-&gt;CreateIterator());</span>
+<span class="lineNum">     435 </span>            :   AliMUONVCalibParam* ped;  
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span>            :   // Sorting 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :   if  (fSorting)</span>
+<span class="lineNum">     439 </span>            :     {
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :       printf(&quot;%s : ..... sorting pedestal values .....\n&quot;,fPrefixLDC.Data());</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :       THashList pedtable(100,2);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       while ( ( ped = dynamic_cast&lt;AliMUONVCalibParam*&gt;(next() ) ) )</span>
+<span class="lineNum">     443 </span>            :       {
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :         pedtable.Add(ped);</span>
+<span class="lineNum">     445 </span>            :       }
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :       pedtable.Sort();</span>
+<span class="lineNum">     447 </span>            :       //      iterator over sorted pedestal
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :       TIter nextSorted(&amp;pedtable);</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :       while ( (ped = (AliMUONVCalibParam*)(nextSorted()) ) )</span>
+<span class="lineNum">     450 </span>            :       {
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         Int_t busPatchId = ped-&gt;ID0();</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :         Int_t manuId = ped-&gt;ID1();</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         for ( Int_t channelId = 0; channelId &lt; ped-&gt;Size(); ++channelId ) </span>
+<span class="lineNum">     454 </span>            :         {
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :           Double_t pedMean  = ped-&gt;ValueAsDouble(channelId, 0);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :           Double_t pedSigma = ped-&gt;ValueAsDouble(channelId, 1);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :           out &lt;&lt; &quot;\t&quot; &lt;&lt; busPatchId &lt;&lt; &quot;\t&quot; &lt;&lt; manuId &lt;&lt;&quot;\t&quot;&lt;&lt; channelId &lt;&lt; &quot;\t&quot; &lt;&lt; pedMean &lt;&lt;&quot;\t&quot;&lt;&lt; pedSigma &lt;&lt; endl;</span>
+<span class="lineNum">     458 </span>            :         }
+<span class="lineNum">     459 </span>            :       }
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     461 </span>            :   else
+<span class="lineNum">     462 </span>            :     {
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :       while ( ( ped = dynamic_cast&lt;AliMUONVCalibParam*&gt;(next() ) ) )</span>
+<span class="lineNum">     464 </span>            :         {
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :           Int_t busPatchId = ped-&gt;ID0();</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :           Int_t manuId = ped-&gt;ID1();</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :           for ( Int_t channelId = 0; channelId &lt; ped-&gt;Size(); ++channelId ) </span>
+<span class="lineNum">     468 </span>            :             {
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :               Double_t pedMean  = ped-&gt;ValueAsDouble(channelId, 0);</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :               Double_t pedSigma = ped-&gt;ValueAsDouble(channelId, 1);</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :               out &lt;&lt; &quot;\t&quot; &lt;&lt; busPatchId &lt;&lt; &quot;\t&quot; &lt;&lt; manuId &lt;&lt;&quot;\t&quot;&lt;&lt; channelId &lt;&lt; &quot;\t&quot; &lt;&lt; pedMean &lt;&lt;&quot;\t&quot;&lt;&lt; pedSigma &lt;&lt; endl;</span>
+<span class="lineNum">     472 </span>            :             }
+<span class="lineNum">     473 </span>            :         }
+<span class="lineNum">     474 </span>            :     }
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 : }</span>
+<a name="476"><span class="lineNum">     476 </span>            : </a>
+<span class="lineNum">     477 </span>            : //______________________________________________________________________________
+<span class="lineNum">     478 </span>            : void AliMUONPedestal::CreateControlHistos()
+<span class="lineNum">     479 </span>            : {
+<span class="lineNum">     480 </span>            : // Create histo 
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   fHistoFileName=Form(&quot;%s.root&quot;,fPrefixDA.Data());</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   fHistoFile = new TFile(fHistoFileName,&quot;RECREATE&quot;,&quot;MUON Tracking pedestals&quot;);</span>
+<a name="483"><span class="lineNum">     483 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     484 </span>            : //______________________________________________________________________________
+<span class="lineNum">     485 </span>            : void AliMUONPedestal::MakeControlHistos()
+<span class="lineNum">     486 </span>            : {
+<span class="lineNum">     487 </span>            :   /// Create control histograms
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   if (fIndex&gt;=0) return; // Pedestal run (fIndex=-1)</span>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   Double_t pedMean;</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   Double_t pedSigma;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   Double_t evt;</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :   Int_t busPatchId;</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :   Int_t manuId;</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :   Int_t channelId;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   Int_t DDL;</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : // histo
+<span class="lineNum">     499 </span>            : //  TFile*  histoFile = 0;
+<span class="lineNum">     500 </span>            :   TTree* tree = 0;
+<span class="lineNum">     501 </span>            :   TH1F* pedMeanHisto = 0;
+<span class="lineNum">     502 </span>            :   TH1F* pedSigmaHisto = 0;
+<span class="lineNum">     503 </span>            :     
+<span class="lineNum">     504 </span>            :   //  fHistoFileName=Form(&quot;%s.root&quot;,fPrefixDA.Data());
+<span class="lineNum">     505 </span>            :   //  histoFile = new TFile(fHistoFileName,&quot;RECREATE&quot;,&quot;MUON Tracking pedestals&quot;);
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   Int_t nx = ADCMax()+1;</span>
+<span class="lineNum">     508 </span>            :   Int_t xmin = 0;
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   Int_t xmax = ADCMax(); </span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   pedMeanHisto = new TH1F(&quot;pedmean_allch&quot;,&quot;Pedestal mean all channels&quot;,nx,xmin,xmax);</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   pedMeanHisto-&gt;SetDirectory(fHistoFile);</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            :   nx = 201;
+<span class="lineNum">     514 </span>            :   xmin = 0;
+<span class="lineNum">     515 </span>            :   xmax = 200; 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :   pedSigmaHisto = new TH1F(&quot;pedsigma_allch&quot;,&quot;Pedestal sigma all channels&quot;,nx,xmin,xmax);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :   pedSigmaHisto-&gt;SetDirectory(fHistoFile);</span>
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   tree = new TTree(&quot;t&quot;,&quot;Pedestal tree&quot;);</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;DDL&quot;,&amp;DDL,&quot;,DDL/I&quot;);</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;bp&quot;,&amp;busPatchId,&quot;bp/I&quot;);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;manu&quot;,&amp;manuId,&quot;,manu/I&quot;);</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;channel&quot;,&amp;channelId,&quot;,channel/I&quot;);</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;pedMean&quot;,&amp;pedMean,&quot;,pedMean/D&quot;);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;pedSigma&quot;,&amp;pedSigma,&quot;,pedSigma/D&quot;);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :   tree-&gt;Branch(&quot;nevt&quot;,&amp;evt,&quot;,evt/D&quot;);</span>
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span>            :   // iterator over pedestal
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   TIter next(fPedestalStore -&gt;CreateIterator());</span>
+<span class="lineNum">     530 </span>            :   AliMUONVCalibParam* ped;
+<span class="lineNum">     531 </span>            :   AliMUONErrorCounter* manuCounter;
+<span class="lineNum">     532 </span>            :   
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   while ( ( ped = dynamic_cast&lt;AliMUONVCalibParam*&gt;(next() ) ) )</span>
+<span class="lineNum">     534 </span>            :   {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     busPatchId = ped-&gt;ID0();</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     manuId = ped-&gt;ID1();</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     DDL= busPatchId/100+2560;</span>
+<span class="lineNum">     538 </span>            :     
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     for ( channelId = 0; channelId &lt; ped-&gt;Size(); ++channelId ) </span>
+<span class="lineNum">     540 </span>            :     {
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :       pedMean  = ped-&gt;ValueAsDouble(channelId, 0);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :       pedSigma = ped-&gt;ValueAsDouble(channelId, 1);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       manuCounter = static_cast&lt;AliMUONErrorCounter*&gt;(fManuBuspatchTable-&gt;FindObject(busPatchId,manuId));</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :       evt = manuCounter-&gt;Events()/64;</span>
+<span class="lineNum">     545 </span>            :           
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :       pedMeanHisto-&gt;Fill(pedMean);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :       pedSigmaHisto-&gt;Fill(pedSigma);</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :       tree-&gt;Fill();  </span>
+<span class="lineNum">     549 </span>            :     }
+<span class="lineNum">     550 </span>            :   }
+<span class="lineNum">     551 </span>            :     
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :   fHistoFile-&gt;Write();  </span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :   fHistoFile-&gt;Close(); </span>
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

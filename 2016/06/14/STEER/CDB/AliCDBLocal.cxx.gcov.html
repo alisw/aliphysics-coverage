@@ -1,0 +1,1270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/CDB/AliCDBLocal.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/CDB</a> - AliCDBLocal.cxx<span style="font-size: 80%;"> (source / <a href="AliCDBLocal.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">275</td>
+            <td class="headerCovTableEntry">612</td>
+            <td class="headerCovTableEntryLo">44.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntryLo">65.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      17 </span>            : //                                                                                             //
+<span class="lineNum">      18 </span>            : // AliCDBLocal                                                                                 //
+<span class="lineNum">      19 </span>            : // access class to a DataBase in a local storage                                               //
+<span class="lineNum">      20 </span>            : //                                                                                             //
+<span class="lineNum">      21 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;cstdlib&gt;
+<span class="lineNum">      24 </span>            : #include &lt;stdexcept&gt;
+<span class="lineNum">      25 </span>            : #include &lt;fstream&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;TRegexp.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;TKey.h&gt;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &quot;AliCDBLocal.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliCDBEntry.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliLog.h&quot;
+<a name="36"><span class="lineNum">      36 </span>            : using namespace std;</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineCov">        128 : ClassImp(AliCDBLocal)</span>
+<a name="39"><span class="lineNum">      39 </span>            : </a>
+<span class="lineNum">      40 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      41 </span><span class="lineCov">         12 : AliCDBLocal::AliCDBLocal(const char* baseDir):</span>
+<span class="lineNum">      42 </span><span class="lineCov">         12 :   fBaseDirectory(baseDir) </span>
+<span class="lineNum">      43 </span><span class="lineCov">         60 : {</span>
+<span class="lineNum">      44 </span>            :   // constructor
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">         60 :   AliDebug(1, Form(&quot;fBaseDirectory = %s&quot;,fBaseDirectory.Data()));</span>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            :   // check baseDire: trying to cd to baseDir; if it does not exist, create it
+<span class="lineNum">      49 </span><span class="lineCov">         12 :   void* dir = gSystem-&gt;OpenDirectory(baseDir);</span>
+<span class="lineNum">      50 </span><span class="lineCov">         12 :   if (dir == NULL) {</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     if (gSystem-&gt;mkdir(baseDir, kTRUE)) {</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :        AliError(Form(&quot;Can't open directory &lt;%s&gt;!&quot;, baseDir)); //!!!!!!!! to be commented out for testing</span>
+<span class="lineNum">      53 </span>            :     }
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :   } else {
+<span class="lineNum">      56 </span><span class="lineCov">         60 :     AliDebug(2,Form(&quot;Folder &lt;%s&gt; found&quot;,fBaseDirectory.Data()));</span>
+<span class="lineNum">      57 </span><span class="lineCov">         12 :     gSystem-&gt;FreeDirectory(dir);</span>
+<span class="lineNum">      58 </span>            :   }
+<span class="lineNum">      59 </span><span class="lineCov">         12 :   fType=&quot;local&quot;;</span>
+<span class="lineNum">      60 </span><span class="lineCov">         12 :   fBaseFolder = fBaseDirectory;</span>
+<span class="lineNum">      61 </span><span class="lineCov">         24 : }</span>
+<a name="62"><span class="lineNum">      62 </span>            : </a>
+<span class="lineNum">      63 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : AliCDBLocal::~AliCDBLocal() {</span>
+<span class="lineNum">      65 </span>            : // destructor
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      68 </span>            : 
+<a name="69"><span class="lineNum">      69 </span>            : </a>
+<span class="lineNum">      70 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      71 </span>            : Bool_t AliCDBLocal::FilenameToId(const char* filename, AliCDBRunRange&amp; runRange,
+<span class="lineNum">      72 </span>            :     Int_t&amp; version, Int_t&amp; subVersion) {
+<span class="lineNum">      73 </span>            :   // build AliCDBId from filename numbers
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineCov">       5850 :   Ssiz_t mSize;</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :   // valid filename: Run#firstRun_#lastRun_v#version_s#subVersion.root
+<span class="lineNum">      78 </span><span class="lineCov">       2925 :   TRegexp keyPattern(&quot;^Run[0-9]+_[0-9]+_v[0-9]+_s[0-9]+.root$&quot;);</span>
+<span class="lineNum">      79 </span><span class="lineCov">       8775 :   keyPattern.Index(filename, &amp;mSize);</span>
+<span class="lineNum">      80 </span><span class="lineCov">       2925 :   if (!mSize) {</span>
+<span class="lineNum">      81 </span><span class="lineCov">         25 :     AliDebug(2, Form(&quot;Bad filename &lt;%s&gt;.&quot;, filename));</span>
+<span class="lineNum">      82 </span><span class="lineCov">          5 :     return kFALSE;</span>
+<span class="lineNum">      83 </span>            :   }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span><span class="lineCov">       2920 :   TString idString(filename);</span>
+<span class="lineNum">      86 </span><span class="lineCov">       5840 :   idString.Resize(idString.Length() - sizeof(&quot;.root&quot;) + 1);</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">       8760 :   TObjArray* strArray = (TObjArray*) idString.Tokenize(&quot;_&quot;);</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">       5840 :   TString firstRunString(((TObjString*) strArray-&gt;At(0))-&gt;GetString());</span>
+<span class="lineNum">      91 </span><span class="lineCov">       8760 :   runRange.SetFirstRun(atoi(firstRunString.Data() + 3));</span>
+<span class="lineNum">      92 </span><span class="lineCov">      14600 :   runRange.SetLastRun(atoi(((TObjString*) strArray-&gt;At(1))-&gt;GetString()));</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">       5840 :   TString verString(((TObjString*) strArray-&gt;At(2))-&gt;GetString());</span>
+<span class="lineNum">      95 </span><span class="lineCov">       8760 :   version = atoi(verString.Data() + 1);</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineCov">       5840 :   TString subVerString(((TObjString*) strArray-&gt;At(3))-&gt;GetString());</span>
+<span class="lineNum">      98 </span><span class="lineCov">       8760 :   subVersion = atoi(subVerString.Data() + 1);</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">       5840 :   delete strArray;</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :   return kTRUE;
+<span class="lineNum">     103 </span><span class="lineCov">       5845 : }</span>
+<span class="lineNum">     104 </span>            : 
+<a name="105"><span class="lineNum">     105 </span>            : </a>
+<span class="lineNum">     106 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     107 </span>            : Bool_t AliCDBLocal::IdToFilename(const AliCDBId&amp; id, TString&amp; filename) const {
+<span class="lineNum">     108 </span>            : // build file name from AliCDBId data (run range, version, subVersion)
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">       2960 :   AliDebug(1, Form(&quot;fBaseDirectory = %s&quot;,fBaseDirectory.Data()));</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">        740 :   if (!id.GetAliCDBRunRange().IsValid()) {</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Invalid run range &lt;%d, %d&gt;.&quot;, </span>
+<span class="lineNum">     114 </span>            :           id.GetFirstRun(), id.GetLastRun()));
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     116 </span>            :   }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineCov">        740 :   if (id.GetVersion() &lt; 0) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Invalid version &lt;%d&gt;.&quot;, id.GetVersion()));</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     121 </span>            :   }
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineCov">        740 :   if (id.GetSubVersion() &lt; 0) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Invalid subversion &lt;%d&gt;.&quot;, id.GetSubVersion()));</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     126 </span>            :   }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">       1480 :   filename = Form(&quot;Run%d_%d_v%d_s%d.root&quot;, id.GetFirstRun(), id.GetLastRun(),</span>
+<span class="lineNum">     129 </span><span class="lineCov">        740 :       id.GetVersion(), id.GetSubVersion());</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">       3700 :   filename.Prepend(fBaseDirectory +'/' + id.GetPath() + '/');</span>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">        740 :   return kTRUE;</span>
+<span class="lineNum">     134 </span><span class="lineCov">        740 : }</span>
+<a name="135"><span class="lineNum">     135 </span>            : </a>
+<span class="lineNum">     136 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     137 </span>            : Bool_t AliCDBLocal::PrepareId(AliCDBId&amp; id) {
+<span class="lineNum">     138 </span>            : // prepare id (version, subVersion) of the object that will be stored (called by PutEntry)
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">          2 :   TString dirName = Form(&quot;%s/%s&quot;, fBaseDirectory.Data(), id.GetPath().Data());</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :   // go to the path; if directory does not exist, create it
+<span class="lineNum">     143 </span><span class="lineCov">          2 :   void* dirPtr = gSystem-&gt;OpenDirectory(dirName);</span>
+<span class="lineNum">     144 </span><span class="lineCov">          1 :   if (!dirPtr) {</span>
+<span class="lineNum">     145 </span><span class="lineCov">          2 :     gSystem-&gt;mkdir(dirName, kTRUE);</span>
+<span class="lineNum">     146 </span><span class="lineCov">          2 :     dirPtr = gSystem-&gt;OpenDirectory(dirName);</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineCov">          1 :     if (!dirPtr) {</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :       AliError(Form(&quot;Can't create directory &lt;%s&gt;!&quot;, </span>
+<span class="lineNum">     150 </span>            :             dirName.Data()));
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            :   }
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :   const char* filename;
+<span class="lineNum">     156 </span><span class="lineCov">          1 :   AliCDBRunRange aRunRange; // the runRange got from filename</span>
+<span class="lineNum">     157 </span><span class="lineCov">          1 :   AliCDBRunRange lastRunRange(-1,-1); // highest runRange found</span>
+<span class="lineNum">     158 </span><span class="lineCov">          1 :   Int_t aVersion, aSubVersion; // the version subVersion got from filename</span>
+<span class="lineNum">     159 </span>            :   Int_t lastVersion = 0, lastSubVersion = -1; // highest version and subVersion found
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">          1 :   if (!id.HasVersion()) { // version not specified: look for highest version &amp; subVersion</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     while ((filename = gSystem-&gt;GetDirEntry(dirPtr))) { // loop on the files</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :       TString aString(filename);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :       if (aString == &quot;.&quot; || aString == &quot;..&quot;) continue;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :       if (!FilenameToId(filename, aRunRange, aVersion, </span>
+<span class="lineNum">     169 </span>            :             aSubVersion)) {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         AliDebug(2,Form(</span>
+<span class="lineNum">     171 </span>            :               &quot;Bad filename &lt;%s&gt;! I'll skip it.&quot;, 
+<span class="lineNum">     172 </span>            :               filename));
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     174 </span>            :       }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :       if (!aRunRange.Overlaps(id.GetAliCDBRunRange())) continue;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :       if(aVersion &lt; lastVersion) continue;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :       if(aVersion &gt; lastVersion) lastSubVersion = -1;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :       if(aSubVersion &lt; lastSubVersion) continue;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :       lastVersion = aVersion;</span>
+<span class="lineNum">     181 </span>            :       lastSubVersion = aSubVersion;
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :       lastRunRange = aRunRange;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     id.SetVersion(lastVersion);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     id.SetSubVersion(lastSubVersion + 1);</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   } else { // version specified, look for highest subVersion only</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineCov">          6 :     while ((filename = gSystem-&gt;GetDirEntry(dirPtr))) { // loop on the files</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineCov">          2 :       TString aString(filename);</span>
+<span class="lineNum">     193 </span><span class="lineCov">          6 :       if (aString == &quot;.&quot; || aString == &quot;..&quot;) {</span>
+<span class="lineNum">     194 </span><span class="lineCov">          2 :         continue;</span>
+<span class="lineNum">     195 </span>            :       }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :       if (!FilenameToId(filename, aRunRange, aVersion, </span>
+<span class="lineNum">     198 </span>            :             aSubVersion)) {
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         AliDebug(2,Form(</span>
+<span class="lineNum">     200 </span>            :               &quot;Bad filename &lt;%s&gt;!I'll skip it.&quot;,
+<span class="lineNum">     201 </span>            :               filename));       
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     203 </span>            :       }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       if (aRunRange.Overlaps(id.GetAliCDBRunRange()) </span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :           &amp;&amp; aVersion == id.GetVersion()</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :           &amp;&amp; aSubVersion &gt; lastSubVersion) {</span>
+<span class="lineNum">     208 </span>            :         lastSubVersion = aSubVersion;
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         lastRunRange = aRunRange;</span>
+<span class="lineNum">     210 </span>            :       }
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">          1 :     id.SetSubVersion(lastSubVersion + 1);</span>
+<span class="lineNum">     215 </span>            :   }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">          1 :   gSystem-&gt;FreeDirectory(dirPtr);</span>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineCov">          1 :   TString lastStorage = id.GetLastStorage();</span>
+<span class="lineNum">     220 </span><span class="lineCov">          4 :   if(lastStorage.Contains(TString(&quot;grid&quot;), TString::kIgnoreCase) &amp;&amp;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :       id.GetSubVersion() &gt; 0 ){</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Grid to Local Storage error! local object with version v%d_s%d found:&quot;,id.GetVersion(), id.GetSubVersion()-1));</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;This object has been already transferred from Grid (check v%d_s0)!&quot;,id.GetVersion()));</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     225 </span>            :   }
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineCov">          4 :   if(lastStorage.Contains(TString(&quot;new&quot;), TString::kIgnoreCase) &amp;&amp;</span>
+<span class="lineNum">     228 </span><span class="lineCov">          1 :       id.GetSubVersion() &gt; 0 ){</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     AliDebug(2, Form(&quot;A NEW object is being stored with version v%d_s%d&quot;,</span>
+<span class="lineNum">     230 </span>            :           id.GetVersion(),id.GetSubVersion()));
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     AliDebug(2, Form(&quot;and it will hide previously stored object with v%d_s%d!&quot;,</span>
+<span class="lineNum">     232 </span>            :           id.GetVersion(),id.GetSubVersion()-1));
+<span class="lineNum">     233 </span>            :   }
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineCov">          1 :   if(!lastRunRange.IsAnyRange() &amp;&amp; !(lastRunRange.IsEqual(&amp; id.GetAliCDBRunRange()))) </span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     AliWarning(Form(&quot;Run range modified w.r.t. previous version (Run%d_%d_v%d_s%d)&quot;,</span>
+<span class="lineNum">     237 </span>            :           lastRunRange.GetFirstRun(), lastRunRange.GetLastRun(), 
+<span class="lineNum">     238 </span>            :           id.GetVersion(), id.GetSubVersion()-1));
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineCov">          1 :   return kTRUE;</span>
+<span class="lineNum">     241 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     242 </span>            : 
+<a name="243"><span class="lineNum">     243 </span>            : </a>
+<span class="lineNum">     244 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     245 </span>            : AliCDBId* AliCDBLocal::GetId(const AliCDBId&amp; query) {
+<span class="lineNum">     246 </span>            :   // look for filename matching query (called by GetEntryId)
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :   // if querying for fRun and not specifying a version, look in the fValidFileIds list
+<span class="lineNum">     249 </span><span class="lineCov">       5104 :   if(!AliCDBManager::Instance()-&gt;GetCvmfsOcdbTag().IsNull() &amp;&amp; query.GetFirstRun() == fRun &amp;&amp; !query.HasVersion()) {</span>
+<span class="lineNum">     250 </span>            :   //if(query.GetFirstRun() == fRun &amp;&amp; !query.HasVersion()) {
+<span class="lineNum">     251 </span>            :     // get id from fValidFileIds
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     TIter iter(&amp;fValidFileIds);</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :     AliCDBId *anIdPtr=0;
+<span class="lineNum">     255 </span>            :     AliCDBId* result=0;
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     while((anIdPtr = dynamic_cast&lt;AliCDBId*&gt; (iter.Next()))){</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       if(anIdPtr-&gt;GetPath() == query.GetPath()){</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         result = new AliCDBId(*anIdPtr);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     261 </span>            :       }
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span>            :     return result;
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            :   // otherwise browse in the local filesystem CDB storage
+<span class="lineNum">     267 </span><span class="lineCov">       1276 :   TString dirName = Form(&quot;%s/%s&quot;, fBaseDirectory.Data(), query.GetPath().Data());</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineCov">       2552 :   void* dirPtr = gSystem-&gt;OpenDirectory(dirName);</span>
+<span class="lineNum">     270 </span><span class="lineCov">       1276 :   if (!dirPtr) {</span>
+<span class="lineNum">     271 </span><span class="lineCov">          5 :     AliDebug(2,Form(&quot;Directory &lt;%s&gt; not found&quot;, (query.GetPath()).Data()));</span>
+<span class="lineNum">     272 </span><span class="lineCov">          5 :     AliDebug(2,Form(&quot;in DB folder %s&quot;, fBaseDirectory.Data()));</span>
+<span class="lineNum">     273 </span><span class="lineCov">          1 :     return NULL;</span>
+<span class="lineNum">     274 </span>            :   }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :   const char* filename;
+<span class="lineNum">     277 </span><span class="lineCov">       2550 :   AliCDBId *result = new AliCDBId();</span>
+<span class="lineNum">     278 </span><span class="lineCov">       3825 :   result-&gt;SetPath(query.GetPath());</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">       1275 :   AliCDBRunRange aRunRange; // the runRange got from filename</span>
+<span class="lineNum">     281 </span><span class="lineCov">       1275 :   Int_t aVersion, aSubVersion; // the version and subVersion got from filename</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineCov">       1275 :   if (!query.HasVersion()) { // neither version and subversion specified -&gt; look for highest version and subVersion</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineCov">       1628 :     while ((filename = gSystem-&gt;GetDirEntry(dirPtr))) { // loop on files</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineCov">        611 :       TString aString(filename);</span>
+<span class="lineNum">     288 </span><span class="lineCov">       2239 :       if (aString.BeginsWith('.')) continue;</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">        410 :       if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)) continue;</span>
+<span class="lineNum">     291 </span>            :       // aRunRange, aVersion, aSubVersion filled from filename
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineCov">        411 :       if (!aRunRange.Comprises(query.GetAliCDBRunRange())) continue;</span>
+<span class="lineNum">     294 </span>            :       // aRunRange contains requested run!
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">       1020 :       AliDebug(1,Form(&quot;Filename %s matches\n&quot;,filename));</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineCov">        204 :       if (result-&gt;GetVersion() &lt; aVersion) {</span>
+<span class="lineNum">     299 </span><span class="lineCov">        204 :         result-&gt;SetVersion(aVersion);</span>
+<span class="lineNum">     300 </span><span class="lineCov">        204 :         result-&gt;SetSubVersion(aSubVersion);</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineCov">        204 :         result-&gt;SetFirstRun(</span>
+<span class="lineNum">     303 </span><span class="lineCov">        204 :             aRunRange.GetFirstRun());</span>
+<span class="lineNum">     304 </span><span class="lineCov">        204 :         result-&gt;SetLastRun(</span>
+<span class="lineNum">     305 </span><span class="lineCov">        204 :             aRunRange.GetLastRun());</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">        204 :       } else if (result-&gt;GetVersion() == aVersion</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :           &amp;&amp; result-&gt;GetSubVersion()</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :           &lt; aSubVersion) {</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         result-&gt;SetSubVersion(aSubVersion);</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         result-&gt;SetFirstRun(</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             aRunRange.GetFirstRun());</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         result-&gt;SetLastRun(</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             aRunRange.GetLastRun());</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :       } else if (result-&gt;GetVersion() == aVersion</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :           &amp;&amp; result-&gt;GetSubVersion() == aSubVersion){</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         AliError(Form(&quot;More than one object valid for run %d, version %d_%d!&quot;,</span>
+<span class="lineNum">     320 </span>            :               query.GetFirstRun(), aVersion, aSubVersion));
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         gSystem-&gt;FreeDirectory(dirPtr);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         delete result;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     324 </span>            :       }
+<span class="lineNum">     325 </span><span class="lineCov">        815 :     }</span>
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineCov">       1072 :   } else if (!query.HasSubVersion()) { // version specified but not subversion -&gt; look for highest subVersion</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     result-&gt;SetVersion(query.GetVersion());</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     while ((filename = gSystem-&gt;GetDirEntry(dirPtr))) { // loop on files</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       TString aString(filename);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :       if (aString.BeginsWith('.')) continue;</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :       if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)) continue;</span>
+<span class="lineNum">     336 </span>            :       // aRunRange, aVersion, aSubVersion filled from filename
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :       if (!aRunRange.Comprises(query.GetAliCDBRunRange())) continue; </span>
+<span class="lineNum">     339 </span>            :       // aRunRange contains requested run!
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :       if(query.GetVersion() != aVersion) continue;</span>
+<span class="lineNum">     342 </span>            :       // aVersion is requested version!
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :       if(result-&gt;GetSubVersion() == aSubVersion){</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         AliError(Form(&quot;More than one object valid for run %d, version %d_%d!&quot;,</span>
+<span class="lineNum">     346 </span>            :               query.GetFirstRun(), aVersion, aSubVersion));
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         gSystem-&gt;FreeDirectory(dirPtr);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         delete result;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     350 </span>            :       }
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :       if( result-&gt;GetSubVersion() &lt; aSubVersion) {</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         result-&gt;SetSubVersion(aSubVersion);</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         result-&gt;SetFirstRun(</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             aRunRange.GetFirstRun());</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         result-&gt;SetLastRun(</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             aRunRange.GetLastRun());</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :       } </span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :   } else { // both version and subversion specified
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :     //AliCDBId dataId(queryId.GetAliCDBPath(), -1, -1, -1, -1);
+<span class="lineNum">     365 </span>            :     //Bool_t result;
+<span class="lineNum">     366 </span><span class="lineCov">       6440 :     while ((filename = gSystem-&gt;GetDirEntry(dirPtr))) { // loop on files</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineCov">       3220 :       TString aString(filename);</span>
+<span class="lineNum">     369 </span><span class="lineCov">      11804 :       if (aString.BeginsWith('.')) continue;</span>
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineCov">       2152 :       if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)){</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         AliDebug(5, Form(&quot;Could not make id from file: %s&quot;, filename));</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     374 </span>            :       }
+<span class="lineNum">     375 </span>            :       // aRunRange, aVersion, aSubVersion filled from filename
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">       2152 :       if (!aRunRange.Comprises(query.GetAliCDBRunRange())) continue;</span>
+<span class="lineNum">     378 </span>            :       // aRunRange contains requested run!
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineCov">       2148 :       if(query.GetVersion() != aVersion || query.GetSubVersion() != aSubVersion){</span>
+<span class="lineNum">     381 </span><span class="lineCov">          4 :           continue;</span>
+<span class="lineNum">     382 </span>            :       }
+<span class="lineNum">     383 </span>            :       // aVersion and aSubVersion are requested version and subVersion!
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineCov">       1072 :       result-&gt;SetVersion(aVersion);</span>
+<span class="lineNum">     386 </span><span class="lineCov">       1072 :       result-&gt;SetSubVersion(aSubVersion);</span>
+<span class="lineNum">     387 </span><span class="lineCov">       1072 :       result-&gt;SetFirstRun(aRunRange.GetFirstRun());</span>
+<span class="lineNum">     388 </span><span class="lineCov">       1072 :       result-&gt;SetLastRun(aRunRange.GetLastRun());</span>
+<span class="lineNum">     389 </span><span class="lineCov">       1072 :       break;</span>
+<span class="lineNum">     390 </span><span class="lineCov">       3220 :     }</span>
+<span class="lineNum">     391 </span>            :   }
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineCov">       1275 :   gSystem-&gt;FreeDirectory(dirPtr);</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">       1275 :   return result;</span>
+<span class="lineNum">     396 </span><span class="lineCov">       3827 : }</span>
+<a name="397"><span class="lineNum">     397 </span>            : </a>
+<span class="lineNum">     398 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     399 </span>            : AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId&amp; queryId) {
+<span class="lineNum">     400 </span>            : // get AliCDBEntry from the storage (the CDB file matching the query is
+<span class="lineNum">     401 </span>            : // selected by GetEntryId and the contained AliCDBid is passed here)
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">       1480 :   AliCDBId* dataId = GetEntryId(queryId);</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineCov">       2221 :   TString errMessage(TString::Format(&quot;No valid CDB object found! request was: %s&quot;, queryId.ToString().Data()));</span>
+<span class="lineNum">     406 </span><span class="lineCov">       2218 :   if (!dataId || !dataId-&gt;IsSpecified()){</span>
+<span class="lineNum">     407 </span><span class="lineCov">          3 :     AliError(Form(&quot;No file found matching this id!&quot;));</span>
+<span class="lineNum">     408 </span><span class="lineCov">          3 :     throw std::runtime_error(errMessage.Data());</span>
+<span class="lineNum">     409 </span>            :     return NULL;
+<span class="lineNum">     410 </span>            :   }
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineCov">        739 :   TString filename;</span>
+<span class="lineNum">     413 </span><span class="lineCov">       1478 :   if (!IdToFilename(*dataId, filename)) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Bad data ID encountered!&quot;));</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     delete dataId;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     throw std::runtime_error(errMessage.Data());</span>
+<span class="lineNum">     417 </span>            :     return NULL;
+<span class="lineNum">     418 </span>            :   }
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineCov">       1478 :   TFile file(filename, &quot;READ&quot;); // open file</span>
+<span class="lineNum">     421 </span><span class="lineCov">       1478 :   if (!file.IsOpen()) {</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Can't open file &lt;%s&gt;!&quot;, filename.Data()));</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     delete dataId;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     throw std::runtime_error(errMessage.Data());</span>
+<span class="lineNum">     425 </span>            :     return NULL;
+<span class="lineNum">     426 </span>            :   }
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            :   // get the only AliCDBEntry object from the file
+<span class="lineNum">     429 </span>            :   // the object in the file is an AliCDBEntry entry named &quot;AliCDBEntry&quot;
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineCov">       2956 :   AliCDBEntry* anEntry = dynamic_cast&lt;AliCDBEntry*&gt; (file.Get(&quot;AliCDBEntry&quot;));</span>
+<span class="lineNum">     432 </span><span class="lineCov">        739 :   if (!anEntry) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Bad storage data: No AliCDBEntry in file!&quot;));</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     file.Close();</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     delete dataId;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     throw std::runtime_error(errMessage.Data());</span>
+<span class="lineNum">     437 </span>            :     return NULL;
+<span class="lineNum">     438 </span>            :   }
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineCov">        739 :   AliCDBId&amp; entryId = anEntry-&gt;GetId();</span>
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            :   // The object's Id are not reset during storage
+<span class="lineNum">     443 </span>            :   // If object's Id runRange or version do not match with filename,
+<span class="lineNum">     444 </span>            :   // it means that someone renamed file by hand. In this case a warning msg is issued.
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineCov">       2217 :   anEntry-&gt; SetLastStorage(&quot;local&quot;);</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineCov">       1478 :   if(!entryId.IsEqual(dataId)){</span>
+<span class="lineNum">     449 </span><span class="lineCov">          9 :     AliWarning(Form(&quot;Mismatch between file name and object's Id!&quot;));</span>
+<span class="lineNum">     450 </span><span class="lineCov">         18 :     AliWarning(Form(&quot;File name: %s&quot;, dataId-&gt;ToString().Data()));</span>
+<span class="lineNum">     451 </span><span class="lineCov">         18 :     AliWarning(Form(&quot;Object's Id: %s&quot;, entryId.ToString().Data()));</span>
+<span class="lineNum">     452 </span><span class="lineCov">          3 :   }</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :   // Check whether entry contains a TTree. In case load the tree in memory!
+<span class="lineNum">     455 </span><span class="lineCov">        739 :   LoadTreeFromFile(anEntry);</span>
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span>            :   // close file, return retrieved entry
+<span class="lineNum">     458 </span><span class="lineCov">        739 :   file.Close();</span>
+<span class="lineNum">     459 </span><span class="lineCov">       1478 :   delete dataId;</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            :   return anEntry;
+<span class="lineNum">     462 </span><span class="lineCov">        741 : }</span>
+<a name="463"><span class="lineNum">     463 </span>            : </a>
+<span class="lineNum">     464 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     465 </span>            : AliCDBId* AliCDBLocal::GetEntryId(const AliCDBId&amp; queryId) {
+<span class="lineNum">     466 </span>            : // get AliCDBId from the storage
+<span class="lineNum">     467 </span>            : // Via GetId, select the CDB file matching the query and return
+<span class="lineNum">     468 </span>            : // the contained AliCDBId
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            :   AliCDBId* dataId = 0;
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :   // look for a filename matching query requests (path, runRange, version, subVersion)
+<span class="lineNum">     473 </span><span class="lineCov">       1480 :   if (!queryId.HasVersion()) {</span>
+<span class="lineNum">     474 </span>            :     // if version is not specified, first check the selection criteria list
+<span class="lineNum">     475 </span><span class="lineCov">        204 :     AliCDBId selectedId(queryId);</span>
+<span class="lineNum">     476 </span><span class="lineCov">        204 :     GetSelection(&amp;selectedId);</span>
+<span class="lineNum">     477 </span><span class="lineCov">        204 :     dataId = GetId(selectedId);</span>
+<span class="lineNum">     478 </span><span class="lineCov">        204 :   } else {</span>
+<span class="lineNum">     479 </span><span class="lineCov">        536 :     dataId = GetId(queryId);</span>
+<span class="lineNum">     480 </span>            :   }
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineCov">       1479 :   if (dataId &amp;&amp; !dataId-&gt;IsSpecified()) {</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     delete dataId;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     485 </span>            :   }
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineCov">        740 :   return dataId;</span>
+<span class="lineNum">     488 </span><span class="lineCov">        740 : }</span>
+<a name="489"><span class="lineNum">     489 </span>            : </a>
+<span class="lineNum">     490 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     491 </span>            : void AliCDBLocal::GetEntriesForLevel0(const char* level0,
+<span class="lineNum">     492 </span>            :     const AliCDBId&amp; queryId, TList* result) {
+<span class="lineNum">     493 </span>            :   // multiple request (AliCDBStorage::GetAll)
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :   TString level0Dir = Form(&quot;%s/%s&quot;, fBaseDirectory.Data(), level0);</span>
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :   void* level0DirPtr = gSystem-&gt;OpenDirectory(level0Dir);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :   if (!level0DirPtr) {</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Can't open level0 directory &lt;%s&gt;!&quot;,</span>
+<span class="lineNum">     500 </span>            :           level0Dir.Data()));
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     502 </span>            :   }
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            :   const char* level1;
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   Long_t flag=0;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   while ((level1 = gSystem-&gt;GetDirEntry(level0DirPtr))) {</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     TString level1Str(level1);</span>
+<span class="lineNum">     509 </span>            :     // skip directories starting with a dot (&quot;.svn&quot; and similar in old svn working copies)
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     if (level1Str.BeginsWith('.')) {</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     512 </span>            :     }
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     TString fullPath = Form(&quot;%s/%s&quot;,level0Dir.Data(), level1); </span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     Int_t res=gSystem-&gt;GetPathInfo(fullPath.Data(), 0, (Long64_t*) 0, &amp;flag, 0);</span>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     if(res){</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :       AliDebug(2, Form(&quot;Error reading entry %s !&quot;,level1Str.Data()));</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     521 </span>            :     }
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     if(!(flag&amp;2)) continue; // bit 1 of flag = directory!</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     if (queryId.GetAliCDBPath().Level1Comprises(level1)) {</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :       GetEntriesForLevel1(level0, level1, queryId, result);</span>
+<span class="lineNum">     526 </span>            :     }
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   gSystem-&gt;FreeDirectory(level0DirPtr);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 : }</span>
+<a name="531"><span class="lineNum">     531 </span>            : </a>
+<span class="lineNum">     532 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     533 </span>            : void AliCDBLocal::GetEntriesForLevel1(const char* level0, const char* level1,
+<span class="lineNum">     534 </span>            :     const AliCDBId&amp; queryId, TList* result) {
+<span class="lineNum">     535 </span>            :   // multiple request (AliCDBStorage::GetAll)
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   TString level1Dir = Form(&quot;%s/%s/%s&quot;, fBaseDirectory.Data(), level0,level1);</span>
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :   void* level1DirPtr = gSystem-&gt;OpenDirectory(level1Dir);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :   if (!level1DirPtr) {</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Can't open level1 directory &lt;%s&gt;!&quot;,</span>
+<span class="lineNum">     542 </span>            :           level1Dir.Data()));
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     544 </span>            :   }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :   const char* level2;
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   Long_t flag=0;</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :   while ((level2 = gSystem-&gt;GetDirEntry(level1DirPtr))) {</span>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     TString level2Str(level2);</span>
+<span class="lineNum">     551 </span>            :     // skip directories starting with a dot (&quot;.svn&quot; and similar in old svn working copies)
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (level2Str.BeginsWith('.')) {</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     554 </span>            :     }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     TString fullPath = Form(&quot;%s/%s&quot;,level1Dir.Data(), level2); </span>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     Int_t res=gSystem-&gt;GetPathInfo(fullPath.Data(), 0, (Long64_t*) 0, &amp;flag, 0);</span>
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     if(res){</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :       AliDebug(2, Form(&quot;Error reading entry %s !&quot;,level2Str.Data()));</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     563 </span>            :     }
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     if(!(flag&amp;2)) continue; // skip if not a directory</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     if (queryId.GetAliCDBPath().Level2Comprises(level2)) {</span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :       AliCDBPath entryPath(level0, level1, level2);</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :       AliCDBId entryId(entryPath, queryId.GetAliCDBRunRange(),</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :           queryId.GetVersion(), queryId.GetSubVersion());</span>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            :       // check filenames to see if any includes queryId.GetAliCDBRunRange()
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :       void* level2DirPtr = gSystem-&gt;OpenDirectory(fullPath);</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       if (!level2DirPtr) {</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         AliDebug(2,Form(&quot;Can't open level2 directory &lt;%s&gt;!&quot;, fullPath.Data()));</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     578 </span>            :       }
+<span class="lineNum">     579 </span>            :       const char* level3;
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :       Long_t file_flag=0;</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :       while ((level3 = gSystem-&gt;GetDirEntry(level2DirPtr))) {</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         TString fileName(level3);</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         TString fullFileName = Form(&quot;%s/%s&quot;, fullPath.Data(), level3); </span>
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         Int_t file_res=gSystem-&gt;GetPathInfo(fullFileName.Data(), 0, (Long64_t*) 0, &amp;file_flag, 0);</span>
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :         if(file_res){</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :           AliDebug(2, Form(&quot;Error reading entry %s !&quot;,level2Str.Data()));</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     590 </span>            :         }
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :         if(file_flag)</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :           continue; // it is not a regular file!</span>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            :         // skip if result already contains an entry for this path
+<span class="lineNum">     595 </span>            :         Bool_t alreadyLoaded = kFALSE;
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :         Int_t nEntries = result-&gt;GetEntries();</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         for(int i=0; i&lt;nEntries; i++){</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :           AliCDBEntry *lEntry = (AliCDBEntry*) result-&gt;At(i);</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :           AliCDBId lId = lEntry-&gt;GetId();</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :           TString lPath = lId.GetPath();</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :           if(lPath.EqualTo(entryPath.GetPath())){</span>
+<span class="lineNum">     602 </span>            :             alreadyLoaded = kTRUE;
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     604 </span>            :           }
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         if (alreadyLoaded) continue;</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span>            :         //skip filenames not matching the regex below
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         TRegexp re(&quot;^Run[0-9]+_[0-9]+_&quot;);</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         if(!fileName.Contains(re))</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     612 </span>            :         // Extract first- and last-run and version and subversion.
+<span class="lineNum">     613 </span>            :         // This allows to avoid quering for a calibration path if we did not find a filename with
+<span class="lineNum">     614 </span>            :         // run-range including the one specified in the query and
+<span class="lineNum">     615 </span>            :         // with version, subversion matching the query
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         TString fn = fileName( 3, fileName.Length()-3 );</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :         TString firstRunStr = fn( 0, fn.First('_') );</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :         fn.Remove( 0, firstRunStr.Length()+1 );</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :         TString lastRunStr = fn( 0, fn.First('_') );</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :         fn.Remove( 0, lastRunStr.Length()+1 );</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :         TString versionStr = fn( 1, fn.First('_')-1 );</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :         fn.Remove( 0, versionStr.Length()+2 );</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         TString subvStr = fn(1, fn.First('.')-1);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         Int_t firstRun = firstRunStr.Atoi();</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :         Int_t lastRun  = lastRunStr.Atoi();</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :         AliCDBRunRange rr(firstRun,lastRun);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :         Int_t version = versionStr.Atoi();</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :         Int_t subVersion = subvStr.Atoi();</span>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span>            :         AliCDBEntry* anEntry = 0;
+<span class="lineNum">     631 </span>            :         Bool_t versionOK = kTRUE, subVersionOK = kTRUE;
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         if ( queryId.HasVersion() &amp;&amp; version!=queryId.GetVersion())</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :           versionOK = kFALSE;</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :         if ( queryId.HasSubVersion() &amp;&amp; subVersion!=queryId.GetSubVersion())</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :           subVersionOK = kFALSE;</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         if (rr.Comprises(queryId.GetAliCDBRunRange()) &amp;&amp; versionOK &amp;&amp; subVersionOK )</span>
+<span class="lineNum">     637 </span>            :         {
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :           anEntry = GetEntry(entryId);</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :           result-&gt;Add(anEntry);</span>
+<span class="lineNum">     640 </span>            :         }
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :   gSystem-&gt;FreeDirectory(level1DirPtr);</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 : }</span>
+<a name="647"><span class="lineNum">     647 </span>            : </a>
+<span class="lineNum">     648 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     649 </span>            : TList* AliCDBLocal::GetEntries(const AliCDBId&amp; queryId) {
+<span class="lineNum">     650 </span>            : // multiple request (AliCDBStorage::GetAll)
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineCov">        128 :   TList* result = new TList();</span>
+<span class="lineNum">     653 </span><span class="lineCov">         64 :   result-&gt;SetOwner();</span>
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            :   // if querying for fRun and not specifying a version, look in the fValidFileIds list
+<span class="lineNum">     656 </span><span class="lineCov">        128 :   if(queryId.GetFirstRun() == fRun &amp;&amp; !queryId.HasVersion()) {</span>
+<span class="lineNum">     657 </span>            :     // get id from fValidFileIds
+<span class="lineNum">     658 </span><span class="lineCov">         64 :     TIter *iter = new TIter(&amp;fValidFileIds);</span>
+<span class="lineNum">     659 </span><span class="lineCov">         64 :     TObjArray selectedIds;</span>
+<span class="lineNum">     660 </span><span class="lineCov">         64 :     selectedIds.SetOwner(1);</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span>            :     // loop on list of valid Ids to select the right version to get.
+<span class="lineNum">     663 </span>            :     // According to query and to the selection criteria list, version can be the highest or exact
+<span class="lineNum">     664 </span>            :     AliCDBId* anIdPtr=0;
+<span class="lineNum">     665 </span>            :     AliCDBId* dataId=0;
+<span class="lineNum">     666 </span><span class="lineCov">         64 :     AliCDBPath queryPath = queryId.GetAliCDBPath();</span>
+<span class="lineNum">     667 </span><span class="lineCov">      83136 :     while((anIdPtr = dynamic_cast&lt;AliCDBId*&gt; (iter-&gt;Next()))){</span>
+<span class="lineNum">     668 </span><span class="lineCov">      20736 :       AliCDBPath thisCDBPath = anIdPtr-&gt;GetAliCDBPath();</span>
+<span class="lineNum">     669 </span><span class="lineCov">      41472 :       if(!(queryPath.Comprises(thisCDBPath))){</span>
+<span class="lineNum">     670 </span><span class="lineCov">      20200 :         continue;</span>
+<span class="lineNum">     671 </span>            :       }
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineCov">        536 :       AliCDBId thisId(*anIdPtr);</span>
+<span class="lineNum">     674 </span><span class="lineCov">        536 :       dataId = GetId(thisId);</span>
+<span class="lineNum">     675 </span><span class="lineCov">        536 :       if(dataId)</span>
+<span class="lineNum">     676 </span><span class="lineCov">        536 :         selectedIds.Add(dataId);</span>
+<span class="lineNum">     677 </span><span class="lineCov">      21272 :     }</span>
+<span class="lineNum">     678 </span>            : 
+<span class="lineNum">     679 </span><span class="lineCov">        128 :     delete iter; iter=0;</span>
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span>            :     // selectedIds contains the Ids of the files matching all requests of query!
+<span class="lineNum">     682 </span>            :     // All the objects are now ready to be retrieved
+<span class="lineNum">     683 </span><span class="lineCov">        128 :     iter = new TIter(&amp;selectedIds);</span>
+<span class="lineNum">     684 </span><span class="lineCov">       2936 :     while((anIdPtr = dynamic_cast&lt;AliCDBId*&gt; (iter-&gt;Next()))){</span>
+<span class="lineNum">     685 </span><span class="lineCov">        536 :       AliCDBEntry* anEntry = GetEntry(*anIdPtr);</span>
+<span class="lineNum">     686 </span><span class="lineCov">       1072 :       if(anEntry) result-&gt;Add(anEntry);</span>
+<span class="lineNum">     687 </span>            :     }
+<span class="lineNum">     688 </span><span class="lineCov">        128 :     delete iter; iter=0;</span>
+<span class="lineNum">     689 </span>            :     return result;
+<span class="lineNum">     690 </span><span class="lineCov">         64 :   }</span>
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :   void* storageDirPtr = gSystem-&gt;OpenDirectory(fBaseDirectory);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   if (!storageDirPtr) {</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Can't open storage directory &lt;%s&gt;&quot;,</span>
+<span class="lineNum">     695 </span>            :           fBaseDirectory.Data()));
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     697 </span>            :   }
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span>            :   const char* level0;
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   Long_t flag=0;</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :   while ((level0 = gSystem-&gt;GetDirEntry(storageDirPtr))) {</span>
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :     TString level0Str(level0);</span>
+<span class="lineNum">     704 </span>            :     // skip directories starting with a dot (&quot;.svn&quot; and similar in old svn working copies)
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     if (level0Str.BeginsWith('.')) {</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     707 </span>            :     }
+<span class="lineNum">     708 </span>            : 
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     TString fullPath = Form(&quot;%s/%s&quot;,fBaseDirectory.Data(), level0); </span>
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     Int_t res=gSystem-&gt;GetPathInfo(fullPath.Data(), 0, (Long64_t*) 0, &amp;flag, 0);</span>
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     if(res){</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :       AliDebug(2, Form(&quot;Error reading entry %s !&quot;,level0Str.Data()));</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     716 </span>            :     }
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     if(!(flag&amp;2)) continue; // bit 1 of flag = directory!                           </span>
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     if (queryId.GetAliCDBPath().Level0Comprises(level0)) {</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :       GetEntriesForLevel0(level0, queryId, result);</span>
+<span class="lineNum">     722 </span>            :     }
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   gSystem-&gt;FreeDirectory(storageDirPtr);</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            :   return result;        
+<span class="lineNum">     728 </span><span class="lineCov">         64 : }</span>
+<a name="729"><span class="lineNum">     729 </span>            : </a>
+<span class="lineNum">     730 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     731 </span>            : Bool_t AliCDBLocal::PutEntry(AliCDBEntry* entry, const char* mirrors) {
+<span class="lineNum">     732 </span>            : // put an AliCDBEntry object into the database
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineCov">          2 :   AliCDBId&amp; id = entry-&gt;GetId();</span>
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span>            :   // set version and subVersion for the entry to be stored
+<span class="lineNum">     737 </span><span class="lineCov">          1 :   if (!PrepareId(id)) return kFALSE;</span>
+<span class="lineNum">     738 </span>            : 
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            :   // build filename from entry's id
+<span class="lineNum">     741 </span><span class="lineCov">          1 :   TString filename=&quot;&quot;;</span>
+<span class="lineNum">     742 </span><span class="lineCov">          2 :   if (!IdToFilename(id, filename)) {</span>
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Bad ID encountered! Subnormal error!&quot;));</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     746 </span>            :   }
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span><span class="lineCov">          1 :   TString mirrorsString(mirrors);</span>
+<span class="lineNum">     749 </span><span class="lineCov">          2 :   if(!mirrorsString.IsNull())</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     AliWarning(&quot;AliCDBLocal storage cannot take mirror SEs into account. They will be ignored.&quot;);</span>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span>            :   // open file
+<span class="lineNum">     753 </span><span class="lineCov">          2 :   TFile file(filename, &quot;CREATE&quot;);</span>
+<span class="lineNum">     754 </span><span class="lineCov">          2 :   if (!file.IsOpen()) {</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Can't open file &lt;%s&gt;!&quot;, filename.Data()));</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     757 </span>            :   }
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span>            :   //SetTreeToFile(entry, &amp;file);
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span><span class="lineCov">          1 :   entry-&gt;SetVersion(id.GetVersion());</span>
+<span class="lineNum">     762 </span><span class="lineCov">          1 :   entry-&gt;SetSubVersion(id.GetSubVersion());</span>
+<span class="lineNum">     763 </span>            : 
+<span class="lineNum">     764 </span>            :   // write object (key name: &quot;AliCDBEntry&quot;)
+<span class="lineNum">     765 </span><span class="lineCov">          2 :   Bool_t result = file.WriteTObject(entry, &quot;AliCDBEntry&quot;);</span>
+<span class="lineNum">     766 </span><span class="lineCov">          1 :   if (!result) AliDebug(2,Form(&quot;Can't write entry to file: %s&quot;, filename.Data()));</span>
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineCov">          1 :   file.Close();</span>
+<span class="lineNum">     769 </span><span class="lineCov">          1 :   if(result) {</span>
+<span class="lineNum">     770 </span><span class="lineCov">          3 :     if(!(id.GetPath().Contains(&quot;SHUTTLE/STATUS&quot;)))</span>
+<span class="lineNum">     771 </span><span class="lineCov">          4 :       AliInfo(Form(&quot;CDB object stored into file %s&quot;,filename.Data()));</span>
+<span class="lineNum">     772 </span>            :   }
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span>            :   return result;
+<span class="lineNum">     775 </span><span class="lineCov">          3 : }</span>
+<a name="776"><span class="lineNum">     776 </span>            : </a>
+<span class="lineNum">     777 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     778 </span>            : TList* AliCDBLocal::GetIdListFromFile(const char* fileName){
+<span class="lineNum">     779 </span>            : 
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :   TString fullFileName(fileName);</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :   fullFileName.Prepend(fBaseDirectory+'/');</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :   TFile *file = TFile::Open(fullFileName);</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :   if (!file) {</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Can't open selection file &lt;%s&gt;!&quot;, fullFileName.Data()));</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     786 </span>            :   }
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   file-&gt;cd();</span>
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :   TList *list = new TList();</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :   list-&gt;SetOwner();</span>
+<span class="lineNum">     791 </span>            :   int i=0;
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :   TString keycycle;</span>
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span>            :   AliCDBId *id;
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :   while(1){</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     i++;</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :     keycycle = &quot;AliCDBId;&quot;;</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :     keycycle+=i;</span>
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :     id = (AliCDBId*) file-&gt;Get(keycycle);</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     if(!id) break;</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :     list-&gt;AddFirst(id);</span>
+<span class="lineNum">     803 </span>            :   }
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   file-&gt;Close(); delete file; file=0;        </span>
+<span class="lineNum">     805 </span>            :   return list;
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 : }</span>
+<a name="807"><span class="lineNum">     807 </span>            : </a>
+<span class="lineNum">     808 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     809 </span>            : Bool_t AliCDBLocal::Contains(const char* path) const{
+<span class="lineNum">     810 </span>            : // check for path in storage's fBaseDirectory
+<span class="lineNum">     811 </span>            : 
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :   TString dirName = Form(&quot;%s/%s&quot;, fBaseDirectory.Data(), path);</span>
+<span class="lineNum">     813 </span>            :   Bool_t result=kFALSE;
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :   void* dirPtr = gSystem-&gt;OpenDirectory(dirName); </span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :   if (dirPtr) result=kTRUE;</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :   gSystem-&gt;FreeDirectory(dirPtr);</span>
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :   return result;</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 : }</span>
+<a name="821"><span class="lineNum">     821 </span>            : </a>
+<span class="lineNum">     822 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     823 </span>            : void AliCDBLocal::QueryValidFiles() {
+<span class="lineNum">     824 </span>            : // Query the CDB for files valid for AliCDBStorage::fRun.
+<span class="lineNum">     825 </span>            : // Fills list fValidFileIds with AliCDBId objects extracted from CDB files
+<span class="lineNum">     826 </span>            : // present in the local storage.
+<span class="lineNum">     827 </span>            : // If fVersion was not set, fValidFileIds is filled with highest versions.
+<span class="lineNum">     828 </span>            : // In the CVMFS case, the fValidFileIds is filled from the file containing
+<span class="lineNum">     829 </span>            : // the filepaths corresponding to the highest versions for the give OCDB tag
+<span class="lineNum">     830 </span>            : // by launching the script which extracts the last versions for the given run.
+<span class="lineNum">     831 </span>            : //
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span><span class="lineCov">         20 :   if(fVersion != -1) AliWarning (&quot;Version parameter is not used by local storage query!&quot;);</span>
+<span class="lineNum">     834 </span><span class="lineCov">         10 :   if(fMetaDataFilter) {</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     AliWarning (&quot;CDB meta data parameters are not used by local storage query!&quot;);</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :     delete fMetaDataFilter; fMetaDataFilter=0;</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     838 </span>            : 
+<span class="lineNum">     839 </span>            :   // Check if in CVMFS case
+<span class="lineNum">     840 </span><span class="lineCov">         10 :   TString cvmfsOcdbTag(gSystem-&gt;Getenv(&quot;OCDB_PATH&quot;));</span>
+<span class="lineNum">     841 </span><span class="lineCov">         20 :   if (!cvmfsOcdbTag.IsNull()) {</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :     QueryValidCVMFSFiles(cvmfsOcdbTag);</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     844 </span>            :   }
+<span class="lineNum">     845 </span>            : 
+<span class="lineNum">     846 </span><span class="lineCov">         20 :   void* storageDirPtr = gSystem-&gt;OpenDirectory(fBaseDirectory);</span>
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span>            :   const char* level0;
+<span class="lineNum">     849 </span><span class="lineCov">       1520 :   while ((level0 = gSystem-&gt;GetDirEntry(storageDirPtr))) {</span>
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span><span class="lineCov">        745 :     TString level0Str(level0);</span>
+<span class="lineNum">     852 </span><span class="lineCov">       1490 :     if (level0Str.BeginsWith(&quot;.&quot;)) {</span>
+<span class="lineNum">     853 </span><span class="lineCov">         30 :       continue;</span>
+<span class="lineNum">     854 </span>            :     }
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span><span class="lineCov">       2145 :     if (fPathFilter.Level0Comprises(level0)) {</span>
+<span class="lineNum">     857 </span><span class="lineCov">        372 :       TString level0Dir = Form(&quot;%s/%s&quot;,fBaseDirectory.Data(),level0);</span>
+<span class="lineNum">     858 </span><span class="lineCov">        248 :       void* level0DirPtr = gSystem-&gt;OpenDirectory(level0Dir);</span>
+<span class="lineNum">     859 </span>            :       const char* level1;
+<span class="lineNum">     860 </span><span class="lineCov">       1406 :       while ((level1 = gSystem-&gt;GetDirEntry(level0DirPtr))) {</span>
+<span class="lineNum">     861 </span>            : 
+<span class="lineNum">     862 </span><span class="lineCov">        517 :         TString level1Str(level1);</span>
+<span class="lineNum">     863 </span><span class="lineCov">       1034 :         if (level1Str.BeginsWith(&quot;.&quot;)) {</span>
+<span class="lineNum">     864 </span><span class="lineCov">        218 :           continue;</span>
+<span class="lineNum">     865 </span>            :         }
+<span class="lineNum">     866 </span>            : 
+<span class="lineNum">     867 </span><span class="lineCov">        897 :         if (fPathFilter.Level1Comprises(level1)) {</span>
+<span class="lineNum">     868 </span><span class="lineCov">        897 :           TString level1Dir = Form(&quot;%s/%s/%s&quot;,</span>
+<span class="lineNum">     869 </span><span class="lineCov">        299 :               fBaseDirectory.Data(),level0,level1);</span>
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineCov">        598 :           void* level1DirPtr = gSystem-&gt;OpenDirectory(level1Dir);</span>
+<span class="lineNum">     872 </span>            :           const char* level2;
+<span class="lineNum">     873 </span><span class="lineCov">       5371 :           while ((level2 = gSystem-&gt;GetDirEntry(level1DirPtr))) {</span>
+<span class="lineNum">     874 </span>            : 
+<span class="lineNum">     875 </span><span class="lineCov">       2237 :             TString level2Str(level2);</span>
+<span class="lineNum">     876 </span><span class="lineCov">       4474 :             if (level2Str.BeginsWith(&quot;.&quot;)) {</span>
+<span class="lineNum">     877 </span><span class="lineCov">        598 :               continue;</span>
+<span class="lineNum">     878 </span>            :             }
+<span class="lineNum">     879 </span>            : 
+<span class="lineNum">     880 </span><span class="lineCov">       4917 :             if (fPathFilter.Level2Comprises(level2)) {</span>
+<span class="lineNum">     881 </span><span class="lineCov">       4917 :               TString dirName = Form(&quot;%s/%s/%s/%s&quot;, fBaseDirectory.Data(), level0, level1, level2);</span>
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span><span class="lineCov">       3278 :               void* dirPtr = gSystem-&gt;OpenDirectory(dirName);</span>
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span>            :               const char* filename;
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span><span class="lineCov">       1639 :               AliCDBRunRange aRunRange; // the runRange got from filename</span>
+<span class="lineNum">     888 </span><span class="lineCov">       1639 :               AliCDBRunRange hvRunRange; // the runRange of the highest version valid file</span>
+<span class="lineNum">     889 </span><span class="lineCov">       1639 :               Int_t aVersion, aSubVersion; // the version and subVersion got from filename</span>
+<span class="lineNum">     890 </span>            :               Int_t highestV=-1, highestSubV=-1; // the highest version and subVersion for this calibration type
+<span class="lineNum">     891 </span>            : 
+<span class="lineNum">     892 </span><span class="lineCov">      14721 :               while ((filename = gSystem-&gt;GetDirEntry(dirPtr))) { // loop on files</span>
+<span class="lineNum">     893 </span>            : 
+<span class="lineNum">     894 </span><span class="lineCov">       4902 :                 TString aString(filename);</span>
+<span class="lineNum">     895 </span><span class="lineCov">      13062 :                 if (aString.BeginsWith(&quot;.&quot;)) continue;</span>
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span><span class="lineCov">       3288 :                 if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)) {</span>
+<span class="lineNum">     898 </span><span class="lineCov">          5 :                   continue;</span>
+<span class="lineNum">     899 </span>            :                 }
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span><span class="lineCov">       1639 :                 AliCDBRunRange runrg(fRun, fRun);</span>
+<span class="lineNum">     902 </span><span class="lineCov">       3278 :                 if (!aRunRange.Comprises(runrg))</span>
+<span class="lineNum">     903 </span><span class="lineCov">          5 :                   continue;</span>
+<span class="lineNum">     904 </span>            : 
+<span class="lineNum">     905 </span>            :                 // check to keep the highest version/subversion (in case of more than one)
+<span class="lineNum">     906 </span><span class="lineCov">       1634 :                 if (aVersion &gt; highestV) {</span>
+<span class="lineNum">     907 </span>            :                   highestV = aVersion;
+<span class="lineNum">     908 </span><span class="lineCov">       1629 :                   highestSubV = aSubVersion;</span>
+<span class="lineNum">     909 </span><span class="lineCov">       1629 :                   hvRunRange = aRunRange;</span>
+<span class="lineNum">     910 </span><span class="lineCov">          5 :                 } else if (aVersion == highestV) {</span>
+<span class="lineNum">     911 </span><span class="lineCov">          5 :                   if (aSubVersion &gt; highestSubV) {</span>
+<span class="lineNum">     912 </span>            :                     highestSubV = aSubVersion;
+<span class="lineNum">     913 </span><span class="lineCov">          5 :                     hvRunRange = aRunRange;</span>
+<span class="lineNum">     914 </span>            :                   }
+<span class="lineNum">     915 </span>            :                 }
+<span class="lineNum">     916 </span><span class="lineCov">       8175 :               }</span>
+<span class="lineNum">     917 </span><span class="lineCov">       1639 :               if(highestV &gt;= 0){</span>
+<span class="lineNum">     918 </span><span class="lineCov">       1624 :                 AliCDBPath validPath(level0, level1, level2);</span>
+<span class="lineNum">     919 </span><span class="lineCov">       3248 :                 AliCDBId *validId = new AliCDBId(validPath, hvRunRange, highestV, highestSubV);</span>
+<span class="lineNum">     920 </span><span class="lineCov">       1624 :                 fValidFileIds.AddLast(validId);</span>
+<span class="lineNum">     921 </span><span class="lineCov">       1624 :               }</span>
+<span class="lineNum">     922 </span>            : 
+<span class="lineNum">     923 </span><span class="lineCov">       1639 :               gSystem-&gt;FreeDirectory(dirPtr);</span>
+<span class="lineNum">     924 </span><span class="lineCov">       1639 :             }</span>
+<span class="lineNum">     925 </span><span class="lineCov">       3876 :           }</span>
+<span class="lineNum">     926 </span><span class="lineCov">        299 :           gSystem-&gt;FreeDirectory(level1DirPtr);</span>
+<span class="lineNum">     927 </span><span class="lineCov">        299 :         }</span>
+<span class="lineNum">     928 </span><span class="lineCov">        816 :       }</span>
+<span class="lineNum">     929 </span><span class="lineCov">        124 :       gSystem-&gt;FreeDirectory(level0DirPtr);</span>
+<span class="lineNum">     930 </span><span class="lineCov">        124 :     }</span>
+<span class="lineNum">     931 </span><span class="lineCov">       1460 :   }</span>
+<span class="lineNum">     932 </span><span class="lineCov">         10 :   gSystem-&gt;FreeDirectory(storageDirPtr);</span>
+<span class="lineNum">     933 </span>            : 
+<span class="lineNum">     934 </span><span class="lineCov">         20 : }</span>
+<a name="935"><span class="lineNum">     935 </span>            : </a>
+<span class="lineNum">     936 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     937 </span>            : void AliCDBLocal::QueryValidCVMFSFiles(TString&amp; cvmfsOcdbTag) {
+<span class="lineNum">     938 </span>            : // Called in the CVMFS case to fill the fValidFileIds from the file containing
+<span class="lineNum">     939 </span>            : // the filepaths corresponding to the highest versions for the given OCDB tag
+<span class="lineNum">     940 </span>            : // by launching the script which extracts the last versions for the given run.
+<span class="lineNum">     941 </span>            : //
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :   TString command = cvmfsOcdbTag;</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :   AliDebug(3, Form(&quot;Getting valid files from CVMFS-OCDB tag \&quot;%s\&quot;&quot;, cvmfsOcdbTag.Data()));</span>
+<span class="lineNum">     945 </span>            :   // CVMFS-OCDB tag. This is the file $OCDB_PATH/catalogue/20??.list.gz
+<span class="lineNum">     946 </span>            :   // containing all CDB file paths (for the given AR tag)
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :   cvmfsOcdbTag.Strip(TString::kTrailing, '/');</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :   cvmfsOcdbTag.Append(&quot;/&quot;);</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :   gSystem-&gt;ExpandPathName(cvmfsOcdbTag);</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :   if ( gSystem-&gt;AccessPathName(cvmfsOcdbTag) )</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :     AliFatal(Form(&quot;cvmfs OCDB set to an invalid path: %s&quot;, cvmfsOcdbTag.Data()));</span>
+<span class="lineNum">     952 </span>            : 
+<span class="lineNum">     953 </span>            :   // The file containing the list of valid files for the current run has to be generated
+<span class="lineNum">     954 </span>            :   // by running the (shell+awk) script on the CVMFS OCDB tag file.
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span>            :   // the script in cvmfs to extract CDB filepaths for the given run has the following fullpath
+<span class="lineNum">     957 </span>            :   // w.r.t. $OCDB_PATH: bin/OCDBperRun.sh
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :   command = command.Strip(TString::kTrailing, '/');</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :   command.Append(&quot;/bin/getOCDBFilesPerRun.sh &quot;); </span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :   command += cvmfsOcdbTag;</span>
+<span class="lineNum">     961 </span>            :   // from URI define the last two levels of the path of the cvmfs ocdb tag (e.g. data/2012.list.gz)
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :   TString uri(GetURI());</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :   uri.Remove(TString::kTrailing, '/');</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :   TObjArray * osArr = uri.Tokenize('/');</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :   TObjString* mcdata_os = dynamic_cast&lt;TObjString*&gt;(osArr-&gt;At(osArr-&gt;GetEntries()-3));</span>
+<span class="lineNum">     966 </span>            :   TObjString* yeartype_os = 0;
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :   TString mcdata = mcdata_os-&gt;GetString();</span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :   if( mcdata == TString(&quot;data&quot;)) {</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :     yeartype_os = dynamic_cast&lt;TObjString*&gt;(osArr-&gt;At(osArr-&gt;GetEntries()-2));</span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     mcdata_os = dynamic_cast&lt;TObjString*&gt;(osArr-&gt;At(osArr-&gt;GetEntries()-2));</span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :     yeartype_os = dynamic_cast&lt;TObjString*&gt;(osArr-&gt;At(osArr-&gt;GetEntries()-1));</span>
+<span class="lineNum">     973 </span>            :   }
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :   mcdata = mcdata_os-&gt;GetString();</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :   TString yeartype = yeartype_os-&gt;GetString();</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :   command += mcdata;</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :   command += '/';</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :   command += yeartype;</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :   command += &quot;.list.gz cvmfs &quot;;</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :   command += TString::Itoa(fRun,10);</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :   command += ' ';</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :   command += TString::Itoa(fRun,10);</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :   command += &quot; -y &gt; &quot;;</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :   TString runValidFile(gSystem-&gt;WorkingDirectory());</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :   runValidFile += '/';</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :   runValidFile += mcdata;</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :   runValidFile += '_';</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :   runValidFile += yeartype;</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :   runValidFile += '_';</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :   runValidFile += TString::Itoa(fRun,10);</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :   command += runValidFile;</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :   AliDebug(3, Form(&quot;Running command: \&quot;%s\&quot;&quot;,command.Data()));</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :   Int_t result = gSystem-&gt;Exec(command.Data());</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :   if(result != 0) {</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Was not able to execute \&quot;%s\&quot;&quot;, command.Data()));</span>
+<span class="lineNum">     996 </span>            :   }
+<span class="lineNum">     997 </span>            : 
+<span class="lineNum">     998 </span>            :   // We expect the file with valid paths for this run to be generated in the current directory
+<span class="lineNum">     999 </span>            :   // and to be named as the CVMFS OCDB tag, without .gz, with '_runnumber' appended
+<span class="lineNum">    1000 </span>            :   // Fill fValidFileIds from file
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :   std::ifstream file (runValidFile.Data());</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :   if (!file.is_open()) {</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :     AliFatal(Form(&quot;Error opening file \&quot;%s\&quot;!&quot;, runValidFile.Data()));</span>
+<span class="lineNum">    1004 </span>            :   }
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :   TString filepath;</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :   while (filepath.ReadLine(file)) {</span>
+<span class="lineNum">    1007 </span>            :     // skip line in case it is not a root file path
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :     if(! filepath.EndsWith(&quot;.root&quot;)) {</span>
+<span class="lineNum">    1009 </span>            :       continue;
+<span class="lineNum">    1010 </span>            :     }
+<span class="lineNum">    1011 </span>            :     //extract three-level path and basename
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :     TObjArray *tokens = filepath.Tokenize('/');</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :     if (tokens-&gt;GetEntries() &lt; 5) {</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :       AliError(Form(&quot;\&quot;%s\&quot; is not a valid cvmfs path for an OCDB object&quot;, filepath.Data()));</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">    1016 </span>            :     }
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :     TObjString *baseNameOstr = (TObjString*) tokens-&gt;At(tokens-&gt;GetEntries()-1);</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :     TString baseName(baseNameOstr-&gt;String());</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :     TObjString *l0oStr = (TObjString*) tokens-&gt;At(tokens-&gt;GetEntries()-4);</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :     TObjString *l1oStr = (TObjString*) tokens-&gt;At(tokens-&gt;GetEntries()-3);</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :     TObjString *l2oStr = (TObjString*) tokens-&gt;At(tokens-&gt;GetEntries()-2);</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :     TString l0(l0oStr-&gt;String());</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     TString l1(l1oStr-&gt;String());</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     TString l2(l2oStr-&gt;String());</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :     TString threeLevels = l0 + '/' + l1 + '/' + l2;</span>
+<span class="lineNum">    1026 </span>            : 
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     AliCDBPath validPath(threeLevels);</span>
+<span class="lineNum">    1028 </span>            :     //use basename and three-level path to create Id
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :     AliCDBRunRange aRunRange; // the runRange got from filename</span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :     Int_t aVersion, aSubVersion; // the version and subVersion got from filename</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :     if ( !FilenameToId(baseName, aRunRange, aVersion, aSubVersion) )</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :       AliError( Form(&quot;Could not create a valid CDB id from path: \&quot;%s\&quot;&quot;, filepath.Data()) );</span>
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :     AliCDBRunRange runrg(fRun,fRun);</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :     if (!aRunRange.Comprises(runrg)) continue; // should never happen (would mean awk script wrong output)</span>
+<span class="lineNum">    1036 </span>            :     // aRunRange contains requested run!
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :     AliCDBId *validId = new AliCDBId(validPath,aRunRange,aVersion,aSubVersion);</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :     fValidFileIds.AddLast(validId);</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1040 </span>            : 
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :   file.close();</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :   gSystem-&gt;Exec( Form( &quot;rm %s&quot;, runValidFile.Data() ) );</span>
+<span class="lineNum">    1043 </span>            :   return;
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">    1047 </span>            : //                                                                                             //
+<span class="lineNum">    1048 </span>            : // AliCDBLocal factory                                                                         //
+<span class="lineNum">    1049 </span>            : //                                                                                             //
+<a name="1050"><span class="lineNum">    1050 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////</a>
+<span class="lineNum">    1051 </span>            : 
+<span class="lineNum">    1052 </span><span class="lineCov">        128 : ClassImp(AliCDBLocalFactory)</span>
+<a name="1053"><span class="lineNum">    1053 </span>            : </a>
+<span class="lineNum">    1054 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1055 </span>            : Bool_t AliCDBLocalFactory::Validate(const char* dbString) {
+<span class="lineNum">    1056 </span>            : // check if the string is valid local URI
+<span class="lineNum">    1057 </span>            : 
+<span class="lineNum">    1058 </span><span class="lineCov">         58 :   TRegexp dbPatternLocal(&quot;^local://.+$&quot;);</span>
+<span class="lineNum">    1059 </span>            : 
+<span class="lineNum">    1060 </span><span class="lineCov">        193 :   return (TString(dbString).Contains(dbPatternLocal) || TString(dbString).BeginsWith(&quot;snapshot://folder=&quot;));</span>
+<span class="lineNum">    1061 </span><span class="lineCov">         29 : }</span>
+<a name="1062"><span class="lineNum">    1062 </span>            : </a>
+<span class="lineNum">    1063 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1064 </span>            : AliCDBParam* AliCDBLocalFactory::CreateParameter(const char* dbString) {
+<span class="lineNum">    1065 </span>            : // create AliCDBLocalParam class from the URI string
+<span class="lineNum">    1066 </span>            : 
+<span class="lineNum">    1067 </span><span class="lineCov">         58 :   if (!Validate(dbString)) {</span>
+<span class="lineNum">    1068 </span><span class="lineCov">         16 :     return NULL;</span>
+<span class="lineNum">    1069 </span>            :   }
+<span class="lineNum">    1070 </span>            : 
+<span class="lineNum">    1071 </span><span class="lineCov">         13 :   TString checkSS(dbString);</span>
+<span class="lineNum">    1072 </span><span class="lineCov">         26 :   if(checkSS.BeginsWith(&quot;snapshot://&quot;))</span>
+<span class="lineNum">    1073 </span>            :   {
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :     TString snapshotPath(&quot;OCDB&quot;);</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :     snapshotPath.Prepend(TString(gSystem-&gt;WorkingDirectory()) + '/');</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :     checkSS.Remove(0,checkSS.First(':')+3);</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :     return new AliCDBLocalParam(snapshotPath,checkSS);</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span>            :   // if the string argument is not a snapshot URI, than it is a plain local URI
+<span class="lineNum">    1081 </span><span class="lineCov">         13 :   TString pathname(dbString + sizeof(&quot;local://&quot;) - 1);</span>
+<span class="lineNum">    1082 </span>            : 
+<span class="lineNum">    1083 </span><span class="lineCov">         26 :   if(gSystem-&gt;ExpandPathName(pathname))</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">    1085 </span>            : 
+<span class="lineNum">    1086 </span><span class="lineCov">         26 :   if (pathname[0] != '/') {</span>
+<span class="lineNum">    1087 </span><span class="lineCov">         10 :     pathname.Prepend(TString(gSystem-&gt;WorkingDirectory()) + '/');</span>
+<span class="lineNum">    1088 </span><span class="lineCov">          2 :   }</span>
+<span class="lineNum">    1089 </span>            :   //pathname.Prepend(&quot;local://&quot;);
+<span class="lineNum">    1090 </span>            : 
+<span class="lineNum">    1091 </span><span class="lineCov">         52 :   return new AliCDBLocalParam(pathname);</span>
+<span class="lineNum">    1092 </span><span class="lineCov">         55 : }</span>
+<a name="1093"><span class="lineNum">    1093 </span>            : </a>
+<span class="lineNum">    1094 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1095 </span>            : AliCDBStorage* AliCDBLocalFactory::Create(const AliCDBParam* param) {
+<span class="lineNum">    1096 </span>            : // create AliCDBLocal storage instance from parameters
+<span class="lineNum">    1097 </span>            : 
+<span class="lineNum">    1098 </span><span class="lineCov">         24 :   if (AliCDBLocalParam::Class() == param-&gt;IsA()) {</span>
+<span class="lineNum">    1099 </span>            : 
+<span class="lineNum">    1100 </span>            :     const AliCDBLocalParam* localParam = 
+<span class="lineNum">    1101 </span><span class="lineCov">         12 :       (const AliCDBLocalParam*) param;</span>
+<span class="lineNum">    1102 </span>            : 
+<span class="lineNum">    1103 </span><span class="lineCov">         36 :     return new AliCDBLocal(localParam-&gt;GetPath());</span>
+<span class="lineNum">    1104 </span>            :   }
+<span class="lineNum">    1105 </span>            : 
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :   return NULL;</span>
+<a name="1107"><span class="lineNum">    1107 </span><span class="lineCov">         12 : }</span></a>
+<span class="lineNum">    1108 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1109 </span>            : void AliCDBLocal::SetRetry(Int_t /* nretry */, Int_t /* initsec */) {
+<span class="lineNum">    1110 </span>            : 
+<span class="lineNum">    1111 </span>            :   // Function to set the exponential retry for putting entries in the OCDB
+<span class="lineNum">    1112 </span>            : 
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :   AliInfo(&quot;This function sets the exponential retry for putting entries in the OCDB - to be used ONLY for AliCDBGrid --&gt; returning without doing anything&quot;);</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">    1115 </span>            : } 
+<span class="lineNum">    1116 </span>            : 
+<span class="lineNum">    1117 </span>            : 
+<span class="lineNum">    1118 </span>            : 
+<span class="lineNum">    1119 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">    1120 </span>            : //                                                                                             //
+<span class="lineNum">    1121 </span>            : // AliCDBLocal Parameter class                                                                 //                                          //
+<span class="lineNum">    1122 </span>            : //                                                                                             //
+<a name="1123"><span class="lineNum">    1123 </span>            : /////////////////////////////////////////////////////////////////////////////////////////////////</a>
+<span class="lineNum">    1124 </span>            : 
+<span class="lineNum">    1125 </span><span class="lineCov">        128 : ClassImp(AliCDBLocalParam)</span>
+<a name="1126"><span class="lineNum">    1126 </span>            : </a>
+<span class="lineNum">    1127 </span>            :   //_____________________________________________________________________________
+<span class="lineNum">    1128 </span>            :   AliCDBLocalParam::AliCDBLocalParam():
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :     AliCDBParam(),</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :     fDBPath()</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">    1132 </span>            :   // default constructor
+<span class="lineNum">    1133 </span>            : 
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 : }</span>
+<a name="1135"><span class="lineNum">    1135 </span>            : </a>
+<span class="lineNum">    1136 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1137 </span>            : AliCDBLocalParam::AliCDBLocalParam(const char* dbPath):
+<span class="lineNum">    1138 </span><span class="lineCov">         30 :   AliCDBParam(),</span>
+<span class="lineNum">    1139 </span><span class="lineCov">         30 :   fDBPath(dbPath)</span>
+<span class="lineNum">    1140 </span><span class="lineCov">        150 : {</span>
+<span class="lineNum">    1141 </span>            :   // constructor
+<span class="lineNum">    1142 </span>            : 
+<span class="lineNum">    1143 </span><span class="lineCov">         30 :   SetType(&quot;local&quot;);</span>
+<span class="lineNum">    1144 </span><span class="lineCov">        150 :   SetURI(TString(&quot;local://&quot;) + dbPath);</span>
+<span class="lineNum">    1145 </span><span class="lineCov">         60 : }</span>
+<a name="1146"><span class="lineNum">    1146 </span>            : </a>
+<span class="lineNum">    1147 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1148 </span>            : AliCDBLocalParam::AliCDBLocalParam(const char* dbPath, const char* uri):
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :   AliCDBParam(),</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :   fDBPath(dbPath)</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">    1152 </span>            :   // constructor
+<span class="lineNum">    1153 </span>            : 
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :   SetType(&quot;local&quot;);</span>
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :   SetURI(TString(&quot;alien://&quot;) + uri);</span>
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 : }</span>
+<a name="1157"><span class="lineNum">    1157 </span>            : </a>
+<span class="lineNum">    1158 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1159 </span><span class="lineCov">         78 : AliCDBLocalParam::~AliCDBLocalParam() {</span>
+<span class="lineNum">    1160 </span>            :   // destructor
+<span class="lineNum">    1161 </span>            : 
+<span class="lineNum">    1162 </span><span class="lineCov">         39 : }</span>
+<a name="1163"><span class="lineNum">    1163 </span>            : </a>
+<span class="lineNum">    1164 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1165 </span>            : AliCDBParam* AliCDBLocalParam::CloneParam() const {
+<span class="lineNum">    1166 </span>            :   // clone parameter
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span><span class="lineCov">         68 :   return new AliCDBLocalParam(fDBPath);</span>
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 : }</span>
+<a name="1170"><span class="lineNum">    1170 </span>            : </a>
+<span class="lineNum">    1171 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1172 </span>            : ULong_t AliCDBLocalParam::Hash() const {
+<span class="lineNum">    1173 </span>            :   // return Hash function
+<span class="lineNum">    1174 </span>            : 
+<span class="lineNum">    1175 </span><span class="lineCov">         94 :   return fDBPath.Hash();</span>
+<span class="lineNum">    1176 </span>            : }
+<a name="1177"><span class="lineNum">    1177 </span>            : </a>
+<span class="lineNum">    1178 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1179 </span>            : Bool_t AliCDBLocalParam::IsEqual(const TObject* obj) const {
+<span class="lineNum">    1180 </span>            :   // check if this object is equal to AliCDBParam obj
+<span class="lineNum">    1181 </span>            : 
+<span class="lineNum">    1182 </span><span class="lineCov">         46 :   if (this == obj) {</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<span class="lineNum">    1184 </span>            :   }
+<span class="lineNum">    1185 </span>            : 
+<span class="lineNum">    1186 </span><span class="lineCov">         23 :   if (AliCDBLocalParam::Class() != obj-&gt;IsA()) {</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1188 </span>            :   }
+<span class="lineNum">    1189 </span>            : 
+<span class="lineNum">    1190 </span><span class="lineCov">         23 :   AliCDBLocalParam* other = (AliCDBLocalParam*) obj;</span>
+<span class="lineNum">    1191 </span>            : 
+<span class="lineNum">    1192 </span><span class="lineCov">         23 :   return fDBPath == other-&gt;fDBPath;</span>
+<span class="lineNum">    1193 </span><span class="lineCov">         23 : }</span>
+<span class="lineNum">    1194 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

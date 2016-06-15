@@ -1,0 +1,387 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - EMCAL/EMCALrec/AliEMCALClusterizerv1.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">EMCAL/EMCALrec</a> - AliEMCALClusterizerv1.cxx<span style="font-size: 80%;"> (source / <a href="AliEMCALClusterizerv1.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">112</td>
+            <td class="headerCovTableEntry">134</td>
+            <td class="headerCovTableEntryMed">83.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">69.2 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : //-- Author: Yves Schutz (SUBATECH)  &amp; Dmitri Peressounko (SUBATECH &amp; Kurchatov Institute)
+<span class="lineNum">      17 </span>            : //--         Gustavo Conesa (LPSC-Grenoble), move common clusterizer functionalities to mother class
+<span class="lineNum">      18 </span>            : //////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      19 </span>            : //  Clusterization class. Performs clusterization (collects neighbouring active cells) and 
+<span class="lineNum">      20 </span>            : //  unfolds the clusters having several local maxima.  
+<span class="lineNum">      21 </span>            : //  Results are stored in TreeR#, branches EMCALTowerRP (EMC recPoints),
+<span class="lineNum">      22 </span>            : //  EMCALPreShoRP (CPV RecPoints) and AliEMCALClusterizer (Clusterizer with all 
+<span class="lineNum">      23 </span>            : //  parameters including input digits branch title, thresholds etc.)
+<span class="lineNum">      24 </span>            : //
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : // --- ROOT system ---
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;TFile.h&gt; 
+<span class="lineNum">      29 </span>            : #include &lt;TMath.h&gt; 
+<span class="lineNum">      30 </span>            : #include &lt;TMinuit.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;TTree.h&gt; 
+<span class="lineNum">      32 </span>            : #include &lt;TBenchmark.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;TBrowser.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;TList.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;TClonesArray.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : // --- Standard library ---
+<span class="lineNum">      39 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : // --- AliRoot header files ---
+<span class="lineNum">      42 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliEMCALClusterizerv1.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;AliEMCALRecPoint.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;AliEMCALDigit.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;AliEMCALGeometry.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;AliCaloCalibPedestal.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;AliEMCALCalibData.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliEMCALCalibTime.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliESDCaloCluster.h&quot;
+<a name="51"><span class="lineNum">      51 </span>            : #include &quot;AliEMCALUnfolding.h&quot;</a>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineCov">         42 : ClassImp(AliEMCALClusterizerv1)</span>
+<a name="54"><span class="lineNum">      54 </span>            : </a>
+<span class="lineNum">      55 </span>            : //____________________________________________________________________________
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 : AliEMCALClusterizerv1::AliEMCALClusterizerv1(): AliEMCALClusterizer()</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      58 </span>            :   // ctor with the indication of the file where header Tree and digits Tree are stored
+<span class="lineNum">      59 </span>            :   
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   Init();</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : }</span>
+<a name="62"><span class="lineNum">      62 </span>            : </a>
+<span class="lineNum">      63 </span>            : //____________________________________________________________________________
+<span class="lineNum">      64 </span>            : AliEMCALClusterizerv1::AliEMCALClusterizerv1(AliEMCALGeometry* geometry)
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   : AliEMCALClusterizer(geometry)</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      67 </span>            :   // ctor with the indication of the file where header Tree and digits Tree are stored
+<span class="lineNum">      68 </span>            :   // use this contructor to avoid usage of Init() which uses runloader
+<span class="lineNum">      69 </span>            :   // change needed by HLT - MP
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : }</span>
+<a name="71"><span class="lineNum">      71 </span>            : </a>
+<span class="lineNum">      72 </span>            : //____________________________________________________________________________
+<span class="lineNum">      73 </span>            : AliEMCALClusterizerv1::AliEMCALClusterizerv1(AliEMCALGeometry* geometry, 
+<span class="lineNum">      74 </span>            :                                              AliEMCALCalibData * calib, 
+<span class="lineNum">      75 </span>            :                                              AliEMCALCalibTime * calibt, 
+<span class="lineNum">      76 </span>            :                                              AliCaloCalibPedestal * caloped)
+<span class="lineNum">      77 </span><span class="lineCov">          2 : : AliEMCALClusterizer(geometry, calib, calibt, caloped)</span>
+<span class="lineNum">      78 </span><span class="lineCov">         10 : {</span>
+<span class="lineNum">      79 </span>            :   // ctor, geometry and calibration are initialized elsewhere.
+<span class="lineNum">      80 </span><span class="lineCov">          4 : }</span>
+<a name="81"><span class="lineNum">      81 </span>            : </a>
+<span class="lineNum">      82 </span>            : //____________________________________________________________________________
+<span class="lineNum">      83 </span>            :   AliEMCALClusterizerv1::~AliEMCALClusterizerv1()
+<span class="lineNum">      84 </span><span class="lineCov">          8 : {</span>
+<span class="lineNum">      85 </span>            :   // dtor
+<span class="lineNum">      86 </span><span class="lineCov">          8 : }</span>
+<a name="87"><span class="lineNum">      87 </span>            : </a>
+<span class="lineNum">      88 </span>            : //____________________________________________________________________________
+<span class="lineNum">      89 </span>            : void AliEMCALClusterizerv1::Digits2Clusters(Option_t * option)
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span>            :   // Steering method to perform clusterization for the current event 
+<span class="lineNum">      92 </span>            :   // in AliEMCALLoader
+<span class="lineNum">      93 </span>            :   
+<span class="lineNum">      94 </span><span class="lineCov">         16 :   if(strstr(option,&quot;tim&quot;))</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     gBenchmark-&gt;Start(&quot;EMCALClusterizer&quot;); </span>
+<span class="lineNum">      96 </span>            :   
+<span class="lineNum">      97 </span><span class="lineCov">          8 :   if(strstr(option,&quot;print&quot;))</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     Print(&quot;&quot;); </span>
+<span class="lineNum">      99 </span>            :   
+<span class="lineNum">     100 </span>            :   //Get calibration parameters from file or digitizer default values.
+<span class="lineNum">     101 </span><span class="lineCov">          8 :   GetCalibrationParameters();</span>
+<span class="lineNum">     102 </span>            :   
+<span class="lineNum">     103 </span>            :   //Get dead channel map from file or digitizer default values.
+<span class="lineNum">     104 </span><span class="lineCov">          8 :   GetCaloCalibPedestal();</span>
+<span class="lineNum">     105 </span>            :         
+<span class="lineNum">     106 </span><span class="lineCov">          8 :   fNumberOfECAClusters = 0;</span>
+<span class="lineNum">     107 </span>            :   
+<span class="lineNum">     108 </span><span class="lineCov">          8 :   MakeClusters();  //only the real clusters</span>
+<span class="lineNum">     109 </span>            :   
+<span class="lineNum">     110 </span><span class="lineCov">          8 :   if(fToUnfold)</span>
+<span class="lineNum">     111 </span>            :   {
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     fClusterUnfolding-&gt;SetInput(fNumberOfECAClusters,fRecPoints,fDigitsArr);</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     fClusterUnfolding-&gt;MakeUnfolding();</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     115 </span>            :     
+<span class="lineNum">     116 </span>            :   //Evaluate position, dispersion and other RecPoint properties for EC section 
+<span class="lineNum">     117 </span>            :   Int_t index;
+<span class="lineNum">     118 </span><span class="lineCov">         82 :   for(index = 0; index &lt; fRecPoints-&gt;GetEntries(); index++) </span>
+<span class="lineNum">     119 </span>            :   {
+<span class="lineNum">     120 </span><span class="lineCov">         99 :     AliEMCALRecPoint * rp = dynamic_cast&lt;AliEMCALRecPoint *&gt;(fRecPoints-&gt;At(index));</span>
+<span class="lineNum">     121 </span>            :   
+<span class="lineNum">     122 </span><span class="lineCov">         33 :     if(rp)</span>
+<span class="lineNum">     123 </span>            :     {
+<span class="lineNum">     124 </span><span class="lineCov">         33 :       rp-&gt;EvalAll(fECAW0,fDigitsArr,fJustClusters);</span>
+<span class="lineNum">     125 </span>            :       
+<span class="lineNum">     126 </span>            :       // Calculate the number of local maxima in cluster
+<span class="lineNum">     127 </span>            :       // Do not do it for unfolded clusters
+<span class="lineNum">     128 </span><span class="lineCov">         33 :       if(!fToUnfold)</span>
+<span class="lineNum">     129 </span>            :       {
+<span class="lineNum">     130 </span><span class="lineCov">         33 :         Int_t nMax = rp-&gt;GetNumberOfLocalMax(rp-&gt;GetMultiplicity(),fECALocMaxCut,fDigitsArr) ;</span>
+<span class="lineNum">     131 </span>            :       
+<span class="lineNum">     132 </span><span class="lineCov">         33 :         rp-&gt;SetNExMax(nMax);</span>
+<span class="lineNum">     133 </span><span class="lineCov">         33 :       }</span>
+<span class="lineNum">     134 </span>            :       
+<span class="lineNum">     135 </span>            :       // For each rec.point set the distance to the nearest bad crystal
+<span class="lineNum">     136 </span><span class="lineCov">         33 :       if (fCaloPed)</span>
+<span class="lineNum">     137 </span><span class="lineCov">         33 :         rp-&gt;EvalDistanceToBadChannels(fCaloPed);</span>
+<span class="lineNum">     138 </span>            :     }
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     else AliFatal(&quot;Null rec point in list!&quot;);</span>
+<span class="lineNum">     140 </span>            :   }
+<span class="lineNum">     141 </span>            :   
+<span class="lineNum">     142 </span><span class="lineCov">          8 :   fRecPoints-&gt;Sort();</span>
+<span class="lineNum">     143 </span>            :   
+<span class="lineNum">     144 </span><span class="lineCov">         82 :   for(index = 0; index &lt; fRecPoints-&gt;GetEntries(); index++) {</span>
+<span class="lineNum">     145 </span><span class="lineCov">         99 :     AliEMCALRecPoint * rp = dynamic_cast&lt;AliEMCALRecPoint *&gt;(fRecPoints-&gt;At(index));</span>
+<span class="lineNum">     146 </span><span class="lineCov">         33 :     if(rp){</span>
+<span class="lineNum">     147 </span><span class="lineCov">         33 :       rp-&gt;SetIndexInList(index);</span>
+<span class="lineNum">     148 </span><span class="lineCov">         33 :       rp-&gt;Print();</span>
+<span class="lineNum">     149 </span><span class="lineCov">         33 :     }</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     else AliFatal(&quot;Null rec point in list!&quot;);</span>
+<span class="lineNum">     151 </span>            :   }
+<span class="lineNum">     152 </span>            :   
+<span class="lineNum">     153 </span><span class="lineCov">          8 :   if (fTreeR)</span>
+<span class="lineNum">     154 </span><span class="lineCov">          8 :     fTreeR-&gt;Fill();</span>
+<span class="lineNum">     155 </span>            :   
+<span class="lineNum">     156 </span><span class="lineCov">         16 :   if(strstr(option,&quot;deb&quot;) || strstr(option,&quot;all&quot;))  </span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     PrintRecPoints(option);</span>
+<span class="lineNum">     158 </span>            :   
+<span class="lineNum">     159 </span><span class="lineCov">         24 :   AliDebug(1,Form(&quot;EMCAL Clusterizer found %d Rec Points&quot;,fRecPoints-&gt;GetEntriesFast()));</span>
+<span class="lineNum">     160 </span>            :   
+<span class="lineNum">     161 </span><span class="lineCov">          8 :   if(strstr(option,&quot;tim&quot;)){</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     gBenchmark-&gt;Stop(&quot;EMCALClusterizer&quot;);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     printf(&quot;Exec took %f seconds for Clusterizing&quot;, </span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :            gBenchmark-&gt;GetCpuTime(&quot;EMCALClusterizer&quot;));</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   }    </span>
+<span class="lineNum">     166 </span><span class="lineCov">          8 : }</span>
+<a name="167"><span class="lineNum">     167 </span>            : </a>
+<span class="lineNum">     168 </span>            : //____________________________________________________________________________
+<span class="lineNum">     169 </span>            : Int_t AliEMCALClusterizerv1::AreNeighbours(AliEMCALDigit * d1, AliEMCALDigit * d2, Bool_t &amp; shared) const
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span>            :   // Gives the neighbourness of two digits = 0 are not neighbour; continue searching 
+<span class="lineNum">     172 </span>            :   //                                       = 1 are neighbour
+<span class="lineNum">     173 </span>            :   //                                       = 2 is in different SM; continue searching 
+<span class="lineNum">     174 </span>            :   // In case it is in different SM, but same phi rack, check if neigbours at eta=0
+<span class="lineNum">     175 </span>            :   // neighbours are defined as digits having at least a common side 
+<span class="lineNum">     176 </span>            :   // The order of d1 and d2 is important: first (d1) should be a digit already in a cluster 
+<span class="lineNum">     177 </span>            :   //                                      which is compared to a digit (d2)  not yet in a cluster  
+<span class="lineNum">     178 </span>            :   
+<span class="lineNum">     179 </span><span class="lineCov">       1610 :   Int_t nSupMod1=0, nModule1=0, nIphi1=0, nIeta1=0, iphi1=0, ieta1=0;</span>
+<span class="lineNum">     180 </span><span class="lineCov">        805 :   Int_t nSupMod2=0, nModule2=0, nIphi2=0, nIeta2=0, iphi2=0, ieta2=0;</span>
+<span class="lineNum">     181 </span>            :   
+<span class="lineNum">     182 </span><span class="lineCov">        805 :   shared = kFALSE;</span>
+<span class="lineNum">     183 </span>            :   
+<span class="lineNum">     184 </span><span class="lineCov">        805 :   fGeom-&gt;GetCellIndex(d1-&gt;GetId(), nSupMod1,nModule1,nIphi1,nIeta1);</span>
+<span class="lineNum">     185 </span><span class="lineCov">        805 :   fGeom-&gt;GetCellIndex(d2-&gt;GetId(), nSupMod2,nModule2,nIphi2,nIeta2);</span>
+<span class="lineNum">     186 </span><span class="lineCov">        805 :   fGeom-&gt;GetCellPhiEtaIndexInSModule(nSupMod1,nModule1,nIphi1,nIeta1, iphi1,ieta1);</span>
+<span class="lineNum">     187 </span><span class="lineCov">        805 :   fGeom-&gt;GetCellPhiEtaIndexInSModule(nSupMod2,nModule2,nIphi2,nIeta2, iphi2,ieta2);</span>
+<span class="lineNum">     188 </span>            :   
+<span class="lineNum">     189 </span>            :   //If different SM, check if they are in the same phi, then consider cells close to eta=0 as neighbours; May 2010
+<span class="lineNum">     190 </span><span class="lineCov">        805 :   if (nSupMod1 != nSupMod2 ) {</span>
+<span class="lineNum">     191 </span>            :     //Check if the 2 SM are in the same PHI position (0,1), (2,3), ...
+<span class="lineNum">     192 </span><span class="lineCov">        573 :     Float_t smPhi1 = fGeom-&gt;GetEMCGeometry()-&gt;GetPhiCenterOfSM(nSupMod1);</span>
+<span class="lineNum">     193 </span><span class="lineCov">        573 :     Float_t smPhi2 = fGeom-&gt;GetEMCGeometry()-&gt;GetPhiCenterOfSM(nSupMod2);</span>
+<span class="lineNum">     194 </span>            :     
+<span class="lineNum">     195 </span><span class="lineCov">       1068 :     if(!TMath::AreEqualAbs(smPhi1, smPhi2, 1e-3)) return 2; //Not phi rack equal, not neighbours</span>
+<span class="lineNum">     196 </span>            :     
+<span class="lineNum">     197 </span>            :     // In case of a shared cluster, index of SM in C side, columns start at 48 and ends at 48*2
+<span class="lineNum">     198 </span>            :     // C Side impair SM, nSupMod%2=1; A side pair SM nSupMod%2=0
+<span class="lineNum">     199 </span><span class="lineCov">        115 :     if(nSupMod1%2) ieta1+=AliEMCALGeoParams::fgkEMCALCols;</span>
+<span class="lineNum">     200 </span><span class="lineCov">         41 :     else           ieta2+=AliEMCALGeoParams::fgkEMCALCols;</span>
+<span class="lineNum">     201 </span>            :     
+<span class="lineNum">     202 </span><span class="lineCov">         78 :     shared = kTRUE; // maybe a shared cluster, we know this later, set it for the moment.</span>
+<span class="lineNum">     203 </span><span class="lineCov">         78 :   } //Different SM, same phi</span>
+<span class="lineNum">     204 </span>            :   
+<span class="lineNum">     205 </span><span class="lineCov">        310 :   Int_t rowdiff = TMath::Abs(iphi1 - iphi2);  </span>
+<span class="lineNum">     206 </span><span class="lineCov">        310 :   Int_t coldiff = TMath::Abs(ieta1 - ieta2);  </span>
+<span class="lineNum">     207 </span>            :   
+<span class="lineNum">     208 </span>            :   // neighbours with at least common side; May 11, 2007
+<span class="lineNum">     209 </span><span class="lineCov">        710 :   if ((coldiff==0 &amp;&amp; TMath::Abs(rowdiff)==1) || (rowdiff==0 &amp;&amp; TMath::Abs(coldiff)==1)) {  </span>
+<span class="lineNum">     210 </span>            :     //Diagonal?
+<span class="lineNum">     211 </span>            :     //if ((coldiff==0 &amp;&amp; TMath::Abs(rowdiff==1)) || (rowdiff==0 &amp;&amp; TMath::Abs(coldiff==1)) || (TMath::Abs(rowdiff)==1 &amp;&amp; TMath::Abs(coldiff==1))) rv = 1;
+<span class="lineNum">     212 </span>            :     
+<span class="lineNum">     213 </span><span class="lineCov">         64 :     if (gDebug == 2) </span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       printf(&quot;AliEMCALClusterizerv1::AreNeighbours(): id1=%d, (row %d, col %d) ; id2=%d, (row %d, col %d), shared %d \n&quot;,</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :              d1-&gt;GetId(), iphi1,ieta1, d2-&gt;GetId(), iphi2,ieta2, shared);   </span>
+<span class="lineNum">     216 </span><span class="lineCov">         64 :     return 1;</span>
+<span class="lineNum">     217 </span>            :   } //Neighbours
+<span class="lineNum">     218 </span>            :   else {
+<span class="lineNum">     219 </span><span class="lineCov">        246 :     shared = kFALSE;</span>
+<span class="lineNum">     220 </span><span class="lineCov">        246 :     return 2; </span>
+<span class="lineNum">     221 </span>            :   } //Not neighbours
+<span class="lineNum">     222 </span><span class="lineCov">        805 : }</span>
+<a name="223"><span class="lineNum">     223 </span>            : </a>
+<span class="lineNum">     224 </span>            : //____________________________________________________________________________
+<span class="lineNum">     225 </span>            : void AliEMCALClusterizerv1::MakeClusters()
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span>            :   // Steering method to construct the clusters stored in a list of Reconstructed Points
+<span class="lineNum">     228 </span>            :   // A cluster is defined as a list of neighbour digits
+<span class="lineNum">     229 </span>            :   // Mar 03, 2007 by PAI
+<span class="lineNum">     230 </span>            :   
+<span class="lineNum">     231 </span><span class="lineCov">         16 :   if (fGeom==0) AliFatal(&quot;Did not get geometry from EMCALLoader&quot;);</span>
+<span class="lineNum">     232 </span>            :   
+<span class="lineNum">     233 </span><span class="lineCov">          8 :   fRecPoints-&gt;Delete();</span>
+<span class="lineNum">     234 </span>            :   
+<span class="lineNum">     235 </span>            :   // Set up TObjArray with pointers to digits to work on calibrated digits 
+<span class="lineNum">     236 </span><span class="lineCov">          8 :   TObjArray *digitsC = new TObjArray();</span>
+<span class="lineNum">     237 </span>            :   AliEMCALDigit *digit;
+<span class="lineNum">     238 </span><span class="lineCov">          8 :   Float_t dEnergyCalibrated = 0.0, ehs = 0.0, time = 0.0;</span>
+<span class="lineNum">     239 </span><span class="lineCov">          8 :   TIter nextdigit(fDigitsArr);</span>
+<span class="lineNum">     240 </span><span class="lineCov">        492 :   while ( (digit = dynamic_cast&lt;AliEMCALDigit *&gt;(nextdigit())) ) { // calibrate and clean up digits</span>
+<span class="lineNum">     241 </span><span class="lineCov">        115 :     dEnergyCalibrated =  digit-&gt;GetAmplitude();</span>
+<span class="lineNum">     242 </span><span class="lineCov">        115 :     time              =  digit-&gt;GetTime();</span>
+<span class="lineNum">     243 </span><span class="lineCov">        115 :     Calibrate(dEnergyCalibrated,time,digit-&gt;GetId());</span>
+<span class="lineNum">     244 </span><span class="lineCov">        115 :     digit-&gt;SetCalibAmp(dEnergyCalibrated);</span>
+<span class="lineNum">     245 </span><span class="lineCov">        115 :     digit-&gt;SetTime(time);</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">        339 :     if ( dEnergyCalibrated &lt; fMinECut || time &gt; fTimeMax || time &lt; fTimeMin ){</span>
+<span class="lineNum">     248 </span>            :       continue;
+<span class="lineNum">     249 </span>            :     }
+<span class="lineNum">     250 </span><span class="lineCov">        224 :     else if (!fGeom-&gt;CheckAbsCellId(digit-&gt;GetId()))</span>
+<span class="lineNum">     251 </span>            :       continue;
+<span class="lineNum">     252 </span>            :     else{
+<span class="lineNum">     253 </span><span class="lineCov">        112 :       ehs += dEnergyCalibrated;</span>
+<span class="lineNum">     254 </span><span class="lineCov">        112 :       digitsC-&gt;AddLast(digit);</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            :   } 
+<span class="lineNum">     257 </span>            :   
+<span class="lineNum">     258 </span><span class="lineCov">         40 :   AliDebug(1,Form(&quot;MakeClusters: Number of digits %d  -&gt; (e %f), ehs %f\n&quot;,</span>
+<span class="lineNum">     259 </span>            :                   fDigitsArr-&gt;GetEntries(),fMinECut,ehs));
+<span class="lineNum">     260 </span>            :   
+<span class="lineNum">     261 </span><span class="lineCov">          8 :   TIter nextdigitC(digitsC);</span>
+<span class="lineNum">     262 </span><span class="lineCov">        329 :   while ( (digit = dynamic_cast&lt;AliEMCALDigit *&gt;(nextdigitC())) ) { // scan over the list of digitsC</span>
+<span class="lineNum">     263 </span><span class="lineCov">        122 :     TArrayI clusterECAdigitslist(fDigitsArr-&gt;GetEntries());</span>
+<span class="lineNum">     264 </span><span class="lineCov">         61 :     dEnergyCalibrated = digit-&gt;GetCalibAmp();</span>
+<span class="lineNum">     265 </span><span class="lineCov">         61 :     time              = digit-&gt;GetTime();</span>
+<span class="lineNum">     266 </span><span class="lineCov">        183 :     if(fGeom-&gt;CheckAbsCellId(digit-&gt;GetId()) &amp;&amp; ( dEnergyCalibrated &gt; fECAClusteringThreshold  ) ){</span>
+<span class="lineNum">     267 </span>            :       // start a new Tower RecPoint
+<span class="lineNum">     268 </span><span class="lineCov">         66 :       if(fNumberOfECAClusters &gt;= fRecPoints-&gt;GetSize()) fRecPoints-&gt;Expand(2*fNumberOfECAClusters+1);</span>
+<span class="lineNum">     269 </span>            :       
+<span class="lineNum">     270 </span><span class="lineCov">         66 :       AliEMCALRecPoint *recPoint = new  AliEMCALRecPoint(&quot;&quot;); </span>
+<span class="lineNum">     271 </span><span class="lineCov">         33 :       fRecPoints-&gt;AddAt(recPoint, fNumberOfECAClusters);</span>
+<span class="lineNum">     272 </span><span class="lineCov">        132 :       recPoint = dynamic_cast&lt;AliEMCALRecPoint *&gt;(fRecPoints-&gt;At(fNumberOfECAClusters)); </span>
+<span class="lineNum">     273 </span><span class="lineCov">         33 :       if (recPoint) {</span>
+<span class="lineNum">     274 </span><span class="lineCov">         33 :         fNumberOfECAClusters++; </span>
+<span class="lineNum">     275 </span>            :         
+<span class="lineNum">     276 </span><span class="lineCov">         33 :         recPoint-&gt;SetClusterType(AliVCluster::kEMCALClusterv1);</span>
+<span class="lineNum">     277 </span><span class="lineCov">         33 :         recPoint-&gt;AddDigit(*digit, digit-&gt;GetCalibAmp(), kFALSE); //Time or TimeR?</span>
+<span class="lineNum">     278 </span><span class="lineCov">         33 :         TObjArray clusterDigits;</span>
+<span class="lineNum">     279 </span><span class="lineCov">         33 :         clusterDigits.AddLast(digit);   </span>
+<span class="lineNum">     280 </span><span class="lineCov">         33 :         digitsC-&gt;Remove(digit); </span>
+<span class="lineNum">     281 </span>            :         
+<span class="lineNum">     282 </span><span class="lineCov">        165 :         AliDebug(1,Form(&quot;MakeClusters: OK id = %d, ene = %f , cell.th. = %f \n&quot;, digit-&gt;GetId(), dEnergyCalibrated, fECAClusteringThreshold));  //Time or TimeR?</span>
+<span class="lineNum">     283 </span>            :       
+<span class="lineNum">     284 </span>            :         // Grow cluster by finding neighbours
+<span class="lineNum">     285 </span><span class="lineCov">         33 :         TIter nextClusterDigit(&amp;clusterDigits);</span>
+<span class="lineNum">     286 </span>            :         
+<span class="lineNum">     287 </span><span class="lineCov">        584 :         while ( (digit = dynamic_cast&lt;AliEMCALDigit*&gt;(nextClusterDigit())) ) { // scan over digits in cluster </span>
+<span class="lineNum">     288 </span><span class="lineCov">         97 :           TIter nextdigitN(digitsC); </span>
+<span class="lineNum">     289 </span>            :           AliEMCALDigit *digitN = 0; // digi neighbor
+<span class="lineNum">     290 </span><span class="lineCov">       1901 :           while ( (digitN = (AliEMCALDigit *)nextdigitN()) ) { // scan over all digits to look for neighbours</span>
+<span class="lineNum">     291 </span>            :             //Do not add digits with too different time 
+<span class="lineNum">     292 </span><span class="lineCov">        805 :             Bool_t shared = kFALSE;//cluster shared by 2 SuperModules?</span>
+<span class="lineNum">     293 </span><span class="lineCov">        805 :             if(TMath::Abs(time - digitN-&gt;GetTime()) &gt; fTimeCut ) continue; //Time or TimeR?</span>
+<span class="lineNum">     294 </span><span class="lineCov">       1610 :             if (AreNeighbours(digit, digitN, shared)==1) {      // call (digit,digitN) in THAT order !!!!! </span>
+<span class="lineNum">     295 </span><span class="lineCov">         64 :               recPoint-&gt;AddDigit(*digitN, digitN-&gt;GetCalibAmp(), shared); </span>
+<span class="lineNum">     296 </span><span class="lineCov">         64 :               clusterDigits.AddLast(digitN); </span>
+<span class="lineNum">     297 </span><span class="lineCov">         64 :               digitsC-&gt;Remove(digitN); </span>
+<span class="lineNum">     298 </span>            :             } // if(ineb==1)
+<span class="lineNum">     299 </span><span class="lineCov">       1610 :           } // scan over digits</span>
+<span class="lineNum">     300 </span><span class="lineCov">         97 :         } // scan over digits already in cluster</span>
+<span class="lineNum">     301 </span>            :         
+<span class="lineNum">     302 </span><span class="lineCov">        165 :         AliDebug(2,Form(&quot;MakeClusters: %d digitd, energy %f \n&quot;, clusterDigits.GetEntries(), recPoint-&gt;GetEnergy())); </span>
+<span class="lineNum">     303 </span><span class="lineCov">         33 :       }//recpoint</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       else AliFatal(&quot;Null recpoint in array!&quot;);</span>
+<span class="lineNum">     305 </span><span class="lineCov">         33 :     } // If seed found</span>
+<span class="lineNum">     306 </span><span class="lineCov">         61 :   } // while digit </span>
+<span class="lineNum">     307 </span>            :   
+<span class="lineNum">     308 </span><span class="lineCov">         16 :   delete digitsC;</span>
+<span class="lineNum">     309 </span>            :   
+<span class="lineNum">     310 </span><span class="lineCov">         40 :   AliDebug(1,Form(&quot;total no of clusters %d from %d digits&quot;,fNumberOfECAClusters,fDigitsArr-&gt;GetEntriesFast())); </span>
+<span class="lineNum">     311 </span><span class="lineCov">          8 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

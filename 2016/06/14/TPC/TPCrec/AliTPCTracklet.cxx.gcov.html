@@ -1,0 +1,849 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCrec/AliTPCTracklet.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCrec</a> - AliTPCTracklet.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCTracklet.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">441</td>
+            <td class="headerCovTableEntryLo">0.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntryLo">3.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : ////
+<span class="lineNum">      17 </span>            : // This class stores a tracklet (a track that lives only in a single TPC
+<span class="lineNum">      18 </span>            : // sector). Its objects can be constructed out of TPCseeds, that are
+<span class="lineNum">      19 </span>            : // holding the necessary cluster information.
+<span class="lineNum">      20 </span>            : ////
+<span class="lineNum">      21 </span>            : ////
+<span class="lineNum">      22 </span>            : //// 
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;AliTPCTracklet.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;TObjArray.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;TLinearFitter.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliTPCseed.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliTPCreco.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliESDVertex.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliTracker.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;TTreeStream.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;TRandom3.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;TDecompChol.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;iostream&gt;
+<a name="36"><span class="lineNum">      36 </span>            : using namespace std;</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineCov">         16 : ClassImp(AliTPCTracklet)</span>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : const Double_t AliTPCTracklet::kB2C=0.299792458e-3;
+<span class="lineNum">      41 </span>            : Float_t  AliTPCTracklet::fgEdgeCutY=3;
+<a name="42"><span class="lineNum">      42 </span>            : Float_t  AliTPCTracklet::fgEdgeCutX=0;</a>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 : AliTPCTracklet::AliTPCTracklet() </span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   : fNClusters(0),fNStoredClusters(0),fClusters(0),fSector(-1),fOuter(0),</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     fInner(0),fPrimary(0) {</span>
+<span class="lineNum">      47 </span>            :   ////
+<span class="lineNum">      48 </span>            :   // The default constructor. It is intended to be used for I/O only.
+<span class="lineNum">      49 </span>            :   ////
+<a name="50"><span class="lineNum">      50 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 : AliTPCTracklet::AliTPCTracklet(const AliTPCseed *track,Int_t sector,</span>
+<span class="lineNum">      53 </span>            :                                TrackType type,Bool_t storeClusters)
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   : fNClusters(0),fNStoredClusters(0),fClusters(0),fSector(sector),fOuter(0),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     fInner(0),fPrimary(0) {</span>
+<span class="lineNum">      56 </span>            :   ////
+<span class="lineNum">      57 </span>            :   // Contructor for a tracklet out of a track. Only clusters within a given 
+<span class="lineNum">      58 </span>            :   // sector are used.
+<span class="lineNum">      59 </span>            :   ///
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :   //TODO: only kalman works
+<span class="lineNum">      62 </span>            :   
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;kMaxRow;++i) {</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     if (c &amp;&amp; RejectCluster(c)) continue;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     if (c&amp;&amp;c-&gt;GetDetector()==sector)</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :       ++fNClusters;</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   if (storeClusters) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     fClusters=new AliTPCclusterMI[fNClusters];</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;kMaxRow;++i) {</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :       AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :       if (c &amp;&amp; RejectCluster(c)) continue;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :       if (c&amp;&amp;c-&gt;GetDetector()==sector)</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :         fClusters[fNStoredClusters]=*c;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :       ++fNStoredClusters;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   switch (type) {</span>
+<span class="lineNum">      82 </span>            :   case kKalman:
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     FitKalman(track,sector);</span>
+<span class="lineNum">      84 </span>            :     break;
+<span class="lineNum">      85 </span>            :   case kLinear:
+<span class="lineNum">      86 </span>            :   case kQuadratic:
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     FitLinear(track,sector,type);</span>
+<span class="lineNum">      88 </span>            :     break;
+<span class="lineNum">      89 </span>            :   case kRiemann:
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     FitRiemann(track,sector);</span>
+<span class="lineNum">      91 </span>            :     break;
+<span class="lineNum">      92 </span>            :   }
+<span class="lineNum">      93 </span>            : 
+<a name="94"><span class="lineNum">      94 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : AliTPCTracklet::AliTPCTracklet(const TObjArray &amp;/*clusters*/,Int_t sector,</span>
+<span class="lineNum">      97 </span>            :                                TrackType /*type*/,Bool_t /*storeClusters*/)
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   : fNClusters(0),fNStoredClusters(0),fClusters(0),fSector(sector),fOuter(0),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     fInner(0),fPrimary(0) {</span>
+<span class="lineNum">     100 </span>            :   //TODO: write it!
+<a name="101"><span class="lineNum">     101 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : AliTPCTracklet::AliTPCTracklet(const AliTPCTracklet &amp;t)
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   : TObject(t),fNClusters(t.fNClusters),fNStoredClusters(t.fNStoredClusters),fClusters(0),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     fSector(t.fSector),fOuter(0),fInner(0),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     fPrimary(0) {</span>
+<span class="lineNum">     107 </span>            :   ////
+<span class="lineNum">     108 </span>            :   // The copy constructor. You can copy tracklets! 
+<span class="lineNum">     109 </span>            :   ////
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   if (t.fClusters) {</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     fClusters=new AliTPCclusterMI[t.fNStoredClusters];</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     for (int i=0;i&lt;t.fNStoredClusters;++i)</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       fClusters[i]=t.fClusters[i];</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   if (t.fOuter)</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     fOuter=new AliExternalTrackParam(*t.fOuter);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   if (t.fInner)</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     fInner=new AliExternalTrackParam(*t.fInner);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   if (t.fPrimary)</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     fPrimary=new AliExternalTrackParam(*t.fPrimary);</span>
+<a name="122"><span class="lineNum">     122 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : AliTPCTracklet&amp; AliTPCTracklet::operator=(const AliTPCTracklet &amp;t) {
+<span class="lineNum">     125 </span>            :   ////
+<span class="lineNum">     126 </span>            :   // The assignment constructor. You can assign tracklets!
+<span class="lineNum">     127 </span>            :   ////
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   if (this!=&amp;t) {</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     fNClusters=t.fNClusters;</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     delete fClusters;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     if (t.fClusters) {</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :       fClusters=new AliTPCclusterMI[t.fNStoredClusters];</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :       for (int i=0;i&lt;t.fNStoredClusters;++i)</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         fClusters[i]=t.fClusters[i];</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     136 </span>            :     else
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :       fClusters=0;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     fSector=t.fSector;</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     if (t.fOuter) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :       if (fOuter)</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         *fOuter=*t.fOuter;</span>
+<span class="lineNum">     142 </span>            :       else
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         fOuter=new AliExternalTrackParam(*t.fOuter);</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span>            :     else {
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :       delete fOuter;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :       fOuter=0;</span>
+<span class="lineNum">     148 </span>            :     }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     if (t.fInner) {</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :       if (fInner)</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         *fInner=*t.fInner;</span>
+<span class="lineNum">     153 </span>            :       else
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         fInner=new AliExternalTrackParam(*t.fInner);</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span>            :     else {
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :       delete fInner;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :       fInner=0;</span>
+<span class="lineNum">     159 </span>            :     }
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     if (t.fPrimary) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :       if (fPrimary)</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         *fPrimary=*t.fPrimary;</span>
+<span class="lineNum">     164 </span>            :       else
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         fPrimary=new AliExternalTrackParam(*t.fPrimary);</span>
+<span class="lineNum">     166 </span>            :     }
+<span class="lineNum">     167 </span>            :     else {
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :       delete fPrimary;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :       fPrimary=0;</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            :   }
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="173"><span class="lineNum">     173 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 : AliTPCTracklet::~AliTPCTracklet() {</span>
+<span class="lineNum">     176 </span>            :   //
+<span class="lineNum">     177 </span>            :   // The destructor. Yes, you can even destruct tracklets.
+<span class="lineNum">     178 </span>            :   //
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   delete fClusters;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   delete fOuter;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   delete fInner;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   delete fPrimary;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : 
+<a name="187"><span class="lineNum">     187 </span>            : </a>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : void AliTPCTracklet::FitKalman(const AliTPCseed *seed,Int_t sector) {
+<span class="lineNum">     190 </span>            :   //
+<span class="lineNum">     191 </span>            :   // Fit using Kalman filter
+<span class="lineNum">     192 </span>            :   //
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   AliTPCseed *track=new AliTPCseed(*seed);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   if (!track-&gt;Rotate(TMath::DegToRad()*(sector%18*20.+10.)-track-&gt;GetAlpha())) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     delete track;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     197 </span>            :   }
+<span class="lineNum">     198 </span>            :   // fit from inner to outer row
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   Double_t covar[15];</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;15;i++) covar[i]=0;</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   covar[0]=1.*1.;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   covar[2]=1.*1.;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :   covar[5]=1.*1./(64.*64.);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   covar[9]=1.*1./(64.*64.);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :   covar[14]=0;  // keep pt</span>
+<span class="lineNum">     206 </span>            :   Float_t xmin=1000, xmax=-10000;
+<span class="lineNum">     207 </span>            :   Int_t imin=158, imax=0;
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;kMaxRow;i++) {</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     if (!c) continue;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     if (c-&gt;GetDetector()!=sector)  continue;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     if (c-&gt;GetX()&lt;xmin) xmin=c-&gt;GetX();</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     if (c-&gt;GetX()&gt;xmax) xmax=c-&gt;GetX();</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     if (i&lt;imin) imin=i;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     if (i&gt;imax) imax=i;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   if(imax-imin&lt;10) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     delete track;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     220 </span>            :   }
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   for (Float_t x=track-&gt;GetX(); x&lt;xmin; x++) track-&gt;PropagateTo(x);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   track-&gt;AddCovariance(covar);</span>
+<span class="lineNum">     224 </span>            :   //
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   AliExternalTrackParam paramIn;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   AliExternalTrackParam paramOut;</span>
+<span class="lineNum">     227 </span>            :   Bool_t isOK=kTRUE;
+<span class="lineNum">     228 </span>            :   //
+<span class="lineNum">     229 </span>            :   //
+<span class="lineNum">     230 </span>            :   //
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   for (Int_t i=imin; i&lt;=imax; i++){</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     if (!c) continue;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     Double_t r[3]={c-&gt;GetX(),c-&gt;GetY(),c-&gt;GetZ()};</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     Double_t cov[3]={0.01,0.,0.01}; //TODO: correct error parametrisation</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     AliTPCseed::GetError(c, track,cov[0],cov[2]);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     cov[0]*=cov[0];</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     cov[2]*=cov[2];</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     if (!track-&gt;PropagateTo(r[0])) {</span>
+<span class="lineNum">     240 </span>            :       isOK=kFALSE;
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     242 </span>            :     }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     if (RejectCluster(c,track)) continue;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     if ( !((static_cast&lt;AliExternalTrackParam*&gt;(track)-&gt;Update(&amp;r[1],cov)))) isOK=kFALSE;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   if (!isOK) { delete track; return;}</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   track-&gt;AddCovariance(covar);</span>
+<span class="lineNum">     248 </span>            :   //
+<span class="lineNum">     249 </span>            :   //
+<span class="lineNum">     250 </span>            :   //
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   for (Int_t i=imax; i&gt;=imin; i--){</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     if (!c) continue;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     Double_t r[3]={c-&gt;GetX(),c-&gt;GetY(),c-&gt;GetZ()};</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     Double_t cov[3]={0.01,0.,0.01}; </span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     AliTPCseed::GetError(c, track,cov[0],cov[2]);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     cov[0]*=cov[0];</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     cov[2]*=cov[2];</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     if (!track-&gt;PropagateTo(r[0])) {</span>
+<span class="lineNum">     260 </span>            :       isOK=kFALSE;
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     if (RejectCluster(c,track)) continue;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     if ( !((static_cast&lt;AliExternalTrackParam*&gt;(track)-&gt;Update(&amp;r[1],cov)))) isOK=kFALSE;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   if (!isOK) { delete track; return;}</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   paramIn = *track;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   track-&gt;AddCovariance(covar);</span>
+<span class="lineNum">     269 </span>            :   //
+<span class="lineNum">     270 </span>            :   //
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   for (Int_t i=imin; i&lt;=imax; i++){</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     if (!c) continue;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     Double_t r[3]={c-&gt;GetX(),c-&gt;GetY(),c-&gt;GetZ()};</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     Double_t cov[3]={0.01,0.,0.01}; </span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     AliTPCseed::GetError(c, track,cov[0],cov[2]);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     cov[0]*=cov[0];</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     cov[2]*=cov[2];</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     if (!track-&gt;PropagateTo(r[0])) {</span>
+<span class="lineNum">     280 </span>            :       isOK=kFALSE;
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     282 </span>            :     }
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     if (RejectCluster(c,track)) continue;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     if ( !((static_cast&lt;AliExternalTrackParam*&gt;(track)-&gt;Update(&amp;r[1],cov)))) isOK=kFALSE;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   if (!isOK) { delete track; return;}</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   paramOut=*track;</span>
+<span class="lineNum">     288 </span>            :   //
+<span class="lineNum">     289 </span>            :   //
+<span class="lineNum">     290 </span>            :   //
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   fOuter=new AliExternalTrackParam(paramOut);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   fInner=new AliExternalTrackParam(paramIn);</span>
+<span class="lineNum">     293 </span>            :   //
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :   delete track;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : 
+<a name="298"><span class="lineNum">     298 </span>            : </a>
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            : void AliTPCTracklet::FitLinear(const AliTPCseed *track,Int_t sector,
+<span class="lineNum">     301 </span>            :                                TrackType type) {
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   TLinearFitter fy(1);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   TLinearFitter fz(1);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   fy.StoreData(kFALSE);</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   fz.StoreData(kFALSE);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   switch (type) {</span>
+<span class="lineNum">     307 </span>            :   case kLinear:
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     fy.SetFormula(&quot;1 ++ x&quot;);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     fz.SetFormula(&quot;1 ++ x&quot;);</span>
+<span class="lineNum">     310 </span>            :     break;
+<span class="lineNum">     311 </span>            :   case kQuadratic:
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     fy.SetFormula(&quot;1 ++ x ++ x*x&quot;);</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     fz.SetFormula(&quot;1 ++ x&quot;);</span>
+<span class="lineNum">     314 </span>            :     break;
+<span class="lineNum">     315 </span>            :   case kKalman:
+<span class="lineNum">     316 </span>            :   case kRiemann:
+<span class="lineNum">     317 </span>            :     break;
+<span class="lineNum">     318 </span>            :   }
+<span class="lineNum">     319 </span>            :   Double_t xmax=-1.;
+<span class="lineNum">     320 </span>            :   Double_t xmin=1000.;
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;kMaxRow;++i) {</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     if (c &amp;&amp; RejectCluster(c)) continue;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     if (c&amp;&amp;c-&gt;GetDetector()==sector) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :       Double_t x=c-&gt;GetX();</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :       fy.AddPoint(&amp;x,c-&gt;GetY());</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :       fz.AddPoint(&amp;x,c-&gt;GetZ());</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :       xmax=TMath::Max(xmax,x);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :       xmin=TMath::Min(xmin,x);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   fy.Eval();</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   fz.Eval();</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :   Double_t a[3]={fy.GetParameter(0),</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :                  fy.GetParameter(1),</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :                  type==kQuadratic?fy.GetParameter(2):0.};</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   Double_t ca[6]={fy.GetCovarianceMatrixElement(0,0),</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(1,0),</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(1,1),</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                   type==kQuadratic?fy.GetCovarianceMatrixElement(2,0):0.,</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                   type==kQuadratic?fy.GetCovarianceMatrixElement(2,1):0.,</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                   type==kQuadratic?fy.GetCovarianceMatrixElement(2,2):0.};</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;6;++i) ca[i]*=fy.GetChisquare()/fNClusters;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :   Double_t b[2]={fz.GetParameter(0),</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                  fz.GetParameter(1)};</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :   Double_t cb[3]={fz.GetCovarianceMatrixElement(0,0),</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :                   fz.GetCovarianceMatrixElement(1,0),</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                   fz.GetCovarianceMatrixElement(1,1)};</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;3;++i) cb[i]*=fz.GetChisquare()/fNClusters;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   Double_t p[5];</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   Double_t c[15];</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :   Double_t alpha=track-&gt;GetAlpha();</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :   Quadratic2Helix(a,ca,b,cb,0.,p,c);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :   fPrimary=new AliExternalTrackParam(0.,alpha,p,c);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :   Quadratic2Helix(a,ca,b,cb,xmin,p,c);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :   fInner=new AliExternalTrackParam(xmin,alpha,p,c);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   Quadratic2Helix(a,ca,b,cb,xmax,p,c);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   fOuter=new AliExternalTrackParam(xmax,alpha,p,c);</span>
+<a name="359"><span class="lineNum">     359 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     360 </span>            :   
+<span class="lineNum">     361 </span>            : void AliTPCTracklet::Quadratic2Helix(Double_t *a,Double_t *ca,
+<span class="lineNum">     362 </span>            :                                      Double_t *b,Double_t *cb,
+<span class="lineNum">     363 </span>            :                                      Double_t x0,
+<span class="lineNum">     364 </span>            :                                      Double_t *p,Double_t *c) {
+<span class="lineNum">     365 </span>            :   // y(x)=a[0]+a[1]*x+a[2]*x^2
+<span class="lineNum">     366 </span>            :   // z(x)=b[0]+b[1]*x
+<span class="lineNum">     367 </span>            :   // parametrises the corosponding helix at x0
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            :   // get the polynoms at x0
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   Double_t a0=x0*x0*a[2] + x0*a[1] + a[0];</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :   Double_t a1=2.*x0*a[2] +     a[1];</span>
+<span class="lineNum">     372 </span>            :   Double_t a2=      a[2];
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :   Double_t ca00=ca[0]+x0*(2.*ca[1]+x0*(ca[2]+2.*ca[3]+x0*(2.*ca[4]+x0*ca[5])));</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :   Double_t ca10=ca[1]+x0*(ca[2]+2.*ca[3]+x0*(3.*ca[4]+x0*2.*ca[5]));</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :   Double_t ca11=ca[2]+x0*4.*(ca[4]+x0*ca[5]);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   Double_t ca20=ca[3]+x0*(ca[4]+x0*ca[5]);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   Double_t ca21=ca[3]+x0*2.*ca[5];</span>
+<span class="lineNum">     378 </span>            :   Double_t ca22=ca[5];
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :   Double_t b0=x0*b[1] + b[0];</span>
+<span class="lineNum">     381 </span>            :   Double_t b1=   b[1];
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :   Double_t cb00=cb[0]+x0*(2.*cb[1]+x0*cb[2]);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :   Double_t cb10=cb[1]+x0*cb[2];</span>
+<span class="lineNum">     384 </span>            :   Double_t cb11=cb[2];
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            :   // transform to helix parameters
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   Double_t f   =1.+a1*a1;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   Double_t f2  =f*f;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   Double_t fi  =1./f; </span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :   Double_t fi12=TMath::Sqrt(fi);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :   Double_t fi32=fi*fi12;</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   Double_t fi2 =fi*fi;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   Double_t fi52=fi2*fi12;</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   Double_t fi3 =fi2*fi;</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :   Double_t fi5 =fi2*fi3;</span>
+<span class="lineNum">     396 </span>            :   
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   Double_t xyz[3]={0.}; // TODO...</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   Double_t fc=1./(GetBz(xyz)*kB2C);</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :   p[0]=a0;            // y0</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :   p[1]=b0;            // z0</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   p[2]=a1*fi12;       // snp</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   p[3]=b1;            // tgl</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   p[4]=2.*a2*fi32*fc; // 1/pt</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   c[0] =ca00;      //  y0-y0</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   c[1] =0.;        //  z0-y0</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   c[2] =cb00;      //  z0-z0</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   c[3] =ca10*fi32; // snp-y0</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   c[4] =0.;        // snp-z0</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   c[5] =ca11*fi3;  // snp-snp</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :   c[6] =0.;        // tgl-y0</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :   c[7] =cb10;      // tgl-z0</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   c[8] =0.;        // tgl-snp</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   c[9] =cb11;      // tgl-tgl</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   c[10]=2.*(-3.*a1*a2*ca10+f*ca20)*fi3*fc;  // 1/pt-y0</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   c[11]=0.;                                 // 1/pt-z0</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :   c[12]=2.*(-3.*a1*a2*ca11+f*ca21)*fi52*fc; // 1/pt-snp</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   c[13]=0.;                                 // 1/pt-tgl</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :   c[14]=(-12.*a1*a2*(-3.*a1*a2*ca11+2.*f*ca21)+4.*f2*ca22)*fi5</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     *fc*fc;        // 1/pt-1/pt</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 : }</span>
+<a name="423"><span class="lineNum">     423 </span>            : </a>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            : void AliTPCTracklet::FitRiemann(const AliTPCseed *track,Int_t sector) {
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :   TLinearFitter fy(2);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :   fy.StoreData(kFALSE);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :   fy.SetFormula(&quot;hyp2&quot;);</span>
+<span class="lineNum">     429 </span>            :   Double_t xmax=-1.;
+<span class="lineNum">     430 </span>            :   Double_t xmin=1000.;
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;kMaxRow;++i) {</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     if (c &amp;&amp; RejectCluster(c)) continue;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     if (c&amp;&amp;c-&gt;GetDetector()==sector) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       Double_t x=c-&gt;GetX();</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :       Double_t y=c-&gt;GetY();</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :       Double_t xy[2]={x,y};</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :       Double_t r=x*x+y*y;</span>
+<span class="lineNum">     439 </span>            :       Double_t errx=1.,erry=1.;//TODO!
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :       Double_t err=TMath::Sqrt(4.*x*x*errx+4.*y*y*erry);</span>
+<span class="lineNum">     441 </span>            :       err=1.;
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       fy.AddPoint(xy,r,err);</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :       xmax=TMath::Max(xmax,x);</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :       xmin=TMath::Min(xmin,x);</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   fy.Eval();</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   Double_t a[3]={fy.GetParameter(0),</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                  fy.GetParameter(1),</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                  fy.GetParameter(2)};</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   Double_t ca[6]={fy.GetCovarianceMatrixElement(0,0),</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(1,0),</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(1,1),</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(2,0),</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(2,1),</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                   fy.GetCovarianceMatrixElement(2,2)};</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   TLinearFitter fz(1);</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   fz.StoreData(kFALSE);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   fz.SetFormula(&quot;hyp1&quot;);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   Double_t R=.5*TMath::Sqrt(4.*a[0]+a[1]*a[1]+a[2]*a[2]);</span>
+<span class="lineNum">     462 </span>            :   Double_t oldx=0.;
+<span class="lineNum">     463 </span>            :   Double_t oldy=R;
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   Double_t phi=0.;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;kMaxRow;++i) {</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     if (c &amp;&amp; RejectCluster(c)) continue;</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     if (c&amp;&amp;c-&gt;GetDetector()==sector) {</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :       Double_t x=c-&gt;GetX();</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :       Double_t y=c-&gt;GetY();</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :       Double_t dx=x-oldx;</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       Double_t dy=y-oldy;</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :       phi+=2.*TMath::Abs(TMath::ATan2(.5*TMath::Sqrt(dx*dx+dy*dy),R));</span>
+<span class="lineNum">     474 </span>            :       Double_t err=1.;
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       fz.AddPoint(&amp;phi,c-&gt;GetZ(),err);</span>
+<span class="lineNum">     476 </span>            :       oldx=x;
+<span class="lineNum">     477 </span>            :       oldy=y;
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   fz.Eval();</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   Double_t b[2]={fz.GetParameter(0),</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                  fz.GetParameter(1)};</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   Double_t cb[3]={fz.GetCovarianceMatrixElement(0,0),</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :                   fz.GetCovarianceMatrixElement(1,0),</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :                   fz.GetCovarianceMatrixElement(1,1)};</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   Double_t p[5];</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   Double_t c[15];</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   Double_t alpha=track-&gt;GetAlpha();</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   if (Riemann2Helix(a,ca,b,cb,0.,p,c))</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     fPrimary=new AliExternalTrackParam(0.,alpha,p,c);</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   if (Riemann2Helix(a,ca,b,cb,xmin,p,c))</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     fInner=new AliExternalTrackParam(xmin,alpha,p,c);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :   if (Riemann2Helix(a,ca,b,cb,xmax,p,c))</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     fOuter=new AliExternalTrackParam(xmax,alpha,p,c);</span>
+<a name="496"><span class="lineNum">     496 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : Bool_t AliTPCTracklet::Riemann2Helix(Double_t *a,Double_t */*ca*/,
+<span class="lineNum">     499 </span>            :                                      Double_t *b,Double_t */*cb*/,
+<span class="lineNum">     500 </span>            :                                      Double_t x0,
+<span class="lineNum">     501 </span>            :                                      Double_t *p,Double_t *c) {
+<span class="lineNum">     502 </span>            :   //TODO: signs!
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   Double_t xr0=.5*a[1];</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   Double_t yr0=.5*a[2];</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   Double_t R=.5*TMath::Sqrt(4.*a[0]+a[1]*a[1]+a[2]*a[2]);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   Double_t dx=x0-xr0;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :   if (dx*dx&gt;=R*R) return kFALSE;</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   Double_t dy=TMath::Sqrt((R-dx)*(R+dx)); //sign!!</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   if (TMath::Abs(yr0+dy)&gt;TMath::Abs(yr0-dy))</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     dy=-dy;</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   Double_t y0=yr0+dy; </span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   Double_t tgp=-dx/dy; //TODO: dy!=0</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   Double_t z0=b[0]+TMath::ATan(tgp)*b[1];</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :   Double_t xyz[3]={x0,y0,z0};</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :   Double_t fc=1./(GetBz(xyz)*kB2C);</span>
+<span class="lineNum">     517 </span>            :   fc=1;
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :   p[0]=y0;  // y0</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   p[1]=z0; // z0</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   p[2]=tgp/TMath::Sqrt(1.+tgp*tgp); // snp</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :   p[3]=b[1];       // tgl</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   p[4]=1./R*fc;    // 1/pt</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   c[0] =0.;      //  y0-y0</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :   c[1] =0.;        //  z0-y0</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :   c[2] =0.;      //  z0-z0</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   c[3] =0.; // snp-y0</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :   c[4] =0.;        // snp-z0</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   c[5] =0.;  // snp-snp</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   c[6] =0.;        // tgl-y0</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :   c[7] =0.;      // tgl-z0</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :   c[8] =0.;        // tgl-snp</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   c[9] =0.;      // tgl-tgl</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   c[10]=0.;  // 1/pt-y0</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :   c[11]=0.;                                 // 1/pt-z0</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   c[12]=0.; // 1/pt-snp</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   c[13]=0.;                                 // 1/pt-tgl</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :   c[14]=0.;        // 1/pt-1/pt</span>
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            :   return kTRUE;
+<a name="541"><span class="lineNum">     541 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span>            : TObjArray AliTPCTracklet::CreateTracklets(const AliTPCseed *track,
+<span class="lineNum">     544 </span>            :                                           TrackType type,
+<span class="lineNum">     545 </span>            :                                           Bool_t storeClusters,
+<span class="lineNum">     546 </span>            :                                           Int_t minClusters,
+<span class="lineNum">     547 </span>            :                                           Int_t maxTracklets) {
+<span class="lineNum">     548 </span>            : // The tracklet factory: It creates several tracklets out of a track. They
+<span class="lineNum">     549 </span>            : // are created for sectors that fullfill the constraint of having enough
+<span class="lineNum">     550 </span>            : // clusters inside. Futhermore you can specify the maximum amount of
+<span class="lineNum">     551 </span>            : // tracklets that are to be created.
+<span class="lineNum">     552 </span>            : // The tracklets appear in a sorted fashion, beginning with those having the
+<span class="lineNum">     553 </span>            : // most clusters.
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   Int_t sectors[72]={0};</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;kMaxRow;++i) {</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     AliTPCclusterMI *c=track-&gt;GetClusterPointer(i);</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     if (c &amp;&amp; RejectCluster(c)) continue;</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     if (c)</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :       ++sectors[c-&gt;GetDetector()];</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :   Int_t indices[72];</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :   TMath::Sort(72,sectors,indices);</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :   TObjArray tracklets;</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :   if (maxTracklets&gt;72) maxTracklets=72; // just to protect against &quot;users&quot;.</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;maxTracklets&amp;&amp;sectors[indices[i]]&gt;=minClusters;++i) {</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     tracklets.Add(new AliTPCTracklet(track,indices[i],type,storeClusters));</span>
+<span class="lineNum">     568 </span>            :   }
+<span class="lineNum">     569 </span>            :   return tracklets;
+<a name="570"><span class="lineNum">     570 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span>            : TObjArray AliTPCTracklet::CreateTracklets(const TObjArray &amp;/*clusters*/,
+<span class="lineNum">     573 </span>            :                                           TrackType /*type*/,
+<span class="lineNum">     574 </span>            :                                           Bool_t /*storeClusters*/,
+<span class="lineNum">     575 </span>            :                                           Int_t /*minClusters*/,
+<span class="lineNum">     576 </span>            :                                           Int_t /*maxTracklets*/) {
+<span class="lineNum">     577 </span>            :   // TODO!
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :   TObjArray tracklets;</span>
+<span class="lineNum">     580 </span>            :   return tracklets;
+<a name="581"><span class="lineNum">     581 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            : Bool_t AliTPCTracklet::PropagateToMeanX(const AliTPCTracklet &amp;t1,
+<span class="lineNum">     584 </span>            :                                         const AliTPCTracklet &amp;t2,
+<span class="lineNum">     585 </span>            :                                         AliExternalTrackParam *&amp;t1m,
+<span class="lineNum">     586 </span>            :                                         AliExternalTrackParam *&amp;t2m) {
+<span class="lineNum">     587 </span>            :   // This function propagates two Tracklets to a common x-coordinate. This
+<span class="lineNum">     588 </span>            :   // x is dermined as the one that is in the middle of the two tracklets (they
+<span class="lineNum">     589 </span>            :   // are assumed to live on two distinct x-intervalls).
+<span class="lineNum">     590 </span>            :   // The inner parametrisation of the outer Tracklet and the outer 
+<span class="lineNum">     591 </span>            :   // parametrisation of the inner Tracklet are used and propagated to this
+<span class="lineNum">     592 </span>            :   // common x. This result is saved not inside the Tracklets but two new
+<span class="lineNum">     593 </span>            :   // ExternalTrackParams are created (that means you might want to delete
+<span class="lineNum">     594 </span>            :   // them).
+<span class="lineNum">     595 </span>            :   // In the case that the alpha angles of the Tracklets differ both angles
+<span class="lineNum">     596 </span>            :   // are tried out for this propagation.
+<span class="lineNum">     597 </span>            :   // In case of any failure kFALSE is returned, no AliExternalTrackParam
+<span class="lineNum">     598 </span>            :   // is created und the pointers are set to 0.
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :   if (t1.GetInner() &amp;&amp; t1.GetOuter() &amp;&amp; </span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :       t2.GetInner() &amp;&amp; t2.GetOuter()) {</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     if (t1.GetOuter()-&gt;GetX()&lt;t2.GetInner()-&gt;GetX()) {</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :       t1m=new AliExternalTrackParam(*t1.GetOuter());</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :       t2m=new AliExternalTrackParam(*t2.GetInner());</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     606 </span>            :     else {
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :       t1m=new AliExternalTrackParam(*t1.GetInner());</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :       t2m=new AliExternalTrackParam(*t2.GetOuter());</span>
+<span class="lineNum">     609 </span>            :     }
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :     Double_t mx=.5*(t1m-&gt;GetX()+t2m-&gt;GetX());</span>
+<span class="lineNum">     611 </span>            :     //Double_t b1,b2;
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     Double_t xyz[3];</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     t1m-&gt;GetXYZ(xyz);</span>
+<span class="lineNum">     614 </span>            :     //b1=GetBz(xyz);
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     Double_t b1[3]; AliTracker::GetBxByBz(xyz,b1);</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     t2m-&gt;GetXYZ(xyz);</span>
+<span class="lineNum">     617 </span>            :     //b2=GetBz(xyz);
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     Double_t b2[3]; AliTracker::GetBxByBz(xyz,b2);</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     if (t1m-&gt;Rotate(t2m-&gt;GetAlpha()) </span>
+<span class="lineNum">     620 </span>            :         //&amp;&amp; t1m-&gt;PropagateTo(mx,b1) 
+<span class="lineNum">     621 </span>            :         //&amp;&amp; t2m-&gt;PropagateTo(mx,b2));
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :         &amp;&amp; t1m-&gt;PropagateToBxByBz(mx,b1) </span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         &amp;&amp; t2m-&gt;PropagateToBxByBz(mx,b2));</span>
+<span class="lineNum">     624 </span>            :     else
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :       if (t2m-&gt;Rotate(t1m-&gt;GetAlpha())</span>
+<span class="lineNum">     626 </span>            :           //&amp;&amp; t1m-&gt;PropagateTo(mx,b1) 
+<span class="lineNum">     627 </span>            :           //&amp;&amp; t2m-&gt;PropagateTo(mx,b2));
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :           &amp;&amp; t1m-&gt;PropagateToBxByBz(mx,b1) </span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :           &amp;&amp; t2m-&gt;PropagateToBxByBz(mx,b2));</span>
+<span class="lineNum">     630 </span>            :       else {
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :         delete t1m;</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         delete t2m;</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :         t1m=t2m=0;</span>
+<span class="lineNum">     634 </span>            :       }
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     636 </span>            :   else {
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     t1m=t2m=0;</span>
+<span class="lineNum">     638 </span>            :   }
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :   return t1m&amp;&amp;t2m;</span>
+<a name="640"><span class="lineNum">     640 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span>            : double AliTPCTracklet::GetBz(Double_t *xyz) 
+<span class="lineNum">     643 </span>            : {
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :   return AliTracker::GetBz(xyz);</span>
+<a name="645"><span class="lineNum">     645 </span>            : }</a>
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span>            : void AliTPCTracklet::RandomND(Int_t ndim,const Double_t *p,const Double_t *c,
+<span class="lineNum">     648 </span>            :                               Double_t *x) {
+<span class="lineNum">     649 </span>            :   // This function generates a n-dimensional random variable x with mean
+<span class="lineNum">     650 </span>            :   // p and covariance c.
+<span class="lineNum">     651 </span>            :   // That is done using the cholesky decomposition of the covariance matrix,
+<span class="lineNum">     652 </span>            :   // Begin_Latex C=U^{t} U End_Latex, with Begin_Latex U End_Latex being an
+<span class="lineNum">     653 </span>            :   // upper triangular matrix. Given a vector v of iid gausian random variables
+<span class="lineNum">     654 </span>            :   // with variance 1 one obtains the asked result as: Begin_Latex x=U^t v 
+<span class="lineNum">     655 </span>            :   // End_Latex.
+<span class="lineNum">     656 </span>            :   // c is expected to be in a lower triangular format:
+<span class="lineNum">     657 </span>            :   // c[0]
+<span class="lineNum">     658 </span>            :   // c[1] c[2]
+<span class="lineNum">     659 </span>            :   // c[3] c[4] c[5]
+<span class="lineNum">     660 </span>            :   // etc.
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :   static TRandom3 random;</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   Double_t *c2= new Double_t[ndim*ndim];</span>
+<span class="lineNum">     663 </span>            :   Int_t k=0;
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;ndim;++i)</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     for (Int_t j=0;j&lt;=i;++j)</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :       c2[i*ndim+j]=c2[j*ndim+i]=c[k++];</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :   TMatrixDSym cm(ndim,c2);</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :   delete[] c2;</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   TDecompChol chol(cm);</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :   chol.Decompose();</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :   const TVectorD pv(ndim);</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :   const_cast&lt;TVectorD*&gt;(&amp;pv)-&gt;Use(ndim,const_cast&lt;Double_t*&gt;(p));</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :   TVectorD xv(ndim);</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :   xv.Use(ndim,x);</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;ndim;++i)</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     xv[i]=random.Gaus();</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :   TMatrixD L=chol.GetU();</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   L.T();</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :   xv=L*xv+pv;</span>
+<a name="680"><span class="lineNum">     680 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            : TEllipse AliTPCTracklet::ErrorEllipse(Double_t x,Double_t y,
+<span class="lineNum">     683 </span>            :                                       Double_t sx,Double_t sy,Double_t sxy) {
+<span class="lineNum">     684 </span>            :   /* Begin_Latex
+<span class="lineNum">     685 </span>            :      r_{1,2}=1/2 (a+c#pm#sqrt{(a-c)^{2}+(2b)^{2}})
+<span class="lineNum">     686 </span>            :   End_Latex */
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   Double_t det1=1./(sx*sy-sxy*sxy);</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   Double_t a=sy*det1;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   Double_t b=-sxy*det1;</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :   Double_t c=sx*det1;</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   Double_t d=c-a;</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :   Double_t s=TMath::Sqrt(d*d+4.*b*b);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   Double_t r1=TMath::Sqrt(.5*(a+c-s));</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :   Double_t r2=TMath::Sqrt(.5*(a+c+s));</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   Double_t alpha=.5*TMath::ATan2(2.*b,d);</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :   return TEllipse(x,y,r1,r2,0.,360.,alpha*TMath::RadToDeg());</span>
+<a name="697"><span class="lineNum">     697 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span>            : void AliTPCTracklet::Test(const char* filename) {
+<span class="lineNum">     700 </span>            :   /*
+<span class="lineNum">     701 </span>            :     aliroot
+<span class="lineNum">     702 </span>            :     AliTPCTracklet::Test(&quot;&quot;);
+<span class="lineNum">     703 </span>            :     TFile f(&quot;AliTPCTrackletDebug.root&quot;);
+<span class="lineNum">     704 </span>            :     TTree *t=f.Get(&quot;AliTPCTrackletDebug&quot;);
+<span class="lineNum">     705 </span>            :     t-&gt;Draw(&quot;p0:p4&quot;);
+<span class="lineNum">     706 </span>            :     TEllipse e=AliTPCTracklet::ErrorEllipse(0.,0.,4.,1.,1.8);
+<span class="lineNum">     707 </span>            :     e.Draw();
+<span class="lineNum">     708 </span>            :  */
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :   TTreeSRedirector ds(filename);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :   Double_t p[5]={0.};</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :   Double_t c[15]={4.,</span>
+<span class="lineNum">     712 </span>            :                   0.,4.,
+<span class="lineNum">     713 </span>            :                   0.,0.,9.,
+<span class="lineNum">     714 </span>            :                   0.,0.,0.,16.,
+<span class="lineNum">     715 </span>            :                   1.8,0.,0.,0.,1.};
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;10000;++i) {</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     Double_t x[5];</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     RandomND(5,p,c,x);</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     ds&lt;&lt;&quot;AliTPCTrackletDebug&quot;</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :       &lt;&lt;&quot;p0=&quot;&lt;&lt;x[0]</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :       &lt;&lt;&quot;p1=&quot;&lt;&lt;x[1]</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :       &lt;&lt;&quot;p2=&quot;&lt;&lt;x[2]</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :       &lt;&lt;&quot;p3=&quot;&lt;&lt;x[3]</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :       &lt;&lt;&quot;p4=&quot;&lt;&lt;x[4]</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :       &lt;&lt;&quot;\n&quot;;</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span>            :   /*
+<span class="lineNum">     729 </span>            :   Double_t b;
+<span class="lineNum">     730 </span>            :   Double_t x=0.;
+<span class="lineNum">     731 </span>            :   Double_t alpha=0.;
+<span class="lineNum">     732 </span>            :   Double_t param[5]={0.};
+<span class="lineNum">     733 </span>            :   Double_t covar[15]={1.,
+<span class="lineNum">     734 </span>            :                       0.,1.,
+<span class="lineNum">     735 </span>            :                       0.,0.,1.,
+<span class="lineNum">     736 </span>            :                       0.,0.,0.,1.,
+<span class="lineNum">     737 </span>            :                       0.,0.,0.,0.,1.};
+<span class="lineNum">     738 </span>            :   AliExternalTrackParam track(x,alpha,param,covar);
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            :   
+<span class="lineNum">     741 </span>            : 
+<span class="lineNum">     742 </span>            :   for (Int_t i=0;i&lt;points.GetNPoints();++i) {
+<span class="lineNum">     743 </span>            :     Double_t x=0.;
+<span class="lineNum">     744 </span>            :     Double_t alpha=0.;
+<span class="lineNum">     745 </span>            :     Double_t param[5]={0.};
+<span class="lineNum">     746 </span>            :     Double_t covar[15]={1.,
+<span class="lineNum">     747 </span>            :                         0.,1.,
+<span class="lineNum">     748 </span>            :                         0.,0.,1.,
+<span class="lineNum">     749 </span>            :                         0.,0.,0.,1.,
+<span class="lineNum">     750 </span>            :                         0.,0.,0.,0.,1.};
+<span class="lineNum">     751 </span>            :     AliExternalTrackParam track(x,alpha,param,covar);
+<span class="lineNum">     752 </span>            :     for (x=90.;x&lt;250.;x+=1.) {
+<span class="lineNum">     753 </span>            :       track.PropagateTo(x,b);
+<span class="lineNum">     754 </span>            :       AliTPCclusterMI c();
+<span class="lineNum">     755 </span>            :     }
+<span class="lineNum">     756 </span>            :   }
+<span class="lineNum">     757 </span>            :   */
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 : }</span>
+<a name="759"><span class="lineNum">     759 </span>            : </a>
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span>            : Bool_t AliTPCTracklet::RejectCluster(AliTPCclusterMI* cl, AliExternalTrackParam * param){
+<span class="lineNum">     762 </span>            :   //
+<span class="lineNum">     763 </span>            :   // check the acceptance of cluster
+<span class="lineNum">     764 </span>            :   // Cut on edge effects
+<span class="lineNum">     765 </span>            :   //
+<span class="lineNum">     766 </span>            :   Bool_t isReject = kFALSE;
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :   Float_t edgeY = cl-&gt;GetX()*TMath::Tan(TMath::Pi()/18);</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :   Float_t dist  = edgeY - TMath::Abs(cl-&gt;GetY());</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :   if (param)  dist  = edgeY - TMath::Abs(param-&gt;GetY());</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :   if (dist&lt;fgEdgeCutY) isReject=kTRUE;</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :   if (cl-&gt;GetType()&lt;0) isReject=kTRUE;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :   return isReject;</span>
+<span class="lineNum">     773 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

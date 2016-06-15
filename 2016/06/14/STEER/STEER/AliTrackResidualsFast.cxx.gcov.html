@@ -1,0 +1,388 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliTrackResidualsFast.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliTrackResidualsFast.cxx<span style="font-size: 80%;"> (source / <a href="AliTrackResidualsFast.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">166</td>
+            <td class="headerCovTableEntryLo">0.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">9.1 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //-----------------------------------------------------------------
+<span class="lineNum">      19 </span>            : //   Implementation of the derived class for track residuals
+<span class="lineNum">      20 </span>            : //   based on linear chi2 minimization (in approximation of
+<span class="lineNum">      21 </span>            : //   small alignment angles and translations)
+<span class="lineNum">      22 </span>            : //
+<span class="lineNum">      23 </span>            : //-----------------------------------------------------------------
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;TGeoMatrix.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliAlignObj.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliTrackPointArray.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliTrackResidualsFast.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &lt;TMatrixDSym.h&gt;
+<a name="34"><span class="lineNum">      34 </span>            : #include &lt;TMatrixDSymEigen.h&gt;</a>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineCov">        126 : ClassImp(AliTrackResidualsFast)</span>
+<a name="37"><span class="lineNum">      37 </span>            : </a>
+<span class="lineNum">      38 </span>            : //______________________________________________________________________________
+<span class="lineNum">      39 </span>            : AliTrackResidualsFast::AliTrackResidualsFast():
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :   AliTrackResiduals(),</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :   fSumR(0)</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      43 </span>            :   // Default constructor
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 27; i++) fSum[i] = 0;</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 : }</span>
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<span class="lineNum">      47 </span>            : //______________________________________________________________________________
+<span class="lineNum">      48 </span>            : AliTrackResidualsFast::AliTrackResidualsFast(Int_t ntracks):
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :   AliTrackResiduals(ntracks),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   fSumR(0)</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      52 </span>            :   // Constructor
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 27; i++) fSum[i] = 0;</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 : }</span>
+<a name="55"><span class="lineNum">      55 </span>            :  </a>
+<span class="lineNum">      56 </span>            : //______________________________________________________________________________
+<span class="lineNum">      57 </span>            : AliTrackResidualsFast::AliTrackResidualsFast(const AliTrackResidualsFast &amp;res):
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   AliTrackResiduals(res),</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fSumR(res.fSumR)</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      61 </span>            :   // Copy constructor
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   memcpy(fSum,res.fSum,27*sizeof(Double_t));</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 : }</span>
+<a name="64"><span class="lineNum">      64 </span>            : </a>
+<span class="lineNum">      65 </span>            : //______________________________________________________________________________
+<span class="lineNum">      66 </span>            : AliTrackResidualsFast &amp;AliTrackResidualsFast::operator= (const AliTrackResidualsFast&amp; res)
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span>            :   //
+<span class="lineNum">      69 </span>            :   // Assignment operator
+<span class="lineNum">      70 </span>            :   //
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   if(this != &amp;res) {</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     AliTrackResiduals::operator=(res);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     memcpy(fSum,res.fSum,27*sizeof(Double_t));</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     fSumR = res.fSumR;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :  return *this;</span>
+<span class="lineNum">      78 </span>            : }
+<a name="79"><span class="lineNum">      79 </span>            : </a>
+<span class="lineNum">      80 </span>            : //______________________________________________________________________________
+<span class="lineNum">      81 </span>            : Bool_t AliTrackResidualsFast::Minimize()
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span>            :   // Implementation of fast linear Chi2
+<span class="lineNum">      84 </span>            :   // based minimization of track residuals sum
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :   //  if(fBFixed[0]||fBFixed[1]||fBFixed[2]||fBFixed[3]||fBFixed[4]||fBFixed[5])
+<span class="lineNum">      87 </span>            :   //    AliError(&quot;Cannot yet fix parameters in this minimizer&quot;);
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; 27; i++) fSum[i] = 0;</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   fSumR = 0;</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   AliTrackPoint p1,p2;</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   for (Int_t itrack = 0; itrack &lt; fLast; itrack++) {</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if (!fVolArray[itrack] || !fTrackArray[itrack]) continue;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     for (Int_t ipoint = 0; ipoint &lt; fVolArray[itrack]-&gt;GetNPoints(); ipoint++) {</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :       fVolArray[itrack]-&gt;GetPoint(p1,ipoint);</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :       fTrackArray[itrack]-&gt;GetPoint(p2,ipoint);</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :       AddPoints(p1,p2);</span>
+<span class="lineNum">     101 </span>            :     }
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   return Update();</span>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :   // debug info
+<span class="lineNum">     107 </span>            : //   Float_t chi2 = 0;
+<span class="lineNum">     108 </span>            : //   for (Int_t itrack = 0; itrack &lt; fLast; itrack++) {
+<span class="lineNum">     109 </span>            : //     if (!fVolArray[itrack] || !fTrackArray[itrack]) continue;
+<span class="lineNum">     110 </span>            : //     for (Int_t ipoint = 0; ipoint &lt; fVolArray[itrack]-&gt;GetNPoints(); ipoint++) {
+<span class="lineNum">     111 </span>            : //       fVolArray[itrack]-&gt;GetPoint(p1,ipoint);
+<span class="lineNum">     112 </span>            : //       fAlignObj-&gt;Transform(p1);
+<span class="lineNum">     113 </span>            : //       fTrackArray[itrack]-&gt;GetPoint(p2,ipoint);
+<span class="lineNum">     114 </span>            : //       Float_t residual = p2.GetResidual(p1,kFALSE);
+<span class="lineNum">     115 </span>            : //       chi2 += residual;
+<span class="lineNum">     116 </span>            : //     }
+<span class="lineNum">     117 </span>            : //   }
+<span class="lineNum">     118 </span>            : //   printf(&quot;Final chi2 = %f\n&quot;,chi2);
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 : }</span>
+<a name="120"><span class="lineNum">     120 </span>            : </a>
+<span class="lineNum">     121 </span>            : //______________________________________________________________________________
+<span class="lineNum">     122 </span>            : void AliTrackResidualsFast::AddPoints(AliTrackPoint &amp;p, AliTrackPoint &amp;pprime)
+<span class="lineNum">     123 </span>            : {
+<span class="lineNum">     124 </span>            :   // Update the sums used for
+<span class="lineNum">     125 </span>            :   // the linear chi2 minimization
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   Float_t xyz[3],xyzp[3];</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   Float_t cov[6],covp[6];</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   p.GetXYZ(xyz,cov); pprime.GetXYZ(xyzp,covp);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   TMatrixDSym mcov(3);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   mcov(0,0) = cov[0]; mcov(0,1) = cov[1]; mcov(0,2) = cov[2];</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   mcov(1,0) = cov[1]; mcov(1,1) = cov[3]; mcov(1,2) = cov[4];</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   mcov(2,0) = cov[2]; mcov(2,1) = cov[4]; mcov(2,2) = cov[5];</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   TMatrixDSym mcovp(3);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   mcovp(0,0) = covp[0]; mcovp(0,1) = covp[1]; mcovp(0,2) = covp[2];</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   mcovp(1,0) = covp[1]; mcovp(1,1) = covp[3]; mcovp(1,2) = covp[4];</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   mcovp(2,0) = covp[2]; mcovp(2,1) = covp[4]; mcovp(2,2) = covp[5];</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   TMatrixDSym msum = mcov + mcovp;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   msum.Invert();</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   if (!msum.IsValid()) return;</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   TMatrixD        sums(3,1);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   sums(0,0) = (xyzp[0]-xyz[0]); </span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   sums(1,0) = (xyzp[1]-xyz[1]);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   sums(2,0) = (xyzp[2]-xyz[2]);   </span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   TMatrixD sumst = sums.T(); sums.T();</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   TMatrixD        mf(3,6);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   mf(0,0) = 1;      mf(1,0) = 0;       mf(2,0) = 0;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   mf(0,1) = 0;      mf(1,1) = 1;       mf(2,1) = 0;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   mf(0,2) = 0;      mf(1,2) = 0;       mf(2,2) = 1;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   mf(0,3) = 0;      mf(1,3) = -xyz[2]; mf(2,3) = xyz[1];</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   mf(0,4) = xyz[2]; mf(1,4) = 0;       mf(2,4) =-xyz[0];</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   mf(0,5) =-xyz[1]; mf(1,5) = xyz[0];  mf(2,5) = 0;</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   for(Int_t j=0;j&lt;6;j++){</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if(fBFixed[j]==kTRUE){</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :       mf(0,j)=0.;mf(1,j)=0.;mf(2,j)=0.;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     163 </span>            :   }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   TMatrixD        mft = mf.T(); mf.T();</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   TMatrixD sums2 = mft * msum * sums;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   TMatrixD smatrix = mft * msum * mf;</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   fSum[0] += smatrix(0,0);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   fSum[1] += smatrix(0,1);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   fSum[2] += smatrix(0,2);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   fSum[3] += smatrix(0,3);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   fSum[4] += smatrix(0,4);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   fSum[5] += smatrix(0,5);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   fSum[6] += smatrix(1,1);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   fSum[7] += smatrix(1,2);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   fSum[8] += smatrix(1,3);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   fSum[9] += smatrix(1,4);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   fSum[10]+= smatrix(1,5);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   fSum[11]+= smatrix(2,2);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   fSum[12]+= smatrix(2,3);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   fSum[13]+= smatrix(2,4);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   fSum[14]+= smatrix(2,5);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   fSum[15]+= smatrix(3,3);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   fSum[16]+= smatrix(3,4);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   fSum[17]+= smatrix(3,5);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   fSum[18]+= smatrix(4,4);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   fSum[19]+= smatrix(4,5);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   fSum[20]+= smatrix(5,5);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   fSum[21] += sums2(0,0);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   fSum[22] += sums2(1,0);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   fSum[23] += sums2(2,0);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   fSum[24] += sums2(3,0);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   fSum[25] += sums2(4,0);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   fSum[26] += sums2(5,0);</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   TMatrixD  tmp = sumst * msum * sums;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   fSumR += tmp(0,0);</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   fNdf += 3;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 : }</span>
+<a name="203"><span class="lineNum">     203 </span>            : </a>
+<span class="lineNum">     204 </span>            : //______________________________________________________________________________
+<span class="lineNum">     205 </span>            : Bool_t AliTrackResidualsFast::Update()
+<span class="lineNum">     206 </span>            : {
+<span class="lineNum">     207 </span>            :   // Find the alignment parameters
+<span class="lineNum">     208 </span>            :   // by using the already accumulated
+<span class="lineNum">     209 </span>            :   // sums
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   TMatrixDSym     smatrix(6);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   TMatrixD        sums(1,6);</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   smatrix(0,0) = fSum[0];</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   smatrix(0,1) = smatrix(1,0) = fSum[1];</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   smatrix(0,2) = smatrix(2,0) = fSum[2];</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   smatrix(0,3) = smatrix(3,0) = fSum[3];</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   smatrix(0,4) = smatrix(4,0) = fSum[4];</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   smatrix(0,5) = smatrix(5,0) = fSum[5];</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   smatrix(1,1) = fSum[6];</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   smatrix(1,2) = smatrix(2,1) = fSum[7];</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   smatrix(1,3) = smatrix(3,1) = fSum[8];</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   smatrix(1,4) = smatrix(4,1) = fSum[9];</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   smatrix(1,5) = smatrix(5,1) = fSum[10];</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   smatrix(2,2) = fSum[11];</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   smatrix(2,3) = smatrix(3,2) = fSum[12];</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   smatrix(2,4) = smatrix(4,2) = fSum[13];</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   smatrix(2,5) = smatrix(5,2) = fSum[14];</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   smatrix(3,3) = fSum[15];</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   smatrix(3,4) = smatrix(4,3) = fSum[16];</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   smatrix(3,5) = smatrix(5,3) = fSum[17];</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   smatrix(4,4) = fSum[18];</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   smatrix(4,5) = smatrix(5,4) = fSum[19];</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   smatrix(5,5) = fSum[20];</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   sums(0,0)    = fSum[21]; sums(0,1) = fSum[22]; sums(0,2) = fSum[23];</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   sums(0,3)    = fSum[24]; sums(0,4) = fSum[25]; sums(0,5) = fSum[26];</span>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            :   
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   Int_t fixedparamat[6]={0,0,0,0,0,0}; </span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   const Int_t unfixedparam=GetNFreeParam();</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   Int_t position[6]={0,0,0,0,0,0};</span>
+<span class="lineNum">     242 </span>            :   Int_t last=0;//position is of size 6 but only unfiexedparam indeces will be used
+<span class="lineNum">     243 </span>            :   
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   if(fBFixed[0]==kTRUE){</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     fixedparamat[0]=1;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     247 </span>            :   else {
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     position[0]=0;</span>
+<span class="lineNum">     249 </span>            :     last++;
+<span class="lineNum">     250 </span>            :   }
+<span class="lineNum">     251 </span>            :   
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :   for(Int_t j=1;j&lt;6;j++){</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     if(fBFixed[j]==kTRUE){</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       fixedparamat[j]=fixedparamat[j-1]+1;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     256 </span>            :     else {
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       fixedparamat[j]=fixedparamat[j-1];</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       position[last]=j;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       last++;</span>
+<span class="lineNum">     260 </span>            :     }
+<span class="lineNum">     261 </span>            :   }
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   TMatrixDSym smatrixRedu(unfixedparam);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i&lt;unfixedparam;i++){</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     for(Int_t j=0;j&lt;unfixedparam;j++){</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :       smatrixRedu(i,j)=smatrix(position[i],position[j]);</span>
+<span class="lineNum">     267 </span>            :     }
+<span class="lineNum">     268 </span>            :   }
+<span class="lineNum">     269 </span>            :   
+<span class="lineNum">     270 </span>            :   //  smatrixRedu.Print();
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   smatrixRedu.Invert();</span>
+<span class="lineNum">     272 </span>            :   
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   if (!smatrixRedu.IsValid()) {</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     printf(&quot;Minimization Failed! \n&quot;);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     276 </span>            :   }
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   TMatrixDSym smatrixUp(6);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i&lt;6;i++){</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     for(Int_t j=0;j&lt;6;j++){</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       if(fBFixed[i]==kTRUE||fBFixed[j]==kTRUE)smatrixUp(i,j)=0.;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :       else smatrixUp(i,j)=smatrixRedu(i-fixedparamat[i],j-fixedparamat[j]);</span>
+<span class="lineNum">     283 </span>            :     }
+<span class="lineNum">     284 </span>            :   }
+<span class="lineNum">     285 </span>            :   
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   Double_t covmatrarray[21];</span>
+<span class="lineNum">     287 </span>            :   
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i&lt;6;i++){</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :       for(Int_t j=0;j&lt;=i;j++){</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         if(fBFixed[i]==kFALSE&amp;&amp;fBFixed[j]==kFALSE){</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :           if(TMath::Abs(smatrixUp(i,j)/TMath::Sqrt(TMath::Abs(smatrixUp(i,i)*smatrixUp(j,j))))&gt;1.01)printf(&quot;Too large Correlation number!\n&quot;);</span>
+<span class="lineNum">     292 </span>            :         }
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         covmatrarray[i*(i+1)/2+j]=smatrixUp(i,j);</span>
+<span class="lineNum">     294 </span>            :       }
+<span class="lineNum">     295 </span>            :   }
+<span class="lineNum">     296 </span>            :     
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :   TMatrixD res = sums*smatrixUp;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   fAlignObj-&gt;SetPars(res(0,0),res(0,1),res(0,2),</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                      TMath::RadToDeg()*res(0,3),</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                      TMath::RadToDeg()*res(0,4),</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                      TMath::RadToDeg()*res(0,5));</span>
+<span class="lineNum">     302 </span>            :   
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   fAlignObj-&gt;SetCorrMatrix(covmatrarray);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   TMatrixD  tmp = res*sums.T();</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   fChi2 = fSumR - tmp(0,0);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   fNdf -= unfixedparam;</span>
+<span class="lineNum">     307 </span>            :   
+<span class="lineNum">     308 </span>            :   return kTRUE;
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

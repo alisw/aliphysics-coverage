@@ -1,0 +1,816 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - MUON/MUONbase/AliMUONRawWriter.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">MUON/MUONbase</a> - AliMUONRawWriter.cxx<span style="font-size: 80%;"> (source / <a href="AliMUONRawWriter.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">266</td>
+            <td class="headerCovTableEntry">306</td>
+            <td class="headerCovTableEntryMed">86.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryHi">92.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      19 </span>            : /// \class AliMUONRawWriter
+<span class="lineNum">      20 </span>            : /// MUON Raw Data generaton in ALICE-MUON
+<span class="lineNum">      21 </span>            : /// Raw data structure could be found in Alice-note.
+<span class="lineNum">      22 </span>            : ///
+<span class="lineNum">      23 </span>            : /// Implemented non-constant buspatch numbers for tracking
+<span class="lineNum">      24 </span>            : /// with correct DDL id (first guess)
+<span class="lineNum">      25 </span>            : /// (Ch. Finck, dec 2005)
+<span class="lineNum">      26 </span>            : ///
+<span class="lineNum">      27 </span>            : /// Digits2Raw:
+<span class="lineNum">      28 </span>            : /// Generates raw data for MUON tracker and finally for trigger
+<span class="lineNum">      29 </span>            : /// Using real mapping (inverse) for tracker
+<span class="lineNum">      30 </span>            : /// For trigger there is no mapping (mapping could be found in AliMUONTriggerCircuit)
+<span class="lineNum">      31 </span>            : /// Ch. Finck, July 04
+<span class="lineNum">      32 </span>            : /// Use memcpy instead of assignment elt by elt
+<span class="lineNum">      33 </span>            : /// Introducing variable DSP numbers, real manu numbers per buspatch for st12
+<span class="lineNum">      34 </span>            : /// Implemented scaler event for Trigger
+<span class="lineNum">      35 </span>            : /// Ch. Finck, Jan. 06
+<span class="lineNum">      36 </span>            : /// Using bus itr in DDL instead of simple incrementation
+<span class="lineNum">      37 </span>            : /// treat correctly the DDL &amp; buspatch for station 3.
+<span class="lineNum">      38 </span>            : /// Using informations from AliMUONTriggerCrateStore for 
+<span class="lineNum">      39 </span>            : /// empty slots and non-notified cards in trigger crates.
+<span class="lineNum">      40 </span>            : /// Ch. Finck, August 06.
+<span class="lineNum">      41 </span>            : /// Using AliMpDDLStore::GetBusPatchId.
+<span class="lineNum">      42 </span>            : ///
+<span class="lineNum">      43 </span>            : /// \author Ch. Finck, Feb. 07.
+<span class="lineNum">      44 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #include &quot;AliMUONRawWriter.h&quot;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #include &quot;AliMUONBlockHeader.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliMUONBusStruct.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliMUONConstants.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;AliMUONDarcHeader.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;AliMUONVDigit.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;AliMUONVDigitStore.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;AliMUONDspHeader.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliMUONGlobalTrigger.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;AliMUONLocalStruct.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;AliMUONLocalTrigger.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;AliMUONLocalTriggerBoard.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;AliMUONRegionalTrigger.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;AliMUONRegHeader.h&quot;
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : #include &quot;AliMUONVTriggerStore.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;AliCodeTimer.h&quot;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #include &quot;AliMpCDB.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;AliMpDDLStore.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;AliMpDDL.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;AliMpRegionalTrigger.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;AliMpTriggerCrate.h&quot;
+<span class="lineNum">      71 </span>            : #include &quot;AliMpLocalBoard.h&quot;
+<span class="lineNum">      72 </span>            : #include &quot;AliMpDetElement.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;AliMpDEManager.h&quot;
+<span class="lineNum">      74 </span>            : #include &quot;AliMpExMap.h&quot;
+<span class="lineNum">      75 </span>            : #include &quot;AliMpConstants.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;AliMpPlaneType.h&quot;
+<span class="lineNum">      77 </span>            : #include &quot;AliMpSegmentation.h&quot;
+<span class="lineNum">      78 </span>            : #include &quot;AliMpStationType.h&quot;
+<span class="lineNum">      79 </span>            : #include &quot;AliMpVSegmentation.h&quot;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #include &quot;AliRawReader.h&quot;
+<span class="lineNum">      82 </span>            : #include &quot;AliRawDataHeaderSim.h&quot;
+<span class="lineNum">      83 </span>            : #include &quot;AliBitPacking.h&quot; 
+<span class="lineNum">      84 </span>            : #include &quot;AliDAQ.h&quot;
+<span class="lineNum">      85 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : #include &quot;TObjArray.h&quot;
+<span class="lineNum">      88 </span>            : #include &quot;TStopwatch.h&quot;
+<span class="lineNum">      89 </span>            : #include &lt;Riostream.h&gt;
+<a name="90"><span class="lineNum">      90 </span>            : </a>
+<span class="lineNum">      91 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      92 </span><span class="lineCov">         18 : ClassImp(AliMUONRawWriter) // Class implementation in ROOT context</span>
+<span class="lineNum">      93 </span>            : /// \endcond
+<a name="94"><span class="lineNum">      94 </span>            : </a>
+<span class="lineNum">      95 </span>            : //__________________________________________________________________________
+<span class="lineNum">      96 </span>            : AliMUONRawWriter::AliMUONRawWriter()
+<span class="lineNum">      97 </span><span class="lineCov">          1 :   : TObject(),</span>
+<span class="lineNum">      98 </span><span class="lineCov">          3 :     fBlockHeader(new AliMUONBlockHeader()),</span>
+<span class="lineNum">      99 </span><span class="lineCov">          3 :     fDspHeader(new AliMUONDspHeader()),</span>
+<span class="lineNum">     100 </span><span class="lineCov">          3 :     fDarcHeader(new AliMUONDarcHeader()),</span>
+<span class="lineNum">     101 </span><span class="lineCov">          3 :     fRegHeader(new AliMUONRegHeader()),</span>
+<span class="lineNum">     102 </span><span class="lineCov">          3 :     fLocalStruct(new AliMUONLocalStruct()),</span>
+<span class="lineNum">     103 </span><span class="lineCov">          2 :     fDDLStore(AliMpDDLStore::Instance()),</span>
+<span class="lineNum">     104 </span><span class="lineCov">          1 :     fScalerEvent(kFALSE),</span>
+<span class="lineNum">     105 </span><span class="lineCov">          1 :     fHeader(0x0),</span>
+<span class="lineNum">     106 </span><span class="lineCov">          1 :     fBufferSize((((43*AliMpConstants::ManuNofChannels() + 4)*5 + 10)*5 + 8)*2),</span>
+<span class="lineNum">     107 </span><span class="lineCov">          2 :     fBuffer(new Int_t [fBufferSize])</span>
+<span class="lineNum">     108 </span><span class="lineCov">          5 : {</span>
+<span class="lineNum">     109 </span>            :   /// Standard Constructor
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineCov">          5 :   AliDebug(1,&quot;Standard ctor&quot;);</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :   // setting data key to default value (only for writting)
+<span class="lineNum">     114 </span><span class="lineCov">          1 :   fBlockHeader-&gt;SetDataKey(fBlockHeader-&gt;GetDefaultDataKey());</span>
+<span class="lineNum">     115 </span><span class="lineCov">          1 :   fDspHeader-&gt;SetDataKey(fDspHeader-&gt;GetDefaultDataKey());</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :   // Load mapping
+<span class="lineNum">     118 </span><span class="lineCov">          1 :   if ( ! fDDLStore ) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     if ( ! AliMpCDB::LoadDDLStore() ) {</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :       AliFatal(&quot;Could not access mapping from OCDB !&quot;);</span>
+<span class="lineNum">     121 </span>            :     }
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     fDDLStore = AliMpDDLStore::Instance();</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   }  </span>
+<span class="lineNum">     124 </span><span class="lineCov">          2 : }</span>
+<a name="125"><span class="lineNum">     125 </span>            : </a>
+<span class="lineNum">     126 </span>            : //__________________________________________________________________________
+<span class="lineNum">     127 </span>            : AliMUONRawWriter::~AliMUONRawWriter(void)
+<span class="lineNum">     128 </span><span class="lineCov">          6 : {</span>
+<span class="lineNum">     129 </span>            :   /// Destructor
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">          5 :   AliDebug(1,&quot;dtor&quot;);</span>
+<span class="lineNum">     132 </span>            :   
+<span class="lineNum">     133 </span><span class="lineCov">          2 :   delete fBlockHeader;</span>
+<span class="lineNum">     134 </span><span class="lineCov">          2 :   delete fDspHeader;</span>
+<span class="lineNum">     135 </span><span class="lineCov">          2 :   delete fDarcHeader;</span>
+<span class="lineNum">     136 </span><span class="lineCov">          2 :   delete fRegHeader;</span>
+<span class="lineNum">     137 </span><span class="lineCov">          2 :   delete fLocalStruct;</span>
+<span class="lineNum">     138 </span><span class="lineCov">          2 :   delete[] fBuffer;</span>
+<span class="lineNum">     139 </span><span class="lineCov">          3 : }</span>
+<a name="140"><span class="lineNum">     140 </span>            : </a>
+<span class="lineNum">     141 </span>            : //____________________________________________________________________
+<span class="lineNum">     142 </span>            : void  AliMUONRawWriter::LocalWordPacking(UInt_t&amp; word, UInt_t locId, UInt_t locDec, 
+<span class="lineNum">     143 </span>            :                                          UInt_t trigY, UInt_t posY, UInt_t posX, 
+<span class="lineNum">     144 </span>            :                                          UInt_t sdevX, UInt_t devX)
+<span class="lineNum">     145 </span>            : {
+<span class="lineNum">     146 </span>            : /// pack local trigger word
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineCov">       1936 :     AliBitPacking::PackWord(locId,word,19,22); //card id number in crate</span>
+<span class="lineNum">     149 </span><span class="lineCov">        968 :     AliBitPacking::PackWord(locDec,word,15,18);</span>
+<span class="lineNum">     150 </span><span class="lineCov">        968 :     AliBitPacking::PackWord(trigY,word,14,14);</span>
+<span class="lineNum">     151 </span><span class="lineCov">        968 :     AliBitPacking::PackWord(posY,word,10,13);</span>
+<span class="lineNum">     152 </span><span class="lineCov">        968 :     AliBitPacking::PackWord(sdevX,word,9,9);</span>
+<span class="lineNum">     153 </span><span class="lineCov">        968 :     AliBitPacking::PackWord(devX,word,5,8);</span>
+<span class="lineNum">     154 </span><span class="lineCov">        968 :     AliBitPacking::PackWord(posX,word,0,4);</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineCov">        968 : }</span>
+<a name="157"><span class="lineNum">     157 </span>            : </a>
+<span class="lineNum">     158 </span>            : //____________________________________________________________________
+<span class="lineNum">     159 </span>            : Int_t AliMUONRawWriter::Digits2Raw(const AliMUONVDigitStore* digitStore,
+<span class="lineNum">     160 </span>            :                                    const AliMUONVTriggerStore* triggerStore)
+<span class="lineNum">     161 </span>            : {
+<span class="lineNum">     162 </span>            :   /// convert digits of the current event to raw data
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">          8 :   AliCodeTimerAuto(&quot;&quot;,0)</span>
+<span class="lineNum">     165 </span>            :   
+<span class="lineNum">     166 </span>            :   Int_t idDDL;
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :   // tracking chambers
+<span class="lineNum">     169 </span>            :   
+<span class="lineNum">     170 </span><span class="lineCov">          4 :   if ( digitStore ) </span>
+<span class="lineNum">     171 </span>            :   {
+<span class="lineNum">     172 </span><span class="lineCov">          8 :     AliCodeTimerAuto(&quot;for Tracker&quot;,1)</span>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineCov">          4 :     AliMpExMap busPatchMap;</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">          4 :     Int_t nDDLs = AliDAQ::NumberOfDdls(&quot;MUONTRK&quot;);</span>
+<span class="lineNum">     177 </span>            :     
+<span class="lineNum">     178 </span>            :     Int_t nofBusPatches(0);
+<span class="lineNum">     179 </span>            :     
+<span class="lineNum">     180 </span><span class="lineCov">        168 :     for (Int_t iDDL = 0; iDDL &lt; nDDLs; ++iDDL ) </span>
+<span class="lineNum">     181 </span>            :     {
+<span class="lineNum">     182 </span><span class="lineCov">         80 :       AliMpDDL* ddl = fDDLStore-&gt;GetDDL(iDDL);</span>
+<span class="lineNum">     183 </span><span class="lineCov">        160 :       nofBusPatches += ddl-&gt;GetNofBusPatches();</span>
+<span class="lineNum">     184 </span>            :     }
+<span class="lineNum">     185 </span>            :     
+<span class="lineNum">     186 </span><span class="lineCov">          4 :     busPatchMap.SetSize(nofBusPatches);</span>
+<span class="lineNum">     187 </span>            :     
+<span class="lineNum">     188 </span><span class="lineCov">          4 :     Digits2BusPatchMap(*digitStore,busPatchMap);</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineCov">        168 :     for (Int_t iDDL = 0; iDDL &lt; nDDLs; ++iDDL ) </span>
+<span class="lineNum">     191 </span>            :     {
+<span class="lineNum">     192 </span><span class="lineCov">         80 :       WriteTrackerDDL(busPatchMap,iDDL);</span>
+<span class="lineNum">     193 </span>            :     }
+<span class="lineNum">     194 </span><span class="lineCov">         20 :     AliDebug(1,&quot;Tracker written&quot;);</span>
+<span class="lineNum">     195 </span><span class="lineCov">          4 :   }</span>
+<span class="lineNum">     196 </span>            :  
+<span class="lineNum">     197 </span><span class="lineCov">          4 :   if ( triggerStore )</span>
+<span class="lineNum">     198 </span>            :   {
+<span class="lineNum">     199 </span><span class="lineCov">          8 :     AliCodeTimerAuto(&quot;for Trigger&quot;,1)</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            :     // trigger chambers
+<span class="lineNum">     202 </span>            :     
+<span class="lineNum">     203 </span><span class="lineCov">          4 :     AliFstream* file[2];</span>
+<span class="lineNum">     204 </span>            :     
+<span class="lineNum">     205 </span>            :     // open files
+<span class="lineNum">     206 </span>            :     idDDL = 0;// MUTR
+<span class="lineNum">     207 </span><span class="lineCov">         16 :     file[0] = new AliFstream(AliDAQ::DdlFileName(&quot;MUONTRG&quot;,idDDL));</span>
+<span class="lineNum">     208 </span>            :     
+<span class="lineNum">     209 </span>            :     idDDL = 1;// MUTR
+<span class="lineNum">     210 </span><span class="lineCov">         16 :     file[1] = new AliFstream(AliDAQ::DdlFileName(&quot;MUONTRG&quot;,idDDL));</span>
+<span class="lineNum">     211 </span>            :       
+<span class="lineNum">     212 </span><span class="lineCov">          4 :     WriteTriggerDDL(*triggerStore,file);</span>
+<span class="lineNum">     213 </span>            :       
+<span class="lineNum">     214 </span>            :     // reset and close
+<span class="lineNum">     215 </span><span class="lineCov">          8 :     delete file[0];</span>
+<span class="lineNum">     216 </span><span class="lineCov">          8 :     delete file[1];</span>
+<span class="lineNum">     217 </span>            :       
+<span class="lineNum">     218 </span><span class="lineCov">         20 :     AliDebug(1,&quot;Trigger written&quot;);</span>
+<span class="lineNum">     219 </span><span class="lineCov">          4 :   }</span>
+<span class="lineNum">     220 </span>            :   
+<span class="lineNum">     221 </span>            :   return kTRUE;
+<span class="lineNum">     222 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     223 </span>            : 
+<a name="224"><span class="lineNum">     224 </span>            : //______________________________________________________________________________</a>
+<span class="lineNum">     225 </span>            : void 
+<span class="lineNum">     226 </span>            : AliMUONRawWriter::Digits2BusPatchMap(const AliMUONVDigitStore&amp; digitStore,
+<span class="lineNum">     227 </span>            :                                      AliMpExMap&amp; busPatchMap)
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span>            :   /// Create bus patch structures corresponding to digits in the store
+<span class="lineNum">     230 </span>            :   
+<span class="lineNum">     231 </span><span class="lineCov">          8 :   AliCodeTimerAuto(&quot;&quot;,0)</span>
+<span class="lineNum">     232 </span>            :   
+<span class="lineNum">     233 </span>            :   static const Int_t kMAXADC = (1&lt;&lt;12)-1; // We code the charge on a 12 bits ADC.
+<span class="lineNum">     234 </span>            :     
+<span class="lineNum">     235 </span>            :   // DDL event one per half chamber
+<span class="lineNum">     236 </span>            :   
+<span class="lineNum">     237 </span>            :   // raw data
+<span class="lineNum">     238 </span>            :   Char_t parity = 0x4;
+<span class="lineNum">     239 </span>            :   UShort_t manuId = 0;
+<span class="lineNum">     240 </span>            :   UChar_t channelId = 0;
+<span class="lineNum">     241 </span>            :   UShort_t charge = 0;
+<span class="lineNum">     242 </span>            :   Int_t busPatchId = 0;
+<span class="lineNum">     243 </span>            :   Int_t currentBusPatchId = -1;
+<span class="lineNum">     244 </span><span class="lineCov">          4 :   UInt_t word;</span>
+<span class="lineNum">     245 </span>            :   
+<span class="lineNum">     246 </span>            :   AliMUONBusStruct* busStruct(0x0);
+<span class="lineNum">     247 </span>            :   
+<span class="lineNum">     248 </span><span class="lineCov">          8 :   TIter next(digitStore.CreateTrackerIterator());</span>
+<span class="lineNum">     249 </span>            :   AliMUONVDigit* digit;
+<span class="lineNum">     250 </span>            :   
+<span class="lineNum">     251 </span><span class="lineCov">       1428 :   while ( ( digit = static_cast&lt;AliMUONVDigit*&gt;(next()) ) )</span>
+<span class="lineNum">     252 </span>            :   {
+<span class="lineNum">     253 </span><span class="lineCov">       1416 :     charge = digit-&gt;ADC();</span>
+<span class="lineNum">     254 </span><span class="lineCov">        708 :     if ( charge &gt; kMAXADC )</span>
+<span class="lineNum">     255 </span>            :     {
+<span class="lineNum">     256 </span>            :       // This is most probably an error in the digitizer (which should insure
+<span class="lineNum">     257 </span>            :       // the adc is below kMAXADC), so make it a (non-fatal) error indeed.
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       AliError(Form(&quot;adc value %d above 0x%x for DE %d . Setting to 0x%x. Digit is:&quot;,</span>
+<span class="lineNum">     259 </span>            :                     charge,kMAXADC,digit-&gt;DetElemId(),kMAXADC));
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :       StdoutToAliError(digit-&gt;Print());</span>
+<span class="lineNum">     261 </span>            :       charge = kMAXADC;
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     263 </span>            :     
+<span class="lineNum">     264 </span>            :     // inverse mapping
+<span class="lineNum">     265 </span><span class="lineCov">        708 :     busPatchId = GetBusPatch(*digit);</span>
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineCov">        708 :     if (busPatchId&lt;0) continue;</span>
+<span class="lineNum">     268 </span>            :     
+<span class="lineNum">     269 </span><span class="lineCov">       2124 :     if ( digit-&gt;ManuId() &gt; 0x7FF ||</span>
+<span class="lineNum">     270 </span><span class="lineCov">       1416 :          digit-&gt;ManuChannel() &gt; 0x3F )</span>
+<span class="lineNum">     271 </span>            :     {
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       StdoutToAliError(digit-&gt;Print(););</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       AliFatal(&quot;ManuId,ManuChannel are invalid for the digit above.&quot;);</span>
+<span class="lineNum">     274 </span>            :     }
+<span class="lineNum">     275 </span>            :     
+<span class="lineNum">     276 </span><span class="lineCov">       1416 :     manuId = ( digit-&gt;ManuId() &amp; 0x7FF ); // 11 bits</span>
+<span class="lineNum">     277 </span><span class="lineCov">       1416 :     channelId = ( digit-&gt;ManuChannel() &amp; 0x3F ); // 6 bits</span>
+<span class="lineNum">     278 </span>            :     
+<span class="lineNum">     279 </span>            :     //packing word
+<span class="lineNum">     280 </span><span class="lineCov">        708 :     word = 0;</span>
+<span class="lineNum">     281 </span><span class="lineCov">        708 :     AliBitPacking::PackWord((UInt_t)manuId,word,18,28);</span>
+<span class="lineNum">     282 </span><span class="lineCov">        708 :     AliBitPacking::PackWord((UInt_t)channelId,word,12,17);</span>
+<span class="lineNum">     283 </span><span class="lineCov">        708 :     AliBitPacking::PackWord((UInt_t)charge,word,0,11);</span>
+<span class="lineNum">     284 </span>            :     
+<span class="lineNum">     285 </span>            :     // parity word
+<span class="lineNum">     286 </span><span class="lineCov">        708 :     parity = word &amp; 0x1;</span>
+<span class="lineNum">     287 </span><span class="lineCov">      43896 :     for (Int_t i = 1; i &lt;= 30; ++i) </span>
+<span class="lineNum">     288 </span>            :     {
+<span class="lineNum">     289 </span><span class="lineCov">      21240 :       parity ^=  ((word &gt;&gt; i) &amp; 0x1);</span>
+<span class="lineNum">     290 </span>            :     }
+<span class="lineNum">     291 </span><span class="lineCov">        708 :     AliBitPacking::PackWord((UInt_t)parity,word,31,31);</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineCov">        708 :     if ( currentBusPatchId != busPatchId ) </span>
+<span class="lineNum">     294 </span>            :     {
+<span class="lineNum">     295 </span>            :       busStruct = 
+<span class="lineNum">     296 </span><span class="lineCov">        274 :         static_cast&lt;AliMUONBusStruct*&gt;(busPatchMap.GetValue(busPatchId));</span>
+<span class="lineNum">     297 </span>            :       currentBusPatchId = busPatchId;
+<span class="lineNum">     298 </span><span class="lineCov">        137 :     }</span>
+<span class="lineNum">     299 </span>            :     
+<span class="lineNum">     300 </span><span class="lineCov">        708 :     if (!busStruct)</span>
+<span class="lineNum">     301 </span>            :     {
+<span class="lineNum">     302 </span><span class="lineCov">        256 :       busStruct = new AliMUONBusStruct;</span>
+<span class="lineNum">     303 </span><span class="lineCov">        128 :       busStruct-&gt;SetDataKey(busStruct-&gt;GetDefaultDataKey());</span>
+<span class="lineNum">     304 </span><span class="lineCov">        128 :       busStruct-&gt;SetBusPatchId(busPatchId);</span>
+<span class="lineNum">     305 </span><span class="lineCov">        128 :       busStruct-&gt;SetLength(0);</span>
+<span class="lineNum">     306 </span><span class="lineCov">        128 :       busPatchMap.Add(busPatchId,busStruct);</span>
+<span class="lineNum">     307 </span>            :     }
+<span class="lineNum">     308 </span>            :     
+<span class="lineNum">     309 </span>            :     // set sub Event
+<span class="lineNum">     310 </span><span class="lineCov">        708 :     busStruct-&gt;AddData(word);</span>
+<span class="lineNum">     311 </span>            :   }
+<span class="lineNum">     312 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     313 </span>            : 
+<a name="314"><span class="lineNum">     314 </span>            : //______________________________________________________________________________</a>
+<span class="lineNum">     315 </span>            : void
+<span class="lineNum">     316 </span>            : AliMUONRawWriter::WriteTrackerDDL(AliMpExMap&amp; busPatchMap, Int_t iDDL)
+<span class="lineNum">     317 </span>            : {
+<span class="lineNum">     318 </span>            :   /// Write DDL file for one tracker DDL
+<span class="lineNum">     319 </span>            :   
+<span class="lineNum">     320 </span>            :   // buffer size (max'ed out)
+<span class="lineNum">     321 </span>            :   // (((43 manus max per bus patch *64 channels + 4 bus patch words) * 5 bus patch 
+<span class="lineNum">     322 </span>            :   //   + 10 dsp words)*5 dsps + 8 block words)*2 blocks 
+<span class="lineNum">     323 </span>            :  
+<span class="lineNum">     324 </span><span class="lineCov">        160 :   AliCodeTimerAuto(&quot;&quot;,0)</span>
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineCov">         80 :   if (fHeader == 0x0) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     AliError(&quot;Raw data header must be set&quot;);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     329 </span>            :   }
+<span class="lineNum">     330 </span><span class="lineCov">         80 :   memset(fBuffer,0,fBufferSize*sizeof(Int_t));</span>
+<span class="lineNum">     331 </span>            :   
+<span class="lineNum">     332 </span><span class="lineCov">         80 :   AliMpDDL* ddl = fDDLStore-&gt;GetDDL(iDDL);</span>
+<span class="lineNum">     333 </span><span class="lineCov">         80 :   Int_t iDspMax = ddl-&gt;GetMaxDsp();</span>
+<span class="lineNum">     334 </span><span class="lineCov">         80 :   Int_t iBusPerDSP[5]; //number of bus patches per DSP</span>
+<span class="lineNum">     335 </span><span class="lineCov">         80 :   ddl-&gt;GetBusPerDsp(iBusPerDSP);</span>
+<span class="lineNum">     336 </span>            :   Int_t busIter = 0;
+<span class="lineNum">     337 </span>            :   
+<span class="lineNum">     338 </span>            :   Int_t totalDDLLength = 0;
+<span class="lineNum">     339 </span>            :   
+<span class="lineNum">     340 </span>            :   Int_t index = 0;
+<span class="lineNum">     341 </span>            :   
+<span class="lineNum">     342 </span>            :   // two blocks A and B per DDL
+<span class="lineNum">     343 </span><span class="lineCov">        480 :   for (Int_t iBlock = 0; iBlock &lt; 2; ++iBlock) </span>
+<span class="lineNum">     344 </span>            :   {
+<span class="lineNum">     345 </span>            :     // block header
+<span class="lineNum">     346 </span><span class="lineCov">        160 :     Int_t length = fBlockHeader-&gt;GetHeaderLength();</span>
+<span class="lineNum">     347 </span><span class="lineCov">        160 :     memcpy(&amp;fBuffer[index],fBlockHeader-&gt;GetHeader(),length*4);</span>
+<span class="lineNum">     348 </span>            :     Int_t indexBlk = index;
+<span class="lineNum">     349 </span><span class="lineCov">        160 :     index += length; </span>
+<span class="lineNum">     350 </span>            :     
+<span class="lineNum">     351 </span>            :     // 5 DSP's max per block
+<span class="lineNum">     352 </span><span class="lineCov">       1792 :     for (Int_t iDsp = 0; iDsp &lt; iDspMax; ++iDsp) </span>
+<span class="lineNum">     353 </span>            :     {
+<span class="lineNum">     354 </span>            :       // DSP header
+<span class="lineNum">     355 </span><span class="lineCov">        736 :       Int_t dspHeaderLength = fDspHeader-&gt;GetHeaderLength();</span>
+<span class="lineNum">     356 </span><span class="lineCov">        736 :       memcpy(&amp;fBuffer[index],fDspHeader-&gt;GetHeader(),dspHeaderLength*4);</span>
+<span class="lineNum">     357 </span>            :       Int_t indexDsp = index;
+<span class="lineNum">     358 </span><span class="lineCov">        736 :       index += dspHeaderLength; </span>
+<span class="lineNum">     359 </span>            :       
+<span class="lineNum">     360 </span>            :       // 5 buspatches max per DSP
+<span class="lineNum">     361 </span><span class="lineCov">       8576 :       for (Int_t i = 0; i &lt; iBusPerDSP[iDsp]; ++i) </span>
+<span class="lineNum">     362 </span>            :       {
+<span class="lineNum">     363 </span><span class="lineCov">       3552 :         Int_t iBusPatch = ddl-&gt;GetBusPatchId(busIter++);</span>
+<span class="lineNum">     364 </span>            :         
+<span class="lineNum">     365 </span>            :         // iteration over bus patch in DDL
+<span class="lineNum">     366 </span><span class="lineCov">       3552 :         if (iBusPatch == -1) </span>
+<span class="lineNum">     367 </span>            :         {
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :           AliWarning(Form(&quot;Error in bus itr in DDL %d\n&quot;, iDDL));</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     370 </span>            :         }
+<span class="lineNum">     371 </span>            :         
+<span class="lineNum">     372 </span><span class="lineCov">       7104 :         AliMUONBusStruct* busStructPtr = static_cast&lt;AliMUONBusStruct*&gt;(busPatchMap.GetValue(iBusPatch));</span>
+<span class="lineNum">     373 </span>            :         
+<span class="lineNum">     374 </span>            :         // check if buspatchid has digit
+<span class="lineNum">     375 </span><span class="lineCov">       3552 :         if (busStructPtr) </span>
+<span class="lineNum">     376 </span>            :         {
+<span class="lineNum">     377 </span>            :           // add bus patch structure header
+<span class="lineNum">     378 </span><span class="lineCov">        128 :           Int_t busHeaderLength = busStructPtr-&gt;GetHeaderLength();</span>
+<span class="lineNum">     379 </span><span class="lineCov">        128 :           memcpy(&amp;fBuffer[index],busStructPtr-&gt;GetHeader(),busHeaderLength*4);</span>
+<span class="lineNum">     380 </span><span class="lineCov">        128 :           index += busHeaderLength;</span>
+<span class="lineNum">     381 </span>            :           
+<span class="lineNum">     382 </span>            :           // add bus patch data
+<span class="lineNum">     383 </span><span class="lineCov">        128 :           Int_t busLength = busStructPtr-&gt;GetLength();</span>
+<span class="lineNum">     384 </span><span class="lineCov">        128 :           memcpy(&amp;fBuffer[index],busStructPtr-&gt;GetData(),busLength*4);</span>
+<span class="lineNum">     385 </span><span class="lineCov">        128 :           index += busLength;</span>
+<span class="lineNum">     386 </span><span class="lineCov">        128 :         } </span>
+<span class="lineNum">     387 </span>            :         else 
+<span class="lineNum">     388 </span>            :         {
+<span class="lineNum">     389 </span>            :           // writting anyhow buspatch structure (empty ones)
+<span class="lineNum">     390 </span><span class="lineCov">       3424 :           fBuffer[index++] = busStructPtr-&gt;GetDefaultDataKey(); // fill it also for empty data size</span>
+<span class="lineNum">     391 </span><span class="lineCov">       3424 :           fBuffer[index++] = busStructPtr-&gt;GetHeaderLength(); // header length</span>
+<span class="lineNum">     392 </span><span class="lineCov">       3424 :           fBuffer[index++] = 0; // raw data length</span>
+<span class="lineNum">     393 </span><span class="lineCov">       3424 :           fBuffer[index++] = iBusPatch; // bus patch</span>
+<span class="lineNum">     394 </span>            :         }
+<span class="lineNum">     395 </span><span class="lineCov">       3552 :       } // bus patch</span>
+<span class="lineNum">     396 </span>            :       
+<span class="lineNum">     397 </span>            :       // check if totalLength even
+<span class="lineNum">     398 </span>            :       // set padding word in case
+<span class="lineNum">     399 </span>            :       // Add one word 0xBEEFFACE at the end of DSP structure
+<span class="lineNum">     400 </span><span class="lineCov">        736 :       Int_t totalDspLength  = index - indexDsp;</span>
+<span class="lineNum">     401 </span><span class="lineCov">        736 :       if ((totalDspLength % 2) == 1) </span>
+<span class="lineNum">     402 </span>            :       { 
+<span class="lineNum">     403 </span><span class="lineCov">         50 :         fBuffer[indexDsp + fDspHeader-&gt;GetHeaderLength() - 2] = 1;</span>
+<span class="lineNum">     404 </span><span class="lineCov">         50 :         fBuffer[index++] = fDspHeader-&gt;GetDefaultPaddingWord();</span>
+<span class="lineNum">     405 </span><span class="lineCov">         50 :         totalDspLength++;</span>
+<span class="lineNum">     406 </span><span class="lineCov">         50 :       }</span>
+<span class="lineNum">     407 </span>            :       
+<span class="lineNum">     408 </span><span class="lineCov">        736 :       Int_t dspLength     = totalDspLength - fDspHeader-&gt;GetHeaderLength();</span>
+<span class="lineNum">     409 </span>            :       
+<span class="lineNum">     410 </span><span class="lineCov">        736 :       fBuffer[indexDsp+1] = totalDspLength; // dsp total length</span>
+<span class="lineNum">     411 </span><span class="lineCov">        736 :       fBuffer[indexDsp+2] = dspLength; // data length  </span>
+<span class="lineNum">     412 </span>            :       
+<span class="lineNum">     413 </span>            :     } // dsp
+<span class="lineNum">     414 </span>            :     
+<span class="lineNum">     415 </span><span class="lineCov">        160 :     Int_t totalBlkLength  = index - indexBlk;</span>
+<span class="lineNum">     416 </span><span class="lineCov">        160 :     Int_t blkLength       = totalBlkLength - fBlockHeader-&gt;GetHeaderLength();</span>
+<span class="lineNum">     417 </span><span class="lineCov">        160 :     totalDDLLength       += totalBlkLength;</span>
+<span class="lineNum">     418 </span>            :     
+<span class="lineNum">     419 </span><span class="lineCov">        160 :     fBuffer[indexBlk+1] = totalBlkLength; // total block length</span>
+<span class="lineNum">     420 </span><span class="lineCov">        160 :     fBuffer[indexBlk+2] = blkLength;</span>
+<span class="lineNum">     421 </span>            :         
+<span class="lineNum">     422 </span>            :   } // block
+<span class="lineNum">     423 </span>            :   
+<span class="lineNum">     424 </span>            :     // add twice the end of CRT structure data key
+<span class="lineNum">     425 </span>            :     // hope it's good placed (ChF)
+<span class="lineNum">     426 </span><span class="lineCov">         80 :     fBuffer[index++] = fBlockHeader-&gt;GetDdlDataKey();</span>
+<span class="lineNum">     427 </span><span class="lineCov">         80 :     fBuffer[index++] = fBlockHeader-&gt;GetDdlDataKey();</span>
+<span class="lineNum">     428 </span><span class="lineCov">         80 :     totalDDLLength  += 2;</span>
+<span class="lineNum">     429 </span>            :   
+<span class="lineNum">     430 </span>            :   // writting onto disk
+<span class="lineNum">     431 </span>            :   // total length in bytes
+<span class="lineNum">     432 </span>            :   // DDL header
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            :   Int_t headerSize = sizeof(AliRawDataHeaderV3)/4;
+<span class="lineNum">     435 </span>            :   
+<span class="lineNum">     436 </span><span class="lineCov">         80 :   fHeader-&gt;fSize = (totalDDLLength + headerSize) * 4;</span>
+<span class="lineNum">     437 </span>            :   
+<span class="lineNum">     438 </span><span class="lineCov">        240 :   AliFstream* file = new AliFstream(AliDAQ::DdlFileName(&quot;MUONTRK&quot;,iDDL));</span>
+<span class="lineNum">     439 </span>            :   
+<span class="lineNum">     440 </span><span class="lineCov">         80 :   file-&gt;WriteBuffer((char*)fHeader,headerSize*4);</span>
+<span class="lineNum">     441 </span><span class="lineCov">         80 :   file-&gt;WriteBuffer((char*)fBuffer,sizeof(int)*index);</span>
+<span class="lineNum">     442 </span><span class="lineCov">        160 :   delete file;</span>
+<span class="lineNum">     443 </span><span class="lineCov">        160 : }</span>
+<a name="444"><span class="lineNum">     444 </span>            : </a>
+<span class="lineNum">     445 </span>            : //______________________________________________________________________________
+<span class="lineNum">     446 </span>            : Int_t AliMUONRawWriter::GetBusPatch(const AliMUONVDigit&amp; digit) const
+<span class="lineNum">     447 </span>            : {
+<span class="lineNum">     448 </span>            :   /// Determine the BusPatch this digit belongs to.
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineCov">       1416 :     return fDDLStore-&gt;GetBusPatchId(digit.DetElemId(),digit.ManuId());</span>
+<span class="lineNum">     451 </span>            : }
+<a name="452"><span class="lineNum">     452 </span>            : </a>
+<span class="lineNum">     453 </span>            : //______________________________________________________________________________
+<span class="lineNum">     454 </span>            : Int_t AliMUONRawWriter::WriteTriggerDDL(const AliMUONVTriggerStore&amp; triggerStore, AliFstream* file[2])
+<span class="lineNum">     455 </span>            : {
+<span class="lineNum">     456 </span>            :   /// Write trigger DDL
+<span class="lineNum">     457 </span>            :   
+<span class="lineNum">     458 </span><span class="lineCov">          8 :   AliCodeTimerAuto(&quot;&quot;,0)</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineCov">          4 :   if (fHeader == 0x0) {</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     AliError(&quot;Raw data header must be set&quot;);</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     463 </span>            :   }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :  // DDL event one per half chamber
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            :  // DDL header size
+<span class="lineNum">     468 </span>            :   Int_t headerSize = sizeof(AliRawDataHeaderV3)/4;
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            :   // global trigger for trigger pattern
+<span class="lineNum">     471 </span><span class="lineCov">          4 :   AliMUONGlobalTrigger* gloTrg = triggerStore.Global();</span>
+<span class="lineNum">     472 </span><span class="lineCov">          4 :   if (!gloTrg) </span>
+<span class="lineNum">     473 </span>            :   {
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     475 </span>            :   }
+<span class="lineNum">     476 </span>            :   
+<span class="lineNum">     477 </span><span class="lineCov">          8 :   Int_t gloTrigResp = gloTrg-&gt;GetGlobalResponse();</span>
+<span class="lineNum">     478 </span><span class="lineCov">          4 :   UInt_t *gloTrigInput = gloTrg-&gt;GetGlobalInput();</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineCov">          4 :   UInt_t word;</span>
+<span class="lineNum">     481 </span>            :   Int_t* buffer = 0;
+<span class="lineNum">     482 </span>            :   Int_t index;
+<span class="lineNum">     483 </span>            :   UChar_t locDec, trigY, posY, posX, regOut;
+<span class="lineNum">     484 </span>            :   UInt_t regInpLpt;
+<span class="lineNum">     485 </span>            :   UInt_t regInpHpt;
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :   UInt_t devX;
+<span class="lineNum">     488 </span>            :   UChar_t sdevX;
+<span class="lineNum">     489 </span>            :   UInt_t version = 1; // software version
+<span class="lineNum">     490 </span>            :   UInt_t eventPhys = 1; // trigger type: 1 for physics, 0 for software
+<span class="lineNum">     491 </span>            :   UInt_t serialNb = 0xF; // serial nb of card: all bits on for the moment
+<span class="lineNum">     492 </span>            :   Int_t globalFlag = 0; // set to 1 if global info present in DDL else set to 0
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            :   // size of headers
+<span class="lineNum">     495 </span><span class="lineCov">          6 :   static const Int_t kDarcHeaderLength   = fDarcHeader-&gt;GetDarcHeaderLength();</span>
+<span class="lineNum">     496 </span><span class="lineCov">          6 :   static const Int_t kGlobalHeaderLength = fDarcHeader-&gt;GetGlobalHeaderLength();</span>
+<span class="lineNum">     497 </span><span class="lineCov">          6 :   static const Int_t kDarcScalerLength   = fDarcHeader-&gt;GetDarcScalerLength();</span>
+<span class="lineNum">     498 </span><span class="lineCov">          6 :   static const Int_t kGlobalScalerLength = fDarcHeader-&gt;GetGlobalScalerLength();</span>
+<span class="lineNum">     499 </span><span class="lineCov">          6 :   static const Int_t kRegHeaderLength    = fRegHeader-&gt;GetHeaderLength();</span>
+<span class="lineNum">     500 </span><span class="lineCov">          6 :   static const Int_t kRegScalerLength    = fRegHeader-&gt;GetScalerLength();</span>
+<span class="lineNum">     501 </span><span class="lineCov">          6 :   static const Int_t kLocHeaderLength    = fLocalStruct-&gt;GetLength();</span>
+<span class="lineNum">     502 </span><span class="lineCov">          6 :   static const Int_t kLocScalerLength    = fLocalStruct-&gt;GetScalerLength();</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            :   // [16(local)*6 words + 6 words]*8(reg) + 8 words = 824 
+<span class="lineNum">     505 </span><span class="lineCov">          7 :   static const Int_t kBufferSize = (16 * (kLocHeaderLength+1) +  (kRegHeaderLength+1))* 8 </span>
+<span class="lineNum">     506 </span><span class="lineCov">          1 :       +  kDarcHeaderLength + kGlobalHeaderLength + 2;</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            :   // [16(local)*51 words + 16 words]*8(reg) + 8 + 10 + 8 words scaler event 6682 words
+<span class="lineNum">     509 </span><span class="lineCov">          8 :   static const Int_t kScalerBufferSize = (16 * (kLocHeaderLength +  kLocScalerLength +1) +  </span>
+<span class="lineNum">     510 </span><span class="lineCov">          3 :                                          (kRegHeaderLength + kRegScalerLength +1))* 8 +</span>
+<span class="lineNum">     511 </span><span class="lineCov">          2 :                                          (kDarcHeaderLength + kDarcScalerLength + </span>
+<span class="lineNum">     512 </span><span class="lineCov">          2 :                                           kGlobalHeaderLength + kGlobalScalerLength + 2);</span>
+<span class="lineNum">     513 </span><span class="lineCov">          4 :   if(fScalerEvent) {</span>
+<span class="lineNum">     514 </span>            :     eventPhys = 0; //set to generate scaler events
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     fHeader-&gt;fWord2 |= (0x1 &lt;&lt; 14); // set L1SwC bit on</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     517 </span><span class="lineCov">          4 :   if(fScalerEvent)</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     buffer = new Int_t [kScalerBufferSize];</span>
+<span class="lineNum">     519 </span>            :   else
+<span class="lineNum">     520 </span><span class="lineCov">          8 :     buffer = new Int_t [kBufferSize];</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            :   // reset crate
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            :   // open DDL file, on per 1/2 chamber
+<span class="lineNum">     525 </span><span class="lineCov">         24 :   for ( Int_t iDDL = 0; iDDL &lt; 2; ++iDDL ) </span>
+<span class="lineNum">     526 </span>            :   {
+<span class="lineNum">     527 </span>            :     index = 0; 
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineCov">          8 :     if (iDDL == 0) // suppose global info in DDL one</span>
+<span class="lineNum">     530 </span><span class="lineCov">          4 :       globalFlag = 1;</span>
+<span class="lineNum">     531 </span>            :     else 
+<span class="lineNum">     532 </span>            :       globalFlag = 0;
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineCov">          8 :     word = 0;</span>
+<span class="lineNum">     535 </span>            :     // set darc status word
+<span class="lineNum">     536 </span>            :     // see AliMUONDarcHeader.h for details
+<span class="lineNum">     537 </span><span class="lineCov">          8 :     AliBitPacking::PackWord((UInt_t)eventPhys,word,30,30);</span>
+<span class="lineNum">     538 </span><span class="lineCov">          8 :     AliBitPacking::PackWord((UInt_t)serialNb,word,20,23);</span>
+<span class="lineNum">     539 </span><span class="lineCov">          8 :     AliBitPacking::PackWord((UInt_t)globalFlag,word,10,10);</span>
+<span class="lineNum">     540 </span><span class="lineCov">          8 :     AliBitPacking::PackWord((UInt_t)version,word,12,19);</span>
+<span class="lineNum">     541 </span><span class="lineCov">          8 :     fDarcHeader-&gt;SetWord(word);</span>
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span><span class="lineCov">          8 :     memcpy(&amp;buffer[index], fDarcHeader-&gt;GetHeader(), (kDarcHeaderLength)*4); </span>
+<span class="lineNum">     544 </span><span class="lineCov">          8 :     index += kDarcHeaderLength;</span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :     // no global input for the moment....
+<span class="lineNum">     547 </span><span class="lineCov">          8 :     if (iDDL == 0) {</span>
+<span class="lineNum">     548 </span><span class="lineCov">         12 :       fDarcHeader-&gt;SetGlobalOutput(gloTrigResp);</span>
+<span class="lineNum">     549 </span><span class="lineCov">         40 :       for (Int_t ii = 0; ii &lt; 4; ii++) {</span>
+<span class="lineNum">     550 </span><span class="lineCov">         16 :         fDarcHeader-&gt;SetGlobalInput(gloTrigInput[ii],ii);</span>
+<span class="lineNum">     551 </span>            :       }
+<span class="lineNum">     552 </span><span class="lineCov">          4 :     } else {</span>
+<span class="lineNum">     553 </span><span class="lineCov">          4 :       fDarcHeader-&gt;SetGlobalOutput(0);</span>
+<span class="lineNum">     554 </span>            :     }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineCov">          8 :     if (fScalerEvent) {</span>
+<span class="lineNum">     557 </span>            :       // 6 DARC scaler words
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :       memcpy(&amp;buffer[index], fDarcHeader-&gt;GetDarcScalers(),kDarcScalerLength*4);</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :       index += kDarcScalerLength;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     561 </span>            :     // end of darc word
+<span class="lineNum">     562 </span><span class="lineCov">          8 :     buffer[index++] = fDarcHeader-&gt;GetEndOfDarc();</span>
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span>            :     // 4 words of global board input + Global board output
+<span class="lineNum">     565 </span><span class="lineCov">          8 :     memcpy(&amp;buffer[index], fDarcHeader-&gt;GetGlobalInput(), (kGlobalHeaderLength)*4); </span>
+<span class="lineNum">     566 </span><span class="lineCov">          8 :     index += kGlobalHeaderLength; </span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineCov">          8 :     if (fScalerEvent) {</span>
+<span class="lineNum">     569 </span>            :       // 10 Global scaler words
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :       memcpy(&amp;buffer[index], fDarcHeader-&gt;GetGlobalScalers(), kGlobalScalerLength*4);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :       index += kGlobalScalerLength;</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :     // end of global word
+<span class="lineNum">     575 </span><span class="lineCov">          8 :     buffer[index++] = fDarcHeader-&gt;GetEndOfGlobal();</span>
+<span class="lineNum">     576 </span><span class="lineCov">         16 :     const AliMpRegionalTrigger* reg = AliMpDDLStore::Instance()-&gt;GetRegionalTrigger(); </span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineCov">         16 :     Int_t nCrate = reg-&gt;GetNofTriggerCrates()/2;</span>
+<span class="lineNum">     579 </span>            :     // 8 regional cards per DDL
+<span class="lineNum">     580 </span><span class="lineCov">        144 :     for (Int_t iReg = 0; iReg &lt; nCrate; ++iReg) {</span>
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span>            :         // crate info
+<span class="lineNum">     583 </span><span class="lineCov">        128 :       AliMpTriggerCrate* crate = AliMpDDLStore::Instance()-&gt;GetTriggerCrate(iDDL, iReg);</span>
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span><span class="lineCov">         64 :       if (!crate) {</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         AliError(Form(&quot;Missing crate number %d in DDL %d\n&quot;, iReg, iDDL));</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     588 </span>            :       }  
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span>            :       // regional info tree, make sure that no reg card missing
+<span class="lineNum">     591 </span><span class="lineCov">         64 :       AliMUONRegionalTrigger* regTrg  = triggerStore.FindRegional(crate-&gt;GetId());</span>
+<span class="lineNum">     592 </span><span class="lineCov">         64 :       if (!regTrg) {</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         AliError(Form(&quot;Missing regional board %d in trigger Store\n&quot;, crate-&gt;GetId()));</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     595 </span>            :       }  
+<span class="lineNum">     596 </span>            :     
+<span class="lineNum">     597 </span>            :       // Regional card header
+<span class="lineNum">     598 </span><span class="lineCov">         64 :       word = 0;</span>
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span>            :       // set darc status word
+<span class="lineNum">     601 </span><span class="lineCov">         64 :       fRegHeader-&gt;SetDarcWord(word);</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineCov">         64 :       regOut    = regTrg-&gt;GetOutput();</span>
+<span class="lineNum">     604 </span><span class="lineCov">         64 :       regInpLpt = regTrg-&gt;GetLocalOutput(0);</span>
+<span class="lineNum">     605 </span><span class="lineCov">         64 :       regInpHpt = regTrg-&gt;GetLocalOutput(1);</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :       // fill darc word, not darc status for the moment (empty)
+<span class="lineNum">     608 </span>            :       //see  AliMUONRegHeader.h for details
+<span class="lineNum">     609 </span><span class="lineCov">         64 :       AliBitPacking::PackWord((UInt_t)eventPhys,word,31,31); </span>
+<span class="lineNum">     610 </span><span class="lineCov">         64 :       AliBitPacking::PackWord((UInt_t)serialNb,word,20,25); </span>
+<span class="lineNum">     611 </span><span class="lineCov">         64 :       AliBitPacking::PackWord((UInt_t)version,word,8,15);</span>
+<span class="lineNum">     612 </span><span class="lineCov">         64 :       AliBitPacking::PackWord((UInt_t)crate-&gt;GetId(),word,16,19);</span>
+<span class="lineNum">     613 </span><span class="lineCov">         64 :       AliBitPacking::PackWord((UInt_t)regOut,word,0,7); </span>
+<span class="lineNum">     614 </span><span class="lineCov">         64 :       fRegHeader-&gt;SetWord(word);</span>
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span>            :       // fill header later, need local response
+<span class="lineNum">     618 </span>            :       Int_t indexReg = index;
+<span class="lineNum">     619 </span><span class="lineCov">         64 :       index += kRegHeaderLength;</span>
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :       // 11 regional scaler word
+<span class="lineNum">     622 </span><span class="lineCov">         64 :       if (fScalerEvent) {</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         memcpy(&amp;buffer[index], fRegHeader-&gt;GetScalers(), kRegScalerLength*4);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         index += kRegScalerLength;</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span>            :       // end of regional word
+<span class="lineNum">     628 </span><span class="lineCov">         64 :       buffer[index++] = fRegHeader-&gt;GetEndOfReg();</span>
+<span class="lineNum">     629 </span>            :       
+<span class="lineNum">     630 </span>            :       // 16 local card per regional board
+<span class="lineNum">     631 </span>            :       //      UShort_t localMask = 0x0;
+<span class="lineNum">     632 </span>            :       
+<span class="lineNum">     633 </span><span class="lineCov">         64 :       Int_t nLocalBoard = AliMpConstants::LocalBoardNofChannels();</span>
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineCov">       2176 :       for (Int_t iLoc = 0; iLoc &lt; nLocalBoard; iLoc++) {</span>
+<span class="lineNum">     636 </span>            :           
+<span class="lineNum">     637 </span>            :         // slot zero for Regional card
+<span class="lineNum">     638 </span><span class="lineCov">       1024 :         Int_t localBoardId = crate-&gt;GetLocalBoardId(iLoc);</span>
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span><span class="lineCov">       1024 :         if (localBoardId) { // if not empty slot</span>
+<span class="lineNum">     641 </span><span class="lineCov">       1936 :           AliMpLocalBoard* localBoard = AliMpDDLStore::Instance()-&gt;GetLocalBoard(localBoardId);</span>
+<span class="lineNum">     642 </span>            : 
+<span class="lineNum">     643 </span><span class="lineCov">        968 :           if (localBoard-&gt;IsNotified()) {// if notified board </span>
+<span class="lineNum">     644 </span><span class="lineCov">        936 :             AliMUONLocalTrigger* locTrg = triggerStore.FindLocal(localBoardId);</span>
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span><span class="lineCov">        936 :       if (locTrg)</span>
+<span class="lineNum">     647 </span>            :       {
+<span class="lineNum">     648 </span><span class="lineCov">        936 :         locDec  = locTrg-&gt;GetLoDecision();</span>
+<span class="lineNum">     649 </span><span class="lineCov">        936 :         trigY   = locTrg-&gt;LoTrigY();</span>
+<span class="lineNum">     650 </span><span class="lineCov">        936 :         posY    = locTrg-&gt;LoStripY();</span>
+<span class="lineNum">     651 </span><span class="lineCov">        936 :         posX    = locTrg-&gt;LoStripX();</span>
+<span class="lineNum">     652 </span><span class="lineCov">        936 :         devX    = locTrg-&gt;LoDev();</span>
+<span class="lineNum">     653 </span><span class="lineCov">        936 :         sdevX   = locTrg-&gt;LoSdev();</span>
+<span class="lineNum">     654 </span>            :         
+<span class="lineNum">     655 </span><span class="lineCov">       4680 :         AliDebug(4,Form(&quot;loctrg %d, posX %d, posY %d, devX %d\n&quot;, </span>
+<span class="lineNum">     656 </span>            :                         locTrg-&gt;LoCircuit(),locTrg-&gt;LoStripX(),locTrg-&gt;LoStripY(),locTrg-&gt;LoDev()));  
+<span class="lineNum">     657 </span>            :         //packing word
+<span class="lineNum">     658 </span><span class="lineCov">        936 :         word = 0;</span>
+<span class="lineNum">     659 </span><span class="lineCov">       1872 :         LocalWordPacking(word, (UInt_t)iLoc, (UInt_t)locDec, (UInt_t)trigY, (UInt_t)posY, </span>
+<span class="lineNum">     660 </span><span class="lineCov">        936 :                          (UInt_t)posX, (UInt_t)sdevX, (UInt_t)devX);</span>
+<span class="lineNum">     661 </span>            :         
+<span class="lineNum">     662 </span><span class="lineCov">        936 :         buffer[index++] = (locTrg-&gt;GetX1Pattern() | (locTrg-&gt;GetX2Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     663 </span><span class="lineCov">        936 :         buffer[index++] = (locTrg-&gt;GetX3Pattern() | (locTrg-&gt;GetX4Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     664 </span><span class="lineCov">        936 :         buffer[index++] = (locTrg-&gt;GetY1Pattern() | (locTrg-&gt;GetY2Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     665 </span><span class="lineCov">        936 :         buffer[index++] = (locTrg-&gt;GetY3Pattern() | (locTrg-&gt;GetY4Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     666 </span><span class="lineCov">        936 :         buffer[index++] = (Int_t)word; // data word</span>
+<span class="lineNum">     667 </span><span class="lineCov">        936 :       }</span>
+<span class="lineNum">     668 </span><span class="lineCov">        936 :           }</span>
+<span class="lineNum">     669 </span>            :           // fill copy card X-Y inputs from the notified cards 
+<span class="lineNum">     670 </span><span class="lineCov">       1000 :           if (localBoard-&gt;GetInputXfrom() &amp;&amp; localBoard-&gt;GetInputYfrom()) </span>
+<span class="lineNum">     671 </span>            :           {
+<span class="lineNum">     672 </span>            :             // not triggered
+<span class="lineNum">     673 </span>            :             locDec = 0; trigY = 1; posY = 15;    
+<span class="lineNum">     674 </span>            :             posX   = 0; devX  = 0; sdevX = 1;
+<span class="lineNum">     675 </span><span class="lineCov">         32 :             LocalWordPacking(word, (UInt_t)iLoc, (UInt_t)locDec, (UInt_t)trigY, (UInt_t)posY, </span>
+<span class="lineNum">     676 </span>            :                              (UInt_t)posX, (UInt_t)sdevX, (UInt_t)devX);
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span><span class="lineCov">         32 :             Int_t localFromId = localBoard-&gt;GetInputXfrom();</span>
+<span class="lineNum">     679 </span><span class="lineCov">         32 :             AliMUONLocalTrigger* locTrgfrom  = triggerStore.FindLocal(localFromId);</span>
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span><span class="lineCov">         32 :       if ( locTrgfrom ) </span>
+<span class="lineNum">     682 </span>            :       {
+<span class="lineNum">     683 </span><span class="lineCov">         32 :         buffer[index++] = 0; // copy only X3-4 &amp; Y1-4</span>
+<span class="lineNum">     684 </span><span class="lineCov">         32 :         buffer[index++] = (locTrgfrom-&gt;GetX3Pattern() | (locTrgfrom-&gt;GetX4Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     685 </span><span class="lineCov">         32 :         buffer[index++] = (locTrgfrom-&gt;GetY1Pattern() | (locTrgfrom-&gt;GetY2Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     686 </span><span class="lineCov">         32 :         buffer[index++] = (locTrgfrom-&gt;GetY3Pattern() | (locTrgfrom-&gt;GetY4Pattern() &lt;&lt; 16));</span>
+<span class="lineNum">     687 </span><span class="lineCov">         32 :         buffer[index++] = word;</span>
+<span class="lineNum">     688 </span><span class="lineCov">         32 :       }</span>
+<span class="lineNum">     689 </span><span class="lineCov">         32 :           }</span>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineCov">        968 :         } else { </span>
+<span class="lineNum">     692 </span>            :           // fill with 10CDEAD word for empty slots
+<span class="lineNum">     693 </span><span class="lineCov">        672 :           for (Int_t i = 0; i &lt; fLocalStruct-&gt;GetLength(); i++)</span>
+<span class="lineNum">     694 </span><span class="lineCov">        280 :               buffer[index++] = fLocalStruct-&gt;GetDisableWord(); </span>
+<span class="lineNum">     695 </span>            :         }// condition localBoard
+<span class="lineNum">     696 </span>            :           
+<span class="lineNum">     697 </span>            :         // 45 regional scaler word
+<span class="lineNum">     698 </span><span class="lineCov">       1024 :         if (fScalerEvent) {</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :           memcpy(&amp;buffer[index], fLocalStruct-&gt;GetScalers(), kLocScalerLength*4);</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :           index += kLocScalerLength;</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     702 </span>            :           
+<span class="lineNum">     703 </span>            :         // end of local structure words
+<span class="lineNum">     704 </span><span class="lineCov">       1024 :         buffer[index++] = fLocalStruct-&gt;GetEndOfLocal();</span>
+<span class="lineNum">     705 </span>            :           
+<span class="lineNum">     706 </span>            :       } // local card 
+<span class="lineNum">     707 </span>            :       // fill regional header with local output
+<span class="lineNum">     708 </span><span class="lineCov">         64 :       fRegHeader-&gt;SetInput(regInpLpt, 0);</span>
+<span class="lineNum">     709 </span><span class="lineCov">         64 :       fRegHeader-&gt;SetInput(regInpHpt, 1);</span>
+<span class="lineNum">     710 </span><span class="lineCov">         64 :       memcpy(&amp;buffer[indexReg],fRegHeader-&gt;GetHeader(),kRegHeaderLength*4);</span>
+<span class="lineNum">     711 </span>            :       
+<span class="lineNum">     712 </span><span class="lineCov">         64 :     } // Regional card</span>
+<span class="lineNum">     713 </span>            :     
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span>            :     // writting onto disk
+<span class="lineNum">     716 </span>            :     // write DDL's
+<span class="lineNum">     717 </span><span class="lineCov">          8 :     fHeader-&gt;fSize = (index + headerSize) * 4;// total length in bytes</span>
+<span class="lineNum">     718 </span><span class="lineCov">          8 :     file[iDDL]-&gt;WriteBuffer((char*)fHeader,headerSize*4);</span>
+<span class="lineNum">     719 </span><span class="lineCov">          8 :     file[iDDL]-&gt;WriteBuffer((char*)buffer,sizeof(int)*index);</span>
+<span class="lineNum">     720 </span>            :   
+<span class="lineNum">     721 </span>            :   }
+<span class="lineNum">     722 </span><span class="lineCov">          8 :   delete[] buffer;</span>
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span>            :   return kTRUE;
+<span class="lineNum">     725 </span><span class="lineCov">          8 : }</span>
+<a name="726"><span class="lineNum">     726 </span>            : </a>
+<span class="lineNum">     727 </span>            : //____________________________________________________________________
+<span class="lineNum">     728 </span>            : void AliMUONRawWriter::SetScalersNumbers()
+<span class="lineNum">     729 </span>            : {
+<span class="lineNum">     730 </span>            :   /// set numbers for scaler events for trigger headers
+<span class="lineNum">     731 </span>            :   /// since this is provided by the experiment
+<span class="lineNum">     732 </span>            :   /// put dummy numbers to check the monitoring
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :   fDarcHeader-&gt;SetScalersNumbers();</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :   fRegHeader-&gt;SetScalersNumbers();</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :   fLocalStruct-&gt;SetScalersNumbers();</span>
+<span class="lineNum">     737 </span>            :  
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :   fScalerEvent = kTRUE;</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     740 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

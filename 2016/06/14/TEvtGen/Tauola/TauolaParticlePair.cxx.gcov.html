@@ -1,0 +1,1314 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TEvtGen/Tauola/TauolaParticlePair.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TEvtGen/Tauola</a> - TauolaParticlePair.cxx<span style="font-size: 80%;"> (source / <a href="TauolaParticlePair.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">615</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #include &quot;Tauola.h&quot;</a>
+<span class="lineNum">       2 </span>            : #include &quot;TauolaParticlePair.h&quot;
+<span class="lineNum">       3 </span>            : #include &quot;TauolaLog.h&quot;
+<span class="lineNum">       4 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;math.h&gt;
+<span class="lineNum">       6 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : namespace Tauolapp
+<span class="lineNum">       9 </span>            : {
+<a name="10"><span class="lineNum">      10 </span>            : </a>
+<span class="lineNum">      11 </span>            : /** constructor. Get the mothers, grandmothers and siblings of the tau */
+<span class="lineNum">      12 </span><span class="lineNoCov">          0 : TauolaParticlePair::TauolaParticlePair(std::vector&lt;TauolaParticle*&gt; &amp;particle_list){</span>
+<span class="lineNum">      13 </span><span class="lineNoCov">          0 :   TauolaParticle *particle=particle_list.back();</span>
+<span class="lineNum">      14 </span><span class="lineNoCov">          0 :   particle_list.pop_back();</span>
+<span class="lineNum">      15 </span><span class="lineNoCov">          0 :   setBornKinematics(0,0,-1.,0.); //set the default born variables</span>
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            :   // In case of decayOne() we need only the tau information
+<span class="lineNum">      18 </span><span class="lineNoCov">          0 :   if(Tauola::isUsingDecayOne())</span>
+<span class="lineNum">      19 </span>            :   {
+<span class="lineNum">      20 </span><span class="lineNoCov">          0 :     m_mother = 0;</span>
+<span class="lineNum">      21 </span><span class="lineNoCov">          0 :     m_mother_exists = false;</span>
+<span class="lineNum">      22 </span><span class="lineNoCov">          0 :     m_production_particles.push_back(particle);</span>
+<span class="lineNum">      23 </span><span class="lineNoCov">          0 :     m_final_particles.push_back(particle);</span>
+<span class="lineNum">      24 </span><span class="lineNoCov">          0 :     initializeDensityMatrix();</span>
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 :     Log::AddDecay(0);</span>
+<span class="lineNum">      26 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">      27 </span>            :   }
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            :   //See if there are any mothers
+<span class="lineNum">      30 </span><span class="lineNoCov">          0 :   std::vector&lt;TauolaParticle *&gt; temp_mothers = particle-&gt;findProductionMothers();</span>
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            :   // Case that there are no mothers or grandmothers
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :   if(temp_mothers.size()==0){</span>
+<span class="lineNum">      34 </span>            :     // NOTE: Not executed by release examples
+<span class="lineNum">      35 </span>            :     //       However, such cases were present if tests used older Pythia8.1 or so.
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :     Log::Warning()&lt;&lt; &quot;WARNING: Could not find taus mother or grandmothers. &quot;</span>
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :                   &lt;&lt; &quot;Ignoring spin effects&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :     m_mother = 0;</span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :     m_mother_exists = false;</span>
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     m_production_particles.push_back(particle);</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :     m_final_particles.push_back(particle-&gt;findLastSelf());</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :     initializeDensityMatrix();</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     Log::AddDecay(1);</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">      45 </span>            :   }
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            :   //fill the sibling pointers
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :   std::vector&lt;TauolaParticle*&gt; temp_daughters;</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :   temp_daughters = temp_mothers.at(0)-&gt;getDaughters();</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   if(temp_daughters.size()==0)</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     Log::Fatal(&quot;WARNING: Something wrong with event structure or there is a bug in the TAUOLA interface.&quot;,6);</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   m_production_particles=temp_daughters;</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   m_final_particles.push_back(particle-&gt;findLastSelf());</span>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            :   //Second tau-like particle selection should match properties of the hard (exotic) process. At present, solution
+<span class="lineNum">      57 </span>            :   //match one of the possible diagrams contributing to SM process. Rare  case like tau+ tau+ nutau nutau will not be treted
+<span class="lineNum">      58 </span>            :   //accordingly to any diagram of SM
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   for(signed int i=0; i &lt; (int) m_production_particles.size(); i++)</span>
+<span class="lineNum">      60 </span>            :   {
+<span class="lineNum">      61 </span>            :     //check if it has opposite PDGID sign
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     if(m_final_particles.at(0)-&gt;getPdgID()*m_production_particles.at(i)-&gt;getPdgID()&gt;=0) continue;</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     if(m_production_particles.at(i)-&gt;getPdgID()==TauolaParticle::TAU_PLUS||</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :        m_production_particles.at(i)-&gt;getPdgID()==TauolaParticle::TAU_MINUS)</span>
+<span class="lineNum">      66 </span>            :     {
+<span class="lineNum">      67 </span>            :        //tau+ or tau- - check if it's on the particle_list
+<span class="lineNum">      68 </span>            :        int j=-1;
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :        for(j=0;j&lt;(int)particle_list.size();j++)</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :           if(m_production_particles.at(i)-&gt;getBarcode()==particle_list.at(j)-&gt;getBarcode()) break;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :        if(j&gt;=(int)particle_list.size()) continue;</span>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            :        //exists on the list - add to m_final_particles and delete from particle_list
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :        m_final_particles.push_back(m_production_particles.at(i)-&gt;findLastSelf());</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :        particle_list.erase(particle_list.begin()+j);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     else if(m_production_particles.at(i)-&gt;getPdgID()==TauolaParticle::TAU_NEUTRINO||</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :             m_production_particles.at(i)-&gt;getPdgID()==TauolaParticle::TAU_ANTINEUTRINO)</span>
+<span class="lineNum">      79 </span>            :     {
+<span class="lineNum">      80 </span>            :        //neutrino - for now - just add to m_final_particles
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :        m_final_particles.push_back(m_production_particles.at(i)-&gt;findLastSelf());</span>
+<span class="lineNum">      82 </span>            :     }
+<span class="lineNum">      83 </span>            :   }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :   //fill the mother and grandmother pointers
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   if(temp_mothers.size()==1){ //one mother</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     m_mother_exists = true;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     m_mother = temp_mothers.at(0);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     m_grandmothers = m_mother-&gt;findProductionMothers();</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     Log::AddDecay(3);</span>
+<span class="lineNum">      92 </span>            :   }
+<span class="lineNum">      93 </span>            :   else{ //no mother, but grandparents exist
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     m_mother_exists = false;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     m_grandmothers = temp_mothers;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     m_mother = makeTemporaryMother(m_production_particles);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     Log::AddDecay(2);</span>
+<span class="lineNum">      98 </span>            :   } 
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   initializeDensityMatrix();</span>
+<span class="lineNum">     101 </span>            :   
+<span class="lineNum">     102 </span>            :   return;
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : /** The axis is defined by the boosting routine but our standard convention
+<span class="lineNum">     107 </span>            :     is:
+<span class="lineNum">     108 </span>            :     - Axis 3 is along the direction of the +ve tau, 
+<span class="lineNum">     109 </span>            :     - Axis 1 is perpendicular to the reaction plane (sign=??)
+<span class="lineNum">     110 </span>            :     - Axis 2 is defined through the vector product so the system
+<a name="111"><span class="lineNum">     111 </span>            :       is right handed (?? check). Axis 1,2 and 3 are parrellel for the 1st</a>
+<span class="lineNum">     112 </span>            :       and second tau. */
+<span class="lineNum">     113 </span>            : void TauolaParticlePair::initializeDensityMatrix(){
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       int incoming_pdg_id=0;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :       int outgoing_pdg_id=0;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       double invariant_mass_squared=-5.0;</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :       double cosTheta=3.0;</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :   //initialize all elements of the density matrix to zero
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   for(int x = 0; x &lt; 4; x ++) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     for(int y = 0; y &lt; 4; y ++) </span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :       m_R[x][y] = 0;</span>
+<span class="lineNum">     123 </span>            :   }
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   m_R[0][0]=1;</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   if(Tauola::isUsingDecayOne())</span>
+<span class="lineNum">     128 </span>            :   {
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     const double *pol = Tauola::getDecayOnePolarization();</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     m_R[0][1]=pol[0];</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     m_R[0][2]=pol[1];</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     m_R[0][3]=pol[2];</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     m_R[1][0]=pol[0];</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     m_R[2][0]=pol[1];</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     m_R[3][0]=pol[2];</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   if(!m_mother) return;</span>
+<span class="lineNum">     141 </span>            :   // fill the matrix depending on mother
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :   // do scalar-pseudoscalar mixed higgs case separately since
+<span class="lineNum">     145 </span>            :   // switch doesn't allow non-constants in a case statement.
+<span class="lineNum">     146 </span>            :   // very annoying!
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   if(m_mother-&gt;getPdgID()==Tauola::getHiggsScalarPseudoscalarPDG()){</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     if(!Tauola::spin_correlation.HIGGS_H)  return;</span>
+<span class="lineNum">     150 </span>            :     
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     double phi = Tauola::getHiggsScalarPseudoscalarMixingAngle();</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     double mass_ratio = Tauola::getTauMass()/m_mother-&gt;getMass();</span>
+<span class="lineNum">     153 </span>            :     
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     double beta = sqrt(1-4*mass_ratio*mass_ratio);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     double denominator = pow(cos(phi)*beta,2)+pow(sin(phi),2);</span>
+<span class="lineNum">     156 </span>            :     
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     m_R[0][0]=  1;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     m_R[1][1]=  (pow(cos(phi)*beta,2)-pow(sin(phi),2))/denominator;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     m_R[1][2]= 2*cos(phi)*sin(phi)*beta/denominator;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     m_R[2][1]= -m_R[1][2]; </span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     m_R[2][2]=  m_R[1][1];</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     m_R[3][3]= -1;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     164 </span>            :   else {
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            :     double pz = 0.0;
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     switch(m_mother-&gt;getPdgID()){</span>
+<span class="lineNum">     169 </span>            :       
+<span class="lineNum">     170 </span>            :     case TauolaParticle::Z0:
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.Z0)          break;</span>
+<span class="lineNum">     172 </span>            :       // Here we calculate SVAR and COSTHE as well as IDE and IDF
+<span class="lineNum">     173 </span>            :       //   ANGULU(&amp;IDE,&amp;IDF,&amp;SVAR,&amp;COSTHE);
+<span class="lineNum">     174 </span>            :       // this is ++ configuration of Fig 5 from HEPPH0101311: 
+<span class="lineNum">     175 </span>            :       //pol_tau_minus[2]=-1; pol_tau_plus[2]=1;
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :       pz = getZPolarization(&amp;incoming_pdg_id, &amp;outgoing_pdg_id, &amp;invariant_mass_squared, &amp;cosTheta);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :       m_R[0][3]=2*pz-1;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :       m_R[3][0]=2*pz-1;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :       m_R[3][3]=1;</span>
+<span class="lineNum">     182 </span>            :       // alternatively this may be overwritten if better solution exist
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :       recalculateRij(incoming_pdg_id, outgoing_pdg_id, invariant_mass_squared, cosTheta);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            :     case TauolaParticle::GAMMA:
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.GAMMA)       break;</span>
+<span class="lineNum">     188 </span>            :       // Here we calculate SVAR and COSTHE as well as IDE and IDF
+<span class="lineNum">     189 </span>            :       //   ANGULU(&amp;IDE,&amp;IDF,&amp;SVAR,&amp;COSTHE);
+<span class="lineNum">     190 </span>            :       // this is ++ configuration of Fig 5 from HEPPH0101311: 
+<span class="lineNum">     191 </span>            :       //pol_tau_minus[2]=-1; pol_tau_plus[2]=1;
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :       pz = getZPolarization(&amp;incoming_pdg_id, &amp;outgoing_pdg_id, &amp;invariant_mass_squared, &amp;cosTheta);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :       m_R[0][3]=2*pz-1;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :       m_R[3][0]=2*pz-1;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :       m_R[3][3]=1;</span>
+<span class="lineNum">     198 </span>            :       // alternatively this may be overwritten if better solution exist
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :       recalculateRij(incoming_pdg_id, outgoing_pdg_id, invariant_mass_squared, cosTheta);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :       //scalar higgs
+<span class="lineNum">     203 </span>            :     case TauolaParticle::HIGGS:
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.HIGGS)       break;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :       m_R[1][1]=1;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       m_R[2][2]=1;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :       m_R[3][3]=-1;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            :       //pseudoscalar higgs case
+<span class="lineNum">     212 </span>            :     case TauolaParticle::HIGGS_A:
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.HIGGS_A)     break;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :       m_R[1][1]=-1;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :       m_R[2][2]=-1;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :       m_R[3][3]=-1;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :     case TauolaParticle::HIGGS_PLUS:
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.HIGGS_PLUS)  break;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :       m_R[0][3]=-1;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :       m_R[3][0]=-1;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            :     case TauolaParticle::HIGGS_MINUS:
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.HIGGS_MINUS) break;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :       m_R[0][3]=-1;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :       m_R[3][0]=-1;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :     case TauolaParticle::W_PLUS: 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.W_PLUS)       break;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :       m_R[0][3]=1; //tau minus (tau minus is on the -ve Z axis)</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :       m_R[3][0]=1; //tau plus</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :     case TauolaParticle::W_MINUS:
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :       if(!Tauola::spin_correlation.W_MINUS)      break;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       m_R[0][3]=1; //tau minus (tau minus is on the -ve Z axis)</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :       m_R[3][0]=1; //tau plus</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :     //ignore spin effects when mother is unknown
+<span class="lineNum">     249 </span>            :     default:
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       m_R[0][0]=1;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     252 </span>            :     }
+<span class="lineNum">     253 </span>            :   }  
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 : }</span>
+<a name="256"><span class="lineNum">     256 </span>            : </a>
+<span class="lineNum">     257 </span>            : /**************************************************************/
+<span class="lineNum">     258 </span>            : void TauolaParticlePair::setBornKinematics(int incoming_pdg_id, int outgoing_pdg_id, double invariant_mass_squared,double cosTheta){
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   Tauola::buf_incoming_pdg_id=incoming_pdg_id;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   Tauola::buf_outgoing_pdg_id=outgoing_pdg_id;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   Tauola::buf_invariant_mass_squared=invariant_mass_squared;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   Tauola::buf_cosTheta=cosTheta;</span>
+<span class="lineNum">     263 </span>            :   //cout&lt;&lt;&quot;(TauolaParticlePair::Just to be sure:) &quot;&lt;&lt;buf_incoming_pdg_id&lt;&lt;&quot; &quot;&lt;&lt;buf_outgoing_pdg_id&lt;&lt;&quot; &quot;&lt;&lt;buf_invariant_mass_squared&lt;&lt;&quot; &quot;&lt;&lt;buf_cosTheta&lt;&lt;endl;
+<span class="lineNum">     264 </span>            :   //  m_R[0][0] to be added in next step;
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 : }</span>
+<a name="266"><span class="lineNum">     266 </span>            : </a>
+<span class="lineNum">     267 </span>            : /**************************************************************/
+<span class="lineNum">     268 </span>            : double TauolaParticlePair::getZPolarization(int *incoming_pdg_id, int *outgoing_pdg_id, double *invariant_mass_squared,double *cosTheta){
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :   //defaults
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   *incoming_pdg_id = TauolaParticle::ELECTRON;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   *cosTheta = 0 ;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   *outgoing_pdg_id = TauolaParticle::TAU_PLUS;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :   *invariant_mass_squared = pow(m_mother-&gt;getMass(),2);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   setBornKinematics(*incoming_pdg_id, *outgoing_pdg_id, *invariant_mass_squared, *cosTheta); // store for debugging</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :   //TRIVIAL CASE:
+<span class="lineNum">     278 </span>            :   //if we don't know the incoming beams then
+<span class="lineNum">     279 </span>            :   //return the average z polarisation
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   if(m_grandmothers.size()&lt;2){</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       Log::Warning()&lt;&lt;&quot;Not enough mothers of Z to &quot;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                     &lt;&lt;&quot;calculate cos(theta) between &quot;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                     &lt;&lt;&quot;incoming about outgoing beam&quot;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :                     &lt;&lt; endl;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     return 1-plzap0_(incoming_pdg_id,outgoing_pdg_id, </span>
+<span class="lineNum">     286 </span>            :                      invariant_mass_squared, cosTheta);
+<span class="lineNum">     287 </span>            :   }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   if(!getTauPlus(m_production_particles)||!getTauMinus(m_production_particles)){</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     Log::Error()&lt;&lt;&quot;tau+ or tau- not found in Z decay&quot;&lt;&lt; endl;</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     292 </span>            :   }
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span>            :   //NOW CHECK FOR THE DIFFICULT EVENTS:
+<span class="lineNum">     295 </span>            :   //case f1 + f2 + f3 -&gt; Z -&gt; tau tau
+<span class="lineNum">     296 </span>            :   //case f1 + f2 -&gt; Z + f3, Z-&gt; tau tau  or  f1 + f2 -&gt; tau tau f3
+<span class="lineNum">     297 </span>            :   //case f1 + f2 -&gt; Z -&gt; tau tau gamma 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   if(m_grandmothers.size()&gt;2 || </span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :      (m_grandmothers.at(0)-&gt;getDaughters().size()&gt;1 &amp;&amp; m_mother_exists==true) || </span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :      m_production_particles.size() &gt; 2){</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :     //make a vector of the extra grandmother particles
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     vector&lt;TauolaParticle*&gt; extra_grandmothers;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt;(int) m_grandmothers.size(); i++){</span>
+<span class="lineNum">     305 </span>            :       //  temp_grandmothers.push_back(m_grandmothers.at(i));
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :       if(m_grandmothers.at(i)!=getGrandmotherPlus(m_grandmothers)&amp;&amp;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :          m_grandmothers.at(i)!=getGrandmotherMinus(m_grandmothers))</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :          extra_grandmothers.push_back(m_grandmothers.at(i));</span>
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            :     
+<span class="lineNum">     311 </span>            :     //make a vector of the tau siblings
+<span class="lineNum">     312 </span>            :     //and copy all the production particle vector.
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     vector&lt;TauolaParticle*&gt; extra_tau_siblings;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     vector&lt;TauolaParticle*&gt; temp_production_particles;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt;(int) m_production_particles.size(); i++){</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :       if(m_production_particles.at(i)!=getTauPlus(m_production_particles)&amp;&amp;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :          m_production_particles.at(i)!=getTauMinus(m_production_particles))</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :          extra_tau_siblings.push_back(m_production_particles.at(i));</span>
+<span class="lineNum">     319 </span>            :     }
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span>            :     //make a vector of the Z's sibling
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     vector&lt;TauolaParticle*&gt; extra_Z_siblings;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     for(int i=0; m_mother_exists &amp;&amp; i&lt;(int) m_grandmothers.at(0)-&gt;getDaughters().size(); i++){</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :       if(m_grandmothers.at(0)-&gt;getDaughters().at(i)-&gt;getPdgID()!=TauolaParticle::Z0)</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :          extra_Z_siblings.push_back(m_grandmothers.at(0)-&gt;getDaughters().at(i));</span>
+<span class="lineNum">     326 </span>            :     }
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            :     //make temporary particles for the effect beams
+<span class="lineNum">     329 </span>            :     //and copy into a vector
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     std::vector&lt;TauolaParticle*&gt; effective_taus;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     effective_taus.push_back(getTauPlus(m_production_particles)-&gt;clone());</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     effective_taus.push_back(getTauMinus(m_production_particles)-&gt;clone());</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            :     //copy grandmothers into the m_grandmothers vector since we want this to be perminante.
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     TauolaParticle * g1 = getGrandmotherPlus(m_grandmothers)-&gt;clone();</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     TauolaParticle * g2 = getGrandmotherMinus(m_grandmothers)-&gt;clone();</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     m_grandmothers.clear();</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     m_grandmothers.push_back(g1);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     m_grandmothers.push_back(g2);</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            :     //loop over extra grandmothers
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt;(int) extra_grandmothers.size(); i++)</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :       addToBeam(extra_grandmothers.at(i),&amp;m_grandmothers,0); </span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            :     //loop over siblings to the Z
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt;(int) extra_Z_siblings.size(); i++)</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :       addToBeam(extra_Z_siblings.at(i),0,&amp;m_grandmothers); </span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :     //loop over siblings of the taus
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt;(int) extra_tau_siblings.size() ; i++){</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :       if(m_mother_exists)</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         addToBeam(extra_tau_siblings.at(i),&amp;effective_taus,0);</span>
+<span class="lineNum">     353 </span>            :       else
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         addToBeam(extra_tau_siblings.at(i),&amp;effective_taus,&amp;m_grandmothers);</span>
+<span class="lineNum">     355 </span>            :     }
+<span class="lineNum">     356 </span>            :     //And we are finish making the effective income and outgoing beams
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     TauolaParticle * temp_mother = makeTemporaryMother(effective_taus);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     *invariant_mass_squared = pow(temp_mother-&gt;getMass(),2);</span>
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :    //now we are ready to do the boosting, calculate the angle
+<span class="lineNum">     362 </span>            :     //between incoming and outgoing, and get the polarisation of the Z
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     double angle1,angle2,angle3;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     boostFromLabToTauPairFrame(&amp;angle1, &amp;angle2, &amp;angle3, temp_mother,</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                                m_grandmothers, effective_taus);</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     /*double theta1 = -getGrandmotherPlus(m_grandmothers)-&gt;getRotationAngle(TauolaParticle::Y_AXIS);
+<span class="lineNum">     369 </span>            :     double theta2 = -(M_PI+getGrandmotherMinus(m_grandmothers)-&gt;getRotationAngle(TauolaParticle::Y_AXIS));
+<span class="lineNum">     370 </span>            :     *cosTheta = cos((theta1+theta2)/2.0); //just average the angles for now.*/
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     TauolaParticle *tM=getTauPlus(effective_taus);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     TauolaParticle *gM=getGrandmotherPlus(m_grandmothers);</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     double costheta1=(tM-&gt;getPx()*gM-&gt;getPx()+tM-&gt;getPy()*gM-&gt;getPy()+tM-&gt;getPz()*gM-&gt;getPz())/</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                  sqrt(tM-&gt;getPx()*tM-&gt;getPx()+tM-&gt;getPy()*tM-&gt;getPy()+tM-&gt;getPz()*tM-&gt;getPz())/</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                  sqrt(gM-&gt;getPx()*gM-&gt;getPx()+gM-&gt;getPy()*gM-&gt;getPy()+gM-&gt;getPz()*gM-&gt;getPz());</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     tM=getTauMinus(effective_taus);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     gM=getGrandmotherMinus(m_grandmothers);</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     double costheta2=(tM-&gt;getPx()*gM-&gt;getPx()+tM-&gt;getPy()*gM-&gt;getPy()+tM-&gt;getPz()*gM-&gt;getPz())/</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :                  sqrt(tM-&gt;getPx()*tM-&gt;getPx()+tM-&gt;getPy()*tM-&gt;getPy()+tM-&gt;getPz()*tM-&gt;getPz())/</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                  sqrt(gM-&gt;getPx()*gM-&gt;getPx()+gM-&gt;getPy()*gM-&gt;getPy()+gM-&gt;getPz()*gM-&gt;getPz());</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     double sintheta1 = sqrt(1-costheta1*costheta1);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     double sintheta2 = sqrt(1-costheta2*costheta2);</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     double avg = (costheta1*sintheta2+costheta2*sintheta1)/(sintheta1+sintheta2);</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     *cosTheta = avg;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     *incoming_pdg_id = getGrandmotherPlus(m_grandmothers)-&gt;getPdgID();</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     if(abs(*incoming_pdg_id)==21 || abs(*incoming_pdg_id)==22)</span>
+<span class="lineNum">     393 </span>            :     {
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         *incoming_pdg_id = -getGrandmotherMinus(m_grandmothers)-&gt;getPdgID();</span>
+<span class="lineNum">     395 </span>            :         //cout&lt;&lt;&quot;INFO:\tgluon pdg id changed!&quot;&lt;&lt;endl;
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     if( abs(*incoming_pdg_id)&gt; 8  &amp;&amp;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         abs(*incoming_pdg_id)!=11 &amp;&amp;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         abs(*incoming_pdg_id)!=13 &amp;&amp;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         abs(*incoming_pdg_id)!=15 )</span>
+<span class="lineNum">     402 </span>            :     {
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :       Log::Error()&lt;&lt;&quot;Second class disaster: incoming_pdg_id = &quot;&lt;&lt;*incoming_pdg_id&lt;&lt;endl;</span>
+<span class="lineNum">     404 </span>            :       
+<span class="lineNum">     405 </span>            :       // Return avarage Z polarization
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :       *incoming_pdg_id = TauolaParticle::ELECTRON;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :       *cosTheta = 0 ;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :       *outgoing_pdg_id = TauolaParticle::TAU_PLUS;</span>
+<span class="lineNum">     409 </span>            :       
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :       return 1-plzap0_(incoming_pdg_id,outgoing_pdg_id, </span>
+<span class="lineNum">     411 </span>            :                        invariant_mass_squared, cosTheta);
+<span class="lineNum">     412 </span>            :     }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     boostFromTauPairToLabFrame(angle1, angle2, angle3, temp_mother,</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                                m_grandmothers, effective_taus);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     setBornKinematics(*incoming_pdg_id, *outgoing_pdg_id, *invariant_mass_squared, *cosTheta); // store for debugging    </span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     return 1-plzap0_(incoming_pdg_id,outgoing_pdg_id, invariant_mass_squared, cosTheta);</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     420 </span>            :   //REGULAR CASE:
+<span class="lineNum">     421 </span>            :   //f1 + f2 -&gt; Z -&gt; tau+ tau - or f1 f2 -&gt; tau+ tau-
+<span class="lineNum">     422 </span>            :   //This includes Z -&gt; tau tau, tau -&gt; gamma tau?
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   double angle1,angle2,angle3;</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :   boostFromLabToTauPairFrame(&amp;angle1, &amp;angle2, &amp;angle3,</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                              m_mother,m_grandmothers,m_production_particles);</span>
+<span class="lineNum">     427 </span>            :  
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :   TauolaParticle *tM=getTauPlus(m_production_particles);</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :   TauolaParticle *gM=getGrandmotherPlus(m_grandmothers);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   double costheta1=(tM-&gt;getPx()*gM-&gt;getPx()+tM-&gt;getPy()*gM-&gt;getPy()+tM-&gt;getPz()*gM-&gt;getPz())/</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                sqrt(tM-&gt;getPx()*tM-&gt;getPx()+tM-&gt;getPy()*tM-&gt;getPy()+tM-&gt;getPz()*tM-&gt;getPz())/</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                sqrt(gM-&gt;getPx()*gM-&gt;getPx()+gM-&gt;getPy()*gM-&gt;getPy()+gM-&gt;getPz()*gM-&gt;getPz());</span>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   tM=getTauMinus(m_production_particles);</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   gM=getGrandmotherMinus(m_grandmothers);</span>
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   double costheta2=(tM-&gt;getPx()*gM-&gt;getPx()+tM-&gt;getPy()*gM-&gt;getPy()+tM-&gt;getPz()*gM-&gt;getPz())/</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                sqrt(tM-&gt;getPx()*tM-&gt;getPx()+tM-&gt;getPy()*tM-&gt;getPy()+tM-&gt;getPz()*tM-&gt;getPz())/</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                sqrt(gM-&gt;getPx()*gM-&gt;getPx()+gM-&gt;getPy()*gM-&gt;getPy()+gM-&gt;getPz()*gM-&gt;getPz());</span>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :   double sintheta1 = sqrt(1-costheta1*costheta1);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   double sintheta2 = sqrt(1-costheta2*costheta2);</span>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   double avg       = (costheta1*sintheta2+costheta2*sintheta1)/(sintheta1+sintheta2);</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :   *cosTheta = avg;</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   *incoming_pdg_id = getGrandmotherPlus(m_grandmothers)-&gt;getPdgID();</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   boostFromTauPairToLabFrame(angle1, angle2, angle3,</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                              m_mother,m_grandmothers,m_production_particles);</span>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :   setBornKinematics(*incoming_pdg_id, *outgoing_pdg_id, *invariant_mass_squared, *cosTheta); // store for debugging</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :   return 1-plzap0_(incoming_pdg_id,outgoing_pdg_id, invariant_mass_squared, cosTheta);</span>
+<span class="lineNum">     455 </span>            :       // return 0.5 - (-0.12 + 0.12*cosTheta)/2;
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            : /** WHERE WE CALCULATE THE EFFECTIVE BEAMS **/
+<span class="lineNum">     459 </span>            : /** This is where we decide which particle should be added into which beam,
+<span class="lineNum">     460 </span>            :     add it and change the flavour if necessary. candidates_same
+<a name="461"><span class="lineNum">     461 </span>            :     are on the same side of the vertex as the particle. This is needed</a>
+<span class="lineNum">     462 </span>            :     for negative the particle 4-momentum. **/
+<span class="lineNum">     463 </span>            : void TauolaParticlePair::addToBeam(TauolaParticle * pcle,
+<span class="lineNum">     464 </span>            :                                    std::vector&lt;TauolaParticle*&gt; *candidates_same,
+<span class="lineNum">     465 </span>            :                                    std::vector&lt;TauolaParticle*&gt; *candidates_opp){
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            :   double s=0.,o=-10.;
+<span class="lineNum">     469 </span>            :   TauolaParticle * s_beam = NULL;
+<span class="lineNum">     470 </span>            :   TauolaParticle * o_beam = NULL;
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   if(candidates_same){</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     double s0 =1.0/getVirtuality(pcle,candidates_same-&gt;at(0),false);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     double s1 = 1.0/getVirtuality(pcle,candidates_same-&gt;at(1),false);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     if(s0&gt;s1){</span>
+<span class="lineNum">     476 </span>            :       s=s0;
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :       s_beam = candidates_same-&gt;at(0);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     479 </span>            :     else{
+<span class="lineNum">     480 </span>            :       s=s1;
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :       s_beam = candidates_same-&gt;at(1);</span>
+<span class="lineNum">     482 </span>            :     }
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :   if(candidates_opp){ </span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     double o0 =1.0/getVirtuality(pcle,candidates_opp-&gt;at(0),true);</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     double o1 = 1.0/getVirtuality(pcle,candidates_opp-&gt;at(1),true);</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     if(o0&gt;o1){</span>
+<span class="lineNum">     489 </span>            :       o=o0;
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :       o_beam = candidates_opp-&gt;at(0);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     492 </span>            :     else{
+<span class="lineNum">     493 </span>            :       o=o1;
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :       o_beam = candidates_opp-&gt;at(1);</span>
+<span class="lineNum">     495 </span>            :     }
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :   if(s&gt;o)</span>
+<span class="lineNum">     499 </span>            :   {
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     s_beam-&gt;add(pcle);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     int pdg1 = pcle-&gt;getPdgID();</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     int pdg2 = s_beam-&gt;getPdgID();</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     if(abs(pdg2)==15) return;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     if((abs(pdg2)==21 || abs(pdg2)==22) &amp;&amp; abs(pdg1)&lt;17 &amp;&amp; abs(pdg1)!=10 &amp;&amp; abs(pdg1)!=9) s_beam-&gt;setPdgID( pdg1);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     506 </span>            :   else
+<span class="lineNum">     507 </span>            :   {
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     o_beam-&gt;subtract(pcle);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     int pdg1 = pcle-&gt;getPdgID();</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     int pdg2 = o_beam-&gt;getPdgID();</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     if((abs(pdg2)==21 || abs(pdg2)==22) &amp;&amp; abs(pdg1)&lt;17 &amp;&amp; abs(pdg1)!=10 &amp;&amp; abs(pdg1)!=9) o_beam-&gt;setPdgID(-pdg1);</span>
+<span class="lineNum">     512 </span>            :   }
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :   //should we also do something with the flavours??
+<span class="lineNum">     515 </span>            :   
+<a name="516"><span class="lineNum">     516 </span><span class="lineNoCov">          0 : } </span></a>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span>            : double TauolaParticlePair::getVirtuality(TauolaParticle * p1, TauolaParticle*p2, bool flip){
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            :   //if one particle in a gluon and the other a lepton
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :   if((p1-&gt;getPdgID()==TauolaParticle::GLUON&amp;&amp;abs(p2-&gt;getPdgID())&gt;10&amp;&amp;abs(p2-&gt;getPdgID())&lt;20) ||</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :      (p2-&gt;getPdgID()==TauolaParticle::GLUON&amp;&amp;abs(p1-&gt;getPdgID())&gt;10&amp;&amp;abs(p1-&gt;getPdgID())&lt;20))</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            :   //add some others...
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span>            :   //otherwise we calculate the virtuality:
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :   double kp = p1-&gt;getE()*p2-&gt;getE() - p1-&gt;getPx()*p2-&gt;getPx() </span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     - p1-&gt;getPy()*p2-&gt;getPy() - p1-&gt;getPz()*p2-&gt;getPz();</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   if(flip) // Note that we have 1/(p1+p2)^2  or 1/(p1-p2)^2 and p2^2=0</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     kp = kp - p1-&gt;getMass()*p1-&gt;getMass();</span>
+<span class="lineNum">     532 </span>            :  
+<span class="lineNum">     533 </span>            :   double q = 1;
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   if(p1-&gt;getPdgID()==TauolaParticle::GAMMA){</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     if(abs(p2-&gt;getPdgID())==TauolaParticle::UP || </span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :        abs(p2-&gt;getPdgID())==TauolaParticle::CHARM ||</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :        abs(p2-&gt;getPdgID())==TauolaParticle::TOP)</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :       q=2.0/3.0;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     if(abs(p2-&gt;getPdgID())==TauolaParticle::DOWN || </span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :        abs(p2-&gt;getPdgID())==TauolaParticle::STRANGE ||</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :        abs(p2-&gt;getPdgID())==TauolaParticle::BOTTOM)</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :       q=1.0/3.0;</span>
+<span class="lineNum">     543 </span>            :   }
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :   if(p2-&gt;getPdgID()==TauolaParticle::GAMMA){</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :     if(abs(p1-&gt;getPdgID())==TauolaParticle::UP || </span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :        abs(p1-&gt;getPdgID())==TauolaParticle::CHARM ||</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :        abs(p1-&gt;getPdgID())==TauolaParticle::TOP)</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :       q=2.0/3.0;</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     if(abs(p1-&gt;getPdgID())==TauolaParticle::DOWN || </span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :        abs(p1-&gt;getPdgID())==TauolaParticle::STRANGE ||</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :        abs(p1-&gt;getPdgID())==TauolaParticle::BOTTOM)</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :       q=1.0/3.0;</span>
+<span class="lineNum">     553 </span>            :   }
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   return fabs(2*kp)/q;</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span>            : /***********************************************************
+<span class="lineNum">     559 </span>            :  **  TauolaParticlePair::decayTauPair().
+<a name="560"><span class="lineNum">     560 </span>            :  **  Generate tau decay</a>
+<span class="lineNum">     561 </span>            :  ************************************************************/
+<span class="lineNum">     562 </span>            : void TauolaParticlePair::decayTauPair(){
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span>            :   //initalize h vectors in case the partner is not a tau
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :   double h_tau_minus[4]={2,0,0,0}; //2 used to compensate for maximum weight</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   double h_tau_plus[4]={2,0,0,0};  //in the case when there is only 1 tau</span>
+<span class="lineNum">     567 </span>            :     
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :   TauolaParticle * tau_minus = getTauMinus(m_final_particles);</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :   TauolaParticle * tau_plus = getTauPlus(m_final_particles);</span>
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span>            :   //now calculate the spin weight
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :   for(double weight=0; weight &lt; Tauola::randomDouble();){</span>
+<span class="lineNum">     573 </span>            :     //call tauola decay and get polarimetric vectors
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     if(tau_minus){</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       Tauola::redefineTauMinusProperties(tau_minus);</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :       tau_minus-&gt;decay();</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :       h_tau_minus[0]=1;</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :       h_tau_minus[1]=tau_minus-&gt;getPolarimetricX();</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :       h_tau_minus[2]=tau_minus-&gt;getPolarimetricY();</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :       h_tau_minus[3]=tau_minus-&gt;getPolarimetricZ();</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     if(tau_plus){</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :       Tauola::redefineTauPlusProperties(tau_plus);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :       tau_plus-&gt;decay();</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :       h_tau_plus[0]=1;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :       h_tau_plus[1]=tau_plus-&gt;getPolarimetricX();</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :       h_tau_plus[2]=tau_plus-&gt;getPolarimetricY();</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :       h_tau_plus[3]=tau_plus-&gt;getPolarimetricZ();</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     590 </span>            :     //    cout&lt;&lt;&quot; tau? tau? &quot;&lt;&lt;  tau_plus-&gt;getPdgID()&lt;&lt;&quot;  &quot;&lt;&lt;  tau_minus-&gt;getPdgID()&lt;&lt;endl; 
+<span class="lineNum">     591 </span>            :     //    cout&lt;&lt;&quot; przy uzyciu rrrRRRrrrRRR &quot;&lt;&lt; m_R[0][0]&lt;&lt;&quot; &quot; &lt;&lt;m_R[3][3]&lt;&lt;&quot; &quot; &lt;&lt; m_R[0][3]&lt;&lt;&quot; &quot; &lt;&lt;m_R[3][0] &lt;&lt;endl;
+<span class="lineNum">     592 </span>            :     //calculate the weight
+<span class="lineNum">     593 </span>            :     weight=0;
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :     for(int i =0; i&lt;4; i++){</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :       for(int j=0; j&lt;4; j++)</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :         weight+=m_R[i][j]*h_tau_minus[i]*h_tau_plus[j];</span>
+<span class="lineNum">     597 </span>            :     }
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :     weight = weight/4.0;</span>
+<span class="lineNum">     599 </span>            :   }
+<span class="lineNum">     600 </span>            :   double wthel[4]={0};
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :   wthel[0]=(h_tau_minus[0]+h_tau_minus[3])*(h_tau_plus[0]+h_tau_plus[3])*(m_R[0][0]+m_R[0][3]+m_R[3][0]+m_R[3][3]);</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :   wthel[1]=(h_tau_minus[0]+h_tau_minus[3])*(h_tau_plus[0]-h_tau_plus[3])*(m_R[0][0]-m_R[0][3]+m_R[3][0]-m_R[3][3]);</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :   wthel[2]=(h_tau_minus[0]-h_tau_minus[3])*(h_tau_plus[0]+h_tau_plus[3])*(m_R[0][0]+m_R[0][3]-m_R[3][0]-m_R[3][3]);</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   wthel[3]=(h_tau_minus[0]-h_tau_minus[3])*(h_tau_plus[0]-h_tau_plus[3])*(m_R[0][0]-m_R[0][3]-m_R[3][0]+m_R[3][3]);</span>
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :   double rn=Tauola::randomDouble();</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   if (rn&gt;(wthel[0]+wthel[1]+wthel[2])/(wthel[0]+wthel[1]+wthel[2]+wthel[3])) Tauola::setHelicities(-1,-1);</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :   else if (rn&gt;(wthel[0]+wthel[1])    /(wthel[0]+wthel[1]+wthel[2]+wthel[3])) Tauola::setHelicities(-1,+1);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :   else if (rn&gt;(wthel[0])             /(wthel[0]+wthel[1]+wthel[2]+wthel[3])) Tauola::setHelicities( 1,-1);</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   else                                                                       Tauola::setHelicities( 1, 1);</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            :    
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            :   //boost into the frame used to define the density matrices
+<span class="lineNum">     616 </span>            :   //and add the tau's new daughters.
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :   double angle1,angle2,angle3;</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   TauolaParticle * mum = makeTemporaryMother(m_final_particles);</span>
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   if(!Tauola::isUsingDecayOneBoost())</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :        boostFromLabToTauPairFrame(&amp;angle1, &amp;angle2, &amp;angle3,</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :                                   mum,m_grandmothers,m_final_particles);</span>
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span>            :   //add the accepted decay into the event record
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :   if(tau_plus)</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     tau_plus-&gt;addDecayToEventRecord();</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :   if(tau_minus)</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     tau_minus-&gt;addDecayToEventRecord();</span>
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :   if(!Tauola::isUsingDecayOneBoost())</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :        boostFromTauPairToLabFrame(angle1,angle2,angle3,</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :                                   mum,m_grandmothers,m_final_particles);</span>
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span>            :   // Apply final decay modification, once taus are in lab frame. 
+<span class="lineNum">     636 </span>            :   // At present 28.02.11,  vertex position shift (in HepMC) is implemented.
+<span class="lineNum">     637 </span>            :   // Thanks Sho Iwamoto for feedback 
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :   if(tau_plus)</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     tau_plus-&gt;decayEndgame();</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :   if(tau_minus)</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     tau_minus-&gt;decayEndgame();</span>
+<span class="lineNum">     642 </span>            : 
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span>            : /***********************************************************
+<span class="lineNum">     646 </span>            :  **  Below are the methods used for boosting and rotating 
+<span class="lineNum">     647 </span>            :  **  into another reference frame.
+<span class="lineNum">     648 </span>            :  ************************************************************/
+<span class="lineNum">     649 </span>            : 
+<a name="650"><span class="lineNum">     650 </span>            : /** Step 1. (Transformation A). Any modification to this method also requires a modification</a>
+<span class="lineNum">     651 </span>            :     to the inverse method boostFromTauPairFrameToLab (transformation A^-1).*/
+<span class="lineNum">     652 </span>            : void TauolaParticlePair::boostFromLabToTauPairFrame(double * rotation_angle1, 
+<span class="lineNum">     653 </span>            :                                                     double * rotation_angle2,
+<span class="lineNum">     654 </span>            :                                                     double * rotation_angle3,
+<span class="lineNum">     655 </span>            :                                                     TauolaParticle * mother,
+<span class="lineNum">     656 </span>            :                                                     vector&lt;TauolaParticle *&gt; grandmothers,
+<span class="lineNum">     657 </span>            :                                                     vector&lt;TauolaParticle *&gt; taus
+<span class="lineNum">     658 </span>            :                                                     ){ //in positive z axis (+1) //or negative z axis (-1)
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span>            :   /** boost all gradmothers and daughters (taus, neutrinos, etc,) 
+<span class="lineNum">     661 </span>            :        to the mothers rest frame */
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) grandmothers.size(); i++)</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     grandmothers.at(i)-&gt;boostToRestFrame(mother);</span>
+<span class="lineNum">     665 </span>            :   //If taus.size()==1 then taus[1] is the same as mum. Disaster to be avoided.
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   if(taus.size()!=1)</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt; (int) taus.size(); i++){</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :       taus.at(i)-&gt;boostToRestFrame(mother);</span>
+<span class="lineNum">     669 </span>            :       // NOTE: Following line has no effect in release examples
+<span class="lineNum">     670 </span>            :       //       because taus don't have daughters at this step
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :       taus.at(i)-&gt;boostDaughtersToRestFrame(mother);</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span>            :   /** rotate all particles so taus are on the z axis */
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   if(getTauPlus(taus)){ //if there's a tau+ use this to get the rotation angle</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     *rotation_angle1 = getTauPlus(taus)-&gt;getRotationAngle(TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     rotateSystem(grandmothers,taus,*rotation_angle1,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :     *rotation_angle2 = getTauPlus(taus)-&gt;getRotationAngle(TauolaParticle::X_AXIS);</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     rotateSystem(grandmothers,taus,*rotation_angle2,TauolaParticle::X_AXIS);</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     681 </span>            :   else{ //otherwise use the tau-
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     *rotation_angle1 = M_PI+getTauMinus(taus)-&gt;getRotationAngle(TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :     rotateSystem(grandmothers,taus,*rotation_angle1,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     *rotation_angle2 = M_PI+getTauMinus(taus)-&gt;getRotationAngle(TauolaParticle::X_AXIS);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     rotateSystem(grandmothers,taus,*rotation_angle2,TauolaParticle::X_AXIS);</span>
+<span class="lineNum">     686 </span>            :   }
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            :   //now rotate incoming beams so they are aligned in the y-z plane
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   if(grandmothers.size()&lt;1){ //if there are no grandmothers</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     *rotation_angle3 = 0;</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     692 </span>            :   }
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span>            :   //the first grandmother will have a positive y component
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   if(getGrandmotherPlus(grandmothers))</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     *rotation_angle3 = getGrandmotherPlus(grandmothers)-&gt;getRotationAngle(TauolaParticle::X_AXIS,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     697 </span>            :   else
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     *rotation_angle3 = M_PI+getGrandmotherMinus(grandmothers)-&gt;getRotationAngle(TauolaParticle::X_AXIS,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   rotateSystem(grandmothers,taus,*rotation_angle3,TauolaParticle::X_AXIS,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span>            : /** Reverses boostFromLabtoMotherFrame. The three rotation angle must be provided.
+<a name="705"><span class="lineNum">     705 </span>            :     Any modification to this would require a modification to boostFromLabToTauPairFrame</a>
+<span class="lineNum">     706 </span>            :     since this is the inverse transformation (Step 2: A^-1). */
+<span class="lineNum">     707 </span>            : void TauolaParticlePair::boostFromTauPairToLabFrame(double rotation_angle1, 
+<span class="lineNum">     708 </span>            :                                                     double rotation_angle2,
+<span class="lineNum">     709 </span>            :                                                     double rotation_angle3,
+<span class="lineNum">     710 </span>            :                                                     TauolaParticle * mother,
+<span class="lineNum">     711 </span>            :                                                     vector&lt;TauolaParticle *&gt; grandmothers,
+<span class="lineNum">     712 </span>            :                                                     vector&lt;TauolaParticle *&gt; taus){
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :   if(mother==0) //if there are no mothers</span>
+<span class="lineNum">     716 </span>            :     return;
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span>            :  
+<span class="lineNum">     719 </span>            :   //rotate grand mothers back away from the y-z plane
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :   rotateSystem(grandmothers,taus,-rotation_angle3, TauolaParticle::X_AXIS,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span>            :   //rotate all so that taus are no longer on the z axis
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   rotateSystem(grandmothers,taus,-rotation_angle2,TauolaParticle::X_AXIS);</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :   rotateSystem(grandmothers,taus,-rotation_angle1,TauolaParticle::Y_AXIS);</span>
+<span class="lineNum">     725 </span>            :  
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            :   /*** boost grandmothers and daughters (taus) back into the lab frame */
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) grandmothers.size(); i++)</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     grandmothers.at(i)-&gt;boostFromRestFrame(mother);</span>
+<span class="lineNum">     730 </span>            :   //If taus.size()==1 then taus[1] is the same as mum. Disaster to be avoided.
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :   if(taus.size()!=1)</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt; (int) taus.size(); i++){</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :       taus.at(i)-&gt;boostFromRestFrame(mother);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :       taus.at(i)-&gt;boostDaughtersFromRestFrame(mother);</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     }</span>
+<a name="736"><span class="lineNum">     736 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span>            : void TauolaParticlePair::rotateSystem(vector&lt;TauolaParticle *&gt; grandmothers,
+<span class="lineNum">     739 </span>            :                                       vector&lt;TauolaParticle *&gt; taus,
+<span class="lineNum">     740 </span>            :                                       double theta, int axis, int axis2){
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) grandmothers.size(); i++)</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     grandmothers.at(i)-&gt;rotate(axis,theta,axis2);</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) taus.size(); i++){</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     taus.at(i)-&gt;rotate(axis,theta,axis2);</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     taus.at(i)-&gt;rotateDaughters(axis,theta,axis2);</span>
+<span class="lineNum">     746 </span>            :   }
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span>            : /***********************************************************
+<a name="752"><span class="lineNum">     752 </span>            :    Some extra useful methods</a>
+<span class="lineNum">     753 </span>            : ************************************************************/
+<span class="lineNum">     754 </span>            : TauolaParticle * TauolaParticlePair::makeTemporaryMother(vector&lt;TauolaParticle *&gt; taus){
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span>            :     //calculate mothers 4-momentum based on the daughters.
+<span class="lineNum">     757 </span>            :     double e=0;
+<span class="lineNum">     758 </span>            :     double px=0;
+<span class="lineNum">     759 </span>            :     double py=0;
+<span class="lineNum">     760 </span>            :     double pz=0;
+<span class="lineNum">     761 </span>            :     
+<span class="lineNum">     762 </span>            :     bool tau_plus = false;
+<span class="lineNum">     763 </span>            :     bool tau_minus = false;
+<span class="lineNum">     764 </span>            :     bool tau_neutrino = false;
+<span class="lineNum">     765 </span>            :     bool tau_antineutrino = false;
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     for(int d=0; d &lt; (int) taus.size(); d++){</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :       TauolaParticle * daughter = taus.at(d);</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :       e+=daughter-&gt;getE();</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :       px+=daughter-&gt;getPx();</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :       py+=daughter-&gt;getPy();</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :       pz+=daughter-&gt;getPz();</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :       switch(daughter-&gt;getPdgID()){</span>
+<span class="lineNum">     774 </span>            :          case TauolaParticle::TAU_PLUS:
+<span class="lineNum">     775 </span>            :            tau_plus=true;
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :            break;</span>
+<span class="lineNum">     777 </span>            :          case TauolaParticle::TAU_MINUS:
+<span class="lineNum">     778 </span>            :            tau_minus=true;
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :            break;</span>
+<span class="lineNum">     780 </span>            :          case TauolaParticle::TAU_NEUTRINO:
+<span class="lineNum">     781 </span>            :            tau_neutrino=true;
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :            break;</span>
+<span class="lineNum">     783 </span>            :          case TauolaParticle::TAU_ANTINEUTRINO:
+<span class="lineNum">     784 </span>            :            tau_antineutrino=true;
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :            break;</span>
+<span class="lineNum">     786 </span>            :       }
+<span class="lineNum">     787 </span>            :     }
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     double m = e*e-px*px-py*py-pz*pz;</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     if(m&lt;0)</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :       m= -sqrt(-m);</span>
+<span class="lineNum">     791 </span>            :     else
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :       m=sqrt(m);</span>
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span>            :     //look for mothers type:
+<span class="lineNum">     795 </span>            :     int pdg=0;
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            :     //Assume Z
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :     if(tau_plus&amp;&amp;tau_minus)</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :       pdg=TauolaParticle::Z0 ;</span>
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span>            :     //Assume W+
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :     if(tau_plus&amp;&amp;tau_neutrino)</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :       pdg=TauolaParticle::W_PLUS;</span>
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span>            :     //Assume W-
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :     if(tau_minus&amp;&amp;tau_antineutrino)</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :       pdg=TauolaParticle::W_MINUS;</span>
+<span class="lineNum">     808 </span>            : 
+<span class="lineNum">     809 </span>            :     // now make the mother
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :     return taus.at(0)-&gt;createNewParticle(pdg,2,m,px,py,pz,e);</span>
+<span class="lineNum">     811 </span>            : }
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            : // see if &quot;particle&quot; is one of the final taus in this tau pair 
+<a name="814"><span class="lineNum">     814 </span>            : // (based on particle barcode)</a>
+<span class="lineNum">     815 </span>            : // NOTE: Not executed by release examples
+<span class="lineNum">     816 </span>            : bool TauolaParticlePair::contains(TauolaParticle * particle){
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_final_particles.size(); i++){</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :     if(m_final_particles.at(i)-&gt;getBarcode()==particle-&gt;getBarcode())</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :       return true;</span>
+<span class="lineNum">     821 </span>            :   } 
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :   return false;</span>
+<a name="823"><span class="lineNum">     823 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span>            : TauolaParticle * TauolaParticlePair::getTauMinus(vector&lt;TauolaParticle*&gt; taus){
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) taus.size(); i++){</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     if(taus.at(i)-&gt;getPdgID()==TauolaParticle::TAU_MINUS) </span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :       return taus.at(i);</span>
+<span class="lineNum">     829 </span>            :   }
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="831"><span class="lineNum">     831 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span>            : TauolaParticle * TauolaParticlePair::getTauPlus(vector&lt;TauolaParticle*&gt; taus){
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) taus.size(); i++){</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     if(taus.at(i)-&gt;getPdgID()==TauolaParticle::TAU_PLUS)</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :       return taus.at(i);</span>
+<span class="lineNum">     837 </span>            :   }
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="839"><span class="lineNum">     839 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span>            : TauolaParticle * TauolaParticlePair::getGrandmotherPlus(vector&lt;TauolaParticle*&gt; grandmothers){
+<span class="lineNum">     842 </span>            :   //choose based on energy if there are more than one??
+<span class="lineNum">     843 </span>            :   double e = -1e30;
+<span class="lineNum">     844 </span>            :   int index = -1;
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) grandmothers.size(); i++){</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :     if( (grandmothers.at(i)-&gt;getPdgID()&lt;0 &amp;&amp; grandmothers.at(i)-&gt;getPdgID()&gt;-9) ||</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :        grandmothers.at(i)-&gt;getPdgID()== TauolaParticle::POSITRON||</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :        grandmothers.at(i)-&gt;getPdgID()== TauolaParticle::MUON_PLUS){</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :       if(e&lt;grandmothers.at(i)-&gt;getE()){</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         e=grandmothers.at(i)-&gt;getE();</span>
+<span class="lineNum">     851 </span>            :         index=i;
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     853 </span>            :     }
+<span class="lineNum">     854 </span>            :   }
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :   if(index==-1)</span>
+<span class="lineNum">     856 </span>            :   {
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :     for(int i=0; i&lt; (int) grandmothers.size(); i++)</span>
+<span class="lineNum">     858 </span>            :     {
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :       if(grandmothers.at(i)-&gt;getPdgID()==21 || grandmothers.at(i)-&gt;getPdgID()==22)</span>
+<span class="lineNum">     860 </span>            :       {
+<span class="lineNum">     861 </span>            :         index=i;
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :         e=grandmothers.at(i)-&gt;getE();</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     864 </span>            :       }
+<span class="lineNum">     865 </span>            :     }
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :   if(index==-1) index=0;</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :   if(e==0)</span>
+<span class="lineNum">     869 </span>            :   {
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :     grandmothers.at(index)-&gt;print();</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     872 </span>            :   }
+<span class="lineNum">     873 </span>            :   else
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     return grandmothers.at(index);</span>
+<a name="875"><span class="lineNum">     875 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     876 </span>            : 
+<span class="lineNum">     877 </span>            : TauolaParticle * TauolaParticlePair::getGrandmotherMinus(vector&lt;TauolaParticle*&gt; grandmothers){
+<span class="lineNum">     878 </span>            :   //choose based on energy if there are more than one??
+<span class="lineNum">     879 </span>            :   double e = -1e30;
+<span class="lineNum">     880 </span>            :   int index = -1;
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) grandmothers.size(); i++){</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     if( (grandmothers.at(i)-&gt;getPdgID()&gt;0 &amp;&amp; grandmothers.at(i)-&gt;getPdgID()&lt;9) ||</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :        grandmothers.at(i)-&gt;getPdgID()== TauolaParticle::ELECTRON||</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :        grandmothers.at(i)-&gt;getPdgID()== TauolaParticle::MUON_MINUS){</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :       if(e&lt;grandmothers.at(i)-&gt;getE()){</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :         e=grandmothers.at(i)-&gt;getE();</span>
+<span class="lineNum">     887 </span>            :         index=i;
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     889 </span>            :     }
+<span class="lineNum">     890 </span>            :   }
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :   if(index==-1)</span>
+<span class="lineNum">     892 </span>            :   {
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     for(int i=(int) grandmothers.size()-1; i&gt;=0 ; i--)</span>
+<span class="lineNum">     894 </span>            :     {
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :       if(grandmothers.at(i)-&gt;getPdgID()==21||grandmothers.at(i)-&gt;getPdgID()==22)</span>
+<span class="lineNum">     896 </span>            :       {
+<span class="lineNum">     897 </span>            :         index=i;
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :         e=grandmothers.at(i)-&gt;getE();</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     900 </span>            :       }
+<span class="lineNum">     901 </span>            :     }
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :   if(index==-1) index=0;</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :   if(e==0)</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     906 </span>            :   else
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :     return grandmothers.at(index);</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     909 </span>            : 
+<a name="910"><span class="lineNum">     910 </span>            : </a>
+<span class="lineNum">     911 </span>            :    
+<span class="lineNum">     912 </span>            : void TauolaParticlePair::print(){
+<span class="lineNum">     913 </span>            : 
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :   Log::RedirectOutput(Log::Info());</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;Daughters final:&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_final_particles.size(); i++)</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :     m_final_particles.at(i)-&gt;print();</span>
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span>            : 
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;Daughters at production:&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_production_particles.size(); i++)</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :     m_production_particles.at(i)-&gt;print();</span>
+<span class="lineNum">     923 </span>            : 
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;Mother particle: &quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :   if(m_mother)</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :     m_mother-&gt;print();</span>
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;Grandmother particles: &quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_grandmothers.size(); i++)</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :     m_grandmothers.at(i)-&gt;print();</span>
+<span class="lineNum">     932 </span>            : 
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :   Log::RevertOutput();</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 : }</span>
+<a name="935"><span class="lineNum">     935 </span>            : </a>
+<span class="lineNum">     936 </span>            : 
+<span class="lineNum">     937 </span>            : void TauolaParticlePair::checkMomentumConservation(){
+<span class="lineNum">     938 </span>            : 
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_final_particles.size(); i++)</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :     m_final_particles.at(i)-&gt;checkMomentumConservation();</span>
+<span class="lineNum">     941 </span>            : 
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_production_particles.size(); i++)</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :     m_production_particles.at(i)-&gt;checkMomentumConservation();</span>
+<span class="lineNum">     944 </span>            : 
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :   if(m_mother)</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :     m_mother-&gt;checkMomentumConservation();</span>
+<span class="lineNum">     947 </span>            : 
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt; (int) m_grandmothers.size(); i++)</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :     m_grandmothers.at(i)-&gt;checkMomentumConservation();</span>
+<span class="lineNum">     950 </span>            : 
+<a name="951"><span class="lineNum">     951 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     952 </span>            : 
+<span class="lineNum">     953 </span>            : void TauolaParticlePair::recalculateRij(int incoming_pdg_id, int outgoing_pdg_id, double invariant_mass_squared, double cosTheta){
+<span class="lineNum">     954 </span>            : 
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :   if (abs(outgoing_pdg_id)!=15) </span>
+<span class="lineNum">     956 </span>            :   {
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :     Log::Warning()&lt;&lt;&quot;interface was not used for taus pdg id=&quot;&lt;&lt;outgoing_pdg_id&lt;&lt;endl;</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     959 </span>            :   }
+<span class="lineNum">     960 </span>            : 
+<span class="lineNum">     961 </span>            :   double (*T) [Tauola::NCOS][4][4] = NULL;
+<span class="lineNum">     962 </span>            :   double (*Tw) [Tauola::NCOS]      = NULL;
+<span class="lineNum">     963 </span>            :   double (*Tw0)[Tauola::NCOS]      = NULL;
+<span class="lineNum">     964 </span>            :   double smin = 0.0;                       // Tauola::sminA;
+<span class="lineNum">     965 </span>            :   double smax = 0.0;                       // Tauola::smaxA;
+<span class="lineNum">     966 </span>            :   double step = 0.0;                       // (smaxl-sminl)/(Tauola::NS1-1);
+<span class="lineNum">     967 </span>            : 
+<span class="lineNum">     968 </span>            :   // Select table for appropriate incoming particles
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :   switch(abs(incoming_pdg_id)){</span>
+<span class="lineNum">     970 </span>            :   case 11: 
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     if(invariant_mass_squared&lt;Tauola::smaxB &amp;&amp; invariant_mass_squared&gt;Tauola::sminB)</span>
+<span class="lineNum">     972 </span>            :     { 
+<span class="lineNum">     973 </span>            :       T    = Tauola::table11B; 
+<span class="lineNum">     974 </span>            :       Tw   = Tauola::wtable11B; 
+<span class="lineNum">     975 </span>            :       Tw0  = Tauola::w0table11B; 
+<span class="lineNum">     976 </span>            :       smin = Tauola::sminB; 
+<span class="lineNum">     977 </span>            :       smax = Tauola::smaxB;
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS2-1); </span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :     else if (invariant_mass_squared&lt;Tauola::smaxC &amp;&amp; invariant_mass_squared&gt;Tauola::sminC)</span>
+<span class="lineNum">     981 </span>            :     { 
+<span class="lineNum">     982 </span>            :       T    = Tauola::table11C; 
+<span class="lineNum">     983 </span>            :       Tw   = Tauola::wtable11C; 
+<span class="lineNum">     984 </span>            :       Tw0  = Tauola::w0table11C; 
+<span class="lineNum">     985 </span>            :       smin = Tauola::sminC; 
+<span class="lineNum">     986 </span>            :       smax = Tauola::smaxC;
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS3-1); </span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     989 </span>            :     else
+<span class="lineNum">     990 </span>            :     { 
+<span class="lineNum">     991 </span>            :       T    = Tauola::table11A; 
+<span class="lineNum">     992 </span>            :       Tw   = Tauola::wtable11A; 
+<span class="lineNum">     993 </span>            :       Tw0  = Tauola::w0table11A; 
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :       smin = Tauola::sminA; </span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :       smax = Tauola::smaxA;</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS1-1); </span>
+<span class="lineNum">     997 </span>            :     }
+<span class="lineNum">     998 </span>            :     break;
+<span class="lineNum">     999 </span>            : 
+<span class="lineNum">    1000 </span>            :   // NOTE: Use the same tables for 1, 3 and 5
+<span class="lineNum">    1001 </span>            :   case  1:
+<span class="lineNum">    1002 </span>            :   case  3:
+<span class="lineNum">    1003 </span>            :   case  5: 
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :     if(invariant_mass_squared&lt;Tauola::smaxB &amp;&amp; invariant_mass_squared&gt;Tauola::sminB)</span>
+<span class="lineNum">    1005 </span>            :     { 
+<span class="lineNum">    1006 </span>            :       T    = Tauola::table1B; 
+<span class="lineNum">    1007 </span>            :       Tw   = Tauola::wtable1B; 
+<span class="lineNum">    1008 </span>            :       Tw0  = Tauola::w0table1B; 
+<span class="lineNum">    1009 </span>            :       smin = Tauola::sminB; 
+<span class="lineNum">    1010 </span>            :       smax = Tauola::smaxB;
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS2-1); </span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :     else if (invariant_mass_squared&lt;Tauola::smaxC &amp;&amp; invariant_mass_squared&gt;Tauola::sminC)</span>
+<span class="lineNum">    1014 </span>            :     { 
+<span class="lineNum">    1015 </span>            :       T    = Tauola::table1C; 
+<span class="lineNum">    1016 </span>            :       Tw   = Tauola::wtable1C; 
+<span class="lineNum">    1017 </span>            :       Tw0  = Tauola::w0table1C; 
+<span class="lineNum">    1018 </span>            :       smin = Tauola::sminC; 
+<span class="lineNum">    1019 </span>            :       smax = Tauola::smaxC;
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS3-1); </span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1022 </span>            :     else
+<span class="lineNum">    1023 </span>            :     { 
+<span class="lineNum">    1024 </span>            :       T    = Tauola::table1A; 
+<span class="lineNum">    1025 </span>            :       Tw   = Tauola::wtable1A; 
+<span class="lineNum">    1026 </span>            :       Tw0  = Tauola::w0table1A; 
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :       smin = Tauola::sminA; </span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :       smax = Tauola::smaxA;</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS1-1); </span>
+<span class="lineNum">    1030 </span>            :     }
+<span class="lineNum">    1031 </span>            :     break;
+<span class="lineNum">    1032 </span>            : 
+<span class="lineNum">    1033 </span>            :   // NOTE: Use the same tables for 2 and 4
+<span class="lineNum">    1034 </span>            :   case  2:
+<span class="lineNum">    1035 </span>            :   case  4: 
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :     if(invariant_mass_squared&lt;Tauola::smaxB &amp;&amp; invariant_mass_squared&gt;Tauola::sminB)</span>
+<span class="lineNum">    1037 </span>            :     { 
+<span class="lineNum">    1038 </span>            :       T    = Tauola::table2B; 
+<span class="lineNum">    1039 </span>            :       Tw   = Tauola::wtable2B; 
+<span class="lineNum">    1040 </span>            :       Tw0  = Tauola::w0table2B; 
+<span class="lineNum">    1041 </span>            :       smin = Tauola::sminB; 
+<span class="lineNum">    1042 </span>            :       smax = Tauola::smaxB;
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS2-1); </span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :     else if (invariant_mass_squared&lt;Tauola::smaxC &amp;&amp; invariant_mass_squared&gt;Tauola::sminC)</span>
+<span class="lineNum">    1046 </span>            :     { 
+<span class="lineNum">    1047 </span>            :       T    = Tauola::table2C; 
+<span class="lineNum">    1048 </span>            :       Tw   = Tauola::wtable2C;
+<span class="lineNum">    1049 </span>            :       Tw0  = Tauola::w0table2C;
+<span class="lineNum">    1050 </span>            :       smin = Tauola::sminC; 
+<span class="lineNum">    1051 </span>            :       smax = Tauola::smaxC;
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS3-1); </span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1054 </span>            :     else
+<span class="lineNum">    1055 </span>            :     { 
+<span class="lineNum">    1056 </span>            :       T    = Tauola::table2A; 
+<span class="lineNum">    1057 </span>            :       Tw   = Tauola::wtable2A;
+<span class="lineNum">    1058 </span>            :       Tw0  = Tauola::w0table2A;
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :       smin = Tauola::sminA; </span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :       smax = Tauola::smaxA;</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :       step = (smax-smin)/(Tauola::NS1-1); </span>
+<span class="lineNum">    1062 </span>            :     }
+<span class="lineNum">    1063 </span>            :     break;
+<span class="lineNum">    1064 </span>            : 
+<span class="lineNum">    1065 </span>            :   default: 
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :      Log::Warning()&lt;&lt;&quot;interface was not used for proper beams pdg id=&quot;&lt;&lt;incoming_pdg_id&lt;&lt;endl; </span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :      return;</span>
+<span class="lineNum">    1068 </span>            :   }
+<span class="lineNum">    1069 </span>            : 
+<span class="lineNum">    1070 </span>            :   // Check if we have found a table for matrix recalculation
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :   if (T[0][0][0][0]&lt;0.5) return;</span>
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span>            :   // If mass is too small
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :   if (invariant_mass_squared &lt;= exp(Tauola::sminA)){</span>
+<span class="lineNum">    1075 </span>            :     double mta   = 1.777; 
+<span class="lineNum">    1076 </span>            :     double cosf  = cosTheta;
+<span class="lineNum">    1077 </span>            :     double s     = invariant_mass_squared;
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :     double sinf  = sqrt(1-cosf*cosf);</span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :     double MM    = sqrt(4e0*mta*mta/s);</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     double xnorm = 1+cosf*cosf + MM*MM*sinf*sinf;</span>
+<span class="lineNum">    1081 </span>            : 
+<span class="lineNum">    1082 </span>            :     // Zero matrix
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :     for (int i=0;i&lt;4;i++)</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :       for (int j=0;j&lt;4;j++)</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :         m_R[i][j]=0.0;</span>
+<span class="lineNum">    1086 </span>            : 
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :     m_R[0][0] = (1+cosf*cosf + MM*MM*sinf*sinf)/xnorm;</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :     m_R[1][1] = (-(1- MM*MM)*sinf*sinf)/xnorm;</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :     m_R[2][2] = ( (1+ MM*MM)*sinf*sinf)/xnorm;</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :     m_R[3][3] = (1+cosf*cosf - MM*MM*sinf*sinf)/xnorm;</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :     m_R[2][3] = (2*MM*sinf*cosf)/xnorm;</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :     m_R[3][2] = (2*MM*sinf*cosf)/xnorm;</span>
+<span class="lineNum">    1093 </span>            : 
+<span class="lineNum">    1094 </span>            :     // Get weights
+<span class="lineNum">    1095 </span>            :     double w  = 1.;
+<span class="lineNum">    1096 </span>            :     double w0 = 1.;
+<span class="lineNum">    1097 </span>            : 
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :     if     (Tauola::wtable2A[0][0]&gt;0 ) w=Tauola::wtable2A[0][0];</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :     else if(Tauola::wtable1A[0][0]&gt;0 ) w=Tauola::wtable1A[0][0];</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :     else if(Tauola::wtable11A[0][0]&gt;0) w=Tauola::wtable11A[0][0];</span>
+<span class="lineNum">    1101 </span>            : 
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     if     (Tauola::wtable2A[0][0]&gt;0 ) w0=Tauola::w0table2A[0][0];</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     else if(Tauola::wtable1A[0][0]&gt;0 ) w0=Tauola::w0table1A[0][0];</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :     else if(Tauola::wtable11A[0][0]&gt;0) w0=Tauola::w0table11A[0][0];</span>
+<span class="lineNum">    1105 </span>            : 
+<span class="lineNum">    1106 </span>            :     //    Tauola::setEWwt(w/w0);
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :     Tauola::setEWwt(w,w0);</span>
+<span class="lineNum">    1108 </span>            :     return;
+<span class="lineNum">    1109 </span>            :   } // if(mass too small)
+<span class="lineNum">    1110 </span>            : 
+<span class="lineNum">    1111 </span>            :   int    x       = 0;
+<span class="lineNum">    1112 </span>            :   double buf     = smin;
+<span class="lineNum">    1113 </span>            :   double remnant = 0.0;
+<span class="lineNum">    1114 </span>            : 
+<span class="lineNum">    1115 </span>            :   // Interpolate s
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :   if(T==Tauola::table11A || T==Tauola::table1A || T== Tauola::table2A)</span>
+<span class="lineNum">    1117 </span>            :   {
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :     while(log(invariant_mass_squared) &gt; buf){</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :       x++;</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :       buf += (step);</span>
+<span class="lineNum">    1121 </span>            :     }
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :     remnant = (log(invariant_mass_squared)-(buf-step))/step;</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1124 </span>            :   else
+<span class="lineNum">    1125 </span>            :   {
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :     while(invariant_mass_squared &gt; buf){</span>
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :       x++;</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :       buf += step;</span>
+<span class="lineNum">    1129 </span>            :     }
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :     remnant = (invariant_mass_squared-(buf-step))/step;</span>
+<span class="lineNum">    1131 </span>            :   }
+<span class="lineNum">    1132 </span>            : 
+<span class="lineNum">    1133 </span>            :   double cmin     = -1.;
+<span class="lineNum">    1134 </span>            :   int    y        = 0;
+<span class="lineNum">    1135 </span>            :   double remnantc = 0.0;
+<span class="lineNum">    1136 </span>            : 
+<span class="lineNum">    1137 </span>            :   // Interpolate cosTheta
+<span class="lineNum">    1138 </span>            :   buf = cmin+1./Tauola::NCOS;
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :   while(cosTheta &gt; buf){</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     y++;</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     buf+=2./Tauola::NCOS;</span>
+<span class="lineNum">    1142 </span>            :   }
+<span class="lineNum">    1143 </span>            : 
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :   remnantc = (cosTheta-(buf-2./Tauola::NCOS))/(2./Tauola::NCOS);</span>
+<span class="lineNum">    1145 </span>            : 
+<span class="lineNum">    1146 </span>            :   // Special cases at edges - extrapolation
+<span class="lineNum">    1147 </span>            :   bool isUsingExtrapolation = false;
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :   if(y &gt;= Tauola::NCOS) { isUsingExtrapolation = true; y = Tauola::NCOS-1; }</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :   if(y == 0)            { isUsingExtrapolation = true; y = 1;              }</span>
+<span class="lineNum">    1150 </span>            : 
+<span class="lineNum">    1151 </span>            :   // Bilinear interpolation
+<span class="lineNum">    1152 </span>            :   double b11,b21,b12,b22;
+<span class="lineNum">    1153 </span>            : 
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;4; i++){</span>
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :     for (int j=0; j&lt;4; j++){</span>
+<span class="lineNum">    1156 </span>            : 
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :       if(isUsingExtrapolation){</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :         if(y == 1){</span>
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :           b11 = 2*T[x-1][0][i][j] - T[x-1][1][i][j];</span>
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :           b21 = 2*T[x][0][i][j]   - T[x][1][i][j];</span>
+<span class="lineNum">    1161 </span>            :           b12 = T[x-1][0][i][j];
+<span class="lineNum">    1162 </span>            :           b22 = T[x][0][i][j];
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1164 </span>            :         else{
+<span class="lineNum">    1165 </span><span class="lineNoCov">          0 :           b11 = T[x-1][y][i][j];</span>
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :           b21 = T[x][y][i][j];</span>
+<span class="lineNum">    1167 </span><span class="lineNoCov">          0 :           b12 = 2*T[x-1][y][i][j] - T[x-1][y-1][i][j];</span>
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :           b22 = 2*T[x][y][i][j]   - T[x][y-1][i][j];</span>
+<span class="lineNum">    1169 </span>            :         }
+<span class="lineNum">    1170 </span>            :       } // if(isUsingExtrapolation)
+<span class="lineNum">    1171 </span>            :       else{
+<span class="lineNum">    1172 </span><span class="lineNoCov">          0 :         b11 = T[x-1][y-1][i][j];</span>
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :         b21 = T[x][y-1][i][j];</span>
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :         b12 = T[x-1][y][i][j];</span>
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :         b22 = T[x][y][i][j];</span>
+<span class="lineNum">    1176 </span>            :       }
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :       m_R[i][j] = b11*(1-remnant)*(1-remnantc) + b21*remnant*(1-remnantc)</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :                 + b12*(1-remnant)*remnantc + b22*remnant*remnantc;</span>
+<span class="lineNum">    1179 </span>            :     } // for(j)
+<span class="lineNum">    1180 </span>            :   } // for(i)
+<span class="lineNum">    1181 </span>            : 
+<span class="lineNum">    1182 </span>            :   // Calculate electroweak weights
+<span class="lineNum">    1183 </span>            :   double w,w0;
+<span class="lineNum">    1184 </span>            : 
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :   if(isUsingExtrapolation){</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :     if(y == 1){</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :       b11 = 2*Tw[x-1][0] - Tw[x-1][1];</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :       b21 = 2*Tw[x][0]   - Tw[x][1];</span>
+<span class="lineNum">    1189 </span>            :       b12 = Tw[x-1][0];
+<span class="lineNum">    1190 </span>            :       b22 = Tw[x][0];
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1192 </span>            :     else
+<span class="lineNum">    1193 </span>            :     {
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :       b11 = Tw[x-1][y];</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :       b21 = Tw[x][y];</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :       b12 = 2*Tw[x-1][y] - Tw[x-1][y-1];</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :       b22 = 2*Tw[x][y]   - Tw[x][y-1];</span>
+<span class="lineNum">    1198 </span>            :     }
+<span class="lineNum">    1199 </span>            :   } // if(isUsingExtrapolation)
+<span class="lineNum">    1200 </span>            :   else
+<span class="lineNum">    1201 </span>            :   {
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :     b11 = Tw[x-1][y-1];</span>
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :     b21 = Tw[x][y-1];</span>
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :     b12 = Tw[x-1][y];</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     b22 = Tw[x][y];</span>
+<span class="lineNum">    1206 </span>            :   }
+<span class="lineNum">    1207 </span>            : 
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :   w = b11*(1-remnant)*(1-remnantc) + b21*remnant*(1-remnantc)</span>
+<span class="lineNum">    1209 </span><span class="lineNoCov">          0 :     + b12*(1-remnant)*remnantc + b22*remnant*remnantc;</span>
+<span class="lineNum">    1210 </span>            : 
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :   if(isUsingExtrapolation){</span>
+<span class="lineNum">    1212 </span><span class="lineNoCov">          0 :     if(y == 1){</span>
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :       b11 = 2*Tw0[x-1][0] - Tw0[x-1][1];</span>
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :       b21 = 2*Tw0[x][0]   - Tw0[x][1];</span>
+<span class="lineNum">    1215 </span>            :       b12 = Tw0[x-1][0];
+<span class="lineNum">    1216 </span>            :       b22 = Tw0[x][0];
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1218 </span>            :     else{
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :       b11 = Tw0[x-1][y];</span>
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :       b21 = Tw0[x][y];</span>
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :       b12 = 2*Tw0[x-1][y] - Tw0[x-1][y-1];</span>
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :       b22 = 2*Tw0[x][y]   - Tw0[x][y-1];</span>
+<span class="lineNum">    1223 </span>            :     }
+<span class="lineNum">    1224 </span>            :   } // if (isUsingExtrapolation)
+<span class="lineNum">    1225 </span>            :   else{
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :     b11 = Tw0[x-1][y-1];</span>
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     b21 = Tw0[x][y-1];</span>
+<span class="lineNum">    1228 </span><span class="lineNoCov">          0 :     b12 = Tw0[x-1][y];</span>
+<span class="lineNum">    1229 </span><span class="lineNoCov">          0 :     b22 = Tw0[x][y];</span>
+<span class="lineNum">    1230 </span>            :   }
+<span class="lineNum">    1231 </span>            : 
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :   w0 = b11*(1-remnant)*(1-remnantc) + b21*remnant*(1-remnantc)</span>
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :      + b12*(1-remnant)*remnantc     + b22*remnant*remnantc;</span>
+<span class="lineNum">    1234 </span>            : 
+<span class="lineNum">    1235 </span><span class="lineNoCov">          0 :   Tauola::setEWwt(w,w0);</span>
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1237 </span>            : 
+<span class="lineNum">    1238 </span>            : } // namespace Tauolapp
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

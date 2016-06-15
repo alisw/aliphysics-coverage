@@ -1,0 +1,1003 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - EMCAL/EMCALbase/AliEMCALCalibTimeDep.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">EMCAL/EMCALbase</a> - AliEMCALCalibTimeDep.cxx<span style="font-size: 80%;"> (source / <a href="AliEMCALCalibTimeDep.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">433</td>
+            <td class="headerCovTableEntryLo">0.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryLo">3.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id: AliEMCALCalibTimeDep.cxx $ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //_________________________________________________________________________
+<span class="lineNum">      19 </span>            : ///*-- Author: 
+<span class="lineNum">      20 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      21 </span>            : //                                                                           //
+<span class="lineNum">      22 </span>            : // class for EMCAL time-dep calibration   
+<span class="lineNum">      23 </span>            : // - supposed to run in preprocessor
+<span class="lineNum">      24 </span>            : // we use input from the following sources:
+<span class="lineNum">      25 </span>            : // AliEMCALCalibTempCoeff (APD temperature coefficients),
+<span class="lineNum">      26 </span>            : // AliCaloCalibSignal (LED DA), AliEMCALSensorTempArray (ELMB DCS)
+<span class="lineNum">      27 </span>            : // AliEMCALCalibReference: LED amplitude and temperature info at reference time
+<span class="lineNum">      28 </span>            : //
+<span class="lineNum">      29 </span>            : // output/result is in AliEMCALCalibTimeDepCorrection 
+<span class="lineNum">      30 </span>            : //                                                                           //
+<span class="lineNum">      31 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      34 </span>            : #include &lt;TGraphSmooth.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      36 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliCDBEntry.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliEMCALSensorTempArray.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliCaloCalibSignal.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliEMCALCalibTempCoeff.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliEMCALCalibReference.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliEMCALCalibTimeDepCorrection.h&quot; 
+<span class="lineNum">      44 </span>            : #include &quot;AliEMCALCalibTimeDep.h&quot;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : /* first a bunch of constants.. */
+<span class="lineNum">      47 </span>            : const double kSecToHour = 1.0/3600.0; // conversion factor from seconds to hours
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : // some global variables for APD handling; values from Catania studies, best fit
+<span class="lineNum">      50 </span>            : // TempCoeff = p0+p1*M (M=gain), where p0 and and p1 are functions of the dark current
+<span class="lineNum">      51 </span>            : const double kTempCoeffP0Const = -0.903; // 
+<span class="lineNum">      52 </span>            : const double kTempCoeffP0Factor = -1.381e7; // 
+<span class="lineNum">      53 </span>            : const double kTempCoeffP1Const = -0.023; // 
+<span class="lineNum">      54 </span>            : const double kTempCoeffP1Factor = -4.966e5; //
+<span class="lineNum">      55 </span>            :  
+<span class="lineNum">      56 </span>            : const double kTempMaxDiffMedian = 2; // Temperature values should not be further away from median value within SM when considered in the average calc.
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : const double kErrorCode = -999; // to indicate that something went wrong
+<span class="lineNum">      59 </span>            : 
+<a name="60"><span class="lineNum">      60 </span>            : using namespace std;</a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">         42 : ClassImp(AliEMCALCalibTimeDep)</span>
+<a name="63"><span class="lineNum">      63 </span>            : </a>
+<span class="lineNum">      64 </span>            : //________________________________________________________________
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : AliEMCALCalibTimeDep::AliEMCALCalibTimeDep() :</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   fRun(0),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   fStartTime(0),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   fEndTime(0),</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   fMinTemp(0),</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   fMaxTemp(0),</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   fMinTempVariation(0),</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   fMaxTempVariation(0),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   fMinTempValid(15),</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   fMaxTempValid(35),</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   fMinTime(0),</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   fMaxTime(0),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   fTemperatureResolution(0.1), // 0.1 deg C is default</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   fMaxTemperatureDiff(5), // 5 deg C is default max diff relative to reference </span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fTimeBinsPerHour(2), // 2 30-min bins per hour is default</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   fHighLowGainFactor(16), // factor ~16 between High gain and low gain</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fTempArray(NULL),</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   fCalibSignal(NULL),</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   fCalibTempCoeff(NULL),</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   fCalibReference(NULL),</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection(NULL),</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   fVerbosity(0)</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      88 </span>            :   // Constructor
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 : }</span>
+<a name="90"><span class="lineNum">      90 </span>            : </a>
+<span class="lineNum">      91 </span>            : //________________________________________________________________
+<span class="lineNum">      92 </span>            : AliEMCALCalibTimeDep::AliEMCALCalibTimeDep(const AliEMCALCalibTimeDep&amp; calibt) :
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   TObject(calibt),</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   fRun(calibt.GetRunNumber()),</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fStartTime(calibt.GetStartTime()),</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fEndTime(calibt.GetEndTime()),</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   fMinTemp(calibt.GetMinTemp()),</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   fMaxTemp(calibt.GetMaxTemp()),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   fMinTempVariation(calibt.GetMinTempVariation()),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fMaxTempVariation(calibt.GetMaxTempVariation()),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fMinTempValid(calibt.GetMinTempValid()),</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   fMaxTempValid(calibt.GetMaxTempValid()),</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   fMinTime(calibt.GetMinTime()),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   fMaxTime(calibt.GetMaxTime()),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fTemperatureResolution(calibt.GetTemperatureResolution()),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fMaxTemperatureDiff(calibt.GetMaxTemperatureDiff()),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fTimeBinsPerHour(calibt.GetTimeBinsPerHour()),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   fHighLowGainFactor(calibt.GetHighLowGainFactor()),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fTempArray(calibt.GetTempArray()),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   fCalibSignal(calibt.GetCalibSignal()),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   fCalibTempCoeff(calibt.GetCalibTempCoeff()),</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   fCalibReference(calibt.GetCalibReference()),</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection(calibt.GetCalibTimeDepCorrection()),</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   fVerbosity(calibt.GetVerbosity())</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     116 </span>            :   // copy constructor
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     118 </span>            : 
+<a name="119"><span class="lineNum">     119 </span>            : </a>
+<span class="lineNum">     120 </span>            : //________________________________________________________________
+<span class="lineNum">     121 </span>            : AliEMCALCalibTimeDep &amp;AliEMCALCalibTimeDep::operator =(const AliEMCALCalibTimeDep&amp; calibt)
+<span class="lineNum">     122 </span>            : {
+<span class="lineNum">     123 </span>            :   // assignment operator; use copy ctor
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   if (&amp;calibt == this) return *this;</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   new (this) AliEMCALCalibTimeDep(calibt);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 : }</span>
+<a name="129"><span class="lineNum">     129 </span>            : </a>
+<span class="lineNum">     130 </span>            : //________________________________________________________________
+<span class="lineNum">     131 </span>            : AliEMCALCalibTimeDep::~AliEMCALCalibTimeDep()
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     133 </span>            :   // Destructor
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 : }</span>
+<a name="135"><span class="lineNum">     135 </span>            : </a>
+<span class="lineNum">     136 </span>            : //________________________________________________________________
+<span class="lineNum">     137 </span>            : void  AliEMCALCalibTimeDep::Reset() 
+<span class="lineNum">     138 </span>            : {
+<span class="lineNum">     139 </span>            :   // clear variables to default
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   fRun = 0;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   fStartTime = 0;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   fEndTime = 0;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   fMinTemp = 0;</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   fMaxTemp = 0;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   fMinTempVariation = 0;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   fMaxTempVariation = 0;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   fMinTempValid = 15; </span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   fMaxTempValid = 35;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   fMinTime = 0;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   fMaxTime = 0;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   fTemperatureResolution = 0.1; // 0.1 deg C is default</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   fMaxTemperatureDiff = 5; // 5 deg C is default max diff relative to reference </span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   fTimeBinsPerHour = 2; // 2 30-min bins per hour is default</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   fTempArray = NULL;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   fCalibSignal = NULL;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   fCalibTempCoeff = NULL;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   fCalibReference = NULL;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection = NULL;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   fVerbosity = 0;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     161 </span>            : }
+<a name="162"><span class="lineNum">     162 </span>            : </a>
+<span class="lineNum">     163 </span>            : //________________________________________________________________
+<span class="lineNum">     164 </span>            : void  AliEMCALCalibTimeDep::PrintInfo() const
+<span class="lineNum">     165 </span>            : {
+<span class="lineNum">     166 </span>            :   // print some info
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   cout &lt;&lt; endl &lt;&lt; &quot; AliEMCALCalibTimeDep::PrintInfo() &quot; &lt;&lt; endl;</span>
+<span class="lineNum">     168 </span>            :   // basic variables, all 'publicly available' also
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot; VARIABLE DUMP: &quot; &lt;&lt; endl</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetStartTime() &quot; &lt;&lt; GetStartTime() &lt;&lt; endl</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetEndTime() &quot; &lt;&lt; GetEndTime() &lt;&lt; endl</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetMinTime() &quot; &lt;&lt; GetMinTime() &lt;&lt; endl</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetMaxTime() &quot; &lt;&lt; GetMaxTime() &lt;&lt; endl</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetMinTemp() &quot; &lt;&lt; GetMinTemp() &lt;&lt; endl</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetMaxTemp() &quot; &lt;&lt; GetMaxTemp() &lt;&lt; endl</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetMinTempVariation() &quot; &lt;&lt; GetMinTempVariation() &lt;&lt; endl</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetMaxTempVariation() &quot; &lt;&lt; GetMaxTempVariation() &lt;&lt; endl</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; GetTemperatureResolution() &quot; &lt;&lt; GetTemperatureResolution() &lt;&lt; endl;</span>
+<span class="lineNum">     179 </span>            :   // run ranges
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot; RUN INFO: &quot; &lt;&lt; endl</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; runnumber &quot; &lt;&lt; GetRunNumber() &lt;&lt; endl</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; length (in hours) &quot; &lt;&lt; GetLengthOfRunInHours() &lt;&lt; endl</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; length (in bins) &quot; &lt;&lt; GetLengthOfRunInBins() &lt;&lt; endl</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; range of temperature measurements (in hours) &quot; &lt;&lt; GetRangeOfTempMeasureInHours()</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :        &lt;&lt; &quot; (in deg. C) &quot; &lt;&lt; GetRangeOfTempMeasureInDegrees()</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :        &lt;&lt; endl;</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     189 </span>            : }
+<a name="190"><span class="lineNum">     190 </span>            : </a>
+<span class="lineNum">     191 </span>            : //________________________________________________________________ 
+<span class="lineNum">     192 </span>            : Double_t AliEMCALCalibTimeDep::GetLengthOfRunInHours() const
+<span class="lineNum">     193 </span>            : {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   return (fEndTime - fStartTime)*kSecToHour;</span>
+<span class="lineNum">     195 </span>            : }
+<a name="196"><span class="lineNum">     196 </span>            : </a>
+<span class="lineNum">     197 </span>            : //________________________________________________________________ 
+<span class="lineNum">     198 </span>            : Double_t AliEMCALCalibTimeDep::GetLengthOfRunInBins() const
+<span class="lineNum">     199 </span>            : {
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   return (fEndTime - fStartTime)*kSecToHour*fTimeBinsPerHour;</span>
+<span class="lineNum">     201 </span>            : }
+<a name="202"><span class="lineNum">     202 </span>            : </a>
+<span class="lineNum">     203 </span>            : //________________________________________________________________ 
+<span class="lineNum">     204 </span>            : Double_t AliEMCALCalibTimeDep::GetRangeOfTempMeasureInHours() const
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   return (fMaxTime - fMinTime)*kSecToHour;</span>
+<span class="lineNum">     207 </span>            : }
+<a name="208"><span class="lineNum">     208 </span>            : </a>
+<span class="lineNum">     209 </span>            : //________________________________________________________________ 
+<span class="lineNum">     210 </span>            : Double_t AliEMCALCalibTimeDep::GetRangeOfTempMeasureInDegrees() const
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   return (fMaxTemp - fMinTemp);</span>
+<span class="lineNum">     213 </span>            : }
+<a name="214"><span class="lineNum">     214 </span>            : </a>
+<span class="lineNum">     215 </span>            : //________________________________________________________________
+<span class="lineNum">     216 </span>            : void AliEMCALCalibTimeDep::Initialize(Int_t run, 
+<span class="lineNum">     217 </span>            :                                       UInt_t startTime, UInt_t endTime)
+<span class="lineNum">     218 </span>            : { // setup, and get temperature info
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   Reset(); // start fresh</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   fRun = run;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   fStartTime = startTime;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   fEndTime = endTime;</span>
+<span class="lineNum">     224 </span>            :   
+<span class="lineNum">     225 </span>            :   // collect the needed information
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   GetTemperatureInfo(); // temperature readings during the run</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   ScanTemperatureInfo(); // see what the boundaries are (Min/Max Time/Temp)</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     230 </span>            : }
+<a name="231"><span class="lineNum">     231 </span>            : </a>
+<span class="lineNum">     232 </span>            : //________________________________________________________________
+<span class="lineNum">     233 </span>            : Double_t AliEMCALCalibTimeDep::GetTemperatureSM(int imod, UInt_t timeStamp) const
+<span class="lineNum">     234 </span>            : {// return estimate for this one SuperModule, if it had data 
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :   // first convert from seconds to hours..
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   Double_t timeHour = (timeStamp - fStartTime) * kSecToHour;</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :   int n = 0;
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   Double_t valArr[8]={0}; // 8 sensors per SM</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;fTempArray-&gt;NumSensors(); i++) {</span>
+<span class="lineNum">     243 </span>            :     
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     AliEMCALSensorTemp *st = fTempArray-&gt;GetSensor(i);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     int module = st-&gt;GetSector()*2 + st-&gt;GetSide();</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if ( module == imod ) { // right module</span>
+<span class="lineNum">     247 </span>            :       // check if we had valid data for the time that is being asked for
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       if ( timeStamp&gt;=st-&gt;GetStartTime() &amp;&amp; timeStamp&lt;=st-&gt;GetEndTime() ) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         AliSplineFit *f = st-&gt;GetFit();</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         if (f) { // ok, looks like we have valid data/info</span>
+<span class="lineNum">     251 </span>            :           // let's check what the expected value at the time appears to be
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :           Double_t val = f-&gt;Eval(timeHour);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :           if ( fVerbosity &gt; 0 ) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :             cout &lt;&lt; &quot; sensor i &quot; &lt;&lt; i &lt;&lt; &quot; val &quot; &lt;&lt; val &lt;&lt; endl;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :           if (val&gt;fMinTempValid &amp;&amp; val&lt;fMaxTempValid &amp;&amp; n&lt;8) { </span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :             valArr[n] = val;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             n++;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :       } // time</span>
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span>            :     
+<span class="lineNum">     264 </span>            :   } // loop over fTempArray
+<span class="lineNum">     265 </span>            :   
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   if (n&gt;0) { // some valid data was found</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     Double_t median = TMath::Median(n, valArr);</span>
+<span class="lineNum">     268 </span>            :     Double_t average = 0;
+<span class="lineNum">     269 </span>            :     Int_t nval = 0;
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     for (int is=0; is&lt;n; is++) {</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :       if (TMath::Abs(valArr[is] - median) &lt; kTempMaxDiffMedian) {</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         average += valArr[is];</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         nval++;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     275 </span>            :     }
+<span class="lineNum">     276 </span>            :     //cout &lt;&lt; &quot; n &quot; &lt;&lt; n &lt;&lt; &quot; nval &quot; &lt;&lt; nval &lt;&lt; &quot; median &quot; &lt;&lt; median &lt;&lt; endl;
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     if (nval &gt;  0) {</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :       average /= nval;</span>
+<span class="lineNum">     279 </span>            :       //cout &lt;&lt; &quot; average &quot; &lt;&lt; average &lt;&lt; endl; 
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :       return average;</span>
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span>            :     else { // this case should not happen, but kept for completeness (coverity etc)
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :       return median;</span>
+<span class="lineNum">     284 </span>            :     }
+<span class="lineNum">     285 </span>            :   }
+<span class="lineNum">     286 </span>            :   else { // no good data
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     return kErrorCode;</span>
+<span class="lineNum">     288 </span>            :   }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 : }</span>
+<a name="291"><span class="lineNum">     291 </span>            : </a>
+<span class="lineNum">     292 </span>            : //________________________________________________________________
+<span class="lineNum">     293 </span>            : Int_t AliEMCALCalibTimeDep::CalcCorrection()
+<span class="lineNum">     294 </span>            : { // OK, this is where the real action takes place - the heart of this class..
+<span class="lineNum">     295 </span>            :   /* The philosophy is as follows:
+<span class="lineNum">     296 </span>            :      0. Init corrections to 1.0 values, and see how many correction bins we need
+<span class="lineNum">     297 </span>            :      1. Check how large temperature variations we have through the run - do we really need all the correction bias (otherwise adjust to single bin)
+<span class="lineNum">     298 </span>            :      2. try to use temperature info + APD temperature coefficient info, to estimate correction.
+<span class="lineNum">     299 </span>            :      For now (from Dec 2009), we do not use LED info.
+<span class="lineNum">     300 </span>            :    */
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :   // 0: Init
+<span class="lineNum">     303 </span>            :   // how many SuperModules do we have?
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   Int_t nSM = fCalibReference-&gt;GetNSuperModule();</span>
+<span class="lineNum">     305 </span>            :   // how many time-bins should we have for this run?
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   Int_t nBins = (Int_t) (GetLengthOfRunInBins() + 1); // round-up (from double to int; always at least 1)</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   Int_t binSize = (Int_t) (3600/fTimeBinsPerHour); // in seconds</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            :   // 1: get info on how much individual sensors might have changed during
+<span class="lineNum">     310 </span>            :   // the run (compare max-min for each sensor separately)
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :   if (fMaxTempVariation &lt; fTemperatureResolution) {</span>
+<span class="lineNum">     312 </span>            :     nBins = 1; // just one bin needed..
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   if (nBins == 1) {    </span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     binSize = fEndTime - fStartTime;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :   if (fVerbosity &gt; 0) {</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot; nBins &quot; &lt;&lt; nBins &lt;&lt; &quot; binSize &quot; &lt;&lt; binSize &lt;&lt; endl;</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span>            :   // set up a reasonable default (correction = 1.0)
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection = new AliEMCALCalibTimeDepCorrection(nSM);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection-&gt;InitCorrection(nSM, nBins, 1.0);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection-&gt;SetStartTime(fStartTime);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection-&gt;SetNTimeBins(nBins);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   fCalibTimeDepCorrection-&gt;SetTimeBinSize(binSize);</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            :   // 2: try with Temperature correction 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   Int_t nRemaining = CalcTemperatureCorrection(nSM, nBins, binSize);</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   return nRemaining;</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     333 </span>            : 
+<a name="334"><span class="lineNum">     334 </span>            : </a>
+<span class="lineNum">     335 </span>            : //________________________________________________________________
+<span class="lineNum">     336 </span>            : Double_t AliEMCALCalibTimeDep::GetTempCoeff(Double_t IDark, Double_t M) const
+<span class="lineNum">     337 </span>            : { // estimate the Temperature Coefficient, based on the dark current (IDark)
+<span class="lineNum">     338 </span>            :   // and the gain (M), based on Catania parameterizations
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :   Double_t dP0 = kTempCoeffP0Const + kTempCoeffP0Factor * IDark;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :   Double_t dP1 = kTempCoeffP1Const + kTempCoeffP1Factor * IDark;</span>
+<span class="lineNum">     342 </span>            :  
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   Double_t dTC = dP0 + dP1*M;</span>
+<span class="lineNum">     344 </span>            :   // from % numbers to regular ones..:
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :   dTC *= 0.01;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :   return TMath::Abs(dTC); // return the absolute value, to avoid any sign confusion</span>
+<span class="lineNum">     348 </span>            : }
+<span class="lineNum">     349 </span>            : 
+<a name="350"><span class="lineNum">     350 </span>            : /* Next come the methods that do the work in picking up all the needed info..*/</a>
+<span class="lineNum">     351 </span>            : //________________________________________________________________
+<span class="lineNum">     352 </span>            : void AliEMCALCalibTimeDep::GetTemperatureInfo() 
+<span class="lineNum">     353 </span>            : {
+<span class="lineNum">     354 </span>            :   // pick up Preprocessor output, based on fRun (most recent version)
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = AliCDBManager::Instance()-&gt;Get(&quot;EMCAL/Calib/Temperature&quot;, fRun);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :   if (entry) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     fTempArray = (AliEMCALSensorTempArray *) entry-&gt;GetObject();</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :   if (fTempArray) { </span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     AliInfo( Form(&quot;NumSensors %d - IdDCS: first %d last %d&quot;,</span>
+<span class="lineNum">     362 </span>            :                   fTempArray-&gt;NumSensors(),
+<span class="lineNum">     363 </span>            :                   fTempArray-&gt;GetFirstIdDCS(), fTempArray-&gt;GetLastIdDCS() ) );
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     365 </span>            :   else {
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     AliWarning( Form(&quot;AliEMCALSensorTempArray not found!&quot;) );</span>
+<span class="lineNum">     367 </span>            :   }
+<span class="lineNum">     368 </span>            :   
+<span class="lineNum">     369 </span>            :   return;
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 : }</span>
+<a name="371"><span class="lineNum">     371 </span>            : </a>
+<span class="lineNum">     372 </span>            : //________________________________________________________________
+<span class="lineNum">     373 </span>            : Int_t AliEMCALCalibTimeDep::ScanTemperatureInfo() 
+<span class="lineNum">     374 </span>            : {// assign max/min time and temperature values
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   fMinTemp = 999; // init to some large value (999 deg C)</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   fMaxTemp = 0;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   fMinTempVariation = 999; // init to some large value (999 deg C)</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   fMaxTempVariation = 0;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :   fMinTime = 2147483647; // init to a large value in the far future (0x7fffffff), year 2038 times..</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :   fMaxTime = 0;</span>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            :   Int_t n = 0; // number of valid readings
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;fTempArray-&gt;NumSensors(); i++) {</span>
+<span class="lineNum">     386 </span>            :     
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     AliEMCALSensorTemp *st = fTempArray-&gt;GetSensor(i);</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     if ( st-&gt;GetStartTime() == 0 ) { // no valid data</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     390 </span>            :     }
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            :     // check time ranges
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     if (fMinTime &gt; st-&gt;GetStartTime()) { fMinTime = st-&gt;GetStartTime(); }</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     if (fMaxTime &lt; st-&gt;GetEndTime()) { fMaxTime = st-&gt;GetEndTime(); }</span>
+<span class="lineNum">     395 </span>            :  
+<span class="lineNum">     396 </span>            :     // check temperature ranges
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     AliSplineFit *f = st-&gt;GetFit();</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     if (f) { // ok, looks like we have valid data/info</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :       int np = f-&gt;GetKnots();</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :       Double_t *y0 = f-&gt;GetY0();</span>
+<span class="lineNum">     402 </span>            :       // min and max values within the single sensor
+<span class="lineNum">     403 </span>            :       Double_t min = 999;
+<span class="lineNum">     404 </span>            :       Double_t max = 0;
+<span class="lineNum">     405 </span>            :       int nval = 0;
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :       for (int ip=0; ip&lt;np; ip++) { </span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         if (y0[ip]&gt;fMinTempValid &amp;&amp; y0[ip]&lt;fMaxTempValid) {</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :           if (min &gt; y0[ip]) { min = y0[ip]; }</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :           if (max &lt; y0[ip]) { max = y0[ip]; }</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :           nval++;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     412 </span>            :       }
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :       if (nval&gt;0) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         if (fMinTemp &gt; min) { fMinTemp = min; }</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         if (fMaxTemp &lt; max) { fMaxTemp = max; }</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         Double_t variation = max - min;</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         if (fMinTempVariation &gt; variation) { fMinTempVariation = variation; }</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :         if (fMaxTempVariation &lt; variation) { fMaxTempVariation = variation; }</span>
+<span class="lineNum">     419 </span>            :         
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         n++;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   } // loop over fTempArray</span>
+<span class="lineNum">     424 </span>            :   
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :   if (n&gt;0) { // some valid data was found</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     return n;</span>
+<span class="lineNum">     427 </span>            :   }
+<span class="lineNum">     428 </span>            :   else { // no good data
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     return (Int_t) kErrorCode;</span>
+<span class="lineNum">     430 </span>            :   }
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 : }</span>
+<a name="433"><span class="lineNum">     433 </span>            : </a>
+<span class="lineNum">     434 </span>            : //________________________________________________________________
+<span class="lineNum">     435 </span>            : void AliEMCALCalibTimeDep::GetCalibSignalInfo() 
+<span class="lineNum">     436 </span>            : {
+<span class="lineNum">     437 </span>            :   // pick up Preprocessor output, based on fRun (most recent version)
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = AliCDBManager::Instance()-&gt;Get(&quot;EMCAL/Calib/LED&quot;, fRun);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   if (entry) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     fCalibSignal = (AliCaloCalibSignal *) entry-&gt;GetObject();</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   if (fCalibSignal) { </span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     AliInfo( Form(&quot;CalibSignal: NEvents %d NAcceptedEvents %d Entries %lld AvgEntries LEDRefEntries %lld LEDRefEntries %lld, LEDRefAvgEntries %lld&quot;,</span>
+<span class="lineNum">     445 </span>            :                   fCalibSignal-&gt;GetNEvents(), fCalibSignal-&gt;GetNAcceptedEvents(),
+<span class="lineNum">     446 </span>            :                   fCalibSignal-&gt;GetTreeAmpVsTime()-&gt;GetEntries(),
+<span class="lineNum">     447 </span>            :                   fCalibSignal-&gt;GetTreeAvgAmpVsTime()-&gt;GetEntries(),
+<span class="lineNum">     448 </span>            :                   fCalibSignal-&gt;GetTreeLEDAmpVsTime()-&gt;GetEntries(),
+<span class="lineNum">     449 </span>            :                   fCalibSignal-&gt;GetTreeLEDAvgAmpVsTime()-&gt;GetEntries() ) );                 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     451 </span>            :   else {
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     AliWarning( Form(&quot;AliCaloCalibSignal not found!&quot;) );</span>
+<span class="lineNum">     453 </span>            :   }
+<span class="lineNum">     454 </span>            :   
+<span class="lineNum">     455 </span>            :   return;
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 : }</span>
+<a name="457"><span class="lineNum">     457 </span>            : </a>
+<span class="lineNum">     458 </span>            : //________________________________________________________________
+<span class="lineNum">     459 </span>            : void AliEMCALCalibTimeDep::GetCalibTempCoeffInfo() 
+<span class="lineNum">     460 </span>            : {
+<span class="lineNum">     461 </span>            :   // pick up Preprocessor output, based on fRun (most recent version)
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = AliCDBManager::Instance()-&gt;Get(&quot;EMCAL/Calib/TempCoeff&quot;, fRun);</span>
+<span class="lineNum">     463 </span>            :   // stored object should be a TTree; read the info
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   if (entry) {</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     fCalibTempCoeff = (AliEMCALCalibTempCoeff *) entry-&gt;GetObject();</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   if (fCalibTempCoeff) { </span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     AliInfo( Form(&quot;CalibTempCoeff: NSuperModule %d &quot;, fCalibTempCoeff-&gt;GetNSuperModule() ) );</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     471 </span>            :   else {
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     AliWarning( Form(&quot;AliEMCALCalibTempCoeff not found!&quot;) );</span>
+<span class="lineNum">     473 </span>            :   }
+<span class="lineNum">     474 </span>            :   
+<span class="lineNum">     475 </span>            :   return;
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 : }</span>
+<a name="477"><span class="lineNum">     477 </span>            : </a>
+<span class="lineNum">     478 </span>            : //________________________________________________________________
+<span class="lineNum">     479 </span>            : void AliEMCALCalibTimeDep::GetCalibReferenceInfo() 
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :   // pick up Preprocessor output, based on fRun (most recent version)
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   AliCDBEntry* entry = AliCDBManager::Instance()-&gt;Get(&quot;EMCAL/Calib/Reference&quot;, fRun);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   if (entry) {</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     fCalibReference = (AliEMCALCalibReference *) entry-&gt;GetObject();</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   if (fCalibReference) { </span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     AliInfo( Form(&quot;CalibReference: NSuperModule %d &quot;, fCalibReference-&gt;GetNSuperModule() ) );</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     490 </span>            :   else {
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     AliWarning( Form(&quot;AliEMCALCalibReference not found!&quot;) );</span>
+<span class="lineNum">     492 </span>            :   }
+<span class="lineNum">     493 </span>            :   
+<span class="lineNum">     494 </span>            :   return;
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 : }</span>
+<a name="496"><span class="lineNum">     496 </span>            : </a>
+<span class="lineNum">     497 </span>            : //________________________________________________________________
+<span class="lineNum">     498 </span>            : Int_t AliEMCALCalibTimeDep::CalcLEDCorrection(Int_t nSM, Int_t nBins) 
+<span class="lineNum">     499 </span>            : {// Construct normalized ratios R(t)=LED(t)/LEDRef(t), for current time T and calibration time t0 
+<span class="lineNum">     500 </span>            :   // The correction factor we keep is c(T) = R(t0)/R(T)
+<span class="lineNum">     501 </span>            :   // T info from fCalibSignal, t0 info from fCalibReference
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            :   // NOTE: for now we don't use the RMS info either from fCalibSignal or fCalibReference
+<span class="lineNum">     504 </span>            :   // but one could upgrade this in the future
+<span class="lineNum">     505 </span>            :   Int_t nRemaining = 0; // we count the towers for which we could not get valid data
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            :   // sanity check; same SuperModule indices for corrections as for regular calibrations
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nSM; i++) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibReference * dataCalibReference = fCalibReference-&gt;GetSuperModuleCalibReferenceNum(i);</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibTimeDepCorrection * dataCalibTimeDepCorrection = fCalibTimeDepCorrection-&gt;GetSuperModuleCalibTimeDepCorrectionNum(i);</span>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     int iSMRef = dataCalibReference-&gt;GetSuperModuleNum();</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     int iSMCorr = dataCalibTimeDepCorrection-&gt;GetSuperModuleNum();</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     if (iSMRef != iSMCorr) {</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :       AliWarning( Form(&quot;AliEMCALCalibTimeDep - SuperModule index mismatch: %d != %d&quot;, iSMRef, iSMCorr) );</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :       nRemaining = nSM * AliEMCALGeoParams::fgkEMCALCols * AliEMCALGeoParams::fgkEMCALRows * nBins;</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :       return nRemaining;</span>
+<span class="lineNum">     518 </span>            :     }
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     520 </span>            :  
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :   int iSM = 0;</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   int iCol = 0;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   int iRow = 0;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   int iStrip = 0;</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :   int iGain = 0;</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span>            :   // The fCalibSignal info is stored in TTrees
+<span class="lineNum">     528 </span>            :   // Note that the time-bins for the TTree's may not exactly match with our correction time bins 
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   int timeDiff = fCalibSignal-&gt;GetStartTime() - fStartTime; // in seconds</span>
+<span class="lineNum">     530 </span>            :   // fCalibSignal time info in seconds: Hour/kSecToHour
+<span class="lineNum">     531 </span>            :   // corrected for startTime difference: Hour/kSecToHour + timeDiff
+<span class="lineNum">     532 </span>            :   // converted into a time-bin we use: (Hour + timeDiff*kSecToHour) * fTimeBinsPerHour
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            :   // values for R(T), size of TArray = nBins
+<span class="lineNum">     535 </span>            :   // the [2] dimension below is for the low or high gain 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   TArrayF ampT[AliEMCALGeoParams::fgkEMCALModules][AliEMCALGeoParams::fgkEMCALCols][AliEMCALGeoParams::fgkEMCALRows][2]; </span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   TArrayF nT[AliEMCALGeoParams::fgkEMCALModules][AliEMCALGeoParams::fgkEMCALCols][AliEMCALGeoParams::fgkEMCALRows][2]; </span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :   TArrayF ampLEDRefT[AliEMCALGeoParams::fgkEMCALModules][AliEMCALGeoParams::fgkEMCALLEDRefs][2]; </span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :   TArrayF nLEDRefT[AliEMCALGeoParams::fgkEMCALModules][AliEMCALGeoParams::fgkEMCALLEDRefs][2]; </span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span>            :   // set up TArray's first
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :   for (iSM = 0; iSM &lt; AliEMCALGeoParams::fgkEMCALModules; iSM++) {</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     for (iCol = 0; iCol &lt; AliEMCALGeoParams::fgkEMCALCols; iCol++) {</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :       for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :         for (iGain = 0; iGain &lt; 2; iGain++) {</span>
+<span class="lineNum">     546 </span>            :           // length of arrays
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :           ampT[iSM][iCol][iRow][iGain].Set(nBins);</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :           nT[iSM][iCol][iRow][iGain].Set(nBins);</span>
+<span class="lineNum">     549 </span>            :           // content of arrys
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :           for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :             ampT[iSM][iCol][iRow][iGain].AddAt(0, j);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :             nT[iSM][iCol][iRow][iGain].AddAt(0, j);</span>
+<span class="lineNum">     553 </span>            :           }
+<span class="lineNum">     554 </span>            :         }
+<span class="lineNum">     555 </span>            :       }
+<span class="lineNum">     556 </span>            :     }//iCol
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     for (iStrip = 0; iStrip &lt; AliEMCALGeoParams::fgkEMCALLEDRefs; iStrip++) {</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :       for (iGain = 0; iGain &lt; 2; iGain++) {</span>
+<span class="lineNum">     559 </span>            :         // length of arrays
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         ampLEDRefT[iSM][iStrip][iGain].Set(nBins);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         nLEDRefT[iSM][iStrip][iGain].Set(nBins);</span>
+<span class="lineNum">     562 </span>            :         // content of arrys
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :         for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :           ampLEDRefT[iSM][iStrip][iGain].AddAt(0, j);</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :           nLEDRefT[iSM][iStrip][iGain].AddAt(0, j);</span>
+<span class="lineNum">     566 </span>            :         }
+<span class="lineNum">     567 </span>            :       }
+<span class="lineNum">     568 </span>            :     }//iStrip
+<span class="lineNum">     569 </span>            :   }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span>            :   // OK, now loop over the TTrees and fill the arrays needed for R(T)
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :   TTree *treeAvg = fCalibSignal-&gt;GetTreeAvgAmpVsTime();</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   TTree *treeLEDRefAvg = fCalibSignal-&gt;GetTreeAvgAmpVsTime();</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :   int iChannelNum = 0; // for regular towers</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :   int iRefNum = 0; // for LED</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :   double dHour = 0;</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :   double dAvgAmp = 0;</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :   treeAvg-&gt;SetBranchAddress(&quot;fChannelNum&quot;, &amp;iChannelNum);</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :   treeAvg-&gt;SetBranchAddress(&quot;fHour&quot;, &amp;dHour);</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :   treeAvg-&gt;SetBranchAddress(&quot;fAvgAmp&quot;,&amp;dAvgAmp);</span>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span>            :   int iBin = 0;
+<span class="lineNum">     585 </span>            :   // counters for how many values were seen per SuperModule
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :   int nCount[AliEMCALGeoParams::fgkEMCALModules] = {0};</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :   int nCountLEDRef[AliEMCALGeoParams::fgkEMCALModules] = {0};</span>
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :   for (int ient=0; ient&lt;treeAvg-&gt;GetEntries(); ient++) {</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :     treeAvg-&gt;GetEntry(ient);</span>
+<span class="lineNum">     591 </span>            :     // figure out where this info comes from
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     fCalibSignal-&gt;DecodeChannelNum(iChannelNum, &amp;iSM, &amp;iCol, &amp;iRow, &amp;iGain);</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     iBin = (int) ( (dHour + timeDiff*kSecToHour) * fTimeBinsPerHour  ); // CHECK!!!</span>
+<span class="lineNum">     594 </span>            :     // add value in the arrays
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     ampT[iSM][iCol][iRow][iGain].AddAt( ampT[iSM][iCol][iRow][iGain].At(iBin)+dAvgAmp, iBin );</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     nT[iSM][iCol][iRow][iGain].AddAt( nT[iSM][iCol][iRow][iGain].At(iBin)+1, iBin );</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :     nCount[iSM]++;</span>
+<span class="lineNum">     598 </span>            :   }
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :   treeLEDRefAvg-&gt;SetBranchAddress(&quot;fRefNum&quot;, &amp;iRefNum);</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :   treeLEDRefAvg-&gt;SetBranchAddress(&quot;fHour&quot;, &amp;dHour);</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :   treeLEDRefAvg-&gt;SetBranchAddress(&quot;fAvgAmp&quot;,&amp;dAvgAmp);</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   for (int ient=0; ient&lt;treeLEDRefAvg-&gt;GetEntries(); ient++) {</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     treeLEDRefAvg-&gt;GetEntry(ient);</span>
+<span class="lineNum">     606 </span>            :     // figure out where this info comes from
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     fCalibSignal-&gt;DecodeRefNum(iRefNum, &amp;iSM, &amp;iStrip, &amp;iGain);</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     iBin = (int) ( (dHour + timeDiff*kSecToHour) * fTimeBinsPerHour  ); // CHECK!!!</span>
+<span class="lineNum">     609 </span>            :     // add value in the arrays
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :     ampLEDRefT[iSM][iStrip][iGain].AddAt( ampLEDRefT[iSM][iStrip][iGain].At(iBin)+dAvgAmp, iBin );</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :     nLEDRefT[iSM][iStrip][iGain].AddAt( nLEDRefT[iSM][iStrip][iGain].At(iBin)+1, iBin );</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     nCountLEDRef[iSM]++;</span>
+<span class="lineNum">     613 </span>            :   }
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            :   // Normalize TArray values, and calculate average also
+<span class="lineNum">     616 </span>            :   Float_t norm = 0; // extra var, for readability
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :   for (iSM = 0; iSM &lt; AliEMCALGeoParams::fgkEMCALModules; iSM++) {</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     if (nCount[iSM]&gt;0 &amp;&amp; nCountLEDRef[iSM]&gt;0) { // avoid SuperModules with no data..</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :       for (iCol = 0; iCol &lt; AliEMCALGeoParams::fgkEMCALCols; iCol++) {</span>
+<span class="lineNum">     621 </span>            :         //      iStrip = AliEMCALGeoParams::GetStripModule(iSM, iCol);
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :         iStrip = (iSM%2==0) ? iCol/2 : AliEMCALGeoParams::fgkEMCALLEDRefs - 1 - iCol/2; //TMP, FIXME</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :           for (iGain = 0; iGain &lt; 2; iGain++) {</span>
+<span class="lineNum">     625 </span>            :             // content of arrys
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :             for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :               if (nT[iSM][iCol][iRow][iGain].At(j) &gt; 0) { </span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                 norm = ampT[iSM][iCol][iRow][iGain].At(j) / nT[iSM][iCol][iRow][iGain].At(j); </span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                 ampT[iSM][iCol][iRow][iGain].AddAt(norm, j); // AddAt = SetAt</span>
+<span class="lineNum">     630 </span>            :               } 
+<span class="lineNum">     631 </span>            :             }
+<span class="lineNum">     632 </span>            :           }
+<span class="lineNum">     633 </span>            :         }
+<span class="lineNum">     634 </span>            :       }//iCol
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :       for (iStrip = 0; iStrip &lt; AliEMCALGeoParams::fgkEMCALLEDRefs; iStrip++) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         for (iGain = 0; iGain &lt; 2; iGain++) {</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :           for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :             if (nLEDRefT[iSM][iStrip][iGain].At(j) &gt; 0) {</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :               norm = ampLEDRefT[iSM][iStrip][iGain].At(j) / nLEDRefT[iSM][iStrip][iGain].At(j); </span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :               ampLEDRefT[iSM][iStrip][iGain].AddAt(norm, j); // AddAt = SetAt</span>
+<span class="lineNum">     641 </span>            :             }
+<span class="lineNum">     642 </span>            :           }
+<span class="lineNum">     643 </span>            :         }
+<span class="lineNum">     644 </span>            :       }//iStrip
+<span class="lineNum">     645 </span>            :     }
+<span class="lineNum">     646 </span>            :   } // iSM
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span>            :   // Calculate correction values, and store them
+<span class="lineNum">     650 </span>            :   // set kErrorCode values for those that could not be set
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span>            :   Float_t ratiot0 = 0;
+<span class="lineNum">     653 </span>            :   Float_t ratioT = 0;
+<span class="lineNum">     654 </span>            :   Float_t correction = 0; // c(T) = R(t0)/R(T)
+<span class="lineNum">     655 </span>            :   Int_t refGain = 0; // typically use low gain for LED reference amplitude (high gain typically well beyond saturation)
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nSM; i++) {</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibReference * dataCalibReference = fCalibReference-&gt;GetSuperModuleCalibReferenceNum(i);</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibTimeDepCorrection * dataCalibTimeDepCorrection = fCalibTimeDepCorrection-&gt;GetSuperModuleCalibTimeDepCorrectionNum(i);</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     iSM = dataCalibReference-&gt;GetSuperModuleNum();</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     for (iCol = 0; iCol &lt; AliEMCALGeoParams::fgkEMCALCols; iCol++) {</span>
+<span class="lineNum">     663 </span>            :       //      iStrip = AliEMCALGeoParams::GetStripModule(iSM, iCol);
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :       iStrip = (iSM%2==0) ? iCol/2 : AliEMCALGeoParams::fgkEMCALLEDRefs - 1 - iCol/2; //TMP, FIXME</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :         refGain = dataCalibReference-&gt;GetLEDRefHighLow(iStrip); // LED reference gain value used for reference calibration   </span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :       for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span>            :         // Calc. R(t0):
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         AliEMCALCalibReferenceVal * refVal = dataCalibReference-&gt;GetAPDVal(iCol, iRow);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :         iGain = refVal-&gt;GetHighLow(); // gain value used for reference calibration   </span>
+<span class="lineNum">     672 </span>            :         // valid amplitude values should be larger than 0
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :         if (refVal-&gt;GetLEDAmp()&gt;0 &amp;&amp; dataCalibReference-&gt;GetLEDRefAmp(iStrip)&gt;0) {</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :           ratiot0 =  refVal-&gt;GetLEDAmp() / dataCalibReference-&gt;GetLEDRefAmp(iStrip);</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     676 </span>            :         else {
+<span class="lineNum">     677 </span>            :           ratiot0 = kErrorCode;
+<span class="lineNum">     678 </span>            :         }
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span>            :         // Calc. R(T)
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span>            :           // calculate R(T) also; first try with individual tower:
+<span class="lineNum">     684 </span>            :           // same gain as for reference calibration is the default
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :           if (ampT[iSM][iCol][iRow][iGain].At(j)&gt;0 &amp;&amp; ampLEDRefT[iSM][iStrip][refGain].At(j)&gt;0) {</span>
+<span class="lineNum">     686 </span>            :             // looks like valid data with the right gain combination
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :             ratioT = ampT[iSM][iCol][iRow][iGain].At(j) / ampLEDRefT[iSM][iStrip][refGain].At(j); </span>
+<span class="lineNum">     688 </span>            : 
+<span class="lineNum">     689 </span>            :             // if data appears to be saturated, and we are in high gain, then try with low gain instead
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :             int newGain = iGain;</span>
+<span class="lineNum">     691 </span>            :             int newRefGain = refGain;
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :             if ( ampT[iSM][iCol][iRow][iGain].At(j)&gt;AliEMCALGeoParams::fgkOverflowCut &amp;&amp; iGain==1 ) {</span>
+<span class="lineNum">     693 </span>            :               newGain = 0;
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :             if ( ampLEDRefT[iSM][iStrip][refGain].At(j)&gt;AliEMCALGeoParams::fgkOverflowCut &amp;&amp; refGain==1 ) { </span>
+<span class="lineNum">     696 </span>            :               newRefGain = 0;
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :             if (newGain!=iGain || newRefGain!=refGain) {</span>
+<span class="lineNum">     700 </span>            :               // compensate for using different gain than in the reference calibration
+<span class="lineNum">     701 </span>            :               // we may need to have a custom H/L ratio value for each tower
+<span class="lineNum">     702 </span>            :               // later, but for now just use a common value, as the rest of the code does.. 
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :               ratioT = ampT[iSM][iCol][iRow][newGain].At(j) / ampLEDRefT[iSM][iStrip][newRefGain].At(j); </span>
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :               if (newGain&lt;iGain) {</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :                 ratioT *= fHighLowGainFactor;</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :               else if (newRefGain&lt;refGain) {</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                 ratioT /= fHighLowGainFactor;</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     711 </span>            :             }
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     713 </span>            :           else {
+<span class="lineNum">     714 </span>            :             ratioT = kErrorCode;
+<span class="lineNum">     715 </span>            :           }
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :           // Calc. correction factor
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :           if (ratiot0&gt;0 &amp;&amp; ratioT&gt;0) { </span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :             correction = ratiot0/ratioT;</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     721 </span>            :           else {
+<span class="lineNum">     722 </span>            :             correction = kErrorCode;
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :             nRemaining++;</span>
+<span class="lineNum">     724 </span>            :           }
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span>            :           // Store the value
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :           dataCalibTimeDepCorrection-&gt;GetCorrection(iCol,iRow)-&gt;AddAt(correction, j);</span>
+<span class="lineNum">     728 </span>            :           /* Check that
+<span class="lineNum">     729 </span>            :           fTimeDepCorrection-&gt;SetCorrection(i, iCol, iRow, j, correction);
+<span class="lineNum">     730 </span>            :           also works OK */
+<span class="lineNum">     731 </span>            :         } // nBins
+<span class="lineNum">     732 </span>            :       }
+<span class="lineNum">     733 </span>            :     }
+<span class="lineNum">     734 </span>            :   }
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :   nRemaining = CalcLEDCorrectionStripBasis(nSM, nBins);</span>
+<span class="lineNum">     737 </span>            :   return nRemaining;
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 : }</span>
+<a name="739"><span class="lineNum">     739 </span>            : </a>
+<span class="lineNum">     740 </span>            : //________________________________________________________________
+<span class="lineNum">     741 </span>            : Int_t AliEMCALCalibTimeDep::CalcLEDCorrectionStripBasis(Int_t nSM, Int_t nBins) 
+<span class="lineNum">     742 </span>            : { // use averages for each strip if no good values exist for some single tower 
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span>            :   // go over fTimeDepCorrection info
+<span class="lineNum">     745 </span>            :   Int_t nRemaining = 0; // we count the towers for which we could not get valid data
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            :   // for calculating StripAverage info
+<span class="lineNum">     748 </span>            :   int nValidTower = 0;
+<span class="lineNum">     749 </span>            :   Float_t stripAverage = 0;
+<span class="lineNum">     750 </span>            :   Float_t val = 0;
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span>            :   int iSM = 0;
+<span class="lineNum">     753 </span>            :   int iCol = 0;
+<span class="lineNum">     754 </span>            :   int iRow = 0;
+<span class="lineNum">     755 </span>            :   int iStrip = 0;
+<span class="lineNum">     756 </span>            :   int firstCol = 0;
+<span class="lineNum">     757 </span>            :   int lastCol = 0;
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nSM; i++) {</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibTimeDepCorrection * dataCalibTimeDepCorrection = fCalibTimeDepCorrection-&gt;GetSuperModuleCalibTimeDepCorrectionNum(i);</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     iSM = dataCalibTimeDepCorrection-&gt;GetSuperModuleNum();</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span>            :       nValidTower = 0;
+<span class="lineNum">     766 </span>            :       stripAverage = 0;
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :       for (iStrip = 0; iStrip &lt; AliEMCALGeoParams::fgkEMCALLEDRefs; iStrip++) {</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         firstCol = iStrip*2;</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :         if ((iSM%2)==1) { // C side</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :           firstCol = (AliEMCALGeoParams::fgkEMCALLEDRefs-1 - iStrip)*2;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :         lastCol = firstCol+1;</span>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :         for (iCol = firstCol; iCol &lt;= lastCol; iCol++) {</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :           for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :             val = dataCalibTimeDepCorrection-&gt;GetCorrection(iCol,iRow)-&gt;At(j);</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :             if (val&gt;0) { // valid value; error code is negative</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :               stripAverage += val;</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :               nValidTower++;</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :             } </span>
+<span class="lineNum">     782 </span>            :           }
+<span class="lineNum">     783 </span>            :         }
+<span class="lineNum">     784 </span>            : 
+<span class="lineNum">     785 </span>            :         // calc average over strip
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :         if (nValidTower&gt;0) {</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :           stripAverage /= nValidTower;</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :           for (iCol = firstCol; iCol &lt;= lastCol; iCol++) {</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :             for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :               val = dataCalibTimeDepCorrection-&gt;GetCorrection(iCol,iRow)-&gt;At(j);</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :               if (val&lt;0) { // invalid value; error code is negative</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :                 dataCalibTimeDepCorrection-&gt;GetCorrection(iCol,iRow)-&gt;AddAt(val, j);</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     794 </span>            :             }
+<span class="lineNum">     795 </span>            :           }
+<span class="lineNum">     796 </span>            :         }
+<span class="lineNum">     797 </span>            :         else { // could not fill in unvalid entries
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :           nRemaining += 2*AliEMCALGeoParams::fgkEMCALRows;</span>
+<span class="lineNum">     799 </span>            :         }
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span>            :       } // iStrip
+<span class="lineNum">     802 </span>            :     } // j, bins
+<span class="lineNum">     803 </span>            :   } // iSM
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :   return nRemaining;</span>
+<span class="lineNum">     806 </span>            : }
+<a name="807"><span class="lineNum">     807 </span>            : </a>
+<span class="lineNum">     808 </span>            : //________________________________________________________________
+<span class="lineNum">     809 </span>            : Int_t AliEMCALCalibTimeDep::CalcTemperatureCorrection(Int_t nSM, Int_t nBins, Int_t binSize) 
+<span class="lineNum">     810 </span>            : { // OK, so we didn't have valid LED data that allowed us to do the correction only 
+<span class="lineNum">     811 </span>            :   // with that info.
+<span class="lineNum">     812 </span>            :   // So, instead we'll rely on the temperature info and try to do the correction
+<span class="lineNum">     813 </span>            :   // based on that instead.
+<span class="lineNum">     814 </span>            :   // For this, we'll need the info from 3 classes (+temperature array), and output the values in a 4th class 
+<span class="lineNum">     815 </span>            :   Int_t nRemaining = 0;
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span>            :   int iSM = 0;
+<span class="lineNum">     818 </span>            :   int iCol = 0;
+<span class="lineNum">     819 </span>            :   int iRow = 0;
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :   Double_t dTempCoeff[AliEMCALGeoParams::fgkEMCALCols][AliEMCALGeoParams::fgkEMCALRows];</span>
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :   memset(dTempCoeff, 0, sizeof(dTempCoeff));</span>
+<span class="lineNum">     823 </span>            :   Double_t correction = 0;
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   Double_t secondsPerBin = (Double_t) binSize;</span>
+<span class="lineNum">     825 </span>            : 
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; nSM; i++) {</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibTimeDepCorrection * dataCalibTimeDepCorrection = fCalibTimeDepCorrection-&gt;GetSuperModuleCalibTimeDepCorrectionNum(i);</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :     iSM = dataCalibTimeDepCorrection-&gt;GetSuperModuleNum();</span>
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibReference * dataCalibReference = fCalibReference-&gt;GetSuperModuleCalibReferenceNum(iSM);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     AliEMCALSuperModuleCalibTempCoeff * dataCalibTempCoeff = fCalibTempCoeff-&gt;GetSuperModuleCalibTempCoeffNum(iSM);</span>
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span>            :     // first get CalibTempCoeff info
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :     for (iCol = 0; iCol &lt; AliEMCALGeoParams::fgkEMCALCols; iCol++) {</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :       for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     836 </span>            : 
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :         dTempCoeff[iCol][iRow] = dataCalibTempCoeff-&gt;GetTC(iCol, iRow);</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :         if (fVerbosity &gt; 1) {</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :           cout &lt;&lt; &quot; iSM &quot; &lt;&lt; iSM &lt;&lt; &quot; iCol &quot; &lt;&lt; iCol &lt;&lt; &quot; iRow &quot; &lt;&lt; iRow </span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :                &lt;&lt; &quot; dTempCoeff &quot; &lt;&lt; dTempCoeff[iCol][iRow] &lt;&lt; endl; </span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     842 </span>            :       }
+<span class="lineNum">     843 </span>            :     }
+<span class="lineNum">     844 </span>            :     
+<span class="lineNum">     845 </span>            :     // figure out what the reference temperature is, from fCalibReference
+<span class="lineNum">     846 </span>            :     Double_t referenceTemperature = 0;
+<span class="lineNum">     847 </span>            :     int nVal = 0;
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :     for (int iSensor = 0; iSensor&lt;AliEMCALGeoParams::fgkEMCALTempSensors ; iSensor++) {</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :       if (dataCalibReference-&gt;GetTemperature(iSensor)&gt;0) { // hopefully OK value</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         referenceTemperature += dataCalibReference-&gt;GetTemperature(iSensor);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         nVal++;</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     853 </span>            :     }
+<span class="lineNum">     854 </span>            :     
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :     if (nVal&gt;0) {</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :       referenceTemperature /= nVal; // valid values exist, we can look into corrections</span>
+<span class="lineNum">     857 </span>            :       
+<span class="lineNum">     858 </span>            :       Double_t dSMTemperature = 0;
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :       for (int j = 0; j &lt; nBins; j++) {</span>
+<span class="lineNum">     860 </span>            :         // what is the timestamp in the middle of this bin? (0.5 is for middle of bin)
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :         UInt_t timeStamp = fStartTime + (UInt_t)((j+0.5)*secondsPerBin);</span>
+<span class="lineNum">     862 </span>            :       // get the temperature at this time; use average over whole SM for now (TO BE CHECKED LATER - if we can do better with finer grained info)
+<span class="lineNum">     863 </span>            :         Double_t oldSMTemperature = dSMTemperature;
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :         dSMTemperature = GetTemperatureSM(iSM, timeStamp); </span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :         if (j&gt;0 &amp;&amp; (dSMTemperature==kErrorCode)) { </span>
+<span class="lineNum">     866 </span>            :           // if we have previous values, and retrieval of values failed - use that instead (hopefully good)
+<span class="lineNum">     867 </span>            :           dSMTemperature = oldSMTemperature; 
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     869 </span>            :  
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :         Double_t temperatureDiff = referenceTemperature - dSMTemperature; // ref - new</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :         if (fVerbosity &gt; 0) {</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :           cout &lt;&lt; &quot; referenceTemperature &quot; &lt;&lt; referenceTemperature</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :                &lt;&lt; &quot; dSMTemperature &quot; &lt;&lt; dSMTemperature</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :                &lt;&lt; &quot; temperatureDiff &quot; &lt;&lt; temperatureDiff</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :                &lt;&lt; endl;</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     877 </span>            :         // if the new temperature is higher than the old/reference one (diff&lt;0), then the gain has gone down 
+<span class="lineNum">     878 </span>            :         // if the new temperature is lower than the old/reference one (diff&gt;0), then the gain has gone up
+<span class="lineNum">     879 </span>            :         // dTempCoeff is a (unsigned) factor describing how many % the gain 
+<span class="lineNum">     880 </span>            :         // changes with a degree change.  
+<span class="lineNum">     881 </span>            :         // i.e. the product temperatureDiff * dTempCoeff increase when the gain goes up
+<span class="lineNum">     882 </span>            :         // The correction we want to keep is what we should multiply our ADC value with as a function
+<span class="lineNum">     883 </span>            :         // of time, i.e. the inverse of the gain change..
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :         if ( (TMath::Abs(temperatureDiff)&gt;fTemperatureResolution)</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :              &amp;&amp; (TMath::Abs(temperatureDiff)&lt;fMaxTemperatureDiff) ) {</span>
+<span class="lineNum">     886 </span>            :           // significant enough difference that we need to consider it, and also not unreasonably large
+<span class="lineNum">     887 </span>            : 
+<span class="lineNum">     888 </span>            :           // loop over all towers; effect of temperature change will depend on gain for this tower
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :           for (iCol = 0; iCol &lt; AliEMCALGeoParams::fgkEMCALCols; iCol++) {</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :             for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     891 </span>            : 
+<span class="lineNum">     892 </span>            :               // the correction should be inverse of modification in gain: (see discussion above)
+<span class="lineNum">     893 </span>            :               // modification in gain: 1.0 + (temperatureDiff * dTempCoeff[iCol][iRow])*0.01; 
+<span class="lineNum">     894 </span>            :               // 1/(1+x) ~= 1 - x for small x, i.e. we arrive at:
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :               correction = 1.0 - (temperatureDiff * dTempCoeff[iCol][iRow]); </span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :               dataCalibTimeDepCorrection-&gt;GetCorrection(iCol,iRow)-&gt;AddAt(correction, j);</span>
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :               if (fVerbosity &gt; 1) {</span>
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :                 cout &lt;&lt; &quot; iSM &quot; &lt;&lt; iSM</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :                      &lt;&lt; &quot; iCol  &quot; &lt;&lt; iCol </span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :                      &lt;&lt; &quot; iRow  &quot; &lt;&lt; iRow </span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :                      &lt;&lt; &quot; j  &quot; &lt;&lt; j </span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :                      &lt;&lt; &quot; correction  &quot; &lt;&lt; correction </span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :                      &lt;&lt; endl;</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     905 </span>            :             }
+<span class="lineNum">     906 </span>            :           }
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span>            :         } // if noteworthy temperature change
+<span class="lineNum">     909 </span>            :         else { // just set correction values to 1.0
+<span class="lineNum">     910 </span>            :           correction = 1;
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :           for (iCol = 0; iCol &lt; AliEMCALGeoParams::fgkEMCALCols; iCol++) {</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :             for (iRow = 0; iRow &lt; AliEMCALGeoParams::fgkEMCALRows; iRow++) {</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :               dataCalibTimeDepCorrection-&gt;GetCorrection(iCol,iRow)-&gt;AddAt(correction, j);</span>
+<span class="lineNum">     914 </span>            :             }
+<span class="lineNum">     915 </span>            :           }
+<span class="lineNum">     916 </span>            :         } // else
+<span class="lineNum">     917 </span>            :       } // j, Bins
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :     } // if reference temperature exist </span>
+<span class="lineNum">     920 </span>            :     else { // could not do the needed check.. signal that in the return code
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :       nRemaining += AliEMCALGeoParams::fgkEMCALCols * AliEMCALGeoParams::fgkEMCALRows * nBins;</span>
+<span class="lineNum">     922 </span>            :     }
+<span class="lineNum">     923 </span>            :   } // iSM
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   return nRemaining;</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     927 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

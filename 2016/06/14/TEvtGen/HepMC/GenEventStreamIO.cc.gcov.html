@@ -1,0 +1,875 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TEvtGen/HepMC/GenEventStreamIO.cc</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TEvtGen/HepMC</a> - GenEventStreamIO.cc<span style="font-size: 80%;"> (source / <a href="GenEventStreamIO.cc.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">444</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : //--------------------------------------------------------------------------</a>
+<span class="lineNum">       2 </span>            : //
+<span class="lineNum">       3 </span>            : // GenEventStreamIO.cc
+<span class="lineNum">       4 </span>            : // Author:  Lynn Garren
+<span class="lineNum">       5 </span>            : //
+<span class="lineNum">       6 </span>            : // Implement operator &gt;&gt; and operator &lt;&lt;
+<span class="lineNum">       7 </span>            : //
+<span class="lineNum">       8 </span>            : // ----------------------------------------------------------------------
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      11 </span>            : #include &lt;ostream&gt;
+<span class="lineNum">      12 </span>            : #include &lt;istream&gt;
+<span class="lineNum">      13 </span>            : #include &lt;sstream&gt;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #include &quot;HepMC/GenEvent.h&quot;
+<span class="lineNum">      16 </span>            : #include &quot;HepMC/GenCrossSection.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;HepMC/StreamInfo.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;HepMC/StreamHelpers.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;HepMC/Version.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;HepMC/IO_Exception.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : namespace HepMC {
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : // ------------------------- local methods ----------------
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : /// This method is called by the stream destructor.
+<a name="27"><span class="lineNum">      27 </span>            : /// It does cleanup on stored user data (StreamInfo)</a>
+<span class="lineNum">      28 </span>            : /// and is registered by the first call to get_stream_info().
+<span class="lineNum">      29 </span>            : void HepMCStreamCallback(std::ios_base::event e, std::ios_base&amp; b, int i)
+<span class="lineNum">      30 </span>            : {
+<span class="lineNum">      31 </span>            :   // only clean up if the stream object is going away.
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :   if(i!=0 &amp;&amp; e!= std::ios_base::erase_event) return;</span>
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            :   // retrieve the pointer to the object
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 :   StreamInfo* hd = (StreamInfo*)b.pword(i);</span>
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :   b.pword(i) = 0;</span>
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :   b.iword(i) = 0;</span>
+<span class="lineNum">      38 </span>            : #ifdef HEPMC_DEBUG
+<span class="lineNum">      39 </span>            :   // the following line is just for sanity checking
+<span class="lineNum">      40 </span>            :   if(hd) std::cerr &lt;&lt; &quot;deleted StreamInfo &quot; &lt;&lt; hd-&gt;stream_id() &lt;&lt; &quot;\n&quot;;
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :   delete hd;</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : // ------------------------- iomanip ----------------
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : /// A custom iomanip that allows us to store and access user data (StreamInfo)
+<span class="lineNum">      48 </span>            : /// associated with the stream.
+<a name="49"><span class="lineNum">      49 </span>            : /// This method creates the StreamInfo object the first time it is called.</a>
+<span class="lineNum">      50 </span>            : template &lt;class IO&gt;
+<span class="lineNum">      51 </span>            : StreamInfo&amp; get_stream_info(IO&amp; iost)
+<span class="lineNum">      52 </span>            : {
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   if(iost.iword(0) == 0)</span>
+<span class="lineNum">      54 </span>            :     {
+<span class="lineNum">      55 </span>            :       // make sure we add the callback if this is the first time through
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :       iost.iword(0)=1;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :       iost.register_callback(&amp;HepMCStreamCallback, 0);</span>
+<span class="lineNum">      58 </span>            :       // this is our special &quot;context&quot; record.
+<span class="lineNum">      59 </span>            :       // there is one of these at the head of each IO block.
+<span class="lineNum">      60 </span>            :       // allocate room for a StreamInfo in the userdata area
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :       iost.pword(0) = new StreamInfo;</span>
+<span class="lineNum">      62 </span>            : #ifdef HEPMC_DEBUG
+<span class="lineNum">      63 </span>            :       // the following line is just for sanity checking
+<span class="lineNum">      64 </span>            :       std::cerr &lt;&lt; &quot;created StreamInfo &quot; &lt;&lt; ((StreamInfo*)iost.pword(0))-&gt;stream_id() &lt;&lt; &quot;\n&quot;;
+<span class="lineNum">      65 </span>            : #endif
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   return *(StreamInfo*)iost.pword(0);</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      69 </span>            :         
+<a name="70"><span class="lineNum">      70 </span>            : // ------------------------- GenEvent member functions ----------------</a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : std::ostream&amp; GenEvent::write( std::ostream&amp; os )
+<span class="lineNum">      73 </span>            : {
+<span class="lineNum">      74 </span>            :     /// Writes evt to an output stream.
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            :     //
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(os);</span>
+<span class="lineNum">      78 </span>            :     //
+<span class="lineNum">      79 </span>            :     // if this is the first event, set precision
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     if ( !info.finished_first_event() ) {</span>
+<span class="lineNum">      81 </span>            :         // precision 16 (# digits following decimal point) is the minimum that
+<span class="lineNum">      82 </span>            :         //  will capture the full information stored in a double
+<span class="lineNum">      83 </span>            :         //  However, we let the user set precision, since that is the expected functionality
+<span class="lineNum">      84 </span>            :         // we use decimal to store integers, because it is smaller than hex!
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         os.setf(std::ios::dec,std::ios::basefield);</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :         os.setf(std::ios::scientific,std::ios::floatfield);</span>
+<span class="lineNum">      87 </span>            :         //
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         info.set_finished_first_event(true);</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      90 </span>            :     //
+<span class="lineNum">      91 </span>            :     // output the event data including the number of primary vertices
+<span class="lineNum">      92 </span>            :     //  and the total number of vertices
+<span class="lineNum">      93 </span>            :     //std::vector&lt;long&gt; random_states = random_states();
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     os &lt;&lt; 'E';</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     detail::output( os, event_number() );</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     detail::output( os, mpi() );</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     detail::output( os, event_scale() );</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     detail::output( os, alphaQCD() );</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     detail::output( os, alphaQED() );</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     detail::output( os, signal_process_id() );</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     detail::output( os,   ( signal_process_vertex() ?</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :                 signal_process_vertex()-&gt;barcode() : 0 )   );</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     detail::output( os, vertices_size() ); // total number of vertices.</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     write_beam_particles( os, beam_particles() );</span>
+<span class="lineNum">     105 </span>            :     // random state
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     detail::output( os, (int)m_random_states.size() );</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     for ( std::vector&lt;long&gt;::iterator rs = m_random_states.begin(); </span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :           rs != m_random_states.end(); ++rs ) {</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :          detail::output( os, *rs );</span>
+<span class="lineNum">     110 </span>            :     }
+<span class="lineNum">     111 </span>            :     // weights
+<span class="lineNum">     112 </span>            :     // we need to iterate over the map so that the weights printed 
+<span class="lineNum">     113 </span>            :     // here will be in the same order as the names printed next
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     os &lt;&lt; ' ' &lt;&lt; (int)weights().size() ;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     for ( WeightContainer::const_map_iterator w = weights().map_begin(); </span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :           w != weights().map_end(); ++w ) {</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         detail::output( os, m_weights[w-&gt;second] );</span>
+<span class="lineNum">     118 </span>            :     }
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     detail::output( os,'\n');</span>
+<span class="lineNum">     120 </span>            :     // now add names for weights
+<span class="lineNum">     121 </span>            :     // note that this prints a new line if and only if the weight container
+<span class="lineNum">     122 </span>            :     // is not empty
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if ( ! weights().empty() ) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         os &lt;&lt; &quot;N &quot; &lt;&lt; weights().size() &lt;&lt; &quot; &quot; ;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         for ( WeightContainer::const_map_iterator w = weights().map_begin(); </span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :               w != weights().map_end(); ++w ) {</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :             detail::output( os,'&quot;');</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :             os &lt;&lt; w-&gt;first;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :             detail::output( os,'&quot;');</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :             detail::output( os,' ');</span>
+<span class="lineNum">     131 </span>            :         }
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         detail::output( os,'\n');</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     134 </span>            :     //
+<span class="lineNum">     135 </span>            :     // Units
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     os &lt;&lt; &quot;U &quot; &lt;&lt; name(momentum_unit());</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     os &lt;&lt; &quot; &quot; &lt;&lt; name(length_unit());</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     detail::output( os,'\n');</span>
+<span class="lineNum">     139 </span>            :     //
+<span class="lineNum">     140 </span>            :     // write GenCrossSection if it has been set
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     if( m_cross_section ) m_cross_section-&gt;write(os);</span>
+<span class="lineNum">     142 </span>            :     //
+<span class="lineNum">     143 </span>            :     // write HeavyIon and PdfInfo if they have been set
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     if( m_heavy_ion ) os &lt;&lt; heavy_ion() ;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     if( m_pdf_info ) os &lt;&lt; pdf_info() ;</span>
+<span class="lineNum">     146 </span>            :     //
+<span class="lineNum">     147 </span>            :     // Output all of the vertices - note there is no real order.
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     for ( GenEvent::vertex_const_iterator v = vertices_begin();</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :           v != vertices_end(); ++v ) {</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         write_vertex(os, *v);</span>
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     return os;</span>
+<a name="153"><span class="lineNum">     153 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : std::istream&amp; GenEvent::read( std::istream&amp; is )
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :     /// read a GenEvent from streaming input
+<span class="lineNum">     158 </span>            :     //
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     clear();</span>
+<span class="lineNum">     161 </span>            :     //
+<span class="lineNum">     162 </span>            :     // search for event listing key before first event only.
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     if ( !info.finished_first_event() ) {</span>
+<span class="lineNum">     164 </span>            :         //
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         find_file_type(is);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         info.set_finished_first_event(true);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     168 </span>            :     //
+<span class="lineNum">     169 </span>            :     // make sure the stream is good
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     if ( !is ) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;streaming input: end of stream found &quot;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                   &lt;&lt; &quot;setting badbit.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit); </span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :     //
+<span class="lineNum">     178 </span>            :     // test to be sure the next entry is of type &quot;E&quot; then ignore it
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     if ( is.peek()!='E' ) { </span>
+<span class="lineNum">     180 </span>            :         // if the E is not the next entry, then check to see if it is
+<span class="lineNum">     181 </span>            :         // the end event listing key - if yes, search for another start key
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         int ioendtype;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         find_end_key(is,ioendtype);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         if ( ioendtype == info.io_type() ) {</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             find_file_type(is);</span>
+<span class="lineNum">     186 </span>            :             // are we at the end of the file?
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             if( !is ) return is;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         } else if ( ioendtype &gt; 0 ) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             std::cerr &lt;&lt; &quot;streaming input: end key does not match start key &quot;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                       &lt;&lt; &quot;setting badbit.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             is.clear(std::ios::badbit); </span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             return is;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         } else if ( !info.has_key() ) {</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             find_file_type(is);</span>
+<span class="lineNum">     195 </span>            :             // are we at the end of the file?
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             if( !is ) return is;</span>
+<span class="lineNum">     197 </span>            :         } else {
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             std::cerr &lt;&lt; &quot;streaming input: end key not found &quot;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                       &lt;&lt; &quot;setting badbit.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             is.clear(std::ios::badbit); </span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             return is;</span>
+<span class="lineNum">     202 </span>            :         }
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     } </span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     int signal_process_vertex = 0;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     int num_vertices = 0, bp1 = 0, bp2 = 0;</span>
+<span class="lineNum">     207 </span>            :     bool units_line = false;
+<span class="lineNum">     208 </span>            :     // OK - now ready to start reading the event, so set the header flag
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     info.set_reading_event_header(true);</span>
+<span class="lineNum">     210 </span>            :     // The flag will be set to false when we reach the end of the header
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     while(info.reading_event_header()) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         switch(is.peek()) {</span>
+<span class="lineNum">     213 </span>            :             case 'E':
+<span class="lineNum">     214 </span>            :             {   // deal with the event line
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                 process_event_line( is, num_vertices, bp1, bp2, signal_process_vertex );</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             } break;</span>
+<span class="lineNum">     217 </span>            :             case 'N':
+<span class="lineNum">     218 </span>            :             {   // get weight names 
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :                 read_weight_names( is );</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             } break;</span>
+<span class="lineNum">     221 </span>            :             case 'U':
+<span class="lineNum">     222 </span>            :             {   // get unit information if it exists
+<span class="lineNum">     223 </span>            :                 units_line = true;
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 if( info.io_type() == gen ) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                     read_units( is );</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     227 </span>            :             } break;
+<span class="lineNum">     228 </span>            :             case 'C':
+<span class="lineNum">     229 </span>            :             {   // we have a GenCrossSection line
+<span class="lineNum">     230 </span>            :                 // create cross section
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                 GenCrossSection xs;</span>
+<span class="lineNum">     232 </span>            :                 // check for invalid data
+<span class="lineNum">     233 </span>            :                 try {
+<span class="lineNum">     234 </span>            :                     // read the line
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                     xs.read(is);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     237 </span>            :                 catch (IO_Exception&amp; e) {
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                     detail::find_event_end( is );</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 if(xs.is_set()) { </span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                     set_cross_section( xs );</span>
+<span class="lineNum">     242 </span>            :                 }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             } break;</span>
+<span class="lineNum">     244 </span>            :             case 'H':
+<span class="lineNum">     245 </span>            :             {   // we have a HeavyIon line OR an unexpected HepMC... line
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 if( info.io_type() == gen || info.io_type() == extascii ) {</span>
+<span class="lineNum">     247 </span>            :                     // get HeavyIon
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                     HeavyIon ion;</span>
+<span class="lineNum">     249 </span>            :                     // check for invalid data
+<span class="lineNum">     250 </span>            :                     try {
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                         is &gt;&gt; &amp;ion;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :                     }</span>
+<span class="lineNum">     253 </span>            :                     catch (IO_Exception&amp; e) {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                         detail::find_event_end( is );</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                     }</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                     if(ion.is_valid()) { </span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                         set_heavy_ion( ion );</span>
+<span class="lineNum">     258 </span>            :                     }
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     260 </span>            :             } break;
+<span class="lineNum">     261 </span>            :             case 'F':
+<span class="lineNum">     262 </span>            :             {   // we have a PdfInfo line
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                 if( info.io_type() == gen || info.io_type() == extascii ) {</span>
+<span class="lineNum">     264 </span>            :                     // get PdfInfo
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                     PdfInfo pdf;</span>
+<span class="lineNum">     266 </span>            :                     // check for invalid data
+<span class="lineNum">     267 </span>            :                     try {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                         is &gt;&gt; &amp;pdf;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                     }</span>
+<span class="lineNum">     270 </span>            :                     catch (IO_Exception&amp; e) {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                         detail::find_event_end( is );</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                     }</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                     if(pdf.is_valid()) { </span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                         set_pdf_info( pdf );</span>
+<span class="lineNum">     275 </span>            :                     }
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     277 </span>            :             } break;
+<span class="lineNum">     278 </span>            :             case 'V':
+<span class="lineNum">     279 </span>            :             {   
+<span class="lineNum">     280 </span>            :                 // this should be the first vertex line - exit this loop
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                 info.set_reading_event_header(false);</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             } break;</span>
+<span class="lineNum">     283 </span>            :             case 'P':
+<span class="lineNum">     284 </span>            :             {   // we should not find this line
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :                 std::cerr &lt;&lt; &quot;streaming input: found unexpected line P&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                 info.set_reading_event_header(false);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             } break;</span>
+<span class="lineNum">     288 </span>            :             default:
+<span class="lineNum">     289 </span>            :                 // ignore everything else
+<span class="lineNum">     290 </span>            :                 break;
+<span class="lineNum">     291 </span>            :         } // switch on line type
+<span class="lineNum">     292 </span>            :     } // while reading_event_header
+<span class="lineNum">     293 </span>            :     // before proceeding - did we find a units line?
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     if( !units_line ) {</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         use_units( info.io_momentum_unit(), </span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                        info.io_position_unit() );</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     298 </span>            :     //
+<span class="lineNum">     299 </span>            :     // the end vertices of the particles are not connected until
+<span class="lineNum">     300 </span>            :     //  after the event is read --- we store the values in a map until then
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     TempParticleMap particle_to_end_vertex;</span>
+<span class="lineNum">     302 </span>            :     //
+<span class="lineNum">     303 </span>            :     // read in the vertices
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     for ( int iii = 1; iii &lt;= num_vertices; ++iii ) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         GenVertex* v = new GenVertex();</span>
+<span class="lineNum">     306 </span>            :         try {
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             detail::read_vertex(is,particle_to_end_vertex,v);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     309 </span>            :         catch (IO_Exception&amp; e) {
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :             for( TempParticleMap::orderIterator it = particle_to_end_vertex.order_begin(); </span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :                  it != particle_to_end_vertex.order_end(); ++it ) {</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :                 GenParticle* p = it-&gt;second;</span>
+<span class="lineNum">     313 </span>            :                 // delete particles only if they are not already owned by a vertex
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                 if( p-&gt;production_vertex() ) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                 } else if( p-&gt;end_vertex() ) {</span>
+<span class="lineNum">     316 </span>            :                 } else {
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                      delete p;</span>
+<span class="lineNum">     318 </span>            :                 }
+<span class="lineNum">     319 </span>            :             }
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             delete v;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             detail::find_event_end( is );</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         add_vertex( v );</span>
+<span class="lineNum">     324 </span>            :     }
+<span class="lineNum">     325 </span>            :     // set the signal process vertex
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     if ( signal_process_vertex ) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         set_signal_process_vertex( </span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             barcode_to_vertex(signal_process_vertex) );</span>
+<span class="lineNum">     329 </span>            :     }
+<span class="lineNum">     330 </span>            :     //
+<span class="lineNum">     331 </span>            :     // last connect particles to their end vertices
+<span class="lineNum">     332 </span>            :     GenParticle* beam1(0);
+<span class="lineNum">     333 </span>            :     GenParticle* beam2(0);
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     for ( TempParticleMap::orderIterator pmap </span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :               = particle_to_end_vertex.order_begin(); </span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :           pmap != particle_to_end_vertex.order_end(); ++pmap ) {</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         GenParticle* p =  pmap-&gt;second;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         int vtx = particle_to_end_vertex.end_vertex( p );</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         GenVertex* itsDecayVtx = barcode_to_vertex(vtx);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if ( itsDecayVtx ) itsDecayVtx-&gt;add_particle_in( p );</span>
+<span class="lineNum">     341 </span>            :         else {
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             std::cerr &lt;&lt; &quot;read_io_genevent: ERROR particle points&quot;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                       &lt;&lt; &quot; to null end vertex. &quot; &lt;&lt;std::endl;</span>
+<span class="lineNum">     344 </span>            :         }
+<span class="lineNum">     345 </span>            :         // also look for the beam particles
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         if( p-&gt;barcode() == bp1 ) beam1 = p;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         if( p-&gt;barcode() == bp2 ) beam2 = p;</span>
+<span class="lineNum">     348 </span>            :     }
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     set_beam_particles(beam1,beam2);</span>
+<span class="lineNum">     350 </span>            :     return is;
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     352 </span>            : 
+<a name="353"><span class="lineNum">     353 </span>            : // ------------------------- operator &lt;&lt; and operator &gt;&gt; ----------------</a>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            : std::ostream &amp; operator &lt;&lt; (std::ostream &amp; os, GenEvent &amp; evt)
+<span class="lineNum">     356 </span>            : {
+<span class="lineNum">     357 </span>            :     /// Writes evt to an output stream.
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     evt.write(os);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     return os;</span>
+<a name="360"><span class="lineNum">     360 </span>            : }</a>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : std::istream &amp; operator &gt;&gt; (std::istream &amp; is, GenEvent &amp; evt)
+<span class="lineNum">     363 </span>            : {
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     evt.read(is);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     return is;</span>
+<span class="lineNum">     366 </span>            : }
+<span class="lineNum">     367 </span>            : 
+<a name="368"><span class="lineNum">     368 </span>            : // ------------------------- set units ----------------</a>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            : std::istream &amp; set_input_units(std::istream &amp; is, 
+<span class="lineNum">     371 </span>            :                                Units::MomentumUnit mom,
+<span class="lineNum">     372 </span>            :                                Units::LengthUnit len )
+<span class="lineNum">     373 </span>            : {
+<span class="lineNum">     374 </span>            :     //
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     info.use_input_units( mom, len );</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     return is;</span>
+<span class="lineNum">     378 </span>            : }
+<span class="lineNum">     379 </span>            : 
+<a name="380"><span class="lineNum">     380 </span>            : // ------------------------- begin and end block lines ----------------</a>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            : std::ostream &amp; write_HepMC_IO_block_begin(std::ostream &amp; os )
+<span class="lineNum">     383 </span>            : {
+<span class="lineNum">     384 </span>            :     //
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(os);</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     if( !info.finished_first_event() ) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     os &lt;&lt; &quot;\n&quot; &lt;&lt; &quot;HepMC::Version &quot; &lt;&lt; versionName();</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     os &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     os &lt;&lt; info.IO_GenEvent_Key() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     return os;</span>
+<a name="393"><span class="lineNum">     393 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            : std::ostream &amp; write_HepMC_IO_block_end(std::ostream &amp; os )
+<span class="lineNum">     396 </span>            : {
+<span class="lineNum">     397 </span>            :     //
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(os);</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     if( info.finished_first_event() ) {</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         os &lt;&lt; info.IO_GenEvent_End() &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         os &lt;&lt; std::flush;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     return os;</span>
+<a name="405"><span class="lineNum">     405 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : std::istream &amp; GenEvent::process_event_line( std::istream &amp; is, 
+<span class="lineNum">     408 </span>            :                                              int &amp; num_vertices,
+<span class="lineNum">     409 </span>            :                                              int &amp; bp1, int &amp; bp2,
+<span class="lineNum">     410 </span>            :                                              int &amp; signal_process_vertex )
+<span class="lineNum">     411 </span>            : {
+<span class="lineNum">     412 </span>            :     //
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if ( !is ) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;GenEvent::process_event_line setting badbit.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     417 </span>            :     } 
+<span class="lineNum">     418 </span>            :     //
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     std::string line;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     std::getline(is,line);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     std::istringstream iline(line);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     std::string firstc;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     iline &gt;&gt; firstc;</span>
+<span class="lineNum">     425 </span>            :     //
+<span class="lineNum">     426 </span>            :     // read values into temp variables, then fill GenEvent
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     int event_number = 0, signal_process_id = 0,</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         random_states_size = 0, nmpi = -1;</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     double eventScale = 0, alpha_qcd = 0, alpha_qed = 0;</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     iline &gt;&gt; event_number;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     if( info.io_type() == gen || info.io_type() == extascii ) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         iline &gt;&gt; nmpi;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         set_mpi( nmpi );</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     iline &gt;&gt; eventScale ;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     iline &gt;&gt; alpha_qcd ;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     iline &gt;&gt; alpha_qed;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     iline &gt;&gt; signal_process_id ;</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     iline &gt;&gt; signal_process_vertex;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     iline &gt;&gt; num_vertices;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     if( info.io_type() == gen || info.io_type() == extascii ) {</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         iline &gt;&gt; bp1 ;</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :         iline &gt;&gt; bp2;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     454 </span>            :     }
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     iline &gt;&gt; random_states_size;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     std::vector&lt;long&gt; random_states(random_states_size);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     for ( int i = 0; i &lt; random_states_size; ++i ) {</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         iline &gt;&gt; random_states[i];</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     461 </span>            :     }
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     WeightContainer::size_type weights_size = 0;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     iline &gt;&gt; weights_size;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     std::vector&lt;double&gt; wgt(weights_size);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     for ( WeightContainer::size_type ii = 0; ii &lt; weights_size; ++ii ) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         iline &gt;&gt; wgt[ii];</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         if(!iline) detail::find_event_end( is );</span>
+<span class="lineNum">     469 </span>            :     }
+<span class="lineNum">     470 </span>            :     // weight names will be added later if they exist
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     if( weights_size &gt; 0 ) m_weights = wgt;</span>
+<span class="lineNum">     472 </span>            :     // 
+<span class="lineNum">     473 </span>            :     // fill signal_process_id, event_number, random_states, etc.
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     set_signal_process_id( signal_process_id );</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     set_event_number( event_number );</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     set_random_states( random_states );</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     set_event_scale( eventScale );</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     set_alphaQCD( alpha_qcd );</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     set_alphaQED( alpha_qed );</span>
+<span class="lineNum">     480 </span>            :     //
+<span class="lineNum">     481 </span>            :     return is;
+<a name="482"><span class="lineNum">     482 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            : std::istream &amp; GenEvent::read_weight_names( std::istream &amp; is )
+<span class="lineNum">     485 </span>            : {
+<span class="lineNum">     486 </span>            :     // now check for a named weight line
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     if ( !is ) {</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;GenEvent::read_weight_names setting badbit.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     491 </span>            :     } 
+<span class="lineNum">     492 </span>            :     // Test to be sure the next entry is of type &quot;N&quot;
+<span class="lineNum">     493 </span>            :     // If we have no named weight line, this is not an error
+<span class="lineNum">     494 </span>            :     // releases prior to 2.06.00 do not have named weights
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     if ( is.peek() !='N') {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     497 </span>            :     } 
+<span class="lineNum">     498 </span>            :     // now get this line and process it
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     std::string line;</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     std::getline(is,line);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     std::istringstream wline(line);</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     std::string firstc;</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     WeightContainer::size_type name_size = 0;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     wline &gt;&gt; firstc &gt;&gt; name_size;</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     if(!wline) detail::find_event_end( is );</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     if( firstc != &quot;N&quot;) { </span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         std::cout &lt;&lt; &quot;debug: first character of named weights is &quot; &lt;&lt; firstc &lt;&lt; std::endl;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         std::cout &lt;&lt; &quot;debug: We should never get here&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit);</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     511 </span>            :     }
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     if( m_weights.size() != name_size ) { </span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         std::cout &lt;&lt; &quot;debug: weight sizes do not match &quot;&lt;&lt; std::endl;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         std::cout &lt;&lt; &quot;debug: weight vector size is &quot; &lt;&lt; m_weights.size() &lt;&lt; std::endl;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :         std::cout &lt;&lt; &quot;debug: weight name size is &quot; &lt;&lt; name_size &lt;&lt; std::endl;</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     518 </span>            :     }
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     std::string name;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     std::string::size_type i1 = line.find(&quot;\&quot;&quot;);</span>
+<span class="lineNum">     521 </span>            :     std::string::size_type i2;
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     std::string::size_type len = line.size();</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     WeightContainer namedWeight;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     for ( WeightContainer::size_type ii = 0; ii &lt; name_size; ++ii ) {</span>
+<span class="lineNum">     525 </span>            :         // weight names may contain blanks
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         if(i1 &gt;= len) {</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;debug: attempting to read past the end of the named weight line &quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;debug: We should never get here&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;debug: Looking for the end of this event&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :             detail::find_event_end( is );</span>
+<span class="lineNum">     531 </span>            :         }
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         i2 = line.find(&quot;\&quot;&quot;,i1+1);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         name = line.substr(i1+1,i2-i1-1);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         namedWeight[name] = m_weights[ii];</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         i1 = line.find(&quot;\&quot;&quot;,i2+1);</span>
+<span class="lineNum">     536 </span>            :     }
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     m_weights = namedWeight;</span>
+<span class="lineNum">     538 </span>            :     return is;
+<a name="539"><span class="lineNum">     539 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span>            : std::istream &amp; GenEvent::read_units( std::istream &amp; is )
+<span class="lineNum">     542 </span>            : {
+<span class="lineNum">     543 </span>            :     //
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     if ( !is ) {</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;GenEvent::read_units setting badbit.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     548 </span>            :     } 
+<span class="lineNum">     549 </span>            :     //
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     551 </span>            :     // test to be sure the next entry is of type &quot;U&quot; then ignore it
+<span class="lineNum">     552 </span>            :     // if we have no units, this is not an error
+<span class="lineNum">     553 </span>            :     // releases prior to 2.04.00 did not write unit information
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     if ( is.peek() !='U') {</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         use_units( info.io_momentum_unit(), </span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                        info.io_position_unit() );</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     558 </span>            :     } 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     is.ignore();        // ignore the first character in the line</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     std::string mom, pos;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     is &gt;&gt; mom &gt;&gt; pos;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     is.ignore(1);      // eat the extra whitespace</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     use_units(mom,pos);</span>
+<span class="lineNum">     564 </span>            :     //
+<span class="lineNum">     565 </span>            :     return is;
+<a name="566"><span class="lineNum">     566 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span>            : std::istream &amp; GenEvent::find_file_type( std::istream &amp; istr )
+<span class="lineNum">     569 </span>            : {
+<span class="lineNum">     570 </span>            :     //
+<span class="lineNum">     571 </span>            :     // make sure the stream is good
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     if ( !istr ) return istr;</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :     //
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(istr);</span>
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span>            :     // if there is no input block line, then we assume this stream
+<span class="lineNum">     578 </span>            :     // is in the IO_GenEvent format
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     if ( istr.peek()=='E' ) {</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         info.set_io_type( gen );</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         info.set_has_key(false);</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         return istr;</span>
+<span class="lineNum">     583 </span>            :     }
+<span class="lineNum">     584 </span>            :     
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :     std::string line;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     while ( std::getline(istr,line) ) {</span>
+<span class="lineNum">     587 </span>            :         //
+<span class="lineNum">     588 </span>            :         // search for event listing key before first event only.
+<span class="lineNum">     589 </span>            :         //
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :         if( line == info.IO_GenEvent_Key() ) {</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :             info.set_io_type( gen );</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :             info.set_has_key(true);</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :             return istr;</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         } else if( line == info.IO_Ascii_Key() ) {</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :             info.set_io_type( ascii );</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :             info.set_has_key(true);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :             return istr;</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :         } else if( line == info.IO_ExtendedAscii_Key() ) {</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :             info.set_io_type( extascii );</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :             info.set_has_key(true);</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :             return istr;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         } else if( line == info.IO_Ascii_PDT_Key() ) {</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :             info.set_io_type( ascii_pdt );</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :             info.set_has_key(true);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :             return istr;</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         } else if( line == info.IO_ExtendedAscii_PDT_Key() ) {</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :             info.set_io_type( extascii_pdt );</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :             info.set_has_key(true);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :             return istr;</span>
+<span class="lineNum">     610 </span>            :         }
+<span class="lineNum">     611 </span>            :     }
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     info.set_io_type( 0 );</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     info.set_has_key(false);</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     return istr;</span>
+<a name="615"><span class="lineNum">     615 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span>            : std::istream &amp; GenEvent::find_end_key( std::istream &amp; istr, int &amp; iotype )
+<span class="lineNum">     618 </span>            : {
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     iotype = 0;</span>
+<span class="lineNum">     620 </span>            :     // peek at the first character before proceeding
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     if( istr.peek()!='H' ) return istr;</span>
+<span class="lineNum">     622 </span>            :     //
+<span class="lineNum">     623 </span>            :     // we only check the next line
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :     std::string line;</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     std::getline(istr,line);</span>
+<span class="lineNum">     626 </span>            :     //
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(istr);</span>
+<span class="lineNum">     628 </span>            :     //
+<span class="lineNum">     629 </span>            :     // check to see if this is an end key
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     if( line == info.IO_GenEvent_End() ) {</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :         iotype = gen;</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     } else if( line == info.IO_Ascii_End() ) {</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :         iotype = ascii;</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     } else if( line == info.IO_ExtendedAscii_End() ) {</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :         iotype = extascii;</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     } else if( line == info.IO_Ascii_PDT_End() ) {</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :         iotype = ascii_pdt;</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     } else if( line == info.IO_ExtendedAscii_PDT_End() ) {</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :         iotype = extascii_pdt;</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     if( iotype != 0 &amp;&amp; info.io_type() != iotype ) {</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;GenEvent::find_end_key: iotype keys have changed&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     643 </span>            :     } else {
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :         return istr;</span>
+<span class="lineNum">     645 </span>            :     }
+<span class="lineNum">     646 </span>            :     //
+<span class="lineNum">     647 </span>            :     // if we get here, then something has gotten badly confused
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     std::cerr &lt;&lt; &quot;GenEvent::find_end_key: MALFORMED INPUT&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :     istr.clear(std::ios::badbit); </span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     return istr;</span>
+<a name="651"><span class="lineNum">     651 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            : std::ostream &amp; establish_output_stream_info( std::ostream &amp; os )
+<span class="lineNum">     654 </span>            : {
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(os);</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     if ( !info.finished_first_event() ) {</span>
+<span class="lineNum">     657 </span>            :         // precision 16 (# digits following decimal point) is the minimum that
+<span class="lineNum">     658 </span>            :         //  will capture the full information stored in a double
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :         os.precision(16);</span>
+<span class="lineNum">     660 </span>            :         // we use decimal to store integers, because it is smaller than hex!
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :         os.setf(std::ios::dec,std::ios::basefield);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :         os.setf(std::ios::scientific,std::ios::floatfield);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     return os;</span>
+<a name="665"><span class="lineNum">     665 </span>            : }</a>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span>            : std::istream &amp; establish_input_stream_info( std::istream &amp; is )
+<span class="lineNum">     668 </span>            : {
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     if ( !info.finished_first_event() ) {</span>
+<span class="lineNum">     671 </span>            :         // precision 16 (# digits following decimal point) is the minimum that
+<span class="lineNum">     672 </span>            :         //  will capture the full information stored in a double
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :         is.precision(16);</span>
+<span class="lineNum">     674 </span>            :         // we use decimal to store integers, because it is smaller than hex!
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :         is.setf(std::ios::dec,std::ios::basefield);</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :         is.setf(std::ios::scientific,std::ios::floatfield);</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :     return is;</span>
+<span class="lineNum">     679 </span>            : }
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            : // ------------------------- helper functions ----------------
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span>            : namespace detail {
+<span class="lineNum">     685 </span>            : 
+<a name="686"><span class="lineNum">     686 </span>            : // The functions defined here need to use get_stream_info</a>
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            : std::istream &amp; read_particle( std::istream &amp; is, 
+<span class="lineNum">     689 </span>            :                               TempParticleMap &amp; particle_to_end_vertex, 
+<span class="lineNum">     690 </span>            :                               GenParticle * p )
+<span class="lineNum">     691 </span>            : {
+<span class="lineNum">     692 </span>            :     // get the next line
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     std::string line;</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     std::getline(is,line);</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     std::istringstream iline(line);</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     std::string firstc;</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     iline &gt;&gt; firstc;</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     if( firstc != &quot;P&quot; ) { </span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;StreamHelpers::detail::read_particle invalid line type: &quot; </span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :                   &lt;&lt; firstc &lt;&lt; std::endl;</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :         std::cerr &lt;&lt; &quot;StreamHelpers::detail::read_particle setting badbit.&quot; </span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :                   &lt;&lt; std::endl;</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :         is.clear(std::ios::badbit); </span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :         return is;</span>
+<span class="lineNum">     705 </span>            :     } 
+<span class="lineNum">     706 </span>            :     //
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     708 </span>            :     //testHepMC.cc
+<span class="lineNum">     709 </span>            :     // declare variables to be read in to, and read everything except flow
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     double px = 0., py = 0., pz = 0., e = 0., m = 0., theta = 0., phi = 0.;</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     int bar_code = 0, id = 0, status = 0, end_vtx_code = 0, flow_size = 0;</span>
+<span class="lineNum">     712 </span>            :     // check that the input stream is still OK after reading item
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     iline &gt;&gt; bar_code ;</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     iline &gt;&gt; id ;</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     iline &gt;&gt; px ;</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     iline &gt;&gt; py ;</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :     iline &gt;&gt; pz ;</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :     iline &gt;&gt; e ;</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     if( info.io_type() != ascii ) {</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :         iline &gt;&gt; m ;</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     728 </span>            :     }
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     iline &gt;&gt; status ;</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     iline &gt;&gt; theta ;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     iline &gt;&gt; phi ;</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     iline &gt;&gt; end_vtx_code ;</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     iline &gt;&gt; flow_size;</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     739 </span>            :     //
+<span class="lineNum">     740 </span>            :     // read flow patterns if any exist
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     Flow flow;</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     int code_index, code;</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :     for ( int i = 1; i &lt;= flow_size; ++i ) {</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :         iline &gt;&gt; code_index &gt;&gt; code;</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :         if(!iline) {  delete p; throw IO_Exception(&quot;read_particle input stream encounterd invalid data&quot;); }</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :         flow.set_icode( code_index,code);</span>
+<span class="lineNum">     747 </span>            :     }
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     p-&gt;set_momentum( FourVector(px,py,pz,e) );</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     p-&gt;set_pdg_id( id );</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     p-&gt;set_status( status );</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :     p-&gt;set_flow( flow );</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     p-&gt;set_polarization( Polarization(theta,phi) );</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     if( info.io_type() == ascii ) {</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :         p-&gt;set_generated_mass( p-&gt;momentum().m() );</span>
+<span class="lineNum">     755 </span>            :     } else {
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         p-&gt;set_generated_mass( m );</span>
+<span class="lineNum">     757 </span>            :     }
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     p-&gt;suggest_barcode( bar_code );</span>
+<span class="lineNum">     759 </span>            :     //
+<span class="lineNum">     760 </span>            :     // all particles are connected to their end vertex separately 
+<span class="lineNum">     761 </span>            :     // after all particles and vertices have been created - so we keep
+<span class="lineNum">     762 </span>            :     // a map of all particles that have end vertices
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     if ( end_vtx_code != 0 ) {</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :         particle_to_end_vertex.addEndParticle(p,end_vtx_code);</span>
+<span class="lineNum">     765 </span>            :     }
+<span class="lineNum">     766 </span>            :     return is;
+<a name="767"><span class="lineNum">     767 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     768 </span>            : 
+<span class="lineNum">     769 </span>            : std::ostream &amp; establish_output_stream_info( std::ostream &amp; os )
+<span class="lineNum">     770 </span>            : {
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(os);</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     if ( !info.finished_first_event() ) {</span>
+<span class="lineNum">     773 </span>            :         // precision 16 (# digits following decimal point) is the minimum that
+<span class="lineNum">     774 </span>            :         //  will capture the full information stored in a double
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :         os.precision(16);</span>
+<span class="lineNum">     776 </span>            :         // we use decimal to store integers, because it is smaller than hex!
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :         os.setf(std::ios::dec,std::ios::basefield);</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         os.setf(std::ios::scientific,std::ios::floatfield);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     return os;</span>
+<a name="781"><span class="lineNum">     781 </span>            : }</a>
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span>            : std::istream &amp; establish_input_stream_info( std::istream &amp; is )
+<span class="lineNum">     784 </span>            : {
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :     StreamInfo &amp; info = get_stream_info(is);</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :     if ( !info.finished_first_event() ) {</span>
+<span class="lineNum">     787 </span>            :         // precision 16 (# digits following decimal point) is the minimum that
+<span class="lineNum">     788 </span>            :         //  will capture the full information stored in a double
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         is.precision(16);</span>
+<span class="lineNum">     790 </span>            :         // we use decimal to store integers, because it is smaller than hex!
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :         is.setf(std::ios::dec,std::ios::basefield);</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :         is.setf(std::ios::scientific,std::ios::floatfield);</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :     return is;</span>
+<span class="lineNum">     795 </span>            : }
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            : } // detail
+<span class="lineNum">     798 </span>            : 
+<span class="lineNum">     799 </span>            : } // HepMC
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

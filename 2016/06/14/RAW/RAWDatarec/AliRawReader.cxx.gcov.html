@@ -1,0 +1,920 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - RAW/RAWDatarec/AliRawReader.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">RAW/RAWDatarec</a> - AliRawReader.cxx<span style="font-size: 80%;"> (source / <a href="AliRawReader.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">122</td>
+            <td class="headerCovTableEntry">432</td>
+            <td class="headerCovTableEntryLo">28.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntryLo">46.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      19 </span>            : ///
+<span class="lineNum">      20 </span>            : /// This is the base class for reading raw data.
+<span class="lineNum">      21 </span>            : ///
+<span class="lineNum">      22 </span>            : /// The derived classes, which operate on concrete raw data formats,
+<span class="lineNum">      23 </span>            : /// should implement
+<span class="lineNum">      24 </span>            : /// - ReadHeader to read the next (data/equipment) header
+<span class="lineNum">      25 </span>            : /// - ReadNextData to read the next raw data block (=1 DDL)
+<span class="lineNum">      26 </span>            : /// - ReadNext to read a given number of bytes
+<span class="lineNum">      27 </span>            : /// - several getters like GetType
+<span class="lineNum">      28 </span>            : ///
+<span class="lineNum">      29 </span>            : /// Sequential access to the raw data is provided by the methods
+<span class="lineNum">      30 </span>            : /// ReadHeader, ReadNextData, ReadNextInt, ReadNextShort, ReadNextChar
+<span class="lineNum">      31 </span>            : ///
+<span class="lineNum">      32 </span>            : /// If only data from a specific detector (and a given range of DDL numbers)
+<span class="lineNum">      33 </span>            : /// should be read, this can be achieved by the Select method.
+<span class="lineNum">      34 </span>            : /// Several getters provide information about the current event and the
+<span class="lineNum">      35 </span>            : /// current type of raw data.
+<span class="lineNum">      36 </span>            : ///
+<span class="lineNum">      37 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #include &lt;TClass.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;TPluginManager.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;TInterpreter.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;TPRegexp.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;THashList.h&gt;
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      48 </span>            : #include &quot;AliRawReader.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliRawReaderFile.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliRawReaderDate.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliRawReaderRoot.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;AliRawReaderChain.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;AliDAQ.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;AliLog.h&quot;
+<a name="55"><span class="lineNum">      55 </span>            : </a>
+<span class="lineNum">      56 </span>            : using std::ifstream;
+<span class="lineNum">      57 </span><span class="lineCov">        128 : ClassImp(AliRawReader)</span>
+<a name="58"><span class="lineNum">      58 </span>            : </a>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineCov">          2 : AliRawReader::AliRawReader() :</span>
+<span class="lineNum">      61 </span><span class="lineCov">          2 :   fEquipmentIdsIn(NULL),</span>
+<span class="lineNum">      62 </span><span class="lineCov">          2 :   fEquipmentIdsOut(NULL),</span>
+<span class="lineNum">      63 </span><span class="lineCov">          2 :   fRequireHeader(kTRUE),</span>
+<span class="lineNum">      64 </span><span class="lineCov">          2 :   fHeader(NULL),</span>
+<span class="lineNum">      65 </span><span class="lineCov">          2 :   fHeaderV3(NULL),</span>
+<span class="lineNum">      66 </span><span class="lineCov">          2 :   fCount(0),</span>
+<span class="lineNum">      67 </span><span class="lineCov">          2 :   fSelectEquipmentType(-1),</span>
+<span class="lineNum">      68 </span><span class="lineCov">          2 :   fSelectMinEquipmentId(-1),</span>
+<span class="lineNum">      69 </span><span class="lineCov">          2 :   fSelectMaxEquipmentId(-1),</span>
+<span class="lineNum">      70 </span><span class="lineCov">          2 :   fSkipInvalid(kFALSE),</span>
+<span class="lineNum">      71 </span><span class="lineCov">          2 :   fSelectEventType(-1),</span>
+<span class="lineNum">      72 </span><span class="lineCov">          2 :   fSelectTriggerMask(0),</span>
+<span class="lineNum">      73 </span><span class="lineCov">          2 :   fSelectTriggerMask50(0),</span>
+<span class="lineNum">      74 </span><span class="lineCov">          2 :   fSelectTriggerExpr(),</span>
+<span class="lineNum">      75 </span><span class="lineCov">          2 :   fErrorCode(0),</span>
+<span class="lineNum">      76 </span><span class="lineCov">          2 :   fEventNumber(-1),</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 :   fErrorLogs(&quot;AliRawDataErrorLog&quot;,100),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          2 :   fHeaderSwapped(NULL),</span>
+<span class="lineNum">      79 </span><span class="lineCov">          2 :   fHeaderSwappedV3(NULL),</span>
+<span class="lineNum">      80 </span><span class="lineCov">          2 :   fIsValid(kTRUE),</span>
+<span class="lineNum">      81 </span><span class="lineCov">          2 :   fIsTriggerClassLoaded(kFALSE)</span>
+<span class="lineNum">      82 </span><span class="lineCov">          6 : {</span>
+<span class="lineNum">      83 </span>            : // default constructor: initialize data members
+<span class="lineNum">      84 </span>            : // Allocate the swapped header in case of Mac
+<span class="lineNum">      85 </span>            : #ifndef R__BYTESWAP
+<span class="lineNum">      86 </span>            :   fHeaderSwapped=new AliRawDataHeader();
+<span class="lineNum">      87 </span>            :   fHeaderSwappedV3=new AliRawDataHeaderV3();
+<span class="lineNum">      88 </span>            : #endif
+<a name="89"><span class="lineNum">      89 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : Bool_t AliRawReader::LoadEquipmentIdsMap(const char *fileName)
+<span class="lineNum">      92 </span>            : {
+<span class="lineNum">      93 </span>            :   // Open the mapping file
+<span class="lineNum">      94 </span>            :   // and load the mapping data
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   ifstream input(fileName);</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   if (input.is_open()) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     Warning(&quot;AliRawReader&quot;,&quot;Equipment ID mapping file is found !&quot;);</span>
+<span class="lineNum">      98 </span>            :     const Int_t kMaxDDL = 256;
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     fEquipmentIdsIn = new TArrayI(kMaxDDL);</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     fEquipmentIdsOut = new TArrayI(kMaxDDL);</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     Int_t equipIn, equipOut;</span>
+<span class="lineNum">     102 </span>            :     Int_t nIds = 0;
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     while (input &gt;&gt; equipIn &gt;&gt; equipOut) {</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :       if (nIds &gt;= kMaxDDL) {</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         Error(&quot;AliRawReader&quot;,&quot;Too many equipment Id mappings found ! Truncating the list !&quot;);</span>
+<span class="lineNum">     106 </span>            :         break;
+<span class="lineNum">     107 </span>            :       }
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :       fEquipmentIdsIn-&gt;AddAt(equipIn,nIds); </span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :       fEquipmentIdsOut-&gt;AddAt(equipOut,nIds);</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :       nIds++;</span>
+<span class="lineNum">     111 </span>            :     }
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     fEquipmentIdsIn-&gt;Set(nIds);</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     fEquipmentIdsOut-&gt;Set(nIds);</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     input.close();</span>
+<span class="lineNum">     115 </span>            :     return kTRUE;
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     117 </span>            :   else {
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     Error(&quot;AliRawReader&quot;,&quot;equipment id map file is not found ! Skipping the mapping !&quot;);</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     120 </span>            :   }
+<a name="121"><span class="lineNum">     121 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : AliRawReader::AliRawReader(const AliRawReader&amp; rawReader) :
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   TObject(rawReader),</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   fEquipmentIdsIn(rawReader.fEquipmentIdsIn),</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   fEquipmentIdsOut(rawReader.fEquipmentIdsOut),</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   fRequireHeader(rawReader.fRequireHeader),</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   fHeader(rawReader.fHeader),</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   fHeaderV3(rawReader.fHeaderV3),</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   fCount(rawReader.fCount),</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   fSelectEquipmentType(rawReader.fSelectEquipmentType),</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   fSelectMinEquipmentId(rawReader.fSelectMinEquipmentId),</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   fSelectMaxEquipmentId(rawReader.fSelectMaxEquipmentId),</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   fSkipInvalid(rawReader.fSkipInvalid),</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   fSelectEventType(rawReader.fSelectEventType),</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   fSelectTriggerMask(rawReader.fSelectTriggerMask),</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   fSelectTriggerMask50(rawReader.fSelectTriggerMask50),</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   fSelectTriggerExpr(rawReader.fSelectTriggerExpr),</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   fErrorCode(0),</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   fEventNumber(-1),</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   fErrorLogs(&quot;AliRawDataErrorLog&quot;,100),</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   fHeaderSwapped(NULL),</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   fHeaderSwappedV3(NULL),</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   fIsValid(rawReader.fIsValid),</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   fIsTriggerClassLoaded(rawReader.fIsTriggerClassLoaded)</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     147 </span>            : // copy constructor
+<span class="lineNum">     148 </span>            : // Allocate the swapped header in case of Mac
+<span class="lineNum">     149 </span>            : #ifndef R__BYTESWAP
+<span class="lineNum">     150 </span>            :   fHeaderSwapped=new AliRawDataHeader(*rawReader.fHeaderSwapped);
+<span class="lineNum">     151 </span>            :   fHeaderSwappedV3=new AliRawDataHeader(*rawReader.fHeaderSwappedV3);
+<span class="lineNum">     152 </span>            : #endif
+<a name="153"><span class="lineNum">     153 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : AliRawReader&amp; AliRawReader::operator = (const AliRawReader&amp; rawReader)
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            : // assignment operator
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   if(&amp;rawReader == this) return *this;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   fEquipmentIdsIn = rawReader.fEquipmentIdsIn;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   fEquipmentIdsOut = rawReader.fEquipmentIdsOut;</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   fHeader = rawReader.fHeader;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   fHeaderV3 = rawReader.fHeaderV3;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   fCount = rawReader.fCount;</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   fSelectEquipmentType = rawReader.fSelectEquipmentType;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   fSelectMinEquipmentId = rawReader.fSelectMinEquipmentId;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   fSelectMaxEquipmentId = rawReader.fSelectMaxEquipmentId;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   fSkipInvalid = rawReader.fSkipInvalid;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   fSelectEventType = rawReader.fSelectEventType;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   fSelectTriggerMask = rawReader.fSelectTriggerMask;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   fSelectTriggerMask50 = rawReader.fSelectTriggerMask50;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   fSelectTriggerExpr = rawReader.fSelectTriggerExpr;</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   fErrorCode = rawReader.fErrorCode;</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   fEventNumber = rawReader.fEventNumber;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   fErrorLogs = *((TClonesArray*)rawReader.fErrorLogs.Clone());</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   fIsValid = rawReader.fIsValid;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   fIsTriggerClassLoaded = rawReader.fIsTriggerClassLoaded;</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="184"><span class="lineNum">     184 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : AliRawReader::~AliRawReader()
+<span class="lineNum">     187 </span><span class="lineCov">          4 : {</span>
+<span class="lineNum">     188 </span>            :   // destructor
+<span class="lineNum">     189 </span>            :   // delete the mapping arrays if
+<span class="lineNum">     190 </span>            :   // initialized
+<span class="lineNum">     191 </span><span class="lineCov">          2 :   if (fEquipmentIdsIn) delete fEquipmentIdsIn;</span>
+<span class="lineNum">     192 </span><span class="lineCov">          2 :   if (fEquipmentIdsOut) delete fEquipmentIdsOut;</span>
+<span class="lineNum">     193 </span><span class="lineCov">          2 :   fErrorLogs.Delete();</span>
+<span class="lineNum">     194 </span><span class="lineCov">          2 :   if (fHeaderSwapped) delete fHeaderSwapped;</span>
+<span class="lineNum">     195 </span><span class="lineCov">          2 :   if (fHeaderSwappedV3) delete fHeaderSwappedV3;</span>
+<a name="196"><span class="lineNum">     196 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : AliRawReader* AliRawReader::Create(const char *uri)
+<span class="lineNum">     199 </span>            : {
+<span class="lineNum">     200 </span>            :   // RawReader's factory
+<span class="lineNum">     201 </span>            :   // It instantiate corresponding raw-reader implementation class object
+<span class="lineNum">     202 </span>            :   // depending on the URI provided
+<span class="lineNum">     203 </span>            :   // Normal URIs point to files, while the URI starting with
+<span class="lineNum">     204 </span>            :   // 'mem://:' or 'mem://&lt;filename&gt;' will create
+<span class="lineNum">     205 </span>            :   // AliRawReaderDateOnline object which is supposed to be used
+<span class="lineNum">     206 </span>            :   // in the online reconstruction
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">          4 :   TString strURI = uri;</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineCov">          4 :   if (strURI.IsNull()) {</span>
+<span class="lineNum">     211 </span><span class="lineCov">          3 :     AliWarningClass(&quot;No raw-reader created&quot;);</span>
+<span class="lineNum">     212 </span><span class="lineCov">          1 :     return NULL;</span>
+<span class="lineNum">     213 </span>            :   }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineCov">          3 :   TObjArray *fields = strURI.Tokenize(&quot;?&quot;);</span>
+<span class="lineNum">     216 </span><span class="lineCov">          2 :   TString &amp;fileURI = ((TObjString*)fields-&gt;At(0))-&gt;String();</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :   AliRawReader *rawReader = NULL;
+<span class="lineNum">     219 </span><span class="lineCov">          4 :   if (fileURI.BeginsWith(&quot;mem://&quot;) || fileURI.BeginsWith(&quot;^&quot;)) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     if (fileURI.BeginsWith(&quot;mem://&quot;)) fileURI.ReplaceAll(&quot;mem://&quot;,&quot;&quot;);</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     AliInfoClass(Form(&quot;Creating raw-reader in order to read events in shared memory (option=%s)&quot;,fileURI.Data()));</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     TPluginManager* pluginManager = gROOT-&gt;GetPluginManager();</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     TString rawReaderName = &quot;AliRawReaderDateOnline&quot;;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     TPluginHandler* pluginHandler = pluginManager-&gt;FindHandler(&quot;AliRawReader&quot;, &quot;online&quot;);</span>
+<span class="lineNum">     226 </span>            :     // if not, add a plugin for it
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     if (!pluginHandler) {</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :       pluginManager-&gt;AddHandler(&quot;AliRawReader&quot;, &quot;online&quot;, </span>
+<span class="lineNum">     229 </span>            :                                 &quot;AliRawReaderDateOnline&quot;, &quot;RAWDatarecOnline&quot;, &quot;AliRawReaderDateOnline(const char*)&quot;);
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :       pluginHandler = pluginManager-&gt;FindHandler(&quot;AliRawReader&quot;, &quot;online&quot;);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     if (pluginHandler &amp;&amp; (pluginHandler-&gt;LoadPlugin() == 0)) {</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :       rawReader = (AliRawReader*)pluginHandler-&gt;ExecPlugin(1,fileURI.Data());</span>
+<span class="lineNum">     234 </span>            :     }
+<span class="lineNum">     235 </span>            :     else {
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :       delete fields;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :       return NULL;</span>
+<span class="lineNum">     238 </span>            :     }
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     240 </span><span class="lineCov">          2 :   else if (fileURI.BeginsWith(&quot;amore://&quot;)) {</span>
+<span class="lineNum">     241 </span>            :     // A special raw-data URL used in case
+<span class="lineNum">     242 </span>            :     // the raw-data reading is steered from
+<span class="lineNum">     243 </span>            :     // ouside, i.e. from AMORE
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     fileURI.ReplaceAll(&quot;amore://&quot;,&quot;&quot;);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     AliInfoClass(&quot;Creating raw-reader in order to read events sent by AMORE&quot;);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     rawReader = new AliRawReaderDate((void *)NULL);</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     248 </span><span class="lineCov">          2 :   else if (fileURI.BeginsWith(&quot;collection://&quot;)) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     fileURI.ReplaceAll(&quot;collection://&quot;,&quot;&quot;);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     AliInfoClass(Form(&quot;Creating raw-reader in order to read raw-data files collection defined in %s&quot;,fileURI.Data()));</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     rawReader = new AliRawReaderChain(fileURI);</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     253 </span><span class="lineCov">          2 :   else if (fileURI.BeginsWith(&quot;raw://run&quot;)) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     fileURI.ReplaceAll(&quot;raw://run&quot;,&quot;&quot;);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     if (fileURI.IsDigit()) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :       rawReader = new AliRawReaderChain(fileURI.Atoi());</span>
+<span class="lineNum">     257 </span>            :     }
+<span class="lineNum">     258 </span>            :     else {
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       AliErrorClass(Form(&quot;Invalid syntax: %s&quot;,fileURI.Data()));</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :       delete fields;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :       return NULL;</span>
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     264 </span>            :   else {
+<span class="lineNum">     265 </span><span class="lineCov">          5 :     AliInfoClass(Form(&quot;Creating raw-reader in order to read raw-data file: %s&quot;,fileURI.Data()));</span>
+<span class="lineNum">     266 </span><span class="lineCov">          3 :     TString filename(gSystem-&gt;ExpandPathName(fileURI.Data()));</span>
+<span class="lineNum">     267 </span><span class="lineCov">          2 :     if (filename.EndsWith(&quot;/&quot;)) {</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :       rawReader = new AliRawReaderFile(filename);</span>
+<span class="lineNum">     269 </span><span class="lineCov">          2 :     } else if (filename.EndsWith(&quot;.root&quot;)) {</span>
+<span class="lineNum">     270 </span><span class="lineCov">          4 :       rawReader = new AliRawReaderRoot(filename);</span>
+<span class="lineNum">     271 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       rawReader = new AliRawReaderDate(filename);</span>
+<span class="lineNum">     273 </span>            :     }
+<span class="lineNum">     274 </span><span class="lineCov">          1 :   }</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">          1 :   if (!rawReader-&gt;IsRawReaderValid()) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Raw-reader is invalid - check the input URI (%s)&quot;,fileURI.Data()));</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     delete rawReader;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     delete fields;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     281 </span>            :   }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :   // Now apply event selection criteria (if specified)
+<span class="lineNum">     284 </span><span class="lineCov">          2 :   if (fields-&gt;GetEntries() &gt; 1) {</span>
+<span class="lineNum">     285 </span>            :     Int_t eventType = -1;
+<span class="lineNum">     286 </span>            :     ULong64_t triggerMask=0,triggerMask50=0;
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     TString triggerExpr;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     for(Int_t i = 1; i &lt; fields-&gt;GetEntries(); i++) {</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :       if (!fields-&gt;At(i)) continue;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :       TString &amp;option = ((TObjString*)fields-&gt;At(i))-&gt;String();</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :       if (option.BeginsWith(&quot;EventType=&quot;,TString::kIgnoreCase)) {</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         option.ReplaceAll(&quot;EventType=&quot;,&quot;&quot;);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         eventType = option.Atoi();</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     295 </span>            :       }
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       if (option.BeginsWith(&quot;Trigger=&quot;,TString::kIgnoreCase)) {</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         option.ReplaceAll(&quot;Trigger=&quot;,&quot;&quot;);</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         if (option.IsDigit()) {</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :           triggerMask |= option.Atoll();</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     301 </span>            :         else {
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :           triggerExpr += Form(&quot; %s &quot;,option.Data()); // pre/post-pend with spaces</span>
+<span class="lineNum">     303 </span>            :         }
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     305 </span>            :       }
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :       else if (option.BeginsWith(&quot;Trigger50=&quot;,TString::kIgnoreCase)) {</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         option.ReplaceAll(&quot;Trigger50=&quot;,&quot;&quot;);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         if (option.IsDigit()) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :           triggerMask50 |= option.Atoll();</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     311 </span>            :         else {
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :           triggerExpr += Form(&quot; %s &quot;,option.Data()); // pre/post-pend with spaces</span>
+<span class="lineNum">     313 </span>            :         }
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     315 </span>            :       }
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :       AliWarningClass(Form(&quot;Ignoring invalid event selection option: %s&quot;,option.Data()));</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     AliInfoClass(Form(&quot;Event selection criteria specified:   eventype=%d   trigger mask=%llx mask50=%llx  trigger expression=%s&quot;,</span>
+<span class="lineNum">     319 </span>            :                       eventType,triggerMask,triggerMask50,triggerExpr.Data()));
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     rawReader-&gt;SelectEvents(eventType,triggerMask,triggerExpr.Data(),triggerMask50);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineCov">          2 :   delete fields;</span>
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineCov">          1 :   return rawReader;</span>
+<a name="326"><span class="lineNum">     326 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            : Int_t AliRawReader::GetMappedEquipmentId() const
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   if (!fEquipmentIdsIn || !fEquipmentIdsOut) {</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     Error(&quot;AliRawReader&quot;,&quot;equipment Ids mapping is not initialized !&quot;);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     return GetEquipmentId();</span>
+<span class="lineNum">     333 </span>            :   }
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :   Int_t equipmentId = GetEquipmentId();</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   for(Int_t iId = 0; iId &lt; fEquipmentIdsIn-&gt;GetSize(); iId++) {</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     if (equipmentId == fEquipmentIdsIn-&gt;At(iId)) {</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :       equipmentId = fEquipmentIdsOut-&gt;At(iId);</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     339 </span>            :     }
+<span class="lineNum">     340 </span>            :   }
+<span class="lineNum">     341 </span>            :   return equipmentId;
+<a name="342"><span class="lineNum">     342 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : Int_t AliRawReader::GetDetectorID() const
+<span class="lineNum">     345 </span>            : {
+<span class="lineNum">     346 </span>            :   // Get the detector ID
+<span class="lineNum">     347 </span>            :   // The list of detector IDs
+<span class="lineNum">     348 </span>            :   // can be found in AliDAQ.h
+<span class="lineNum">     349 </span>            :   Int_t equipmentId;
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   if (fEquipmentIdsIn &amp;&amp; fEquipmentIdsIn)</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     equipmentId = GetMappedEquipmentId();</span>
+<span class="lineNum">     352 </span>            :   else
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     equipmentId = GetEquipmentId();</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :   if (equipmentId &gt;= 0) {</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     Int_t ddlIndex;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     return AliDAQ::DetectorIDFromDdlID(equipmentId,ddlIndex);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     359 </span>            :   else
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     return -1;</span>
+<a name="361"><span class="lineNum">     361 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            : Int_t AliRawReader::GetDDLID() const
+<span class="lineNum">     364 </span>            : {
+<span class="lineNum">     365 </span>            :   // Get the DDL ID (within one sub-detector)
+<span class="lineNum">     366 </span>            :   // The list of detector IDs
+<span class="lineNum">     367 </span>            :   // can be found in AliDAQ.h
+<span class="lineNum">     368 </span>            :   Int_t equipmentId;
+<span class="lineNum">     369 </span><span class="lineCov">     152292 :   if (fEquipmentIdsIn &amp;&amp; fEquipmentIdsIn)</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     equipmentId = GetMappedEquipmentId();</span>
+<span class="lineNum">     371 </span>            :   else
+<span class="lineNum">     372 </span><span class="lineCov">      76146 :     equipmentId = GetEquipmentId();</span>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineCov">      76146 :   if (equipmentId &gt;= 0) {</span>
+<span class="lineNum">     375 </span><span class="lineCov">      76146 :     Int_t ddlIndex;</span>
+<span class="lineNum">     376 </span><span class="lineCov">      76146 :     AliDAQ::DetectorIDFromDdlID(equipmentId,ddlIndex);</span>
+<span class="lineNum">     377 </span><span class="lineCov">      76146 :     return ddlIndex;</span>
+<span class="lineNum">     378 </span><span class="lineCov">      76146 :   }</span>
+<span class="lineNum">     379 </span>            :   else
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     return -1;</span>
+<a name="381"><span class="lineNum">     381 </span><span class="lineCov">      76146 : }</span></a>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            : void AliRawReader::Select(const char *detectorName, Int_t minDDLID, Int_t maxDDLID)
+<span class="lineNum">     384 </span>            : {
+<span class="lineNum">     385 </span>            : // read only data of the detector with the given name and in the given
+<span class="lineNum">     386 </span>            : // range of DDLs (minDDLID &lt;= DDLID &lt;= maxDDLID).
+<span class="lineNum">     387 </span>            : // no selection is applied if a value &lt; 0 is used.
+<span class="lineNum">     388 </span><span class="lineCov">       2104 :   Int_t detectorID = AliDAQ::DetectorID(detectorName);</span>
+<span class="lineNum">     389 </span><span class="lineCov">       1052 :   if(detectorID &gt;= 0)</span>
+<span class="lineNum">     390 </span><span class="lineCov">       1052 :     Select(detectorID,minDDLID,maxDDLID);</span>
+<a name="391"><span class="lineNum">     391 </span><span class="lineCov">       1052 : }</span></a>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            : void AliRawReader::Select(Int_t detectorID, Int_t minDDLID, Int_t maxDDLID)
+<span class="lineNum">     394 </span>            : {
+<span class="lineNum">     395 </span>            : // read only data of the detector with the given ID and in the given
+<span class="lineNum">     396 </span>            : // range of DDLs (minDDLID &lt;= DDLID &lt;= maxDDLID).
+<span class="lineNum">     397 </span>            : // no selection is applied if a value &lt; 0 is used.
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineCov">       2104 :   fSelectEquipmentType = -1;</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineCov">       1052 :   if (minDDLID &lt; 0)</span>
+<span class="lineNum">     402 </span><span class="lineCov">         72 :     fSelectMinEquipmentId = AliDAQ::DdlIDOffset(detectorID);</span>
+<span class="lineNum">     403 </span>            :   else
+<span class="lineNum">     404 </span><span class="lineCov">        980 :     fSelectMinEquipmentId = AliDAQ::DdlID(detectorID,minDDLID);</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">       1052 :   if (maxDDLID &lt; 0)</span>
+<span class="lineNum">     407 </span><span class="lineCov">         76 :     fSelectMaxEquipmentId = AliDAQ::DdlID(detectorID,AliDAQ::NumberOfDdls(detectorID)-1);</span>
+<span class="lineNum">     408 </span>            :   else
+<span class="lineNum">     409 </span><span class="lineCov">        976 :     fSelectMaxEquipmentId = AliDAQ::DdlID(detectorID,maxDDLID);</span>
+<a name="410"><span class="lineNum">     410 </span><span class="lineCov">       1052 : }</span></a>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            : void AliRawReader::SelectEquipment(Int_t equipmentType, 
+<span class="lineNum">     413 </span>            :                                    Int_t minEquipmentId, Int_t maxEquipmentId)
+<span class="lineNum">     414 </span>            : {
+<span class="lineNum">     415 </span>            : // read only data of the equipment with the given type and in the given
+<span class="lineNum">     416 </span>            : // range of IDs (minEquipmentId &lt;= EquipmentId &lt;= maxEquipmentId).
+<span class="lineNum">     417 </span>            : // no selection is applied if a value &lt; 0 is used.
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   fSelectEquipmentType = equipmentType;</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :   fSelectMinEquipmentId = minEquipmentId;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :   fSelectMaxEquipmentId = maxEquipmentId;</span>
+<a name="422"><span class="lineNum">     422 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : void AliRawReader::SelectEvents(Int_t type, ULong64_t triggerMask,
+<span class="lineNum">     425 </span>            :                                 const char *triggerExpr,ULong64_t triggerMask50)
+<span class="lineNum">     426 </span>            : {
+<span class="lineNum">     427 </span>            : // read only events with the given type and optionally
+<span class="lineNum">     428 </span>            : // trigger mask.
+<span class="lineNum">     429 </span>            : // no selection is applied if value = 0 is used.
+<span class="lineNum">     430 </span>            : // Trigger selection can be done via string (triggerExpr)
+<span class="lineNum">     431 </span>            : // which defines the trigger logic to be used. It works only
+<span class="lineNum">     432 </span>            : // after LoadTriggerClass() method is called for all involved
+<span class="lineNum">     433 </span>            : // trigger classes.
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   fSelectEventType = type;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :   fSelectTriggerMask = triggerMask;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   fSelectTriggerMask50 = triggerMask50;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :   if (triggerExpr) fSelectTriggerExpr = triggerExpr;</span>
+<a name="439"><span class="lineNum">     439 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            : void AliRawReader::LoadTriggerClass(const char* name, Int_t index)
+<span class="lineNum">     442 </span>            : {
+<span class="lineNum">     443 </span>            :   // Loads the list of trigger classes defined.
+<span class="lineNum">     444 </span>            :   // Used in conjunction with IsEventSelected in the
+<span class="lineNum">     445 </span>            :   // case when the trigger selection is given by
+<span class="lineNum">     446 </span>            :   // fSelectedTriggerExpr
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineCov">        348 :   if (fSelectTriggerExpr.IsNull()) return;</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   fIsTriggerClassLoaded = kTRUE;</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   TString names = Form(&quot; %s &quot;,name);</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   if (index &gt;= 0)</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     fSelectTriggerExpr.ReplaceAll(names,Form(&quot; [%d] &quot;,index));</span>
+<span class="lineNum">     454 </span>            :   else
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     fSelectTriggerExpr.ReplaceAll(names,&quot; 0 &quot;);</span>
+<a name="456"><span class="lineNum">     456 </span><span class="lineCov">        174 : }</span></a>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            : void AliRawReader::LoadTriggerAlias(const THashList *lst)
+<span class="lineNum">     459 </span>            : {
+<span class="lineNum">     460 </span>            :   // Loads the list of trigger aliases defined.
+<span class="lineNum">     461 </span>            :   // Replaces the alias by the OR of the triggers included in it.
+<span class="lineNum">     462 </span>            :   // The subsiquent call to LoadTriggerClass is needed
+<span class="lineNum">     463 </span>            :   // to obtain the final expression in
+<span class="lineNum">     464 </span>            :   // fSelectedTriggerExpr
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span><span class="lineCov">          2 :   if (fSelectTriggerExpr.IsNull()) return;</span>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            :   // Make a THashList alias -&gt; trigger classes
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   THashList alias2trig;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   TIter iter(lst);</span>
+<span class="lineNum">     472 </span>            :   TNamed *nmd = 0;
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span>            :   // Loop on triggers
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :   while((nmd = dynamic_cast&lt;TNamed*&gt;(iter.Next()))){</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     TString aliasList(nmd-&gt;GetTitle());</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     TObjArray* arrAliases = aliasList.Tokenize(',');</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     Int_t nAliases = arrAliases-&gt;GetEntries();</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :     // Loop on aliases for the current trigger
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     for(Int_t i=0; i&lt;nAliases; i++){</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :       TObjString *alias = (TObjString*) arrAliases-&gt;At(i);</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :       // Find the current alias in the hash list. If it is not there, add TNamed entry
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :       TNamed * inlist = (TNamed*)alias2trig.FindObject((alias-&gt;GetString()).Data());</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :       if (!inlist) {</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         inlist = new TNamed((alias-&gt;GetString()).Data(),Form(&quot; %s &quot;,nmd-&gt;GetName()));</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         alias2trig.Add(inlist);</span>
+<span class="lineNum">     492 </span>            :       }
+<span class="lineNum">     493 </span>            :       else {
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :         inlist-&gt;SetTitle(Form(&quot;%s|| %s &quot;,inlist-&gt;GetTitle(),nmd-&gt;GetName()));</span>
+<span class="lineNum">     495 </span>            :       }
+<span class="lineNum">     496 </span>            :     }
+<span class="lineNum">     497 </span>            :     
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     delete arrAliases;</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :   alias2trig.Sort(kSortDescending);</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :   // Replace all the aliases by the OR of triggers
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :   TIter iter1(&amp;alias2trig);</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   while((nmd = dynamic_cast&lt;TNamed*&gt;(iter1.Next()))){</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     fSelectTriggerExpr.ReplaceAll(nmd-&gt;GetName(),nmd-&gt;GetTitle());</span>
+<span class="lineNum">     506 </span>            :   }
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   printf(&quot;fSelectTriggerExpr: %s\n&quot;,fSelectTriggerExpr.Data()); //RS</span>
+<a name="508"><span class="lineNum">     508 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            : Bool_t AliRawReader::IsSelected() const
+<span class="lineNum">     511 </span>            : {
+<span class="lineNum">     512 </span>            : // apply the selection (if any)
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineCov">    1425590 :   if (fSkipInvalid &amp;&amp; !IsValid()) return kFALSE;</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineCov">     712795 :   if (fSelectEquipmentType &gt;= 0)</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     if (GetEquipmentType() != fSelectEquipmentType) return kFALSE;</span>
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            :   Int_t equipmentId;
+<span class="lineNum">     520 </span><span class="lineCov">     712795 :   if (fEquipmentIdsIn &amp;&amp; fEquipmentIdsIn)</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     equipmentId = GetMappedEquipmentId();</span>
+<span class="lineNum">     522 </span>            :   else
+<span class="lineNum">     523 </span><span class="lineCov">     712795 :     equipmentId = GetEquipmentId();</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineCov">    1425585 :   if ((fSelectMinEquipmentId &gt;= 0) &amp;&amp; </span>
+<span class="lineNum">     526 </span><span class="lineCov">     712790 :       (equipmentId &lt; fSelectMinEquipmentId))</span>
+<span class="lineNum">     527 </span><span class="lineCov">     547468 :     return kFALSE;</span>
+<span class="lineNum">     528 </span><span class="lineCov">     330649 :   if ((fSelectMaxEquipmentId &gt;= 0) &amp;&amp; </span>
+<span class="lineNum">     529 </span><span class="lineCov">     165322 :       (equipmentId &gt; fSelectMaxEquipmentId))</span>
+<span class="lineNum">     530 </span><span class="lineCov">     161442 :     return kFALSE;</span>
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineCov">       3885 :   return kTRUE;</span>
+<a name="533"><span class="lineNum">     533 </span><span class="lineCov">     712795 : }</span></a>
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span>            : Bool_t AliRawReader::IsEventSelected() const
+<span class="lineNum">     536 </span>            : {
+<span class="lineNum">     537 </span>            :   // apply the event selection (if any)
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span>            :   // First check the event type
+<span class="lineNum">     540 </span><span class="lineCov">         20 :   if (fSelectEventType &gt;= 0) {</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     if (GetType() != (UInt_t) fSelectEventType) return kFALSE;</span>
+<span class="lineNum">     542 </span>            :   }
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :   // Then check the trigger pattern and compared it
+<span class="lineNum">     545 </span>            :   // to the required trigger mask
+<span class="lineNum">     546 </span><span class="lineCov">         20 :   if (fSelectTriggerMask!=0 || fSelectTriggerMask50!=0) {</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     if ( !(GetClassMask()&amp;fSelectTriggerMask) &amp;&amp; !(GetClassMaskNext50() &amp; fSelectTriggerMask50)) return kFALSE;</span>
+<span class="lineNum">     548 </span>            :   }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineCov">         10 :   if (  fIsTriggerClassLoaded &amp;&amp; !fSelectTriggerExpr.IsNull()) {</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     TString expr(fSelectTriggerExpr);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     ULong64_t mask   = GetClassMask();</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     ULong64_t maskNext50 = GetClassMaskNext50();</span>
+<span class="lineNum">     554 </span>            :     //    if (mask) {
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :       for(Int_t itrigger = 0; itrigger &lt; 50; itrigger++) </span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         if (mask &amp; (1ull &lt;&lt; itrigger)) expr.ReplaceAll(Form(&quot;[%d]&quot;,itrigger),&quot;1&quot;);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         else                           expr.ReplaceAll(Form(&quot;[%d]&quot;,itrigger),&quot;0&quot;);</span>
+<span class="lineNum">     558 </span>            :       //    }
+<span class="lineNum">     559 </span>            :       //    if (maskNext50) {
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :       for(Int_t itrigger = 0; itrigger &lt; 50; itrigger++) </span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         if (maskNext50 &amp; (1ull &lt;&lt; itrigger)) expr.ReplaceAll(Form(&quot;[%d]&quot;,itrigger+50),&quot;1&quot;);</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :         else                                 expr.ReplaceAll(Form(&quot;[%d]&quot;,itrigger+50),&quot;0&quot;);</span>
+<span class="lineNum">     563 </span>            :       //    }
+<span class="lineNum">     564 </span>            :     // 
+<span class="lineNum">     565 </span>            :     // Possibility to introduce downscaling
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     TPRegexp(&quot;(%\\s*\\d+)&quot;).Substitute(expr,Form(&quot;&amp;&amp; !(%d$1)&quot;,GetEventIndex()),&quot;g&quot;);</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     Int_t error;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     Bool_t result = gROOT-&gt;ProcessLineFast(expr.Data(),&amp;error);</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     if ( error == TInterpreter::kNoError)</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :       return result;</span>
+<span class="lineNum">     571 </span>            :     else
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineCov">         10 :   return kTRUE;</span>
+<a name="576"><span class="lineNum">     576 </span><span class="lineCov">         10 : }</span></a>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            : UInt_t AliRawReader::SwapWord(UInt_t x) const
+<span class="lineNum">     579 </span>            : {
+<span class="lineNum">     580 </span>            :    // Swap the endianess of the integer value 'x'
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :    return (((x &amp; 0x000000ffU) &lt;&lt; 24) | ((x &amp; 0x0000ff00U) &lt;&lt;  8) |</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :            ((x &amp; 0x00ff0000U) &gt;&gt;  8) | ((x &amp; 0xff000000U) &gt;&gt; 24));</span>
+<a name="584"><span class="lineNum">     584 </span>            : }</a>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span>            : UShort_t AliRawReader::SwapShort(UShort_t x) const
+<span class="lineNum">     587 </span>            : {
+<span class="lineNum">     588 </span>            :    // Swap the endianess of the short value 'x'
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :    return (((x &amp; 0x00ffU) &lt;&lt;  8) | ((x &amp; 0xff00U) &gt;&gt;  8)) ;</span>
+<a name="591"><span class="lineNum">     591 </span>            : }</a>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            : Bool_t AliRawReader::ReadNextInt(UInt_t&amp; data)
+<span class="lineNum">     594 </span>            : {
+<span class="lineNum">     595 </span>            : // reads the next 4 bytes at the current position
+<span class="lineNum">     596 </span>            : // returns kFALSE if the data could not be read
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineCov">     161669 :   while (fCount == 0) {</span>
+<span class="lineNum">     599 </span><span class="lineCov">        196 :     if (!ReadHeader()) return kFALSE;</span>
+<span class="lineNum">     600 </span>            :   }
+<span class="lineNum">     601 </span><span class="lineCov">      53819 :   if (fCount &lt; (Int_t) sizeof(data)) {</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     Error(&quot;ReadNextInt&quot;, </span>
+<span class="lineNum">     603 </span>            :           &quot;too few data left (%d bytes) to read an UInt_t!&quot;, fCount);
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     605 </span>            :   }
+<span class="lineNum">     606 </span><span class="lineCov">      53819 :   if (!ReadNext((UChar_t*) &amp;data, sizeof(data))) {</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     Error(&quot;ReadNextInt&quot;, &quot;could not read data!&quot;);</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     609 </span>            :   }
+<span class="lineNum">     610 </span>            : #ifndef R__BYTESWAP
+<span class="lineNum">     611 </span>            :   data=SwapWord(data);
+<span class="lineNum">     612 </span>            : #endif
+<span class="lineNum">     613 </span><span class="lineCov">      53819 :   return kTRUE;</span>
+<a name="614"><span class="lineNum">     614 </span><span class="lineCov">      53835 : }</span></a>
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span>            : Bool_t AliRawReader::ReadNextShort(UShort_t&amp; data)
+<span class="lineNum">     617 </span>            : {
+<span class="lineNum">     618 </span>            : // reads the next 2 bytes at the current position
+<span class="lineNum">     619 </span>            : // returns kFALSE if the data could not be read
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   while (fCount == 0) {</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     if (!ReadHeader()) return kFALSE;</span>
+<span class="lineNum">     623 </span>            :   }
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   if (fCount &lt; (Int_t) sizeof(data)) {</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     Error(&quot;ReadNextShort&quot;, </span>
+<span class="lineNum">     626 </span>            :           &quot;too few data left (%d bytes) to read an UShort_t!&quot;, fCount);
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     628 </span>            :   }
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :   if (!ReadNext((UChar_t*) &amp;data, sizeof(data))) {</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     Error(&quot;ReadNextShort&quot;, &quot;could not read data!&quot;);</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     632 </span>            :   }
+<span class="lineNum">     633 </span>            : #ifndef R__BYTESWAP
+<span class="lineNum">     634 </span>            :   data=SwapShort(data);
+<span class="lineNum">     635 </span>            : #endif
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="637"><span class="lineNum">     637 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            : Bool_t AliRawReader::ReadNextChar(UChar_t&amp; data)
+<span class="lineNum">     640 </span>            : {
+<span class="lineNum">     641 </span>            : // reads the next 1 byte at the current stream position
+<span class="lineNum">     642 </span>            : // returns kFALSE if the data could not be read
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineCov">      58796 :   while (fCount == 0) {</span>
+<span class="lineNum">     645 </span><span class="lineCov">         88 :     if (!ReadHeader()) return kFALSE;</span>
+<span class="lineNum">     646 </span>            :   }
+<span class="lineNum">     647 </span><span class="lineCov">      19568 :   if (!ReadNext((UChar_t*) &amp;data, sizeof(data))) {</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     Error(&quot;ReadNextChar&quot;, &quot;could not read data!&quot;);</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     650 </span>            :   }
+<span class="lineNum">     651 </span><span class="lineCov">      19568 :   return kTRUE;</span>
+<a name="652"><span class="lineNum">     652 </span><span class="lineCov">      19572 : }</span></a>
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            : Bool_t  AliRawReader::GotoEvent(Int_t event)
+<span class="lineNum">     655 </span>            : {
+<span class="lineNum">     656 </span>            :   // Random access to certain
+<span class="lineNum">     657 </span>            :   // event index. Could be very slow
+<span class="lineNum">     658 </span>            :   // for some non-root raw-readers.
+<span class="lineNum">     659 </span>            :   // So it should be reimplemented there.
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :   if (event &lt; fEventNumber) RewindEvents();</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   while (fEventNumber &lt; event) {</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     if (!NextEvent()) return kFALSE;</span>
+<span class="lineNum">     664 </span>            :   }
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="667"><span class="lineNum">     667 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span>            : Int_t AliRawReader::CheckData() const
+<span class="lineNum">     670 </span>            : {
+<span class="lineNum">     671 </span>            : // check the consistency of the data
+<span class="lineNum">     672 </span>            : // derived classes should overwrite the default method which returns 0 (no err)
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     675 </span>            : }
+<a name="676"><span class="lineNum">     676 </span>            : </a>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            : void AliRawReader::DumpData(Int_t limit)
+<span class="lineNum">     679 </span>            : {
+<span class="lineNum">     680 </span>            : // print the raw data
+<span class="lineNum">     681 </span>            : // if limit is not negative, only the first and last &quot;limit&quot; lines of raw data
+<span class="lineNum">     682 </span>            : // are printed
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :   Reset();</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :   if (!ReadHeader()) {</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :     Error(&quot;DumpData&quot;, &quot;no header&quot;);</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     688 </span>            :   }
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   printf(&quot;header:\n&quot;</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :          &quot; type = %d  run = %d  &quot;, GetType(), GetRunNumber());</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   if (GetEventId()) {</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     printf(&quot;event = %8.8x %8.8x\n&quot;, GetEventId()[1], GetEventId()[0]);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     printf(&quot;event = -------- --------\n&quot;);</span>
+<span class="lineNum">     695 </span>            :   }
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :   if (GetTriggerPattern()) {</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     printf(&quot; trigger = %8.8x %8.8x  &quot;,</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :            GetTriggerPattern()[1], GetTriggerPattern()[0]);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :     printf(&quot; trigger = -------- --------  &quot;);</span>
+<span class="lineNum">     701 </span>            :   }
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :   if (GetDetectorPattern()) {</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :     printf(&quot;detector = %8.8x\n&quot;, GetDetectorPattern()[0]);</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     printf(&quot;detector = --------\n&quot;);</span>
+<span class="lineNum">     706 </span>            :   }
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :   if (GetAttributes()) {</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     printf(&quot; attributes = %8.8x %8.8x %8.8x  &quot;,</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :            GetAttributes()[2], GetAttributes()[1], GetAttributes()[0]);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     printf(&quot; attributes = -------- -------- --------  &quot;);</span>
+<span class="lineNum">     712 </span>            :   }
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :   printf(&quot;GDC = %d\n&quot;, GetGDCId());</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   printf(&quot;\n&quot;);</span>
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     printf(&quot;-------------------------------------------------------------------------------\n&quot;);</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     printf(&quot;LDC = %d\n&quot;, GetLDCId());</span>
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     printf(&quot;equipment:\n&quot;</span>
+<span class="lineNum">     721 </span>            :            &quot; size = %d  type = %d  id = %d\n&quot;,
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :            GetEquipmentSize(), GetEquipmentType(), GetEquipmentId());</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :     if (GetEquipmentAttributes()) {</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :       printf(&quot; attributes = %8.8x %8.8x %8.8x  &quot;, GetEquipmentAttributes()[2],</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :              GetEquipmentAttributes()[1], GetEquipmentAttributes()[0]);</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :       printf(&quot; attributes = -------- -------- --------  &quot;);</span>
+<span class="lineNum">     728 </span>            :     }
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     printf(&quot;element size = %d\n&quot;, GetEquipmentElementSize());</span>
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     printf(&quot;data header:\n&quot;</span>
+<span class="lineNum">     732 </span>            :            &quot; size = %d  version = %d  valid = %d  compression = %d\n&quot;,
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :            GetDataSize(), GetVersion(), IsValid(), IsCompressed());</span>
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     printf(&quot;\n&quot;);</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     if (limit == 0) continue;</span>
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     Int_t size = GetDataSize();</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :     char line[70];</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     for (Int_t i = 0; i &lt; 70; i++) line[i] = ' ';</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     line[69] = '\0';</span>
+<span class="lineNum">     742 </span>            :     Int_t pos = 0;
+<span class="lineNum">     743 </span>            :     Int_t max = 16;
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     UChar_t byte;</span>
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     for (Int_t n = 0; n &lt; size; n++) {</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :       if (!ReadNextChar(byte)) {</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :         Error(&quot;DumpData&quot;, &quot;couldn't read byte number %d\n&quot;, n);</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     750 </span>            :       }
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :       if (pos &gt;= max) {</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :         printf(&quot;%8.8x  %s\n&quot;, n-pos, line);</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :         for (Int_t i = 0; i &lt; 70; i++) line[i] = ' ';</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :         line[69] = '\0';</span>
+<span class="lineNum">     755 </span>            :         pos = 0;
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         if ((limit &gt; 0) &amp;&amp; (n/max == limit)) {</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :           Int_t nContinue = ((size-1)/max+1-limit) * max;</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :           if (nContinue &gt; n) {</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :             printf(&quot; [skipping %d bytes]\n&quot;, nContinue-n);</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :             n = nContinue-1;</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     762 </span>            :           }
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     764 </span>            :       }
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :       Int_t offset = pos/4;</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :       if ((byte &gt; 0x20) &amp;&amp; (byte &lt; 0x7f)) {</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :         line[pos+offset] = byte;</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         line[pos+offset] = '.';</span>
+<span class="lineNum">     770 </span>            :       }
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :       char hex[3];</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :       snprintf(hex, 3, &quot;%2.2x&quot;, byte);</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :       line[max+max/4+3+2*pos+offset] = hex[0];</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :       line[max+max/4+4+2*pos+offset] = hex[1];</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       pos++;</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     if (pos &gt; 0) printf(&quot;%8.8x  %s\n&quot;, size-pos, line);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     printf(&quot;\n&quot;);</span>
+<span class="lineNum">     780 </span>            :            
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :   } while (ReadHeader());</span>
+<a name="782"><span class="lineNum">     782 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     783 </span>            : 
+<span class="lineNum">     784 </span>            : void AliRawReader::AddErrorLog(AliRawDataErrorLog::ERawDataErrorLevel level,
+<span class="lineNum">     785 </span>            :                                Int_t code,
+<span class="lineNum">     786 </span>            :                                const char *message)
+<span class="lineNum">     787 </span>            : {
+<span class="lineNum">     788 </span>            :   // Add a raw data error message to the list
+<span class="lineNum">     789 </span>            :   // of raw-data decoding errors
+<span class="lineNum">     790 </span><span class="lineCov">        312 :   if (fEventNumber &lt; 0) {</span>
+<span class="lineNum">     791 </span>            :     return;
+<span class="lineNum">     792 </span>            :   }
+<span class="lineNum">     793 </span><span class="lineCov">        156 :   Int_t ddlId = GetEquipmentId();</span>
+<span class="lineNum">     794 </span><span class="lineCov">        156 :   if (ddlId &lt; 0) {</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     AliError(&quot;No ddl raw data have been read so far! Impossible to add a raw data error log!&quot;);</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     797 </span>            :   }
+<span class="lineNum">     798 </span>            : 
+<span class="lineNum">     799 </span>            :   Int_t prevEventNumber = -1;
+<span class="lineNum">     800 </span>            :   Int_t prevDdlId = -1;
+<span class="lineNum">     801 </span>            :   Int_t prevErrorCode = -1;
+<span class="lineNum">     802 </span><span class="lineCov">        156 :   AliRawDataErrorLog *prevLog = (AliRawDataErrorLog *)fErrorLogs.Last();</span>
+<span class="lineNum">     803 </span><span class="lineCov">        156 :   if (prevLog) {</span>
+<span class="lineNum">     804 </span><span class="lineCov">        155 :     prevEventNumber = prevLog-&gt;GetEventNumber();</span>
+<span class="lineNum">     805 </span><span class="lineCov">        155 :     prevDdlId       = prevLog-&gt;GetDdlID();</span>
+<span class="lineNum">     806 </span><span class="lineCov">        155 :     prevErrorCode   = prevLog-&gt;GetErrorCode();</span>
+<span class="lineNum">     807 </span><span class="lineCov">        155 :   }</span>
+<span class="lineNum">     808 </span>            : 
+<span class="lineNum">     809 </span><span class="lineCov">        285 :   if ((prevEventNumber != fEventNumber) ||</span>
+<span class="lineNum">     810 </span><span class="lineCov">        152 :       (prevDdlId != ddlId) ||</span>
+<span class="lineNum">     811 </span><span class="lineCov">        129 :       (prevErrorCode != code)) {</span>
+<span class="lineNum">     812 </span><span class="lineCov">        156 :     new (fErrorLogs[fErrorLogs.GetEntriesFast()])</span>
+<span class="lineNum">     813 </span><span class="lineCov">        156 :       AliRawDataErrorLog(fEventNumber,</span>
+<span class="lineNum">     814 </span>            :                          ddlId,
+<span class="lineNum">     815 </span>            :                          level,
+<span class="lineNum">     816 </span>            :                          code,
+<span class="lineNum">     817 </span>            :                          message);
+<span class="lineNum">     818 </span>            :   }
+<span class="lineNum">     819 </span>            :   else
+<span class="lineNum">     820 </span><span class="lineCov">        258 :     if (prevLog) prevLog-&gt;AddCount();</span>
+<span class="lineNum">     821 </span>            : 
+<a name="822"><span class="lineNum">     822 </span><span class="lineCov">        312 : }</span></a>
+<span class="lineNum">     823 </span>            : 
+<span class="lineNum">     824 </span>            : Bool_t AliRawReader::GotoEventWithID(Int_t event, 
+<span class="lineNum">     825 </span>            :                                      UInt_t period,
+<span class="lineNum">     826 </span>            :                                      UInt_t orbitID,
+<span class="lineNum">     827 </span>            :                                      UShort_t bcID)
+<span class="lineNum">     828 </span>            : {
+<span class="lineNum">     829 </span>            :   // Go to certain event number by
+<span class="lineNum">     830 </span>            :   // checking the event ID.
+<span class="lineNum">     831 </span>            :   // Useful in case event-selection
+<span class="lineNum">     832 </span>            :   // is applied and the 'event' is
+<span class="lineNum">     833 </span>            :   // relative
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :   if (!GotoEvent(event)) return kFALSE;</span>
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :   while (GetBCID()    != period  ||</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :          GetOrbitID() != orbitID ||</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :          GetPeriod()  != bcID) {</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :     if (!NextEvent()) return kFALSE;</span>
+<span class="lineNum">     840 </span>            :   }
+<span class="lineNum">     841 </span>            : 
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     844 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

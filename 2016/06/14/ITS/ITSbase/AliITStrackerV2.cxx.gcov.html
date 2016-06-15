@@ -1,0 +1,1238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - ITS/ITSbase/AliITStrackerV2.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ITS/ITSbase</a> - AliITStrackerV2.cxx<span style="font-size: 80%;"> (source / <a href="AliITStrackerV2.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntry">678</td>
+            <td class="headerCovTableEntryLo">3.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntryLo">21.6 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : /* $Id$ */
+<span class="lineNum">      16 </span>            : //-------------------------------------------------------------------------
+<span class="lineNum">      17 </span>            : //               Implementation of the ITS tracker class
+<span class="lineNum">      18 </span>            : //    It reads AliITSRecPoint clusters and creates AliITStrackV2 tracks
+<span class="lineNum">      19 </span>            : //                   and fills with them the ESD
+<span class="lineNum">      20 </span>            : //          Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
+<span class="lineNum">      21 </span>            : //     dEdx analysis by: Boris Batyunya, JINR, Boris.Batiounia@cern.ch
+<span class="lineNum">      22 </span>            : //-------------------------------------------------------------------------
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &lt;new&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;TError.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;TTree.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;TRandom.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;TGeoMatrix.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;AliITSgeomTGeo.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliAlignObj.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliITSRecPoint.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliESDEvent.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliESDtrack.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliITSRecPoint.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliITSReconstructor.h&quot;
+<a name="39"><span class="lineNum">      39 </span>            : #include &quot;AliITStrackerV2.h&quot;</a>
+<span class="lineNum">      40 </span>            : 
+<a name="41"><span class="lineNum">      41 </span><span class="lineCov">        118 : ClassImp(AliITStrackerV2)</span></a>
+<span class="lineNum">      42 </span>            : 
+<a name="43"><span class="lineNum">      43 </span><span class="lineCov">       1416 : AliITStrackerV2::AliITSlayer AliITStrackerV2::fgLayers[AliITSgeomTGeo::kNLayers]; //ITS layers</span></a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 : AliITStrackerV2::AliITStrackerV2(): </span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :   AliTracker(), </span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :   fI(AliITSgeomTGeo::GetNLayers()),</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :   fBestTrack(),</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :   fTrackToFollow(),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   fPass(0),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :   fLastLayerToTrackTo(AliITSRecoParam::GetLastLayerToTrackTo())</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      53 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">      54 </span>            :   //This is the AliITStrackerV2 default constructor
+<span class="lineNum">      55 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   for (Int_t i=1; i&lt;AliITSgeomTGeo::GetNLayers()+1; i++) new(fgLayers+i-1) AliITSlayer();</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fConstraint[0]=1; fConstraint[1]=0;</span>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   Double_t xyz[]={AliITSReconstructor::GetRecoParam()-&gt;GetXVdef(),</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetYVdef(),</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetZVdef()}; </span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   Double_t ers[]={AliITSReconstructor::GetRecoParam()-&gt;GetSigmaXVdef(),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetSigmaYVdef(),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZVdef()}; </span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   SetVertex(xyz,ers);</span>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::GetNLayers(); i++) fLayersNotToSkip[i]=AliITSRecoParam::GetLayersNotToSkip(i);</span>
+<span class="lineNum">      70 </span>            : 
+<a name="71"><span class="lineNum">      71 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : AliITStrackerV2::AliITStrackerV2(const AliITStrackerV2 &amp;t): </span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   AliTracker(t), </span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   fI(t.fI),</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   fBestTrack(t.fBestTrack),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   fTrackToFollow(t.fTrackToFollow),</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   fPass(t.fPass),</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fLastLayerToTrackTo(t.fLastLayerToTrackTo)</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      81 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">      82 </span>            :   //This is the AliITStrackerV2 copy constructor
+<span class="lineNum">      83 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :   //for (Int_t i=1; i&lt;AliITSgeomTGeo::GetNLayers()+1; i++) new(fgLayers+i-1) AliITSlayer();
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   fConstraint[0]=t.fConstraint[0]; fConstraint[1]=t.fConstraint[1];</span>
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   Double_t xyz[]={AliITSReconstructor::GetRecoParam()-&gt;GetXVdef(),</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetYVdef(),</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetZVdef()}; </span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   Double_t ers[]={AliITSReconstructor::GetRecoParam()-&gt;GetSigmaXVdef(),</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetSigmaYVdef(),</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZVdef()}; </span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   xyz[0]=t.GetX(); xyz[1]=t.GetY(); xyz[2]=t.GetZ(); </span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   ers[0]=t.GetSigmaX(); ers[1]=t.GetSigmaY(); ers[2]=t.GetSigmaZ(); </span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   SetVertex(xyz,ers);</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::GetNLayers(); i++) fLayersNotToSkip[i]=t.fLayersNotToSkip[i];</span>
+<span class="lineNum">     100 </span>            : 
+<a name="101"><span class="lineNum">     101 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 : AliITStrackerV2::AliITStrackerV2(const Char_t *geom) : </span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   AliTracker(), </span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fI(AliITSgeomTGeo::GetNLayers()),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fBestTrack(),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fTrackToFollow(),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   fPass(0),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fLastLayerToTrackTo(AliITSRecoParam::GetLastLayerToTrackTo())</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     111 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     112 </span>            :   //This is the AliITStrackerV2 constructor
+<span class="lineNum">     113 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   if (geom) {</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     AliWarning(&quot;\&quot;geom\&quot; is actually a dummy argument !&quot;);</span>
+<span class="lineNum">     116 </span>            :   }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   for (Int_t i=1; i&lt;AliITSgeomTGeo::GetNLayers()+1; i++) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     Int_t nlad=AliITSgeomTGeo::GetNLadders(i);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     Int_t ndet=AliITSgeomTGeo::GetNDetectors(i);</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     Double_t xyz[3], &amp;x=xyz[0], &amp;y=xyz[1], &amp;z=xyz[2];</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     AliITSgeomTGeo::GetOrigTranslation(i,1,1,xyz); </span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     Double_t poff=TMath::ATan2(y,x);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     Double_t zoff=z;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     Double_t r=TMath::Sqrt(x*x + y*y);</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     AliITSgeomTGeo::GetOrigTranslation(i,1,2,xyz);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     r += TMath::Sqrt(x*x + y*y);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     AliITSgeomTGeo::GetOrigTranslation(i,2,1,xyz);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     r += TMath::Sqrt(x*x + y*y);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     AliITSgeomTGeo::GetOrigTranslation(i,2,2,xyz);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     r += TMath::Sqrt(x*x + y*y);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     r*=0.25;</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     new (fgLayers+i-1) AliITSlayer(r,poff,zoff,nlad,ndet);</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     for (Int_t j=1; j&lt;nlad+1; j++) {</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :       for (Int_t k=1; k&lt;ndet+1; k++) { //Fill this layer with detectors</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         TGeoHMatrix m; AliITSgeomTGeo::GetOrigMatrix(i,j,k,m);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         const TGeoHMatrix *tm=AliITSgeomTGeo::GetTracking2LocalMatrix(i,j,k);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         m.Multiply(tm);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         Double_t txyz[3]={0.}; </span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         xyz[0]=0.; xyz[1]=0.; xyz[2]=0.;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         m.LocalToMaster(txyz,xyz);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         r=TMath::Sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1]);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         Double_t phi=TMath::ATan2(xyz[1],xyz[0]);</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         if (phi&lt;0) phi+=TMath::TwoPi();</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         else if (phi&gt;=TMath::TwoPi()) phi-=TMath::TwoPi();</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         AliITSdetector &amp;det=fgLayers[i-1].GetDetector((j-1)*ndet + k-1); </span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         new(&amp;det) AliITSdetector(r,phi); </span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :       } </span>
+<span class="lineNum">     155 </span>            :     }  
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   fConstraint[0]=1; fConstraint[1]=0;</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   Double_t xyz[]={AliITSReconstructor::GetRecoParam()-&gt;GetXVdef(),</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetYVdef(),</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetZVdef()}; </span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   Double_t ers[]={AliITSReconstructor::GetRecoParam()-&gt;GetSigmaXVdef(),</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetSigmaYVdef(),</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                   AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZVdef()}; </span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   SetVertex(xyz,ers);</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::GetNLayers(); i++) fLayersNotToSkip[i]=AliITSRecoParam::GetLayersNotToSkip(i);</span>
+<span class="lineNum">     170 </span>            : 
+<a name="171"><span class="lineNum">     171 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : void AliITStrackerV2::SetLayersNotToSkip(Int_t *l) {
+<span class="lineNum">     174 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     175 </span>            :   //This function set masks of the layers which must be not skipped
+<span class="lineNum">     176 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::GetNLayers(); i++) fLayersNotToSkip[i]=l[i];</span>
+<a name="178"><span class="lineNum">     178 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : Int_t AliITStrackerV2::LoadClusters(TTree *cTree) {
+<span class="lineNum">     181 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     182 </span>            :   //This function loads ITS clusters
+<span class="lineNum">     183 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   TBranch *branch=cTree-&gt;GetBranch(&quot;ITSRecPoints&quot;);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if (!branch) { </span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     Error(&quot;LoadClusters&quot;,&quot; can't get the branch !\n&quot;);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     188 </span>            :   }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   TClonesArray dummy(&quot;AliITSRecPoint&quot;,10000), *clusters=&amp;dummy;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   branch-&gt;SetAddress(&amp;clusters);</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :   Int_t j=0;
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::GetNLayers(); i++) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     Int_t ndet=fgLayers[i].GetNdetectors();</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     Int_t jmax = j + fgLayers[i].GetNladders()*ndet;</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     Double_t r=fgLayers[i].GetR();</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     Double_t circ=TMath::TwoPi()*r;</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     for (; j&lt;jmax; j++) {           </span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       if (!cTree-&gt;GetEvent(j)) continue;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :       Int_t ncl=clusters-&gt;GetEntriesFast();</span>
+<span class="lineNum">     204 </span>            :  
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       while (ncl--) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         AliITSRecPoint *c=(AliITSRecPoint*)clusters-&gt;UncheckedAt(ncl);</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         if (!c-&gt;Misalign()) AliWarning(&quot;Can't misalign this cluster !&quot;);</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         Int_t idx=c-&gt;GetDetectorIndex();</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         AliITSdetector &amp;det=fgLayers[i].GetDetector(idx);</span>
+<span class="lineNum">     212 </span>            :    
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         Double_t y=r*det.GetPhi()+c-&gt;GetY();</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         if (y&gt;circ) y-=circ; else if (y&lt;0) y+=circ;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         c-&gt;SetPhiR(y);</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         fgLayers[i].InsertCluster(new AliITSRecPoint(*c));</span>
+<span class="lineNum">     218 </span>            :       }
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :       clusters-&gt;Delete();</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     fgLayers[i].ResetRoad(); //road defined by the cluster density</span>
+<span class="lineNum">     222 </span>            :   }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :   return 0;
+<a name="225"><span class="lineNum">     225 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : void AliITStrackerV2::UnloadClusters() {
+<span class="lineNum">     228 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     229 </span>            :   //This function unloads ITS clusters
+<span class="lineNum">     230 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::GetNLayers(); i++) fgLayers[i].ResetClusters();</span>
+<a name="232"><span class="lineNum">     232 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : static Int_t CorrectForDeadZoneMaterial(AliITStrackV2 *t) {
+<span class="lineNum">     235 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     236 </span>            :   // Correction for the material between the TPC and the ITS
+<span class="lineNum">     237 </span>            :   // (should it belong to the TPC code ?)
+<span class="lineNum">     238 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     239 </span>            :   Double_t riw=80., diw=0.0053, x0iw=30; // TPC inner wall ? 
+<span class="lineNum">     240 </span>            :   Double_t rcd=61., dcd=0.0053, x0cd=30; // TPC &quot;central drum&quot; ?
+<span class="lineNum">     241 </span>            :   Double_t yr=12.8, dr=0.03; // rods ?
+<span class="lineNum">     242 </span>            :   Double_t zm=0.2, dm=0.40;  // membrane
+<span class="lineNum">     243 </span>            :   //Double_t rr=52., dr=0.19, x0r=24., yyr=7.77; //rails
+<span class="lineNum">     244 </span>            :   Double_t rs=50., ds=0.001; // something belonging to the ITS (screen ?)
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   if (t-&gt;GetX() &gt; riw) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :      if (!t-&gt;PropagateTo(riw,diw,x0iw)) return 1;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :      if (TMath::Abs(t-&gt;GetY())&gt;yr) t-&gt;CorrectForMaterial(dr);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :      if (TMath::Abs(t-&gt;GetZ())&lt;zm) t-&gt;CorrectForMaterial(dm);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :      if (!t-&gt;PropagateTo(rcd,dcd,x0cd)) return 1;</span>
+<span class="lineNum">     251 </span>            :      //Double_t x,y,z; t-&gt;GetGlobalXYZat(rr,x,y,z);
+<span class="lineNum">     252 </span>            :      //if (TMath::Abs(y)&lt;yyr) t-&gt;PropagateTo(rr,dr,x0r); 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :      if (!t-&gt;PropagateTo(rs,ds)) return 1;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   } else if (t-&gt;GetX() &lt; rs) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :      if (!t-&gt;PropagateTo(rs,-ds)) return 1;</span>
+<span class="lineNum">     256 </span>            :      //Double_t x,y,z; t-&gt;GetGlobalXYZat(rr,x,y,z);
+<span class="lineNum">     257 </span>            :      //if (TMath::Abs(y)&lt;yyr) t-&gt;PropagateTo(rr,-dr,x0r); 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :      if (!t-&gt;PropagateTo(rcd,-dcd,x0cd)) return 1;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :      if (!t-&gt;PropagateTo(riw+0.001,-diw,x0iw)) return 1;</span>
+<span class="lineNum">     260 </span>            :   } else {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   ::Error(&quot;CorrectForDeadZoneMaterial&quot;,&quot;track is already in the dead zone !&quot;);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     263 </span>            :   }
+<span class="lineNum">     264 </span>            :   
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="266"><span class="lineNum">     266 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : Int_t AliITStrackerV2::Clusters2Tracks(AliESDEvent *event) {
+<span class="lineNum">     269 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     270 </span>            :   // This functions reconstructs ITS tracks
+<span class="lineNum">     271 </span>            :   // The clusters must be already loaded !
+<span class="lineNum">     272 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   TObjArray itsTracks(15000);</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            :   {/* Read ESD tracks */
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     Int_t nentr=event-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     Info(&quot;Clusters2Tracks&quot;, &quot;Number of ESD tracks: %d\n&quot;, nentr);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     while (nentr--) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :       AliESDtrack *esd=event-&gt;GetTrack(nentr);</span>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       if ((esd-&gt;GetStatus()&amp;AliESDtrack::kTPCin)==0) continue;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :       if (esd-&gt;GetStatus()&amp;AliESDtrack::kTPCout) continue;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :       if (esd-&gt;GetStatus()&amp;AliESDtrack::kITSin) continue;</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :       AliITStrackV2 *t = new AliITStrackV2(*esd);</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :       if (TMath::Abs(t-&gt;GetD(GetX(),GetY()))&gt;4) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         delete t;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     290 </span>            :       }
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       if (CorrectForDeadZoneMaterial(t)!=0) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :          Warning(&quot;Clusters2Tracks&quot;,</span>
+<span class="lineNum">     294 </span>            :                  &quot;failed to correct for the material in the dead zone !\n&quot;);
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :          delete t;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :          continue;</span>
+<span class="lineNum">     297 </span>            :       }
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :       itsTracks.AddLast(t);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     300 </span>            :   } /* End Read ESD tracks */
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   itsTracks.Sort();</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   Int_t nentr=itsTracks.GetEntriesFast();</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :   Int_t ntrk=0;
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   for (fPass=0; fPass&lt;2; fPass++) {</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :      Int_t &amp;constraint=fConstraint[fPass]; if (constraint&lt;0) continue;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :      for (Int_t i=0; i&lt;nentr; i++) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :        AliITStrackV2 *t=(AliITStrackV2*)itsTracks.UncheckedAt(i);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :        if (t==0) continue;           //this track has been already tracked</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :        Int_t tpcLabel=t-&gt;GetLabel(); //save the TPC track label</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :        ResetTrackToFollow(*t);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :        ResetBestTrack();</span>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :        for (FollowProlongation(); fI&lt;AliITSgeomTGeo::GetNLayers(); fI++) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :           while (TakeNextProlongation()) FollowProlongation();</span>
+<span class="lineNum">     318 </span>            :        }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :        if (fBestTrack.GetNumberOfClusters() == 0) continue;</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :        if (fConstraint[fPass]) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :           ResetTrackToFollow(*t);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :           if (!RefitAt(3.7, &amp;fTrackToFollow, &amp;fBestTrack)) continue;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :           ResetBestTrack();</span>
+<span class="lineNum">     326 </span>            :        }
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :        fBestTrack.SetLabel(tpcLabel);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :        fBestTrack.CookdEdx();</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :        CookLabel(&amp;fBestTrack,0.); //For comparison only</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :        fBestTrack.UpdateESDtrack(AliESDtrack::kITSin);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :        UseClusters(&amp;fBestTrack);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :        delete itsTracks.RemoveAt(i);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :        ntrk++;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   itsTracks.Delete();</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :   Info(&quot;Clusters2Tracks&quot;,&quot;Number of prolonged tracks: %d\n&quot;,ntrk);</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span>            :   return 0;
+<a name="343"><span class="lineNum">     343 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            : Int_t AliITStrackerV2::PropagateBack(AliESDEvent *event) {
+<span class="lineNum">     346 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     347 </span>            :   // This functions propagates reconstructed ITS tracks back
+<span class="lineNum">     348 </span>            :   // The clusters must be loaded !
+<span class="lineNum">     349 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   Int_t nentr=event-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   Info(&quot;PropagateBack&quot;, &quot;Number of ESD tracks: %d\n&quot;, nentr);</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :   Int_t ntrk=0;
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nentr; i++) {</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :      AliESDtrack *esd=event-&gt;GetTrack(i);</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :      if ((esd-&gt;GetStatus()&amp;AliESDtrack::kITSin)==0) continue;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :      if (esd-&gt;GetStatus()&amp;AliESDtrack::kITSout) continue;</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :      AliITStrackV2 *t = new AliITStrackV2(*esd);</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :      ResetTrackToFollow(*t);</span>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :      // propagete to vertex [SR, GSI 17.02.2003]
+<span class="lineNum">     365 </span>            :      // Start Time measurement [SR, GSI 17.02.2003], corrected by I.Belikov
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :      if (fTrackToFollow.PropagateTo(3.,0.0028,65.19)) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :        if (fTrackToFollow.PropagateToVertex(event-&gt;GetVertex())) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :           fTrackToFollow.StartTimeIntegral();</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :        Bool_t okProp=fTrackToFollow.PropagateTo(3.,-0.0028,65.19);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :        if(!okProp){</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :          AliWarning(&quot;Propagation to beam pipe radius failed&quot;);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :      fTrackToFollow.ResetCovariance(10.); fTrackToFollow.ResetClusters();</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :      if (RefitAt(49.,&amp;fTrackToFollow,t)) {</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         if (CorrectForDeadZoneMaterial(&amp;fTrackToFollow)!=0) {</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :           Warning(&quot;PropagateBack&quot;,</span>
+<span class="lineNum">     380 </span>            :                   &quot;failed to correct for the material in the dead zone !\n&quot;);
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :           delete t;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     383 </span>            :         }
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         fTrackToFollow.SetLabel(t-&gt;GetLabel());</span>
+<span class="lineNum">     385 </span>            :         //fTrackToFollow.CookdEdx();
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         CookLabel(&amp;fTrackToFollow,0.); //For comparison only</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         fTrackToFollow.UpdateESDtrack(AliESDtrack::kITSout);</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         UseClusters(&amp;fTrackToFollow);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         ntrk++;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :      delete t;</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   Info(&quot;PropagateBack&quot;,&quot;Number of back propagated ITS tracks: %d\n&quot;,ntrk);</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="397"><span class="lineNum">     397 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            : Int_t AliITStrackerV2::RefitInward(AliESDEvent *event) {
+<span class="lineNum">     400 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     401 </span>            :   // This functions refits ITS tracks using the 
+<span class="lineNum">     402 </span>            :   // &quot;inward propagated&quot; TPC tracks
+<span class="lineNum">     403 </span>            :   // The clusters must be loaded !
+<span class="lineNum">     404 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   Int_t nentr=event-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   Info(&quot;RefitInward&quot;, &quot;Number of ESD tracks: %d\n&quot;, nentr);</span>
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span>            :   Int_t ntrk=0;
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nentr; i++) {</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     AliESDtrack *esd=event-&gt;GetTrack(i);</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     if ((esd-&gt;GetStatus()&amp;AliESDtrack::kITSout) == 0) continue;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if (esd-&gt;GetStatus()&amp;AliESDtrack::kITSrefit) continue;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     if (esd-&gt;GetStatus()&amp;AliESDtrack::kTPCout)</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     if ((esd-&gt;GetStatus()&amp;AliESDtrack::kTPCrefit)==0) continue;</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     AliITStrackV2 *t = new AliITStrackV2(*esd);</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     if (CorrectForDeadZoneMaterial(t)!=0) {</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :        Warning(&quot;RefitInward&quot;,</span>
+<span class="lineNum">     421 </span>            :                &quot;failed to correct for the material in the dead zone !\n&quot;);
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :        delete t;</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :        continue;</span>
+<span class="lineNum">     424 </span>            :     }
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     ResetTrackToFollow(*t);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     fTrackToFollow.ResetClusters();</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span>            :     //Refitting...
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     if (RefitAt(3.7, &amp;fTrackToFollow, t, kTRUE)) {</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :        fTrackToFollow.SetLabel(t-&gt;GetLabel());</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :        fTrackToFollow.CookdEdx();</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :        CookLabel(&amp;fTrackToFollow,0.); //For comparison only</span>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :        if (fTrackToFollow.PropagateTo(3.,0.0028,65.19)) {//The beam pipe </span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :          fTrackToFollow.UpdateESDtrack(AliESDtrack::kITSrefit);</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :          AliESDtrack  *esdTrack =fTrackToFollow.GetESDtrack();</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :          Double_t r[3]={0.,0.,0.};</span>
+<span class="lineNum">     439 </span>            :          Double_t maxD=3.;
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :          esdTrack-&gt;RelateToVertex(event-&gt;GetVertex(),GetBz(r),maxD);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :          ntrk++;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     443 </span>            :     }
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     delete t;</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   Info(&quot;RefitInward&quot;,&quot;Number of refitted tracks: %d\n&quot;,ntrk);</span>
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="450"><span class="lineNum">     450 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span>            : AliCluster *AliITStrackerV2::GetCluster(Int_t index) const {
+<span class="lineNum">     453 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     454 </span>            :   //       Return pointer to a given cluster
+<span class="lineNum">     455 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :   Int_t l=(index &amp; 0xf0000000) &gt;&gt; 28;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   Int_t c=(index &amp; 0x0fffffff) &gt;&gt; 00;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   return fgLayers[l].GetCluster(c);</span>
+<span class="lineNum">     459 </span>            : }
+<a name="460"><span class="lineNum">     460 </span>            : </a>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            : void AliITStrackerV2::FollowProlongation() {
+<span class="lineNum">     463 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     464 </span>            :   //This function finds a track prolongation 
+<span class="lineNum">     465 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   while (fI&gt;fLastLayerToTrackTo) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     Int_t i=fI-1;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     AliITSlayer &amp;layer=fgLayers[i];</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :     AliITStrackV2 &amp;track=fTracks[i];</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     Double_t r=layer.GetR();</span>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     if (i==3 || i==1) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :        Double_t rs=0.5*(fgLayers[i+1].GetR() + r);</span>
+<span class="lineNum">     476 </span>            :        Double_t d=0.0034, x0=38.6;
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :        if (i==1) {rs=9.; d=0.0097; x0=42;}</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :        if (!fTrackToFollow.PropagateTo(rs,d,x0)) {</span>
+<span class="lineNum">     479 </span>            :          //Warning(&quot;FollowProlongation&quot;,&quot;propagation failed !\n&quot;);
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :          return;</span>
+<span class="lineNum">     481 </span>            :        }
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :     //find intersection
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     Double_t phi,z;  </span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     if (!fTrackToFollow.GetPhiZat(r,phi,z)) {</span>
+<span class="lineNum">     487 </span>            :       //Warning(&quot;FollowProlongation&quot;,&quot;failed to estimate track !\n&quot;);
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     489 </span>            :     }
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     Int_t idet=layer.FindDetectorIndex(phi,z);</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     if (idet&lt;0) {</span>
+<span class="lineNum">     493 </span>            :       //Warning(&quot;FollowProlongation&quot;,&quot;failed to find a detector !\n&quot;);
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     495 </span>            :     }
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span>            :     //propagate to the intersection
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     const AliITSdetector &amp;det=layer.GetDetector(idet);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     phi=det.GetPhi();</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     if (!fTrackToFollow.Propagate(phi,det.GetR())) {</span>
+<span class="lineNum">     501 </span>            :       //Warning(&quot;FollowProlongation&quot;,&quot;propagation failed !\n&quot;);
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     503 </span>            :     }
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     fTrackToFollow.SetDetectorIndex(idet);</span>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span>            :     //Select possible prolongations and store the current track estimation
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     track.~AliITStrackV2(); new(&amp;track) AliITStrackV2(fTrackToFollow);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     Double_t dz=7*TMath::Sqrt(track.GetSigmaZ2() + AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZ2(i));</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     Double_t dy=7*TMath::Sqrt(track.GetSigmaY2() + AliITSReconstructor::GetRecoParam()-&gt;GetSigmaY2(i));</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     Double_t road=layer.GetRoad();</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     if (dz*dy&gt;road*road) {</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :        Double_t dd=TMath::Sqrt(dz*dy), scz=dz/dd, scy=dy/dd;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :        dz=road*scz; dy=road*scy;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     } </span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span>            :     //Double_t dz=4*TMath::Sqrt(track.GetSigmaZ2() + AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZ2(i));
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     if (dz &lt; 0.5*TMath::Abs(track.GetTgl())) dz=0.5*TMath::Abs(track.GetTgl());</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     if (dz &gt; AliITSReconstructor::GetRecoParam()-&gt;GetMaxRoad()) {</span>
+<span class="lineNum">     519 </span>            :       //Warning(&quot;FollowProlongation&quot;,&quot;too broad road in Z !\n&quot;);
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     521 </span>            :     }
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     if (TMath::Abs(fTrackToFollow.GetZ()-GetZ()) &gt; r+dz) return;</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            :     //Double_t dy=4*TMath::Sqrt(track.GetSigmaY2() + AliITSReconstructor::GetRecoParam()-&gt;GetSigmaY2(i));
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     if (dy &lt; 0.5*TMath::Abs(track.GetSnp())) dy=0.5*TMath::Abs(track.GetSnp());</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     if (dy &gt; AliITSReconstructor::GetRecoParam()-&gt;GetMaxRoad()) {</span>
+<span class="lineNum">     528 </span>            :       //Warning(&quot;FollowProlongation&quot;,&quot;too broad road in Y !\n&quot;);
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     530 </span>            :     }
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     fI--;</span>
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     Double_t zmin=track.GetZ() - dz; </span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     Double_t zmax=track.GetZ() + dz;</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     Double_t ymin=track.GetY() + r*phi - dy;</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     Double_t ymax=track.GetY() + r*phi + dy;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     if (layer.SelectClusters(zmin,zmax,ymin,ymax)==0) </span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :        if (fLayersNotToSkip[fI]) return;  </span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     if (!TakeNextProlongation()) </span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :        if (fLayersNotToSkip[fI]) return;</span>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :   //deal with the best track
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   Int_t ncl=fTrackToFollow.GetNumberOfClusters();</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :   Int_t nclb=fBestTrack.GetNumberOfClusters();</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :   if (ncl)</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :   if (ncl &gt;= nclb) {</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :      Double_t chi2=fTrackToFollow.GetChi2();</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :      if (chi2/ncl &lt; AliITSReconstructor::GetRecoParam()-&gt;GetChi2PerCluster()) {        </span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         if (ncl &gt; nclb || chi2 &lt; fBestTrack.GetChi2()) {</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :            ResetBestTrack();</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     556 </span>            :      }
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     558 </span>            : 
+<a name="559"><span class="lineNum">     559 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span>            : Int_t AliITStrackerV2::TakeNextProlongation() {
+<span class="lineNum">     562 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     563 </span>            :   // This function takes another track prolongation 
+<span class="lineNum">     564 </span>            :   //
+<span class="lineNum">     565 </span>            :   //  dEdx analysis by: Boris Batyunya, JINR, Boris.Batiounia@cern.ch 
+<span class="lineNum">     566 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :   AliITSlayer &amp;layer=fgLayers[fI];</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :   ResetTrackToFollow(fTracks[fI]);</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :   Double_t dz=7*TMath::Sqrt(fTrackToFollow.GetSigmaZ2() + AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZ2(fI));</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   Double_t dy=7*TMath::Sqrt(fTrackToFollow.GetSigmaY2() + AliITSReconstructor::GetRecoParam()-&gt;GetSigmaY2(fI));</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :   Double_t road=layer.GetRoad();</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   if (dz*dy&gt;road*road) {</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :      Double_t dd=TMath::Sqrt(dz*dy), scz=dz/dd, scy=dy/dd;</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :      dz=road*scz; dy=road*scy;</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :   const AliITSRecPoint *c=0; Int_t ci=-1;</span>
+<span class="lineNum">     579 </span>            :   const AliITSRecPoint *cc=0; Int_t cci=-1;
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :   Double_t chi2=AliITSReconstructor::GetRecoParam()-&gt;GetMaxChi2();</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :   while ((c=layer.GetNextCluster(ci))!=0) {</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     Int_t idet=c-&gt;GetDetectorIndex();</span>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     if (fTrackToFollow.GetDetectorIndex()!=idet) {</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :        const AliITSdetector &amp;det=layer.GetDetector(idet);</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :        ResetTrackToFollow(fTracks[fI]);</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :        if (!fTrackToFollow.Propagate(det.GetPhi(),det.GetR())) {</span>
+<span class="lineNum">     588 </span>            :          //Warning(&quot;TakeNextProlongation&quot;,&quot;propagation failed !\n&quot;);
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :          continue;</span>
+<span class="lineNum">     590 </span>            :        }
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :        fTrackToFollow.SetDetectorIndex(idet);</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :        if (TMath::Abs(fTrackToFollow.GetZ()-GetZ())&gt;layer.GetR()+dz) continue;</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     if (TMath::Abs(fTrackToFollow.GetZ() - c-&gt;GetZ()) &gt; dz) continue;</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     if (TMath::Abs(fTrackToFollow.GetY() - c-&gt;GetY()) &gt; dy) continue;</span>
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :     Double_t ch2=fTrackToFollow.GetPredictedChi2(c); </span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     if (ch2 &gt; chi2) continue;</span>
+<span class="lineNum">     600 </span>            :     chi2=ch2;
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     cc=c; cci=ci;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     603 </span>            :   }
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :   if (!cc) return 0;</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :   {// Take into account the mis-alignment
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     Double_t x = fTrackToFollow.GetX() + cc-&gt;GetX();</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     if (!fTrackToFollow.PropagateTo(x,0.,0.)) return 0;</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :   if (!fTrackToFollow.Update(cc,chi2,(fI&lt;&lt;28)+cci)) {</span>
+<span class="lineNum">     612 </span>            :      //Warning(&quot;TakeNextProlongation&quot;,&quot;filtering failed !\n&quot;);
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :      return 0;</span>
+<span class="lineNum">     614 </span>            :   }
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   if (fTrackToFollow.GetNumberOfClusters()&gt;1)</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     if (TMath::Abs(fTrackToFollow.GetD(GetX(),GetY()))&gt;4) return 0;</span>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   fTrackToFollow.</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     SetSampledEdx(cc-&gt;GetQ(),fI-2); //b.b.</span>
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            :   {
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :   Double_t x0;</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :  Double_t d=layer.GetThickness(fTrackToFollow.GetY(),fTrackToFollow.GetZ(),x0);</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :   fTrackToFollow.CorrectForMaterial(d,x0);</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :   if (fConstraint[fPass]) {</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     Double_t d=GetEffectiveThickness(0,0); //Think of this !!!!</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     Double_t xyz[]={GetX(),GetY(),GetZ()};</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     Double_t ers[]={GetSigmaX(),GetSigmaY(),GetSigmaZ()};</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     fTrackToFollow.Improve(d,xyz,ers);</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 : }</span>
+<a name="637"><span class="lineNum">     637 </span>            : </a>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            : AliITStrackerV2::AliITSlayer::AliITSlayer():
+<span class="lineNum">     640 </span><span class="lineCov">        708 :   fR(0.),</span>
+<span class="lineNum">     641 </span><span class="lineCov">        354 :   fPhiOffset(0.),</span>
+<span class="lineNum">     642 </span><span class="lineCov">        354 :   fNladders(0),</span>
+<span class="lineNum">     643 </span><span class="lineCov">        354 :   fZOffset(0.),</span>
+<span class="lineNum">     644 </span><span class="lineCov">        354 :   fNdetectors(0),</span>
+<span class="lineNum">     645 </span><span class="lineCov">        354 :   fDetectors(0),</span>
+<span class="lineNum">     646 </span><span class="lineCov">        354 :   fNsel(0),</span>
+<span class="lineNum">     647 </span><span class="lineCov">        354 :   fRoad(2*fR*TMath::Sqrt(3.14/1.)) //assuming that there's only one cluster</span>
+<span class="lineNum">     648 </span><span class="lineCov">        708 : {</span>
+<span class="lineNum">     649 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     650 </span>            :   //default AliITSlayer constructor
+<span class="lineNum">     651 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     652 </span>            :   
+<span class="lineNum">     653 </span><span class="lineCov">       4248 :   for (Int_t i=0; i&lt;kNsector; i++) fN[i]=0;</span>
+<span class="lineNum">     654 </span><span class="lineCov">   22656708 :   for (Int_t i=0; i&lt;AliITSRecoParam::kMaxClusterPerLayer; i++){</span>
+<span class="lineNum">     655 </span><span class="lineCov">   11328000 :     fClusters[i]=0;</span>
+<span class="lineNum">     656 </span><span class="lineCov">   11328000 :     fIndex[i]=0;</span>
+<span class="lineNum">     657 </span>            :   }
+<span class="lineNum">     658 </span><span class="lineCov">        708 : }</span>
+<a name="659"><span class="lineNum">     659 </span>            : </a>
+<span class="lineNum">     660 </span>            : AliITStrackerV2::AliITSlayer::
+<span class="lineNum">     661 </span>            : AliITSlayer(Double_t r,Double_t p,Double_t z,Int_t nl,Int_t nd): 
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   fR(r), </span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   fPhiOffset(p), </span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   fNladders(nl),</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :   fZOffset(z),</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   fNdetectors(nd),</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :   fDetectors(new AliITSdetector[nl*nd]),</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :   fNsel(0),</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   fRoad(2*r*TMath::Sqrt(3.14/1.)) //assuming that there's only one cluster</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     671 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     672 </span>            :   //main AliITSlayer constructor
+<span class="lineNum">     673 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;kNsector; i++) fN[i]=0;</span>
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;AliITSRecoParam::kMaxClusterPerLayer; i++){</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :     fClusters[i]=0;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     fIndex[i]=0;</span>
+<span class="lineNum">     680 </span>            :   }
+<a name="681"><span class="lineNum">     681 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span><span class="lineCov">        708 : AliITStrackerV2::AliITSlayer::~AliITSlayer() {</span>
+<span class="lineNum">     684 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     685 </span>            :   // AliITSlayer destructor
+<span class="lineNum">     686 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     687 </span><span class="lineCov">        708 :   delete[] fDetectors;</span>
+<span class="lineNum">     688 </span><span class="lineCov">        354 :   ResetClusters();</span>
+<a name="689"><span class="lineNum">     689 </span><span class="lineCov">        708 : }</span></a>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span>            : void AliITStrackerV2::AliITSlayer::ResetClusters() {
+<span class="lineNum">     692 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     693 </span>            :   // This function removes loaded clusters
+<span class="lineNum">     694 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     695 </span><span class="lineCov">       4602 :    for (Int_t s=0; s&lt;kNsector; s++) {</span>
+<span class="lineNum">     696 </span><span class="lineCov">       1770 :        Int_t &amp;n=fN[s];</span>
+<span class="lineNum">     697 </span><span class="lineCov">       3540 :        while (n) {</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :           n--;</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :           delete fClusters[s*kMaxClusterPerSector+n];</span>
+<span class="lineNum">     700 </span>            :        }
+<span class="lineNum">     701 </span>            :    }
+<a name="702"><span class="lineNum">     702 </span><span class="lineCov">        354 : }</span></a>
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span>            : void AliITStrackerV2::AliITSlayer::ResetRoad() {
+<span class="lineNum">     705 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     706 </span>            :   // This function calculates the road defined by the cluster density
+<span class="lineNum">     707 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     708 </span>            :   Int_t n=0;
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :   for (Int_t s=0; s&lt;kNsector; s++) {</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     Int_t i=fN[s];</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     while (i--) </span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :        if (TMath::Abs(fClusters[s*kMaxClusterPerSector+i]-&gt;GetZ())&lt;fR) n++;</span>
+<span class="lineNum">     713 </span>            :   }
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   if (n&gt;1) fRoad=2*fR*TMath::Sqrt(3.14/n);</span>
+<a name="715"><span class="lineNum">     715 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            : Int_t AliITStrackerV2::AliITSlayer::InsertCluster(AliITSRecPoint *c) {
+<span class="lineNum">     718 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     719 </span>            :   // This function inserts a cluster to this layer in increasing
+<span class="lineNum">     720 </span>            :   // order of the cluster's fZ
+<span class="lineNum">     721 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :   Float_t circ=TMath::TwoPi()*fR;</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   Int_t sec=Int_t(kNsector*c-&gt;GetPhiR()/circ);</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :   if (sec&gt;=kNsector) {</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :      ::Error(&quot;InsertCluster&quot;,&quot;Wrong sector !\n&quot;);</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :      return 1;</span>
+<span class="lineNum">     727 </span>            :   }
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :   Int_t &amp;n=fN[sec];</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :   if (n&gt;=kMaxClusterPerSector) {</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :      ::Error(&quot;InsertCluster&quot;,&quot;Too many clusters !\n&quot;);</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :      return 1;</span>
+<span class="lineNum">     732 </span>            :   }
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :   if (n==0) fClusters[sec*kMaxClusterPerSector]=c;</span>
+<span class="lineNum">     734 </span>            :   else {
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :      Int_t i=FindClusterIndex(c-&gt;GetZ(),sec);</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :      Int_t k=n-i+sec*kMaxClusterPerSector;</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :      memmove(fClusters+i+1 ,fClusters+i,k*sizeof(AliITSRecPoint*));</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :      fClusters[i]=c;</span>
+<span class="lineNum">     739 </span>            :   }
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   n++;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 : }</span>
+<a name="743"><span class="lineNum">     743 </span>            : </a>
+<span class="lineNum">     744 </span>            : Int_t 
+<span class="lineNum">     745 </span>            : AliITStrackerV2::AliITSlayer::FindClusterIndex(Float_t z,Int_t s) const {
+<span class="lineNum">     746 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     747 </span>            :   // For the sector &quot;s&quot;, this function returns the index of the first 
+<span class="lineNum">     748 </span>            :   // with its fZ &gt;= &quot;z&quot;. 
+<span class="lineNum">     749 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :   Int_t nc=fN[s];</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :   if (nc==0) return kMaxClusterPerSector*s;</span>
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :   Int_t b=kMaxClusterPerSector*s;</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :   if (z &lt;= fClusters[b]-&gt;GetZ()) return b;</span>
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :   Int_t e=b+nc-1;</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   if (z &gt; fClusters[e]-&gt;GetZ()) return e+1;</span>
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :   Int_t m=(b+e)/2;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :   for (; b&lt;e; m=(b+e)/2) {</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     if (z &gt; fClusters[m]-&gt;GetZ()) b=m+1;</span>
+<span class="lineNum">     762 </span>            :     else e=m; 
+<span class="lineNum">     763 </span>            :   }
+<span class="lineNum">     764 </span>            :   return m;
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 : }</span>
+<a name="766"><span class="lineNum">     766 </span>            : </a>
+<span class="lineNum">     767 </span>            : Int_t AliITStrackerV2::AliITSlayer::
+<span class="lineNum">     768 </span>            : SelectClusters(Float_t zmin,Float_t zmax,Float_t ymin, Float_t ymax) {
+<span class="lineNum">     769 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     770 </span>            :   // This function selects clusters within the &quot;window&quot;
+<span class="lineNum">     771 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     Float_t circ=fR*TMath::TwoPi();</span>
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     if (ymin&gt;circ) ymin-=circ; else if (ymin&lt;0) ymin+=circ;</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     if (ymax&gt;circ) ymax-=circ; else if (ymax&lt;0) ymax+=circ;</span>
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     Int_t i1=Int_t(kNsector*ymin/circ); if (i1==kNsector) i1--;</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     if (fN[i1]!=0) {</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :        Float_t ym = (ymax&lt;ymin) ? ymax+circ : ymax;</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :        Int_t i=FindClusterIndex(zmin,i1), imax=i1*kMaxClusterPerSector+fN[i1];</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :        for (; i&lt;imax; i++) {</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :            AliITSRecPoint *c=fClusters[i];</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :            if (c-&gt;IsUsed()) continue;</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :            if (c-&gt;GetZ()&gt;zmax) break;</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :            if (c-&gt;GetPhiR()&lt;=ymin) continue;</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :            if (c-&gt;GetPhiR()&gt;ym) continue;</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :            fIndex[fNsel++]=i;</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     Int_t i2=Int_t(kNsector*ymax/circ); if (i2==kNsector) i2--;</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :     if (i2==i1) return fNsel;</span>
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :     if (fN[i2]!=0) {</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :        Float_t ym = (ymin&gt;ymax) ? ymin-circ : ymin;</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :        Int_t i=FindClusterIndex(zmin,i2), imax=i2*kMaxClusterPerSector+fN[i2];</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :        for (; i&lt;imax; i++) {</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :            AliITSRecPoint *c=fClusters[i];</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :            if (c-&gt;IsUsed()) continue;</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :            if (c-&gt;GetZ()&gt;zmax) break;</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :            if (c-&gt;GetPhiR()&lt;=ym) continue;</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :            if (c-&gt;GetPhiR()&gt;ymax) continue;</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :            fIndex[fNsel++]=i;</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     806 </span>            : 
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :     return fNsel;</span>
+<a name="808"><span class="lineNum">     808 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span>            : const AliITSRecPoint *AliITStrackerV2::AliITSlayer::GetNextCluster(Int_t &amp;ci){
+<span class="lineNum">     811 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     812 </span>            :   // This function returns clusters within the &quot;window&quot; 
+<span class="lineNum">     813 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     814 </span>            :   AliITSRecPoint *c=0;
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :   ci=-1;</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :   if (fNsel) {</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :      fNsel--;</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :      ci=fIndex[fNsel]; </span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :      c=fClusters[ci];</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :   return c; </span>
+<a name="822"><span class="lineNum">     822 </span>            : }</a>
+<span class="lineNum">     823 </span>            : 
+<span class="lineNum">     824 </span>            : Int_t AliITStrackerV2::AliITSlayer::GetNumberOfClusters() const {
+<span class="lineNum">     825 </span>            :   Int_t n=0;
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   for (Int_t s=0; s&lt;kNsector; s++) n+=fN[s];</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   return n; </span>
+<span class="lineNum">     828 </span>            : }
+<a name="829"><span class="lineNum">     829 </span>            : </a>
+<span class="lineNum">     830 </span>            : Int_t 
+<span class="lineNum">     831 </span>            : AliITStrackerV2::AliITSlayer::FindDetectorIndex(Double_t phi,Double_t z)const {
+<span class="lineNum">     832 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     833 </span>            :   //This function finds the detector crossed by the track
+<span class="lineNum">     834 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     835 </span>            :   Double_t dphi;
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :   if (fZOffset&lt;0)            // old geometry</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :     dphi = -(phi-fPhiOffset);</span>
+<span class="lineNum">     838 </span>            :   else                       // new geometry
+<span class="lineNum">     839 </span>            :     dphi = phi-fPhiOffset;
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :   if      (dphi &lt;  0) dphi += 2*TMath::Pi();</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :   else if (dphi &gt;= 2*TMath::Pi()) dphi -= 2*TMath::Pi();</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :   Int_t np=Int_t(dphi*fNladders*0.5/TMath::Pi()+0.5);</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :   if (np&gt;=fNladders) np-=fNladders;</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :   if (np&lt;0)          np+=fNladders;</span>
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :   Double_t dz=fZOffset-z;</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :   Int_t nz=Int_t(dz*(fNdetectors-1)*0.5/fZOffset+0.5);</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :   if (nz&gt;=fNdetectors) return -1;</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   if (nz&lt;0)            return -1;</span>
+<span class="lineNum">     851 </span>            : 
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   return np*fNdetectors + nz;</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 : }</span>
+<a name="854"><span class="lineNum">     854 </span>            : </a>
+<span class="lineNum">     855 </span>            : Double_t 
+<span class="lineNum">     856 </span>            : AliITStrackerV2::AliITSlayer::GetThickness(Double_t y,Double_t z,Double_t &amp;x0)
+<span class="lineNum">     857 </span>            : const {
+<span class="lineNum">     858 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     859 </span>            :   //This function returns the layer thickness at this point (units X0)
+<span class="lineNum">     860 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     861 </span>            :   Double_t d=0.0085;
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :   x0=21.82;</span>
+<span class="lineNum">     863 </span>            : 
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :   if (43&lt;fR&amp;&amp;fR&lt;45) { //SSD2</span>
+<span class="lineNum">     865 </span>            :      Double_t dd=0.0034;
+<span class="lineNum">     866 </span>            :      d=dd;
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-0.00)&gt;3.40) d+=dd;</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-1.90)&lt;0.45) {d+=(0.013-0.0034);}</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y+1.90)&lt;0.45) {d+=(0.013-0.0034);}</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :      for (Int_t i=0; i&lt;12; i++) {</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z-3.9*(i+0.5))&lt;0.15) {</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :           if (TMath::Abs(y-0.00)&gt;3.40) d+=dd;</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :           d+=0.0034; </span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     875 </span>            :        }
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z+3.9*(i+0.5))&lt;0.15) {</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :           if (TMath::Abs(y-0.00)&gt;3.40) d+=dd;</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :           d+=0.0034; </span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     880 </span>            :        }         
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z-3.4-3.9*i)&lt;0.50) {d+=(0.016-0.0034); break;}</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z+0.5+3.9*i)&lt;0.50) {d+=(0.016-0.0034); break;}</span>
+<span class="lineNum">     883 </span>            :      }
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :   } else </span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :   if (37&lt;fR&amp;&amp;fR&lt;41) { //SSD1</span>
+<span class="lineNum">     886 </span>            :      Double_t dd=0.0034;
+<span class="lineNum">     887 </span>            :      d=dd;
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-0.00)&gt;3.40) d+=dd;</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-1.90)&lt;0.45) {d+=(0.013-0.0034);}</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y+1.90)&lt;0.45) {d+=(0.013-0.0034);}</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :      for (Int_t i=0; i&lt;11; i++) {</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z-3.9*i)&lt;0.15) {</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :           if (TMath::Abs(y-0.00)&gt;3.40) d+=dd;</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :           d+=dd; </span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     896 </span>            :        }
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z+3.9*i)&lt;0.15) {</span>
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :           if (TMath::Abs(y-0.00)&gt;3.40) d+=dd;</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :           d+=dd; </span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     901 </span>            :        }         
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z-1.85-3.9*i)&lt;0.50) {d+=(0.016-0.0034); break;}</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z+2.05+3.9*i)&lt;0.50) {d+=(0.016-0.0034); break;}         </span>
+<span class="lineNum">     904 </span>            :      }
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :   } else</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :   if (13&lt;fR&amp;&amp;fR&lt;26) { //SDD</span>
+<span class="lineNum">     907 </span>            :      Double_t dd=0.0033;
+<span class="lineNum">     908 </span>            :      d=dd;
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-0.00)&gt;3.30) d+=dd;</span>
+<span class="lineNum">     910 </span>            : 
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-1.80)&lt;0.55) {</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :         d+=0.016;</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :         for (Int_t j=0; j&lt;20; j++) {</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :           if (TMath::Abs(z+0.7+1.47*j)&lt;0.12) {d+=0.08; x0=9.; break;}</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :           if (TMath::Abs(z-0.7-1.47*j)&lt;0.12) {d+=0.08; x0=9.; break;}</span>
+<span class="lineNum">     916 </span>            :         } 
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y+1.80)&lt;0.55) {</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :         d+=0.016;</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :         for (Int_t j=0; j&lt;20; j++) {</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :           if (TMath::Abs(z-0.7-1.47*j)&lt;0.12) {d+=0.08; x0=9.; break;}</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :           if (TMath::Abs(z+0.7+1.47*j)&lt;0.12) {d+=0.08; x0=9.; break;}</span>
+<span class="lineNum">     923 </span>            :         } 
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :      for (Int_t i=0; i&lt;4; i++) {</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z-7.3*i)&lt;0.60) {</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :           d+=dd;</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :           if (TMath::Abs(y-0.00)&gt;3.30) d+=dd; </span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     931 </span>            :        }
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :        if (TMath::Abs(z+7.3*i)&lt;0.60) {</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :           d+=dd; </span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :           if (TMath::Abs(y-0.00)&gt;3.30) d+=dd; </span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     936 </span>            :        }
+<span class="lineNum">     937 </span>            :      }
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :   } else</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :   if (6&lt;fR&amp;&amp;fR&lt;8) {   //SPD2</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :      Double_t dd=0.0063; x0=21.5;</span>
+<span class="lineNum">     941 </span>            :      d=dd;
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-3.08)&gt;0.5) d+=dd;</span>
+<span class="lineNum">     943 </span>            :      //if (TMath::Abs(y-3.08)&gt;0.45) d+=dd;
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y-3.03)&lt;0.10) {d+=0.014;}</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :   } else</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :   if (3&lt;fR&amp;&amp;fR&lt;5) {   //SPD1</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :      Double_t dd=0.0063; x0=21.5;</span>
+<span class="lineNum">     948 </span>            :      d=dd;
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y+0.21)&gt;0.6) d+=dd;</span>
+<span class="lineNum">     950 </span>            :      //if (TMath::Abs(y+0.21)&gt;0.45) d+=dd;
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :      if (TMath::Abs(y+0.10)&lt;0.10) {d+=0.014;}</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :   return d;</span>
+<a name="955"><span class="lineNum">     955 </span>            : }</a>
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span>            : Double_t AliITStrackerV2::GetEffectiveThickness(Double_t y,Double_t z) const
+<span class="lineNum">     958 </span>            : {
+<span class="lineNum">     959 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     960 </span>            :   //Returns the thickness between the current layer and the vertex (units X0)
+<span class="lineNum">     961 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     962 </span>            :   Double_t d=0.0028*3*3; //beam pipe
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :   Double_t x0=0;</span>
+<span class="lineNum">     964 </span>            : 
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :   Double_t xn=fgLayers[fI].GetR();</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;fI; i++) {</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :     Double_t xi=fgLayers[i].GetR();</span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :     d+=fgLayers[i].GetThickness(y,z,x0)*xi*xi;</span>
+<span class="lineNum">     969 </span>            :   }
+<span class="lineNum">     970 </span>            : 
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :   if (fI&gt;1) {</span>
+<span class="lineNum">     972 </span>            :     Double_t xi=9.;
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :     d+=0.0097*xi*xi;</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     975 </span>            : 
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :   if (fI&gt;3) {</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     Double_t xi=0.5*(fgLayers[3].GetR()+fgLayers[4].GetR());</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     d+=0.0034*xi*xi;</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     980 </span>            : 
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :   return d/(xn*xn);</span>
+<a name="982"><span class="lineNum">     982 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     983 </span>            : 
+<span class="lineNum">     984 </span>            : Bool_t AliITStrackerV2::RefitAt(Double_t xx,AliITStrackV2 *t,
+<span class="lineNum">     985 </span>            :                                 const AliITStrackV2 *c, Bool_t extra) {
+<span class="lineNum">     986 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     987 </span>            :   // This function refits the track &quot;t&quot; at the position &quot;x&quot; using
+<span class="lineNum">     988 </span>            :   // the clusters from &quot;c&quot;
+<span class="lineNum">     989 </span>            :   // If &quot;extra&quot;==kTRUE, 
+<span class="lineNum">     990 </span>            :   //    the clusters from overlapped modules get attached to &quot;t&quot; 
+<span class="lineNum">     991 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :   Int_t index[AliITSgeomTGeo::kNLayers];</span>
+<span class="lineNum">     993 </span>            :   Int_t k;
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :   for (k=0; k&lt;AliITSgeomTGeo::GetNLayers(); k++) index[k]=-1;</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :   Int_t nc=c-&gt;GetNumberOfClusters();</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :   for (k=0; k&lt;nc; k++) { </span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :     Int_t idx=c-&gt;GetClusterIndex(k),nl=(idx&amp;0xf0000000)&gt;&gt;28;</span>
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :     index[nl]=idx; </span>
+<span class="lineNum">     999 </span>            :   }
+<span class="lineNum">    1000 </span>            : 
+<span class="lineNum">    1001 </span>            :   Int_t from, to, step;
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :   if (xx &gt; t-&gt;GetX()) {</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :       from=0; to=AliITSgeomTGeo::GetNLayers();</span>
+<span class="lineNum">    1004 </span>            :       step=+1;
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :       from=AliITSgeomTGeo::GetNLayers()-1; to=-1;</span>
+<span class="lineNum">    1007 </span>            :       step=-1;
+<span class="lineNum">    1008 </span>            :   }
+<span class="lineNum">    1009 </span>            : 
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :   for (Int_t i=from; i != to; i += step) {</span>
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :      AliITSlayer &amp;layer=fgLayers[i];</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :      Double_t r=layer.GetR();</span>
+<span class="lineNum">    1013 </span>            :  
+<span class="lineNum">    1014 </span>            :      {
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :      Double_t hI=i-0.5*step; </span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :      if (TMath::Abs(hI-1.5)&lt;0.01 || TMath::Abs(hI-3.5)&lt;0.01) {  </span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :        Int_t iLay = i-step;</span>
+<span class="lineNum">    1018 </span>            :        Double_t rs = 0.;
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :        if(iLay&lt;0 || iLay&gt;= AliITSgeomTGeo::kNLayers){</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :          AliError(Form(&quot;Invalid layer %d &quot;,iLay));</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :          return kFALSE;</span>
+<span class="lineNum">    1022 </span>            :        }
+<span class="lineNum">    1023 </span>            :        else{
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :          rs=0.5*(fgLayers[i-step].GetR() + r);</span>
+<span class="lineNum">    1025 </span>            :        }
+<span class="lineNum">    1026 </span>            :        Double_t d=0.0034, x0=38.6; 
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :        if (TMath::Abs(hI-1.5)&lt;0.01) {rs=9.; d=0.0097; x0=42;}</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :        if (!t-&gt;PropagateTo(rs,-step*d,x0)) {</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :          return kFALSE;</span>
+<span class="lineNum">    1030 </span>            :        }
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span>            :      // remember old position [SR, GSI 18.02.2003]
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :      Double_t oldX=0., oldY=0., oldZ=0.;</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :      if (t-&gt;IsStartedTimeIntegral() &amp;&amp; step==1) {</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :         t-&gt;GetGlobalXYZat(t-&gt;GetX(),oldX,oldY,oldZ);</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1039 </span>            :      //
+<span class="lineNum">    1040 </span>            : 
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :      Double_t phi,z;</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :      if (!t-&gt;GetPhiZat(r,phi,z)) { </span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :        return kFALSE;</span>
+<span class="lineNum">    1044 </span>            :      }
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :      Int_t idet=layer.FindDetectorIndex(phi,z);</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :      if (idet&lt;0) { </span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :        return kFALSE;</span>
+<span class="lineNum">    1049 </span>            :      }
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :      const AliITSdetector &amp;det=layer.GetDetector(idet);</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :      phi=det.GetPhi();</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :      if (!t-&gt;Propagate(phi,det.GetR())) {</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :        return kFALSE;</span>
+<span class="lineNum">    1054 </span>            :      }
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :      t-&gt;SetDetectorIndex(idet);</span>
+<span class="lineNum">    1056 </span>            : 
+<span class="lineNum">    1057 </span>            :      const AliITSRecPoint *cl=0;
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :      Double_t maxchi2=AliITSReconstructor::GetRecoParam()-&gt;GetMaxChi2();</span>
+<span class="lineNum">    1059 </span>            : 
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :      Int_t idx=index[i];</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :      if (idx&gt;=0) {</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :         const AliITSRecPoint *ccc=(AliITSRecPoint *)GetCluster(idx); </span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :         if (idet != ccc-&gt;GetDetectorIndex()) {</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :            idet=ccc-&gt;GetDetectorIndex();</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :            const AliITSdetector &amp;det2=layer.GetDetector(idet);</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :            if (!t-&gt;Propagate(det2.GetPhi(),det2.GetR())) {</span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :              return kFALSE;</span>
+<span class="lineNum">    1068 </span>            :            }
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :            t-&gt;SetDetectorIndex(idet);</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :         Double_t chi2=t-&gt;GetPredictedChi2(ccc);</span>
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :         if (chi2&lt;maxchi2) { </span>
+<span class="lineNum">    1073 </span>            :           cl=ccc; 
+<span class="lineNum">    1074 </span>            :           maxchi2=chi2; 
+<span class="lineNum">    1075 </span>            :         } else {
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">    1077 </span>            :         }
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1079 </span>            :  
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :      if (cl) {</span>
+<span class="lineNum">    1081 </span>            :        // Take into account the mis-alignment
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :        Double_t x=t-&gt;GetX()+cl-&gt;GetX();</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :        if (!t-&gt;PropagateTo(x,0.,0.)) return kFALSE;</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :        if (!t-&gt;Update(cl,maxchi2,idx)) {</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :           return kFALSE;</span>
+<span class="lineNum">    1086 </span>            :        }
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :        t-&gt;SetSampledEdx(cl-&gt;GetQ(),i-2);</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1089 </span>            : 
+<span class="lineNum">    1090 </span>            :      {
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :      Double_t x0;</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :      Double_t d=layer.GetThickness(t-&gt;GetY(),t-&gt;GetZ(),x0);</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :      t-&gt;CorrectForMaterial(-step*d,x0);</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1095 </span>            :                  
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :      if (extra) { //search for extra clusters</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :         AliITStrackV2 tmp(*t);</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :         Double_t dz=4*TMath::Sqrt(tmp.GetSigmaZ2()+AliITSReconstructor::GetRecoParam()-&gt;GetSigmaZ2(i));</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :         if (dz &lt; 0.5*TMath::Abs(tmp.GetTgl())) dz=0.5*TMath::Abs(tmp.GetTgl());</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :         Double_t dy=4*TMath::Sqrt(t-&gt;GetSigmaY2()+AliITSReconstructor::GetRecoParam()-&gt;GetSigmaY2(i));</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :         if (dy &lt; 0.5*TMath::Abs(tmp.GetSnp())) dy=0.5*TMath::Abs(tmp.GetSnp());</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :         Double_t zmin=t-&gt;GetZ() - dz;</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :         Double_t zmax=t-&gt;GetZ() + dz;</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :         Double_t ymin=t-&gt;GetY() + phi*r - dy;</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :         Double_t ymax=t-&gt;GetY() + phi*r + dy;</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :         layer.SelectClusters(zmin,zmax,ymin,ymax);</span>
+<span class="lineNum">    1107 </span>            : 
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :         const AliITSRecPoint *cx=0; Int_t ci=-1,cci=-1;</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :         maxchi2=1000.*AliITSReconstructor::GetRecoParam()-&gt;GetMaxChi2();</span>
+<span class="lineNum">    1110 </span>            :         Double_t tolerance=0.1;
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :         while ((cx=layer.GetNextCluster(ci))!=0) {</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :            if (idet == cx-&gt;GetDetectorIndex()) continue;</span>
+<span class="lineNum">    1113 </span>            : 
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :            const AliITSdetector &amp;detx=layer.GetDetector(cx-&gt;GetDetectorIndex());</span>
+<span class="lineNum">    1115 </span>            : 
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :            if (!tmp.Propagate(detx.GetPhi(),detx.GetR())) continue;</span>
+<span class="lineNum">    1117 </span>            :            
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :            if (TMath::Abs(tmp.GetZ() - cx-&gt;GetZ()) &gt; tolerance) continue;</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :            if (TMath::Abs(tmp.GetY() - cx-&gt;GetY()) &gt; tolerance) continue;</span>
+<span class="lineNum">    1120 </span>            : 
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :            Double_t chi2=tmp.GetPredictedChi2(cx);</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :            if (chi2&lt;maxchi2) { maxchi2=chi2; cci=ci; }</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :         if (cci&gt;=0) t-&gt;SetExtraCluster(i,(i&lt;&lt;28)+cci);</span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1126 </span>            : 
+<span class="lineNum">    1127 </span>            :      // track time update [SR, GSI 17.02.2003]
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :      if (t-&gt;IsStartedTimeIntegral() &amp;&amp; step==1) {</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :         Double_t newX, newY, newZ;</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :         t-&gt;GetGlobalXYZat(t-&gt;GetX(),newX,newY,newZ);</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :         Double_t dL2 = (oldX-newX)*(oldX-newX) + (oldY-newY)*(oldY-newY) + </span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :                        (oldZ-newZ)*(oldZ-newZ);</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :         t-&gt;AddTimeStep(TMath::Sqrt(dL2));</span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">    1135 </span>            :      //
+<span class="lineNum">    1136 </span>            : 
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1138 </span>            : 
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :   if (!t-&gt;PropagateTo(xx,0.,0.)) return kFALSE;</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="1141"><span class="lineNum">    1141 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1142 </span>            : 
+<span class="lineNum">    1143 </span>            : void AliITStrackerV2::UseClusters(const AliKalmanTrack *t, Int_t from) const {
+<span class="lineNum">    1144 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">    1145 </span>            :   // This function marks clusters assigned to the track
+<span class="lineNum">    1146 </span>            :   //--------------------------------------------------------------------
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :   AliTracker::UseClusters(t,from);</span>
+<span class="lineNum">    1148 </span>            : 
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :   Int_t clusterIndex = t-&gt;GetClusterIndex(0);</span>
+<span class="lineNum">    1150 </span>            :   AliITSRecPoint *c= 0x0;
+<span class="lineNum">    1151 </span>            : 
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :   if (clusterIndex&gt;-1)</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :     c = (AliITSRecPoint *)GetCluster(clusterIndex);</span>
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :   if (c &amp;&amp; c-&gt;GetSigmaZ2()&gt;0.1) c-&gt;UnUse();</span>
+<span class="lineNum">    1155 </span>            : 
+<span class="lineNum">    1156 </span>            :   c = 0x0;
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :   clusterIndex = t-&gt;GetClusterIndex(1);</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :   if (clusterIndex&gt;-1)</span>
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :     c=(AliITSRecPoint *)GetCluster(clusterIndex);</span>
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :   if (c &amp;&amp; c-&gt;GetSigmaZ2()&gt;0.1) c-&gt;UnUse();</span>
+<span class="lineNum">    1161 </span>            : 
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

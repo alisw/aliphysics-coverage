@@ -1,0 +1,665 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/BASE/AliHLTTTreeProcessor.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">HLT/BASE</a> - AliHLTTTreeProcessor.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTTTreeProcessor.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">314</td>
+            <td class="headerCovTableEntryLo">0.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">7.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : //**************************************************************************
+<span class="lineNum">       4 </span>            : //* This file is property of and copyright by the ALICE HLT Project        * 
+<span class="lineNum">       5 </span>            : //* ALICE Experiment at CERN, All rights reserved.                         *
+<span class="lineNum">       6 </span>            : //*                                                                        *
+<span class="lineNum">       7 </span>            : //* Primary Authors: Timur Pocheptsov &lt;Timur.Pocheptsov@cern.ch&gt;           *
+<span class="lineNum">       8 </span>            : //*                  Matthias Richter &lt;Matthias.Richter@cern.ch&gt;
+<span class="lineNum">       9 </span>            : //*                  for The ALICE HLT Project.                            *
+<span class="lineNum">      10 </span>            : //*                                                                        *
+<span class="lineNum">      11 </span>            : //* Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      12 </span>            : //* documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      13 </span>            : //* without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      14 </span>            : //* copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      15 </span>            : //* appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      16 </span>            : //* about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      17 </span>            : //* provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      18 </span>            : //**************************************************************************
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : /// @file   AliHLTTTreeProcessor.cxx
+<span class="lineNum">      21 </span>            : /// @author Timur Pocheptsov, Matthias Richter
+<span class="lineNum">      22 </span>            : /// @date   05.07.2010
+<span class="lineNum">      23 </span>            : /// @brief  Generic component for data collection in a TTree
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;cerrno&gt;
+<span class="lineNum">      26 </span>            : #include &lt;memory&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;AliHLTTTreeProcessor.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliHLTErrorGuard.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;TDirectory.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;TDatime.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;TString.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;TTree.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;TH1.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;TStopwatch.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;TUUID.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;TSystem.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;TRandom3.h&quot;
+<a name="39"><span class="lineNum">      39 </span>            : </a>
+<span class="lineNum">      40 </span>            : /** ROOT macro for the implementation of ROOT specific class methods */
+<a name="41"><span class="lineNum">      41 </span><span class="lineCov">        126 : ClassImp(AliHLTTTreeProcessor)</span></a>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : AliHLTTTreeProcessor::AliHLTTTreeProcessor()
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :                         : AliHLTProcessor(), </span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :                           fDefinitions(),</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :                           fTree(0),</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :                           fMaxEntries(kMaxEntries),</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :                           fPublishInterval(kInterval),</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :                           fLastTime(0),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :                           fpEventTimer(NULL),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :                           fpCycleTimer(NULL),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :                           fMaxMemory(700000),</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :                           fMaxEventTime(0),</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :                           fNofEventsForce(0),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :                           fForcedEventsCount(0),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :                           fSkippedEventsCount(0),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :                           fNewEventsCount(0),</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :                           fUniqueId(0),</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :                           fIgnoreCycleTime(10),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :                           fCycleTimeFactor(1.0)</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      62 </span>            :   // see header file for class documentation
+<span class="lineNum">      63 </span>            :   // or
+<span class="lineNum">      64 </span>            :   // refer to README to build package
+<span class="lineNum">      65 </span>            :   // or
+<span class="lineNum">      66 </span>            :   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      68 </span>            : 
+<a name="69"><span class="lineNum">      69 </span>            : const AliHLTUInt32_t AliHLTTTreeProcessor::fgkTimeScale=1000000; // ticks per second</a>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : AliHLTTTreeProcessor::~AliHLTTTreeProcessor()
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      73 </span>            :   // see header file for class documentation
+<a name="74"><span class="lineNum">      74 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : AliHLTComponentDataType AliHLTTTreeProcessor::GetOutputDataType()
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :   // get the component output data type
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   return kAliHLTDataTypeHistogram;</span>
+<a name="80"><span class="lineNum">      80 </span>            : }</a>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : void AliHLTTTreeProcessor::GetOutputDataSize(unsigned long&amp; constBase, double&amp; inputMultiplier)
+<span class="lineNum">      83 </span>            : {
+<span class="lineNum">      84 </span>            :   // get the output size estimator
+<span class="lineNum">      85 </span>            :   //
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   if (!fDefinitions.size()) {</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     HLTError(&quot;Can not calculate output data size, no histogram definitions were provided&quot;);</span>
+<span class="lineNum">      88 </span>            :     return;
+<span class="lineNum">      89 </span>            :   }
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   constBase = 0;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   for (list_const_iterator i = fDefinitions.begin(); i != fDefinitions.end(); ++i)</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     constBase += i-&gt;GetSize();</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   inputMultiplier = 1.;</span>
+<a name="96"><span class="lineNum">      96 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : int AliHLTTTreeProcessor::DoInit(int argc, const char** argv)
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :   // init component
+<span class="lineNum">     101 </span>            :   // ask child to create the tree.
+<span class="lineNum">     102 </span>            :   int iResult = 0;
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :   // component configuration
+<span class="lineNum">     105 </span>            :   //Stage 1: default initialization.
+<span class="lineNum">     106 </span>            :   //&quot;Default&quot; (for derived component) histograms.
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   FillHistogramDefinitions();</span>
+<span class="lineNum">     108 </span>            :   //Default values.
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fMaxEntries = kMaxEntries;</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   fPublishInterval = kInterval;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   fLastTime = 0;</span>
+<span class="lineNum">     112 </span>            :   //Stage 2: OCDB.
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   TString cdbPath(&quot;HLT/ConfigHLT/&quot;);</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   cdbPath += GetComponentID();</span>
+<span class="lineNum">     115 </span>            :   //
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   iResult = ConfigureFromCDBTObjString(cdbPath);</span>
+<span class="lineNum">     117 </span>            :   //
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   if (iResult &lt; 0)</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     return iResult;</span>
+<span class="lineNum">     120 </span>            :   //Stage 3: command line arguments.
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   if (argc &amp;&amp; (iResult = ConfigureFromArgumentString(argc, argv)) &lt; 0)</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     return iResult;</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :   // calculating a unique id from the hostname and process id
+<span class="lineNum">     125 </span>            :   // used for identifying output of multiple components
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   TUUID guid = GenerateGUID();</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   union</span>
+<span class="lineNum">     128 </span>            :   {
+<span class="lineNum">     129 </span>            :     UChar_t buf[16];
+<span class="lineNum">     130 </span>            :     UInt_t bufAsInt[4];
+<span class="lineNum">     131 </span>            :   };
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   guid.GetUUID(buf);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   fUniqueId = bufAsInt[0];</span>
+<span class="lineNum">     134 </span>            :   
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   if (!fTree) {</span>
+<span class="lineNum">     136 </span>            :     // originally foreseen to pass the arguments to the function, however
+<span class="lineNum">     137 </span>            :     // this is not appropriate. Argument scan via overloaded function
+<span class="lineNum">     138 </span>            :     // ScanConfigurationArgument
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     std::auto_ptr&lt;TTree&gt; ptr(CreateTree(0, NULL));</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     if (ptr.get()) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :       ptr-&gt;SetDirectory(0);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :       ptr-&gt;SetCircular(fMaxEntries);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :       fTree = ptr.release();</span>
+<span class="lineNum">     144 </span>            :     } else //No way to process error correctly - error is unknown here.
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :       return -EINVAL;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     HLTError(&quot;fTree pointer must be null before DoInit call&quot;);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     return -EINVAL;</span>
+<span class="lineNum">     149 </span>            :   }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0 &amp;&amp; fMaxEventTime&gt;0) {</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     fpEventTimer=new TStopwatch;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     if (fpEventTimer) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :       fpEventTimer-&gt;Reset();</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     fpCycleTimer=new TStopwatch;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     if (fpCycleTimer) {</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :       fpCycleTimer-&gt;Reset();</span>
+<span class="lineNum">     159 </span>            :     }
+<span class="lineNum">     160 </span>            :   }
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   fSkippedEventsCount=0;</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="164"><span class="lineNum">     164 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : int AliHLTTTreeProcessor::DoDeinit()
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span>            :   // cleanup component
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   delete fTree;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   fTree = 0;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   fDefinitions.clear();</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   if (fpEventTimer) delete fpEventTimer;</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   fpEventTimer=NULL;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   if (fpCycleTimer) delete fpCycleTimer;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   fpCycleTimer=NULL;</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="179"><span class="lineNum">     179 </span>            : }</a>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : int AliHLTTTreeProcessor::DoEvent(const AliHLTComponentEventData&amp; evtData, AliHLTComponentTriggerData&amp; trigData)
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span>            :   //Process event and publish histograms.
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   AliHLTUInt32_t eventType=0;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if (!IsDataEvent(&amp;eventType) &amp;&amp; eventType!=gkAliEventTypeEndOfRun) return 0;</span>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :   //I'm pretty sure, that if fTree == 0 (DoInit failed) DoEvent is not called.
+<span class="lineNum">     188 </span>            :   //But interface itself does not force you to call DoInit before DoEvent, so,
+<span class="lineNum">     189 </span>            :   //I make this check explicit.
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   if (!fTree) {</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     HLTError(&quot;fTree is a null pointer, try to call AliHLTTTreeProcessor::DoInit first.&quot;);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     return -EINVAL;//-ENULLTREE? :)</span>
+<span class="lineNum">     193 </span>            :   }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :   AliHLTUInt32_t averageEventTime=0;
+<span class="lineNum">     196 </span>            :   AliHLTUInt32_t averageCycleTime=0;
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            :   int fillingtime=0;
+<span class="lineNum">     199 </span>            :   int publishtime=0;
+<span class="lineNum">     200 </span>            :   bool bDoFilling=true;
+<span class="lineNum">     201 </span>            :   bool bDoPublishing=false;
+<span class="lineNum">     202 </span>            :   const int cycleResetInterval=1000;
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :   if (fpEventTimer &amp;&amp; fpCycleTimer) {</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     averageEventTime=AliHLTUInt32_t(fpEventTimer-&gt;RealTime()*fgkTimeScale)/(GetEventCount()+1);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     fillingtime=int(fpEventTimer-&gt;RealTime()*fgkTimeScale);</span>
+<span class="lineNum">     206 </span>            :     publishtime=fillingtime;
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     fpEventTimer-&gt;Start(kFALSE);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     fpCycleTimer-&gt;Stop();</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     averageCycleTime=AliHLTUInt32_t(fpCycleTimer-&gt;RealTime()*fgkTimeScale)/((GetEventCount()%cycleResetInterval)+1);</span>
+<span class="lineNum">     210 </span>            :     // adapt processing to 3/4 of the max time
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     bDoFilling=4*averageEventTime&lt;3*fMaxEventTime ||</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :       (averageEventTime&lt;fCycleTimeFactor*averageCycleTime &amp;&amp; fpCycleTimer-&gt;RealTime()&gt;fIgnoreCycleTime);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     if (fNofEventsForce&gt;0 &amp;&amp; fForcedEventsCount&lt;fNofEventsForce) {</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       fForcedEventsCount++;</span>
+<span class="lineNum">     215 </span>            :       bDoFilling=true;
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     217 </span>            :   }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :   // FIXME: there is still an unclear increase in memory consumption, even if the number of entries
+<span class="lineNum">     220 </span>            :   // in the tree is restricted. Valgrind studies did not show an obvious memory leak. This is likely
+<span class="lineNum">     221 </span>            :   // to be caused by something deep in the Root TTree functionality and needs to be studied in detail.
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   ProcInfo_t ProcInfo;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   gSystem-&gt;GetProcInfo(&amp;ProcInfo);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   if (ProcInfo.fMemResident&gt;fMaxMemory) bDoFilling=false;</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :   // process input data blocks and fill the tree
+<span class="lineNum">     227 </span>            :   int iResult = 0;
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   if (eventType!=gkAliEventTypeEndOfRun) {</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     if (bDoFilling) {iResult=FillTree(fTree, evtData, trigData); fNewEventsCount++;}</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     else fSkippedEventsCount++;</span>
+<span class="lineNum">     231 </span>            :   }
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   if (fpEventTimer) {</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     fpEventTimer-&gt;Stop();</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     fillingtime=int(fpEventTimer-&gt;RealTime()*fgkTimeScale)-fillingtime;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     if (fillingtime&lt;0) fillingtime=0;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     fpEventTimer-&gt;Start(kFALSE);</span>
+<span class="lineNum">     237 </span>            :   }
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   if (iResult &lt; 0) {</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     ALIHLTERRORGUARD(5, &quot;FillTree failed with %d, first event %d&quot;, iResult, GetEventCount());</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     return iResult;</span>
+<span class="lineNum">     242 </span>            :   }
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   const TDatime time;</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   if (( time.Get() - fLastTime &gt; fPublishInterval &amp;&amp; fNewEventsCount&gt;0) ||</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :       eventType==gkAliEventTypeEndOfRun) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     if ((bDoPublishing=fLastTime&gt;0)) { // publish earliest after the first interval but set the timer</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     for (list_const_iterator i = fDefinitions.begin(); i != fDefinitions.end(); ++i) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       if (TH1* h = CreateHistogram(*i)) {</span>
+<span class="lineNum">     252 </span>            :         //I do not care about errors here - since I'm not able
+<span class="lineNum">     253 </span>            :         //to rollback changes.
+<span class="lineNum">     254 </span>            :         // TODO: in case of -ENOSPC et the size of the last object by calling
+<span class="lineNum">     255 </span>            :         // GetLastObjectSize() and accumulate the necessary output buffer size
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         PushBack(h, GetOriginDataType(), GetDataSpec());</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         delete h;</span>
+<span class="lineNum">     258 </span>            :       }
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     unsigned eventcount=GetEventCount()+1;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     HLTBenchmark(&quot;publishing %d histograms, %d entries in tree, %d new events since last publishing, accumulated %d of %d events (%.1f%%)&quot;, fDefinitions.size(), fTree-&gt;GetEntriesFast(), fNewEventsCount, eventcount-fSkippedEventsCount, eventcount, eventcount&gt;0?(100*float(eventcount-fSkippedEventsCount)/eventcount):0);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     fNewEventsCount=0;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     HLTBenchmark(&quot;current memory usage %d %d&quot;, ProcInfo.fMemResident, ProcInfo.fMemVirtual);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     fLastTime=time.Get();</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     if (fLastTime==0) {</span>
+<span class="lineNum">     268 </span>            :       // choose a random offset at beginning to equalize traffic for multiple instances
+<span class="lineNum">     269 </span>            :       // of the component
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :       gRandom-&gt;SetSeed(fUniqueId);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :       fLastTime-=gRandom-&gt;Integer(fPublishInterval);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     273 </span>            :   }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   if (fpEventTimer) {</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     fpEventTimer-&gt;Stop();</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     publishtime=int(fpEventTimer-&gt;RealTime()*fgkTimeScale)-publishtime;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     if (publishtime&gt;fillingtime) publishtime-=fillingtime;</span>
+<span class="lineNum">     279 </span>            :     else publishtime=0;
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     averageEventTime=AliHLTUInt32_t(fpEventTimer-&gt;RealTime()*fgkTimeScale)/(GetEventCount()+1);</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :     // info output once every 5 seconds
+<span class="lineNum">     284 </span>            :     static UInt_t lastTime=0;
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     if (time.Get()-lastTime&gt;5 ||</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         eventType==gkAliEventTypeEndOfRun ||</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         bDoPublishing) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :       lastTime=time.Get();</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :       unsigned eventcount=GetEventCount()+1;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :       HLTBenchmark(&quot;filling time %d us, publishing time %d, average total processing time %d us, cycle time %d us, accumulated %d of %d events (%.1f%%)&quot;, fillingtime, publishtime, averageEventTime, averageCycleTime, eventcount-fSkippedEventsCount, eventcount, eventcount&gt;0?(100*float(eventcount-fSkippedEventsCount)/eventcount):0);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     292 </span>            :   }
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   if (fpCycleTimer) {</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     bool bReset=(GetEventCount()%cycleResetInterval)==0;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     fpCycleTimer-&gt;Start(bReset);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            :   return iResult;
+<a name="299"><span class="lineNum">     299 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : int AliHLTTTreeProcessor::ScanConfigurationArgument(int argc, const char** argv)
+<span class="lineNum">     302 </span>            : {
+<span class="lineNum">     303 </span>            :   // scan one argument and its parameters from the list
+<span class="lineNum">     304 </span>            :   // return number of processed entries.
+<span class="lineNum">     305 </span>            :   // possible arguments: 
+<span class="lineNum">     306 </span>            :   // -maxentries number
+<span class="lineNum">     307 </span>            :   // -interval number
+<span class="lineNum">     308 </span>            :   // -histogram name -size number -expression expression [-title expression ] -cut expression ][-opt option]
+<span class="lineNum">     309 </span>            :   // As soon as &quot;-histogram&quot; found, -size and -expression and -outtype are required, 
+<span class="lineNum">     310 </span>            :   // cut and option can be omitted.
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :   if (argc &lt;= 0)</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   std::list&lt;AliHLTHistogramDefinition&gt; newDefs;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   AliHLTHistogramDefinition def;</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span>            :   int i = 0;
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   int maxEntries = fMaxEntries;</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   while (i &lt; argc) {</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     const TString argument(argv[i]);</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     if (argument.CompareTo(&quot;-maxentries&quot;) == 0) { //1. Max entries argument for TTree.</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-maxentries' is expected&quot;);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     327 </span>            :       }
+<span class="lineNum">     328 </span>            :       //Next must be a number.
+<span class="lineNum">     329 </span>            :       //TString returns 0 (number) even if string contains non-numeric symbols.
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :       maxEntries = TString(argv[i + 1]).Atoi();</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :       if (maxEntries &lt;= 0) {</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-maxentries': %d&quot;, maxEntries);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     334 </span>            :       }
+<span class="lineNum">     335 </span>            :   
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-interval&quot;) == 0) { //2. Interval argument for publishing.</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-interval' is expected&quot;);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     341 </span>            :       }
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :       const Int_t interval = TString(argv[i + 1]).Atoi();</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :       if (interval &lt; 0) {</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-interval' argument: %d&quot;, interval);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     347 </span>            :       }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :       fPublishInterval = interval;</span>
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-maxeventtime&quot;) == 0) { // max average processing time in us</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-maxeventtime' is expected&quot;);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     356 </span>            :       }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :       const Int_t time = TString(argv[i + 1]).Atoi();</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :       if (time &lt; 0) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-maxeventtime' argument: %d&quot;, time);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     362 </span>            :       }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :       fMaxEventTime = time;</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-forced-events&quot;) == 0) { // number of forced events</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-forced-events' is expected&quot;);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     371 </span>            :       }
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :       const Int_t count = TString(argv[i + 1]).Atoi();</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :       if (count &lt; 0) {</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-forced-events' argument: %d&quot;, count);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     377 </span>            :       }
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :       fNofEventsForce = count;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :       fForcedEventsCount=0;</span>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-ignore-cycletime&quot;) == 0) { // ignore cycle time for n sec</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-ignore-cycletime' is expected&quot;);</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     387 </span>            :       }
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :       const Int_t time = TString(argv[i + 1]).Atoi();</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :       if (time &lt; 0) {</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-ignore-cycletime' argument: %d&quot;, time);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     393 </span>            :       }
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :       fIgnoreCycleTime = time;</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-maxmemory&quot;) == 0) { // maximum of memory in kByte to be used by the component</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-maxmemory' is expected&quot;);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     401 </span>            :       }
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :       const Int_t mem = TString(argv[i + 1]).Atoi();</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :       if (mem &lt; 0) {</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-maxmemory' argument: %d&quot;, time);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     407 </span>            :       }
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :       fMaxMemory = mem;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-cycletime-factor&quot;) == 0) { // weight factor for cycle time</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :       if (i + 1 == argc) {</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         HLTError(&quot;Numeric value for '-cycletime-factor' is expected&quot;);</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     415 </span>            :       }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :       const Float_t factor = TString(argv[i + 1]).Atof();</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       if (factor &lt; 0) {</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         HLTError(&quot;Bad value for '-cycletime-factor' argument: %f&quot;, factor);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     421 </span>            :       }
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :       fCycleTimeFactor = factor;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :       i += 2;</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-histogram&quot;) == 0) { //3. Histogramm definition.</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :       const int nParsed = ParseHistogramDefinition(argc, argv, i, def);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :       if (!nParsed)</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         return -EPROTO;</span>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :       newDefs.push_back(def);</span>
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :       i += nParsed;   </span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :       HLTError(&quot;Unknown argument %s&quot;, argument.Data());</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       return -EPROTO;</span>
+<span class="lineNum">     436 </span>            :     }
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   if (maxEntries != fMaxEntries) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     fMaxEntries = maxEntries;</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     if (fTree) {</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       fTree-&gt;Reset();</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :       fTree-&gt;SetCircular(fMaxEntries);</span>
+<span class="lineNum">     444 </span>            :     }
+<span class="lineNum">     445 </span>            :   }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   if (newDefs.size())</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     fDefinitions.swap(newDefs);</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   return i;</span>
+<a name="451"><span class="lineNum">     451 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            : TH1* AliHLTTTreeProcessor::CreateHistogram(const AliHLTHistogramDefinition&amp; d)
+<span class="lineNum">     454 </span>            : {
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            :   // create a histogram from the tree
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   if (!fTree) {</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     HLTError(&quot;fTree is a null pointer, try to call AliHLTTTreeProcessor::DoInit first.&quot;);</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     460 </span>            :   }
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   TString histName(d.GetName());</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   if (!histName.Contains(&quot;(&quot;)) {</span>
+<span class="lineNum">     464 </span>            :     //Without number of bins, the histogram will be &quot;fixed&quot;
+<span class="lineNum">     465 </span>            :     //and most of values can go to underflow/overflow bins,
+<span class="lineNum">     466 </span>            :     //since kCanRebin will be false.
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     histName += TString::Format(&quot;(%d)&quot;, Int_t(kDefaultNBins));</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   const Long64_t rez = fTree-&gt;Project(histName.Data(), d.GetExpression().Data(), d.GetCut().Data(), d.GetDrawOption().Data());</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   if (rez == -1) {</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     HLTError(&quot;TTree::Project failed&quot;);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     475 </span>            :   }
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            :   //Now, cut off the binning part of a name
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   histName = histName(0, histName.Index(&quot;(&quot;));</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :   TH1 * hist = dynamic_cast&lt;TH1*&gt;(gDirectory-&gt;Get(histName.Data()));</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   if (!hist) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     const TString msg(Form(&quot;Hist %s is a null pointer, selection was %s, strange name or hist's type\n&quot;, histName.Data(), d.GetExpression().Data()));</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     HLTError(msg.Data());</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   }else if (d.GetDrawOption().Length()) {</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     hist-&gt;SetOption(d.GetDrawOption().Data());</span>
+<span class="lineNum">     485 </span>            :   }
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :   //Reformatting the histogram name
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   TString str2=d.GetCut().Data();</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   str2.ReplaceAll(&quot;Track_&quot;, &quot;&quot;);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   str2.ReplaceAll(&quot;&amp;&amp;&quot;, &quot; &quot;);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   str2 = histName+&quot; &quot;+str2;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   hist-&gt;SetTitle(str2);</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :   if(d.GetTitle().Length()){</span>
+<span class="lineNum">     495 </span>            :   
+<span class="lineNum">     496 </span>            :     //removing underscore
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     TString axis=d.GetTitle().Data();</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     axis.ReplaceAll(&quot;_{T}&quot;, &quot;underscore{T}&quot;);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     axis.ReplaceAll(&quot;_&quot;, &quot; &quot;);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     axis.ReplaceAll(&quot;underscore{T}&quot;, &quot;_{T}&quot;);</span>
+<span class="lineNum">     501 </span>            :   
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     hist-&gt;SetXTitle(axis);</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     hist-&gt;GetXaxis()-&gt;CenterTitle();</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     505 </span>            :   return hist;
+<a name="506"><span class="lineNum">     506 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            : int AliHLTTTreeProcessor::ParseHistogramDefinition(int argc, const char** argv, int pos, AliHLTHistogramDefinition&amp; dst)const
+<span class="lineNum">     509 </span>            : {
+<span class="lineNum">     510 </span>            :   //Histogram-definition:
+<span class="lineNum">     511 </span>            :   //    -histogram name -size number -expression expression [-title expression][-cut expression][-opt option]
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            :   //at pos we have '-histogram', at pos + 1 must be the name.
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   if (pos + 1 == argc) {</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     HLTError(&quot;Bad histogram definition, histogram name is expected&quot;);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     517 </span>            :   }
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   dst.SetName(argv[pos + 1]);</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   pos += 2;</span>
+<span class="lineNum">     521 </span>            :   
+<span class="lineNum">     522 </span>            :   //At pos must be '-size', and number at pos + 1.
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   if (pos == argc || TString(argv[pos]).CompareTo(&quot;-size&quot;)) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     HLTError(&quot;Bad histogram definition, '-size' is expected&quot;);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     526 </span>            :   }
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :   if (pos + 1 == argc) {</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     HLTError(&quot;Bad histogram definition, size is expected&quot;);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     531 </span>            :   }
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   dst.SetSize(TString(argv[pos + 1]).Atoi());</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   if (dst.GetSize() &lt;= 0) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     HLTError(&quot;Bad histogram definition, positive size is required&quot;);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     537 </span>            :   }
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :   pos += 2;</span>
+<span class="lineNum">     540 </span>            :   //At pos must be '-expression', and expression at pos + 1. 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :   if (pos == argc || TString(argv[pos]).CompareTo(&quot;-expression&quot;)) {</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     HLTError(&quot;Bad histogram definition, '-expression' is expected&quot;);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     544 </span>            :   }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :   if (pos + 1 == argc) {</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     HLTError(&quot;Bad histogram definition, expression is expected&quot;);</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     549 </span>            :   }
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :   dst.SetExpression(argv[pos + 1]);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :   pos += 2;</span>
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            :   int processed = 6;
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   dst.SetTitle(&quot;&quot;);</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :   dst.SetCut(&quot;&quot;);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :   dst.SetDrawOption(&quot;&quot;);</span>
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            :   //remaining options can be the title, cut and Draw option.
+<span class="lineNum">     560 </span>            :   //title must be first
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   if (pos + 1 &gt;= argc){</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     return processed;</span>
+<span class="lineNum">     563 </span>            :   }
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :   if (TString(argv[pos]).CompareTo(&quot;-title&quot;) == 0) {</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     dst.SetTitle(argv[pos + 1]);</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     pos += 2;</span>
+<span class="lineNum">     567 </span>            :     processed += 2;
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span>            :   //cut must be second.
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   if (pos + 1 &gt;= argc)</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     return processed;</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :   if (TString(argv[pos]).CompareTo(&quot;-cut&quot;) == 0) {</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     dst.SetCut(argv[pos + 1]);</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     pos += 2;</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     processed += 2;</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :   if (pos + 1 &gt;= argc)</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     return processed;</span>
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :   if (TString(argv[pos]).CompareTo(&quot;-opt&quot;) == 0) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     dst.SetDrawOption(argv[pos + 1]);</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :     processed += 2;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :   return processed;</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

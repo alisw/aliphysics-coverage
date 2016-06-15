@@ -1,0 +1,560 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEERBase/AliPIDCombined.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEERBase</a> - AliPIDCombined.cxx<span style="font-size: 80%;"> (source / <a href="AliPIDCombined.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">237</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">6.2 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : //-----------------------------------------------------------------
+<span class="lineNum">      18 </span>            : //        Base class for combining PID of different detectors    //
+<span class="lineNum">      19 </span>            : //        (user selected) and compute Bayesian probabilities     //
+<span class="lineNum">      20 </span>            : //                                                               //
+<span class="lineNum">      21 </span>            : //                                                               //
+<span class="lineNum">      22 </span>            : //   Origin: Pietro Antonioli, INFN-BO Pietro.Antonioli@cern.ch  //
+<span class="lineNum">      23 </span>            : //                                                               //
+<span class="lineNum">      24 </span>            : //-----------------------------------------------------------------
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;TH1.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;AliVTrack.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;AliLog.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;AliPID.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;AliPIDResponse.h&gt;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &quot;AliPIDCombined.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;TFile.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &quot;AliOADBContainer.h&quot;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : // initialize static members
+<span class="lineNum">      41 </span>            : TH2F* AliPIDCombined::fDefaultPriorsTPC[]={0x0};
+<span class="lineNum">      42 </span>            : TH2F* AliPIDCombined::fDefaultPriorsTPCpPb[]={0x0};
+<a name="43"><span class="lineNum">      43 </span>            : Float_t AliPIDCombined::fTOFmismProb = 0;</a>
+<span class="lineNum">      44 </span>            : 
+<a name="45"><span class="lineNum">      45 </span><span class="lineCov">        176 : ClassImp(AliPIDCombined);</span></a>
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : AliPIDCombined::AliPIDCombined():
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :         TNamed(&quot;CombinedPID&quot;,&quot;CombinedPID&quot;),</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :         fDetectorMask(0),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :         fRejectMismatchMask(0x7F),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :         fEnablePriors(kFALSE),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :         fSelectedSpecies(AliPID::kSPECIES),</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         fUseDefaultTPCPriors(kFALSE)</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 : {       </span>
+<span class="lineNum">      55 </span>            :   //
+<span class="lineNum">      56 </span>            :   // default constructor
+<span class="lineNum">      57 </span>            :   //    
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;AliPID::kSPECIESC;i++) fPriorsDistributions[i]=NULL;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   AliLog::SetClassDebugLevel(&quot;AliPIDCombined&quot;,10);</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 : }</span>
+<a name="61"><span class="lineNum">      61 </span>            : </a>
+<span class="lineNum">      62 </span>            : //-------------------------------------------------------------------------------------------------     
+<span class="lineNum">      63 </span>            : AliPIDCombined::AliPIDCombined(const TString&amp; name,const TString&amp; title):
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         TNamed(name,title),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :         fDetectorMask(0),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :         fRejectMismatchMask(0x7F),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :         fEnablePriors(kFALSE),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         fSelectedSpecies(AliPID::kSPECIES),</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         fUseDefaultTPCPriors(kFALSE)</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      71 </span>            :   //
+<span class="lineNum">      72 </span>            :   // default constructor with name and title
+<span class="lineNum">      73 </span>            :   //
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;AliPID::kSPECIESC;i++) fPriorsDistributions[i]=NULL;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   AliLog::SetClassDebugLevel(&quot;AliPIDCombined&quot;,10);</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 : }</span>
+<a name="78"><span class="lineNum">      78 </span>            : </a>
+<span class="lineNum">      79 </span>            : //-------------------------------------------------------------------------------------------------     
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : AliPIDCombined::~AliPIDCombined() {</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i &lt; AliPID::kSPECIESC;i++){</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     if(fPriorsDistributions[i])</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :       delete fPriorsDistributions[i];</span>
+<span class="lineNum">      85 </span>            :   }
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 : }</span>
+<a name="87"><span class="lineNum">      87 </span>            : </a>
+<span class="lineNum">      88 </span>            : //-------------------------------------------------------------------------------------------------     
+<span class="lineNum">      89 </span>            : void AliPIDCombined::SetPriorDistribution(AliPID::EParticleType type,TH1F *prior) {
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   if ( (type &lt; 0) || ( type &gt;= ((AliPID::EParticleType)AliPID::kSPECIESC) ) ){</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     AliError(Form(&quot;Invalid EParticleType setting prior (offending type: %d)&quot;,type));</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">      93 </span>            :   }
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   if(prior) {</span>
+<span class="lineNum">      95 </span>            :     Int_t i = (Int_t)type;
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if (fPriorsDistributions[i]) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :       delete fPriorsDistributions[i]; </span>
+<span class="lineNum">      98 </span>            :     }
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     fPriorsDistributions[i]=new TH1F(*prior);</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     SetEnablePriors(kTRUE); </span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 : }</span>
+<a name="103"><span class="lineNum">     103 </span>            : </a>
+<span class="lineNum">     104 </span>            : //-------------------------------------------------------------------------------------------------     
+<span class="lineNum">     105 </span>            : UInt_t AliPIDCombined::ComputeProbabilities(const AliVTrack *track, const AliPIDResponse *response, Double_t* bayesProbabilities,Double_t *priorsOwn) const {
+<span class="lineNum">     106 </span>            :   //
+<span class="lineNum">     107 </span>            :   // (1) Get raw probabilities of requested detectors and combine
+<span class="lineNum">     108 </span>            :   // (2) priors passed as argument
+<span class="lineNum">     109 </span>            :   // (3) Compute Bayes probabilities
+<span class="lineNum">     110 </span>            :   //
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :   // (1) Get raw probabilities of selected detectors and combine
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   UInt_t usedMask=0;             // detectors actually used for track</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   fTOFmismProb = 0; // reset TOF mismatch weights</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :   AliPIDResponse::EDetPidStatus status=AliPIDResponse::kDetNoSignal;
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   Double_t p[AliPID::kSPECIESC];  // combined probabilities of selected detectors</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   Double_t pMismTOF[AliPID::kSPECIESC];  // combined TOF mismatch probabilities using selected detectors</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;fSelectedSpecies;i++){ p[i]=1.;pMismTOF[i]=1.;} // no decision</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   for (Int_t ibit = 0; ibit &lt; 7 ; ibit++) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     AliPIDResponse::EDetCode detBit = (AliPIDResponse::EDetCode)(1&lt;&lt;ibit);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if (fDetectorMask &amp; detBit) {       // getting probabilities for requested detectors only</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :       Double_t detProb[AliPID::kSPECIESC];</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :       status = response-&gt;ComputePIDProbability(detBit,track,fSelectedSpecies,detProb);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :       if (status == AliPIDResponse::kDetPidOk) {</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         if (fRejectMismatchMask &amp; detBit) {         // mismatch check (currently just for TOF)</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :           if (detBit == AliPIDResponse::kDetTOF) {</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :             fTOFmismProb = response-&gt;GetTOFMismatchProbability(); // mismatch weights computed with TOF probs (no arguments)</span>
+<span class="lineNum">     130 </span>            :             //Float_t probMis = response-&gt;GetTOFMismatchProbability(track); // mismatch compatibility TPC-TOF cut
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :             SetCombinedStatus(status,&amp;usedMask,detBit,detProb,fTOFmismProb);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :           } else {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             SetCombinedStatus(status,&amp;usedMask,detBit);</span>
+<span class="lineNum">     134 </span>            :           }
+<span class="lineNum">     135 </span>            :         } else {
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :           SetCombinedStatus(status,&amp;usedMask,detBit);</span>
+<span class="lineNum">     137 </span>            :         }
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;fSelectedSpecies;i++){</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :           p[i] *= detProb[i];</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :           if(detBit == AliPIDResponse::kDetTOF){</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :             Double_t pt = track-&gt;Pt();</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             Double_t mismPropagationFactor[] = {1.,1.,1.,1. + TMath::Exp(1. - 1.12*pt),</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :                                                 1. + 1./(4.71114 - 5.72372*pt + 2.94715*pt*pt),1.,1.,1.,1.,1.}; // correction for kaons and protons which has to be alligned with the one in AliPIDResponse</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :             pMismTOF[i] *= fTOFmismProb*mismPropagationFactor[i];</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :           else pMismTOF[i] *= detProb[i];</span>
+<span class="lineNum">     147 </span>            :         }
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     150 </span>            :   }
+<span class="lineNum">     151 </span>            :   // if no detectors available there is no point to go further
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   if (usedMask == 0) return usedMask;</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            :   // (2) Get priors and propagate depending on detectors used
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   Double_t priors[AliPID::kSPECIESC];</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   memset(priors,0,fSelectedSpecies*sizeof(Double_t));</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   if(priorsOwn){</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     for(Int_t ipr=0;ipr &lt; fSelectedSpecies;ipr++)</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :       priors[ipr] = priorsOwn[ipr];</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   else if (fEnablePriors){</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     Bool_t isPPB = (response-&gt;GetBeamType() == AliPIDResponse::kPPB);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     GetPriors(track,priors,response-&gt;GetCurrentCentrality(),isPPB);</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :     // We apply the propagation factors of the more external detector
+<span class="lineNum">     168 </span>            :     // 
+<span class="lineNum">     169 </span>            :     // TPC+HMPID    --&gt; apply HMPID propagation factors (TRD and TOF may be present)
+<span class="lineNum">     170 </span>            :     // TPC+EMCAL    --&gt; apply EMCAL propagation factors (TRD and TOF may be present)
+<span class="lineNum">     171 </span>            :     // TPC+TOF      --&gt; apply TOF propagation factors (TRD may be present, HMPID and EMCAL not (if requested))
+<span class="lineNum">     172 </span>            :     // TPC+TRD      --&gt; apply TRD propagation factors (TOF, HMPID and EMCAL not present (if requested) )
+<span class="lineNum">     173 </span>            :     // 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     if(fUseDefaultTPCPriors) {</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :       Double_t pt=TMath::Abs(track-&gt;Pt());</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :       if ( ( (usedMask &amp; AliPIDResponse::kDetEMCAL)==AliPIDResponse::kDetEMCAL) || ( (usedMask &amp; AliPIDResponse::kDetHMPID)==AliPIDResponse::kDetHMPID) ) {</span>
+<span class="lineNum">     178 </span>            :       // we assume EMCAL and HMPID cannot be simultaneously present
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :       if ( (usedMask &amp; AliPIDResponse::kDetEMCAL)==AliPIDResponse::kDetEMCAL ) {</span>
+<span class="lineNum">     180 </span>            :         // EMCal case (for the moment only in combination with TPC)
+<span class="lineNum">     181 </span>            :         // propagation factors determined from LHC11d MC (LHC12a15f)
+<span class="lineNum">     182 </span>            :         // v2 clusterizer, dEta &lt; 0.015, dPhi &lt; 0.03, NonLinearityFunction = 6
+<span class="lineNum">     183 </span>            :                
+<span class="lineNum">     184 </span>            :         Float_t electronEMCALfactor=0.1;
+<span class="lineNum">     185 </span>            :         Float_t kaonEMCALfactor = 0.1;
+<span class="lineNum">     186 </span>            :         Float_t protonEMCALfactor = 0.1;
+<span class="lineNum">     187 </span>            :                
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         if(track-&gt;Charge() &gt; 0){</span>
+<span class="lineNum">     189 </span>            :           // positiv charge (start parametrization at 0.75 GeV/c and stop at 20 GeV/c for the moment)
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.75 &amp;&amp; pt &lt; 20.0){</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             electronEMCALfactor =  ( 0.214159 * ( 1 - TMath::Exp(-TMath::Power(pt,0.484512)/0.700499)*TMath::Power(pt,-0.669644)) ) /  ( 0.210436 * ( 1 - TMath::Exp(-TMath::Power(pt,-0.219228)/0.947432)*TMath::Power(pt,-0.700792)) );</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             kaonEMCALfactor =  ( 0.208686 * ( 1 - TMath::Exp(-TMath::Power(pt,-3.98149e-05)/1.28447)*TMath::Power(pt,-0.629191)) ) /  ( 0.210436 * ( 1 - TMath::Exp(-TMath::Power(pt,-0.219228)/0.947432)*TMath::Power(pt,-0.700792)) );</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :             protonEMCALfactor =  ( 0.27555 * ( 1 - TMath::Exp(-TMath::Power(pt,-1.97226e-05)/1.52719)*TMath::Power(pt,-0.209068)) ) /  ( 0.210436 * ( 1 - TMath::Exp(-TMath::Power(pt,-0.219228)/0.947432)*TMath::Power(pt,-0.700792)) );</span>
+<span class="lineNum">     194 </span>            :                    
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            :                
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if(track-&gt;Charge() &lt; 0){</span>
+<span class="lineNum">     199 </span>            :           // negative charge  (start parametrization at 0.75 GeV/c and stop at 20 GeV/c for the moment)
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.75 &amp;&amp; pt &lt; 20.0){                </span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             electronEMCALfactor =  ( 0.216895 * ( 1 - TMath::Exp(-TMath::Power(pt,0.000105924)/0.865938)*TMath::Power(pt,-1.32787)) ) /  ( 0.210385 * ( 1 - TMath::Exp(-TMath::Power(pt,4.41206e-07)/1.08984)*TMath::Power(pt,-0.544375)) );</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             kaonEMCALfactor =  ( 0.204117 * ( 1 - TMath::Exp(-TMath::Power(pt,-1.6853e-05)/1.61765)*TMath::Power(pt,-0.738355)) ) /  ( 0.210385 * ( 1 - TMath::Exp(-TMath::Power(pt,4.41206e-07)/1.08984)*TMath::Power(pt,-0.544375)) );</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             protonEMCALfactor =  ( 0.215679 * ( 1 - TMath::Exp(-TMath::Power(pt,-4.10015e-05)/1.40921)*TMath::Power(pt,-0.533752)) ) /  ( 0.210385 * ( 1 - TMath::Exp(-TMath::Power(pt,4.41206e-07)/1.08984)*TMath::Power(pt,-0.544375)) );</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         priors[0] *= electronEMCALfactor;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         priors[3] *= kaonEMCALfactor;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         priors[4] *= protonEMCALfactor;       </span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :       } // end of EMCAL case</span>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       else if ( (usedMask &amp; AliPIDResponse::kDetHMPID)==AliPIDResponse::kDetHMPID ) {  // HMPID case</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :         Float_t kaonHMPIDfactor   = 0.;
+<span class="lineNum">     214 </span>            :         Float_t protonHMPIDfactor = 0.;                     
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         if(pt&gt;1. &amp;&amp; pt&lt;6.)  kaonHMPIDfactor   = (-0.0729337 + pt*0.0999531 - pt*pt*0.0371803 + pt*pt*pt*0.00706436 - pt*pt*pt*pt*0.000643619 + pt*pt*pt*pt*pt*2.21853e-05)/(-0.00896231+ pt*0.0330702 - pt*pt*0.0109562+ pt*pt*pt*0.00232895 - pt*pt*pt*pt*0.000246143 + pt*pt*pt*pt*pt*9.59812e-06); </span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         if(pt&gt;1.4 &amp;&amp; pt&lt;6.) protonHMPIDfactor = (-0.0444188 + pt*0.0681506 - pt*pt*0.0231819 + pt*pt*pt*0.00400771 - pt*pt*pt*pt*0.000339315 + pt*pt*pt*pt*pt*1.12616e-05)/(-0.00896231+ pt*0.0330702 - pt*pt*0.0109562+ pt*pt*pt*0.00232895 - pt*pt*pt*pt*0.000246143 + pt*pt*pt*pt*pt*9.59812e-06);        </span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         if(pt&gt;6. &amp;&amp; pt&lt;8.)  kaonHMPIDfactor   = (-0.0729337 + pt*0.0999531 - pt*pt*0.0371803 + pt*pt*pt*0.00706436 - pt*pt*pt*pt*0.000643619 + pt*pt*pt*pt*pt*2.21853e-05)/0.0530456;        </span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         if(pt&gt;8.)           kaonHMPIDfactor   = 0.0550432/0.0530456; </span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         if(pt&gt;6. &amp;&amp; pt&lt;8.5) protonHMPIDfactor = (-0.0444188 + pt*0.0681506 - pt*pt*0.0231819 + pt*pt*pt*0.00400771 - pt*pt*pt*pt*0.000339315 + pt*pt*pt*pt*pt*1.12616e-05)/0.0530456;      </span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         if(pt&gt;8.5)          protonHMPIDfactor = 0.0530071/0.0530456;       </span>
+<span class="lineNum">     221 </span>            :                                  
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         if(track-&gt;Charge() &lt; 0){ </span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :          if(pt&gt;0.4 &amp;&amp; pt&lt;6.) protonHMPIDfactor = (-0.0351485 + pt*0.0473821 - pt*pt*0.0147947 + pt*pt*pt*0.00254811- pt*pt*pt*pt*0.000224724 + pt*pt*pt*pt*pt*7.9303e-06)/(-0.00896231+ pt*0.0330702 - pt*pt*0.0109562+ pt*pt*pt*0.00232895 - pt*pt*pt*pt*0.000246143 + pt*pt*pt*pt*pt*9.59812e-06);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :          if(pt&gt;6. &amp;&amp; pt&lt;8.5) protonHMPIDfactor = (-0.0351485 + pt*0.0473821 - pt*pt*0.0147947 + pt*pt*pt*0.00254811- pt*pt*pt*pt*0.000224724 + pt*pt*pt*pt*pt*7.9303e-06)/0.0530456; </span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :          if(pt&gt;8.5)          protonHMPIDfactor = 0.0457756/0.0530456; </span>
+<span class="lineNum">     226 </span>            :         } 
+<span class="lineNum">     227 </span>            :       
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         priors[3] *= kaonHMPIDfactor;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :         priors[4] *= protonHMPIDfactor;</span>
+<span class="lineNum">     230 </span>            :                
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :     } // end of outer cases: EMCAL/HMPID
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :       else if ( (usedMask &amp; AliPIDResponse::kDetTOF) == AliPIDResponse::kDetTOF ){</span>
+<span class="lineNum">     235 </span>            :         Float_t kaonTOFfactor = 0.1;
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         if(pt &gt; 0.29){</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :           kaonTOFfactor = 1 - TMath::Exp(-TMath::Power(pt,4.19618E-07)/4.96502e-01)*TMath::Power(pt,-1.50705);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :         Float_t protonTOFfactor = 0.1;
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         if(pt &gt; 0.4) protonTOFfactor = 1 - TMath::Exp(-TMath::Power(pt,3.30978)/8.57396E-02)*TMath::Power(pt,-4.42661E-01);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if(track-&gt;Charge() &lt; 0){ // for negative tracks</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :           kaonTOFfactor *= 1 - TMath::Exp(-TMath::Power(pt,4.87912E-07)/3.26431E-01)*TMath::Power(pt,-1.22893);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :           protonTOFfactor *= 1 - TMath::Exp(-TMath::Power(pt,2.00575E-07)/4.95605E-01)*TMath::Power(pt,-6.71305E-01);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     247 </span>            :         // TODO: we may need an electron factor for TOF as well, especially if TRD is present!
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         priors[3] *= kaonTOFfactor;</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         priors[4] *= protonTOFfactor;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       }  // end of TOF case</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       else if ( (usedMask &amp; AliPIDResponse::kDetTRD)==AliPIDResponse::kDetTRD ) {</span>
+<span class="lineNum">     252 </span>            :         Float_t electronTRDfactor=0.1;
+<span class="lineNum">     253 </span>            :         Float_t kaonTRDfactor = 0.1;
+<span class="lineNum">     254 </span>            :         Float_t protonTRDfactor = 0.1;
+<span class="lineNum">     255 </span>            :                  
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         if(track-&gt;Charge() &gt; 0){</span>
+<span class="lineNum">     257 </span>            :           // positiv charge
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.25) electronTRDfactor =  1 - TMath::Exp(-TMath::Power(pt,5.13315e-03)/2.11145e-01)*TMath::Power(pt,-2.97659e+00);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.35) kaonTRDfactor = 1 - TMath::Exp(-TMath::Power(pt,-4.29549e-02)/4.87989e-01)*TMath::Power(pt,-1.54270e+00);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.35) protonTRDfactor = 1 - TMath::Exp(-TMath::Power(pt,2.81238e+00)/7.57082e-02)*TMath::Power(pt,-8.12595e-01);</span>
+<span class="lineNum">     261 </span>            :         }
+<span class="lineNum">     262 </span>            :                  
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         if(track-&gt;Charge() &lt; 0){</span>
+<span class="lineNum">     264 </span>            :           // negative charge
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.25) electronTRDfactor =  1 - TMath::Exp(-TMath::Power(pt,2.45537e-02)/1.90397e-01)*TMath::Power(pt,-3.33121e+00);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.35) kaonTRDfactor = 1 - TMath::Exp(-TMath::Power(pt, -3.42831e-03)/5.57013e-01)*TMath::Power(pt,-1.39202e+00);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :           if(pt &gt; 0.35) protonTRDfactor = 1 - TMath::Exp(-TMath::Power(pt,3.36631e+00)/7.18819e-02)*TMath::Power(pt,-2.00577e-01);</span>
+<span class="lineNum">     268 </span>            :         }
+<span class="lineNum">     269 </span>            :         // what about electrons
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         priors[0] *= electronTRDfactor;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         priors[3] *= kaonTRDfactor;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         priors[4] *= protonTRDfactor;         </span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       } // end of TRD case</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     } // end of fUseDefaultTPCPriors</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   }   // end of use priors</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   else { for (Int_t i=0;i&lt;fSelectedSpecies;i++) priors[i]=1.;}</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            :   //  Compute Bayes probabilities
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   ComputeBayesProbabilities(bayesProbabilities,p,priors,pMismTOF);</span>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            :   // compute TOF probability contribution from mismatch
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   fTOFmismProb = 0; </span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;fSelectedSpecies;i++) fTOFmismProb += pMismTOF[i];</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   return usedMask;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     287 </span>            : 
+<a name="288"><span class="lineNum">     288 </span>            : </a>
+<span class="lineNum">     289 </span>            : //-------------------------------------------------------------------------------------------------
+<span class="lineNum">     290 </span>            : void AliPIDCombined::GetPriors(const AliVTrack *track, Double_t* p,Float_t centrality,Bool_t isPPB) const {
+<span class="lineNum">     291 </span>            :         
+<span class="lineNum">     292 </span>            :         //
+<span class="lineNum">     293 </span>            :         // get priors from distributions
+<span class="lineNum">     294 </span>            :         //
+<span class="lineNum">     295 </span>            :         
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         Double_t pt=TMath::Abs(track-&gt;Pt());</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         if(fUseDefaultTPCPriors){ // use default priors if requested</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :           Float_t usedCentr = centrality+5*(centrality&gt;0);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :           if(usedCentr &lt; -0.99) usedCentr = -0.99;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :           else if(usedCentr &gt; 99) usedCentr = 99;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :           if(pt &gt; 9.99) pt = 9.99;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :           else if(pt &lt; 0.01)  pt = 0.01;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :           if(! isPPB)</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             for(Int_t i=0;i&lt;AliPID::kSPECIESC;i++) p[i] = fDefaultPriorsTPC[i]-&gt;Interpolate(usedCentr,pt);</span>
+<span class="lineNum">     308 </span>            :           else
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             for(Int_t i=0;i&lt;AliPID::kSPECIESC;i++) p[i] = fDefaultPriorsTPCpPb[i]-&gt;Interpolate(usedCentr,pt);</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            :           return;
+<span class="lineNum">     312 </span>            :         }
+<span class="lineNum">     313 </span>            :         
+<span class="lineNum">     314 </span>            :         Double_t sumPriors = 0;
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;fSelectedSpecies;++i){</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 if (fPriorsDistributions[i]){</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                         p[i]=fPriorsDistributions[i]-&gt;Interpolate(pt);</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     319 </span>            :                 else {
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                         p[i]=0.;</span>
+<span class="lineNum">     321 </span>            :                 }
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                 sumPriors+=p[i];                </span>
+<span class="lineNum">     323 </span>            :         }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :         // normalizing priors
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         if (sumPriors == 0) return;</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;fSelectedSpecies;++i){</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :            p[i]=p[i]/sumPriors;</span>
+<span class="lineNum">     329 </span>            :         }
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         return;</span>
+<a name="331"><span class="lineNum">     331 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     332 </span>            : //-------------------------------------------------------------------------------------------------
+<span class="lineNum">     333 </span>            : void AliPIDCombined::GetPriors(const AliVTrack *track,Double_t* p,const AliPIDResponse *response,UInt_t detUsed) const{
+<span class="lineNum">     334 </span>            :         
+<span class="lineNum">     335 </span>            :         //
+<span class="lineNum">     336 </span>            :         // get priors from distributions
+<span class="lineNum">     337 </span>            :         //
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         Double_t pt=TMath::Abs(track-&gt;Pt());</span>
+<span class="lineNum">     339 </span>            :         
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if(fUseDefaultTPCPriors){ // use default priors if requested</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :           Float_t usedCentr = response-&gt;GetCurrentCentrality()+5*(response-&gt;GetCurrentCentrality()&gt;0);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :           if(usedCentr &lt; -0.99) usedCentr = -0.99;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :           else if(usedCentr &gt; 99) usedCentr = 99;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :           if(pt &gt; 9.99) pt = 9.99;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :           else if(pt &lt; 0.01)  pt = 0.01;</span>
+<span class="lineNum">     346 </span>            :           
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :           for(Int_t i=0;i&lt;AliPID::kSPECIESC;i++) p[i] = fDefaultPriorsTPC[i]-&gt;Interpolate(usedCentr,pt);</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :           // Extra factor if TOF matching was required
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :           if(detUsed &amp; AliPIDResponse::kDetTOF){</span>
+<span class="lineNum">     351 </span>            :             Float_t kaonTOFfactor = 0.1;
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :             if(pt &gt; 0.29){</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :               kaonTOFfactor = 1 - TMath::Exp(-TMath::Power(pt,4.19618E-07)/4.96502e-01)*TMath::Power(pt,-1.50705);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     355 </span>            :             Float_t protonTOFfactor = 0.1;
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             if(pt &gt; 0.4) protonTOFfactor = 1 - TMath::Exp(-TMath::Power(pt,3.30978)/8.57396E-02)*TMath::Power(pt,-4.42661E-01);</span>
+<span class="lineNum">     357 </span>            :             
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             if(track-&gt;Charge() &lt; 0){ // for negative tracks</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :               kaonTOFfactor *= 1 - TMath::Exp(-TMath::Power(pt,4.87912E-07)/3.26431E-01)*TMath::Power(pt,-1.22893);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :               protonTOFfactor *= 1 - TMath::Exp(-TMath::Power(pt,2.00575E-07)/4.95605E-01)*TMath::Power(pt,-6.71305E-01);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     362 </span>            :             
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :             p[3] *= kaonTOFfactor;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             p[4] *= protonTOFfactor;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :           return;
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            :         Double_t sumPriors = 0;
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;fSelectedSpecies;++i){</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                 if (fPriorsDistributions[i]){</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :                         p[i]=fPriorsDistributions[i]-&gt;Interpolate(pt);</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     376 </span>            :                 else {
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                         p[i]=0.;</span>
+<span class="lineNum">     378 </span>            :                 }
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :                 sumPriors+=p[i];                </span>
+<span class="lineNum">     380 </span>            :         }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            :         // normalizing priors
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         if (sumPriors == 0) return;</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         for (Int_t i=0;i&lt;fSelectedSpecies;++i){</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :            p[i]=p[i]/sumPriors;</span>
+<span class="lineNum">     386 </span>            :         }
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         return;</span>
+<a name="388"><span class="lineNum">     388 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     389 </span>            : //-------------------------------------------------------------------------------------------------     
+<span class="lineNum">     390 </span>            : void AliPIDCombined::ComputeBayesProbabilities(Double_t* probabilities, const Double_t* probDensity, const Double_t* prior, Double_t* probDensityMism) const {
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :   //
+<span class="lineNum">     394 </span>            :   // calculate Bayesian probabilities
+<span class="lineNum">     395 </span>            :   //
+<span class="lineNum">     396 </span>            :   Double_t sum = 0.;
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; fSelectedSpecies; i++) {</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     sum += probDensity[i] * prior[i];</span>
+<span class="lineNum">     399 </span>            :   }
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :   if (sum &lt;= 0) {</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     AliError(&quot;Invalid probability densities or priors&quot;);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     for (Int_t i = 0; i &lt; fSelectedSpecies; i++) probabilities[i] = 1./fSelectedSpecies;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     405 </span>            :   }
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; fSelectedSpecies; i++) {</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     probabilities[i] = probDensity[i] * prior[i] / sum;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     if(probDensityMism) probDensityMism[i] *= prior[i] / sum;</span>
+<span class="lineNum">     409 </span>            :   }
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     413 </span>            : 
+<a name="414"><span class="lineNum">     414 </span>            : </a>
+<span class="lineNum">     415 </span>            : //----------------------------------------------------------------------------------------
+<span class="lineNum">     416 </span>            : void AliPIDCombined::SetCombinedStatus(AliPIDResponse::EDetPidStatus status, UInt_t *maskDetIn, AliPIDResponse::EDetCode bit) const {
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   switch (status) {</span>
+<span class="lineNum">     418 </span>            :   case AliPIDResponse::kDetNoParams:
+<span class="lineNum">     419 </span>            :   case AliPIDResponse::kDetNoSignal:
+<span class="lineNum">     420 </span>            :   case AliPIDResponse::kDetMismatch: // for backward compatibilty, we need then to remove kDetMismatch from AliPIDResponse
+<span class="lineNum">     421 </span>            :     break;
+<span class="lineNum">     422 </span>            :   case AliPIDResponse::kDetPidOk:
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     *maskDetIn = *maskDetIn | bit;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     425 </span>            :   }
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 : }</span>
+<a name="428"><span class="lineNum">     428 </span>            : </a>
+<span class="lineNum">     429 </span>            : //----------------------------------------------------------------------------------------
+<span class="lineNum">     430 </span>            : void AliPIDCombined::SetCombinedStatus(AliPIDResponse::EDetPidStatus status, UInt_t *maskDetIn, AliPIDResponse::EDetCode bit, Double_t* /*p*/, const Float_t /*probMis*/) const {
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   switch (status) {</span>
+<span class="lineNum">     432 </span>            :   case AliPIDResponse::kDetNoParams:
+<span class="lineNum">     433 </span>            :   case AliPIDResponse::kDetNoSignal:
+<span class="lineNum">     434 </span>            :   case AliPIDResponse::kDetMismatch: // for backward compatibility, we need then to remove kDeteMismatch from AliPIDResponse
+<span class="lineNum">     435 </span>            :     break;
+<span class="lineNum">     436 </span>            :   case AliPIDResponse::kDetPidOk:
+<span class="lineNum">     437 </span>            :     //      if (probMis &gt; 0.5) for (Int_t j=0;j&lt;fSelectedSpecies;j++) p[j]=1./fSelectedSpecies; // no longer used because mismatch is in the framework now
+<span class="lineNum">     438 </span>            :     //else 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     *maskDetIn = *maskDetIn | bit;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     441 </span>            :   }
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span>            : 
+<a name="446"><span class="lineNum">     446 </span>            : </a>
+<span class="lineNum">     447 </span>            : //----------------------------------------------------------------------------------------
+<span class="lineNum">     448 </span>            : void AliPIDCombined::SetDefaultTPCPriors(){
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   fEnablePriors=kTRUE;</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   fUseDefaultTPCPriors = kTRUE;</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span>            :   //Check if priors are already initialized
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :   if (fDefaultPriorsTPC[0]) return;</span>
+<span class="lineNum">     454 </span>            :   
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :   TString oadbfilename(&quot;$ALICE_PHYSICS/OADB/COMMON/PID/data/&quot;);</span>
+<span class="lineNum">     456 </span>            :   //  TString oadbfilename(&quot;$ALICE_ROOT/OADB/COMMON/PID/data/&quot;);
+<span class="lineNum">     457 </span>            :   //  TString oadbfilename(Form(&quot;%s/COMMON/PID/data/&quot;,AliAnalysisManager::GetOADBPath()));
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   oadbfilename += &quot;/PIDdefaultPriors.root&quot;;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   TFile * foadb = TFile::Open(oadbfilename.Data());</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   if(!foadb || !foadb-&gt;IsOpen()) {</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     delete foadb;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     AliFatal(Form(&quot;Cannot open OADB file %s&quot;, oadbfilename.Data()));</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     464 </span>            :   }
+<span class="lineNum">     465 </span>            :   
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   AliOADBContainer * priorsContainer = (AliOADBContainer*) foadb-&gt;Get(&quot;priorsTPC&quot;);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   if (!priorsContainer) AliFatal(&quot;Cannot fetch OADB container for Priors&quot;);</span>
+<span class="lineNum">     468 </span>            :   
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   const char *namespecies[AliPID::kSPECIESC] = {&quot;El&quot;,&quot;Mu&quot;,&quot;Pi&quot;,&quot;Ka&quot;,&quot;Pr&quot;,&quot;De&quot;,&quot;Tr&quot;,&quot;He3&quot;,&quot;He3&quot;};</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   char name[100];</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i &lt; AliPID::kSPECIESC;i++){</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     snprintf(name,99,&quot;hDefault%sPriors&quot;,namespecies[i]);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     fDefaultPriorsTPC[i] = (TH2F*) priorsContainer-&gt;GetDefaultObject(name);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     if (!fDefaultPriorsTPC[i]) AliFatal(Form(&quot;Cannot find priors for %s&quot;, namespecies[i]));</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     snprintf(name,99,&quot;hDefault%sPriorsPPb&quot;,namespecies[i]);</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     fDefaultPriorsTPCpPb[i] = (TH2F*) priorsContainer-&gt;GetDefaultObject(name);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     if (!fDefaultPriorsTPCpPb[i]) {</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         fDefaultPriorsTPCpPb[i] = fDefaultPriorsTPC[i]; // use PbPb ones</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     481 </span>            :   }
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   delete foadb;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

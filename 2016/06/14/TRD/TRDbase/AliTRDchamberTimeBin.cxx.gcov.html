@@ -1,0 +1,752 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TRD/TRDbase/AliTRDchamberTimeBin.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TRD/TRDbase</a> - AliTRDchamberTimeBin.cxx<span style="font-size: 80%;"> (source / <a href="AliTRDchamberTimeBin.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">129</td>
+            <td class="headerCovTableEntry">279</td>
+            <td class="headerCovTableEntryLo">46.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            : * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            : *                                                                        *
+<span class="lineNum">       4 </span>            : * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            : * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            : *                                                                        *
+<span class="lineNum">       7 </span>            : * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            : * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            : * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            : * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            : * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            : * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            : * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            : **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id: AliTRDchamberTimeBin.cxx 23313 2008-01-11 14:56:43Z cblume $ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      19 </span>            : //                                                                           //
+<span class="lineNum">      20 </span>            : //  Organization of clusters at the level of 1 TRD chamber.                  //
+<span class="lineNum">      21 </span>            : //  The data structure is used for tracking at the stack level.              //
+<span class="lineNum">      22 </span>            : //                                                                           //
+<span class="lineNum">      23 </span>            : //  Functionalities:                                                         //
+<span class="lineNum">      24 </span>            : //   1. cluster organization and sorting                                     //
+<span class="lineNum">      25 </span>            : //   2. fast data navigation                                                 //
+<span class="lineNum">      26 </span>            : //                                                                           //
+<span class="lineNum">      27 </span>            : //  Authors:                                                                 //
+<span class="lineNum">      28 </span>            : //    Alex Bercuci &lt;A.Bercuci@gsi.de&gt;                                        //
+<span class="lineNum">      29 </span>            : //    Markus Fasel &lt;M.Fasel@gsi.de&gt;                                          //
+<span class="lineNum">      30 </span>            : //                                                                           //
+<span class="lineNum">      31 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &lt;TObject.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;TTreeStream.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliTRDcluster.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliTRDgeometry.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliTRDpadPlane.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliTRDchamberTimeBin.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliTRDrecoParam.h&quot;
+<a name="43"><span class="lineNum">      43 </span>            : #include &quot;AliTRDReconstructor.h&quot;</a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">         48 : ClassImp(AliTRDchamberTimeBin)</span>
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<span class="lineNum">      47 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      48 </span>            : AliTRDchamberTimeBin::AliTRDchamberTimeBin(Int_t plane, Int_t stack, Int_t sector, Double_t z0, Double_t zLength)
+<span class="lineNum">      49 </span><span class="lineCov">      10819 :   :TObject()</span>
+<span class="lineNum">      50 </span><span class="lineCov">      10819 :   ,fkReconstructor(NULL)</span>
+<span class="lineNum">      51 </span><span class="lineCov">      10819 :   ,fPlane(plane)</span>
+<span class="lineNum">      52 </span><span class="lineCov">      10819 :   ,fStack(stack)</span>
+<span class="lineNum">      53 </span><span class="lineCov">      10819 :   ,fSector(sector)</span>
+<span class="lineNum">      54 </span><span class="lineCov">      10819 :   ,fNRows(kMaxRows)</span>
+<span class="lineNum">      55 </span><span class="lineCov">      10819 :   ,fN(0)</span>
+<span class="lineNum">      56 </span><span class="lineCov">      10819 :   ,fX(0.)</span>
+<span class="lineNum">      57 </span><span class="lineCov">      10819 :   ,fZ0(z0)</span>
+<span class="lineNum">      58 </span><span class="lineCov">      10819 :   ,fZLength(zLength)</span>
+<span class="lineNum">      59 </span><span class="lineCov">      54095 : {</span>
+<span class="lineNum">      60 </span>            :   //
+<span class="lineNum">      61 </span>            :   // Default constructor (Only provided to use AliTRDchamberTimeBin with arrays)
+<span class="lineNum">      62 </span>            :   //
+<span class="lineNum">      63 </span><span class="lineCov">      10819 :   SetBit(kT0, kFALSE);</span>
+<span class="lineNum">      64 </span><span class="lineCov">      10819 :   SetBit(kOwner, kFALSE);</span>
+<span class="lineNum">      65 </span><span class="lineCov">      10819 :   memset(fPositions, 1, kMaxRows*sizeof(UChar_t));</span>
+<span class="lineNum">      66 </span><span class="lineCov">      10819 :   memset(fClusters, 0, kMaxClustersLayer*sizeof(AliTRDcluster*));</span>
+<span class="lineNum">      67 </span><span class="lineCov">      10819 :   memset(fIndex, 1, kMaxClustersLayer*sizeof(UInt_t));</span>
+<span class="lineNum">      68 </span><span class="lineCov">      21638 : }</span>
+<span class="lineNum">      69 </span>            : 
+<a name="70"><span class="lineNum">      70 </span>            : </a>
+<span class="lineNum">      71 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      72 </span>            : AliTRDchamberTimeBin::AliTRDchamberTimeBin(const AliTRDchamberTimeBin &amp;layer):
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   TObject()</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   ,fkReconstructor(layer.fkReconstructor)</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   ,fPlane(layer.fPlane)</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   ,fStack(layer.fStack)</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   ,fSector(layer.fSector)</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   ,fNRows(layer.fNRows)</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   ,fN(layer.fN)</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   ,fX(layer.fX)</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   ,fZ0(layer.fZ0)</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   ,fZLength(layer.fZLength)</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      84 </span>            : // Copy Constructor 
+<span class="lineNum">      85 </span>            :   
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   SetBit(kT0, layer.IsT0());</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   SetBit(kOwner, kFALSE);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt;kMaxRows; i++) fPositions[i] = layer.fPositions[i];</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   memcpy(&amp;fClusters[0], &amp;layer.fClusters[0], kMaxClustersLayer*sizeof(AliTRDcluster*));</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   memcpy(&amp;fIndex[0], &amp;layer.fIndex[0], kMaxClustersLayer*sizeof(UInt_t));</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : //      BuildIndices();
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : }</span>
+<a name="95"><span class="lineNum">      95 </span>            : </a>
+<span class="lineNum">      96 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      97 </span>            : AliTRDchamberTimeBin &amp;AliTRDchamberTimeBin::operator=(const AliTRDchamberTimeBin &amp;layer)
+<span class="lineNum">      98 </span>            : {
+<span class="lineNum">      99 </span>            : // Assignment operator
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   if (this != &amp;layer) layer.Copy(*this);</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">     103 </span>            : }
+<a name="104"><span class="lineNum">     104 </span>            : </a>
+<span class="lineNum">     105 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     106 </span>            : void AliTRDchamberTimeBin::Clear(const Option_t *) 
+<span class="lineNum">     107 </span>            : { 
+<span class="lineNum">     108 </span>            :   // Reset the Chamber Timebin
+<span class="lineNum">     109 </span><span class="lineCov">      21638 :   if(IsOwner())</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     for(Int_t it = 0; it&lt;kMaxClustersLayer; it++)</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :       delete fClusters[it];</span>
+<span class="lineNum">     112 </span><span class="lineCov">      10819 :   memset(fClusters,0,kMaxClustersLayer*sizeof(fClusters[0]));</span>
+<span class="lineNum">     113 </span><span class="lineCov">      10819 :   fN = 0; </span>
+<span class="lineNum">     114 </span><span class="lineCov">      10819 : }</span>
+<a name="115"><span class="lineNum">     115 </span>            : </a>
+<span class="lineNum">     116 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     117 </span>            : void AliTRDchamberTimeBin::Copy(TObject &amp;o) const
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span>            : // Copy method. Performs a deep copy of all data from this object to object o.
+<span class="lineNum">     120 </span>            :   
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   AliTRDchamberTimeBin &amp;layer = (AliTRDchamberTimeBin &amp;)o;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   layer.fkReconstructor = fkReconstructor;</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   layer.fPlane       = fPlane;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   layer.fStack       = fStack;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   layer.fSector      = fSector;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   layer.fNRows       = fNRows;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   layer.fN           = fN;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   layer.fX           = fX;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   layer.fZ0          = fZ0;</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   layer.fZLength     = fZLength;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   layer.SetT0(IsT0());</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   layer.SetBit(kOwner, kFALSE);</span>
+<span class="lineNum">     133 </span>            :   
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   for(int i=0; i&lt;kMaxRows; i++) layer.fPositions[i] = fPositions[i];</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   memcpy(&amp;layer.fClusters[0], &amp;fClusters[0], kMaxClustersLayer*sizeof(AliTRDcluster*));</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   memcpy(&amp;layer.fIndex[0], &amp;fIndex[0], kMaxClustersLayer*sizeof(UInt_t));</span>
+<span class="lineNum">     137 </span>            :   
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   TObject::Copy(layer); // copies everything into layer</span>
+<span class="lineNum">     139 </span>            :   
+<span class="lineNum">     140 </span>            : //      layer.BuildIndices();
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 : }</span>
+<a name="142"><span class="lineNum">     142 </span>            : </a>
+<span class="lineNum">     143 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     144 </span>            : AliTRDchamberTimeBin::~AliTRDchamberTimeBin()
+<span class="lineNum">     145 </span><span class="lineCov">      43276 : {</span>
+<span class="lineNum">     146 </span>            : // Destructor
+<span class="lineNum">     147 </span><span class="lineCov">      10819 :   if(IsOwner()){ </span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     for(AliTRDcluster **cit = &amp;fClusters[0]; (*cit); cit++) delete (*cit);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     150 </span><span class="lineCov">      21638 : }</span>
+<a name="151"><span class="lineNum">     151 </span>            : </a>
+<span class="lineNum">     152 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     153 </span>            : void  AliTRDchamberTimeBin::SetOwner(Bool_t copy) 
+<span class="lineNum">     154 </span>            : {
+<span class="lineNum">     155 </span>            : // Sets the ownership of the clusters to this 
+<span class="lineNum">     156 </span>            : // If option &quot;copy&quot; is kTRUE [default] the clusters 
+<span class="lineNum">     157 </span>            : // are also copied otherwise only the ownership bit 
+<span class="lineNum">     158 </span>            : // is flipped.
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   SetBit(kOwner, kTRUE);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   if(!copy) return;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   for(AliTRDcluster **cit = &amp;fClusters[0]; (*cit); ++cit){</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     (*cit) = new AliTRDcluster(*(*cit)); </span>
+<span class="lineNum">     164 </span>            :   }
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 : }</span>
+<a name="166"><span class="lineNum">     166 </span>            : </a>
+<span class="lineNum">     167 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     168 </span>            : void AliTRDchamberTimeBin::SetRange(Float_t z0, Float_t zLength)
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span>            : // Sets the range in z-direction
+<span class="lineNum">     171 </span>            : //
+<span class="lineNum">     172 </span>            : // Parameters:
+<span class="lineNum">     173 </span>            : //   z0      : starting position of layer in the z direction
+<span class="lineNum">     174 </span>            : //   zLength : length of layer in the z direction 
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">      15594 :   fZ0 = (z0 &lt;= z0 + zLength) ? z0 : z0 + zLength;</span>
+<span class="lineNum">     177 </span><span class="lineCov">       7797 :   fZLength = TMath::Abs(zLength);</span>
+<span class="lineNum">     178 </span><span class="lineCov">       7797 : }</span>
+<a name="179"><span class="lineNum">     179 </span>            : </a>
+<span class="lineNum">     180 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     181 </span>            : void AliTRDchamberTimeBin::InsertCluster(AliTRDcluster *c, UInt_t index) 
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span>            :   //
+<span class="lineNum">     184 </span>            :   // Insert cluster in cluster array.
+<span class="lineNum">     185 </span>            :   // Clusters are sorted according to Y coordinate.  
+<span class="lineNum">     186 </span>            :   //
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :   //if (fTimeBinIndex &lt; 0) { 
+<span class="lineNum">     189 </span>            :     //AliWarning(&quot;Attempt to insert cluster into non-sensitive time bin!\n&quot;);
+<span class="lineNum">     190 </span>            :     //return;
+<span class="lineNum">     191 </span>            :   //}
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineCov">      36904 :   if (fN == (Int_t) kMaxClustersLayer) {</span>
+<span class="lineNum">     194 </span>            :     //AliWarning(&quot;Too many clusters !\n&quot;); 
+<span class="lineNum">     195 </span>            :     return;
+<span class="lineNum">     196 </span>            :   }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineCov">      18452 :   if (fN == 0) {</span>
+<span class="lineNum">     199 </span><span class="lineCov">       7797 :     fIndex[0]       = index; </span>
+<span class="lineNum">     200 </span><span class="lineCov">       7797 :     fClusters[fN++] = c; </span>
+<span class="lineNum">     201 </span><span class="lineCov">       7797 :     return;</span>
+<span class="lineNum">     202 </span>            :   }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">      10655 :   Int_t i = Find(c-&gt;GetY());</span>
+<span class="lineNum">     205 </span><span class="lineCov">      10655 :   memmove(fClusters+i+1,fClusters+i,(fN-i)*sizeof(AliTRDcluster*));</span>
+<span class="lineNum">     206 </span><span class="lineCov">      10655 :   memmove(fIndex   +i+1,fIndex   +i,(fN-i)*sizeof(UInt_t)); </span>
+<span class="lineNum">     207 </span><span class="lineCov">      10655 :   fIndex[i]    = index; </span>
+<span class="lineNum">     208 </span><span class="lineCov">      10655 :   fClusters[i] = c; </span>
+<span class="lineNum">     209 </span><span class="lineCov">      10655 :   fN++;</span>
+<span class="lineNum">     210 </span><span class="lineCov">      29107 : }</span>
+<a name="211"><span class="lineNum">     211 </span>            : </a>
+<span class="lineNum">     212 </span>            : //___________________________________________________
+<span class="lineNum">     213 </span>            : void AliTRDchamberTimeBin::Bootstrap(const AliTRDReconstructor *rec, Int_t det)
+<span class="lineNum">     214 </span>            : {
+<span class="lineNum">     215 </span>            : // Reinitialize all data members from the clusters array
+<span class="lineNum">     216 </span>            : // It has to be used after reading from disk
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   fkReconstructor = rec;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   fPlane  = AliTRDgeometry::GetLayer(det);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   fStack  = AliTRDgeometry::GetStack(det);</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   fSector = AliTRDgeometry::GetSector(det);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   AliTRDgeometry g;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   fNRows  = g.GetPadPlane(fPlane, fStack)-&gt;GetNrows();</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   fN = 0;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   for(AliTRDcluster **cit = &amp;fClusters[0]; (*cit); cit++) fN++;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   BuildIndices();</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 : }</span>
+<a name="228"><span class="lineNum">     228 </span>            : </a>
+<span class="lineNum">     229 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     230 </span>            : void AliTRDchamberTimeBin::BuildIndices(Int_t iter)
+<span class="lineNum">     231 </span>            : {
+<span class="lineNum">     232 </span>            : // Rearrangement of the clusters belonging to the propagation layer for the stack.
+<span class="lineNum">     233 </span>            : //
+<span class="lineNum">     234 </span>            : // Detailed description
+<span class="lineNum">     235 </span>            : //
+<span class="lineNum">     236 </span>            : // The array indices of all clusters in one PropagationLayer are stored in
+<span class="lineNum">     237 </span>            : // array. The array is divided into several bins.
+<span class="lineNum">     238 </span>            : // The clusters are sorted in increasing order of their y coordinate.
+<span class="lineNum">     239 </span>            : //
+<span class="lineNum">     240 </span>            : // Sorting algorithm: TreeSearch
+<span class="lineNum">     241 </span>            : //
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineCov">       7797 :   if(!fN) return;</span>
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :   // Select clusters that belong to the Stack
+<span class="lineNum">     246 </span>            :   Int_t nClStack = 0;                                   // Internal counter
+<span class="lineNum">     247 </span><span class="lineCov">      52498 :   for(Int_t i = 0; i &lt; fN; i++){</span>
+<span class="lineNum">     248 </span><span class="lineCov">      36904 :     if(fClusters[i]-&gt;IsUsed() || fClusters[i]-&gt;IsShared()){</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :       fClusters[i] = NULL;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       fIndex[i] = 0xffff;</span>
+<span class="lineNum">     251 </span><span class="lineCov">      18452 :     } else nClStack++;</span>
+<span class="lineNum">     252 </span>            :   }
+<span class="lineNum">     253 </span><span class="lineCov">       7797 :   if(nClStack &gt; kMaxClustersLayer) AliInfo(Form(&quot;Number of clusters in stack %d exceed buffer size %d. Truncating.&quot;, nClStack, kMaxClustersLayer));</span>
+<span class="lineNum">     254 </span>            :     
+<span class="lineNum">     255 </span>            :   // Nothing in this time bin. Reset indexes 
+<span class="lineNum">     256 </span><span class="lineCov">       7797 :   if(!nClStack){</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     fN = 0;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     memset(&amp;fPositions[0], 0, sizeof(UChar_t) * kMaxRows);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     memset(&amp;fClusters[0], 0, sizeof(AliTRDcluster*) * kMaxClustersLayer);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     memset(&amp;fIndex[0], 0, sizeof(UInt_t) * kMaxClustersLayer);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     262 </span>            :   }
+<span class="lineNum">     263 </span>            :   
+<span class="lineNum">     264 </span>            :   // Make a copy
+<span class="lineNum">     265 </span><span class="lineCov">       7797 :   AliTRDcluster *helpCL[kMaxClustersLayer];</span>
+<span class="lineNum">     266 </span><span class="lineCov">       7797 :   UInt_t helpInd[kMaxClustersLayer];</span>
+<span class="lineNum">     267 </span>            :   nClStack = 0;
+<span class="lineNum">     268 </span>            :   // Defining iterators
+<span class="lineNum">     269 </span><span class="lineCov">       7797 :   AliTRDcluster **fcliter = &amp;fClusters[0], **hcliter = &amp;helpCL[0]; UInt_t *finditer = &amp;fIndex[0], *hinditer = &amp;helpInd[0];</span>
+<span class="lineNum">     270 </span>            :   AliTRDcluster *tmpcl = NULL;
+<span class="lineNum">     271 </span><span class="lineCov">      52498 :   for(Int_t i = 0; i &lt; TMath::Min(fN, kMaxClustersLayer); i++){</span>
+<span class="lineNum">     272 </span><span class="lineCov">      18452 :     if(!(tmpcl = *(fcliter++))){</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         finditer++;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     275 </span>            :     }
+<span class="lineNum">     276 </span><span class="lineCov">      18452 :     *(hcliter++)  = tmpcl;</span>
+<span class="lineNum">     277 </span><span class="lineCov">      18452 :     *(hinditer++) = *finditer;</span>
+<span class="lineNum">     278 </span>            :     tmpcl = NULL;
+<span class="lineNum">     279 </span><span class="lineCov">      18452 :     *(finditer++) = 0xffff;</span>
+<span class="lineNum">     280 </span><span class="lineCov">      18452 :     nClStack++;</span>
+<span class="lineNum">     281 </span><span class="lineCov">      18452 :   }</span>
+<span class="lineNum">     282 </span>            :   
+<span class="lineNum">     283 </span>            :   // do clusters arrangement
+<span class="lineNum">     284 </span><span class="lineCov">       7797 :   fX = 0.;</span>
+<span class="lineNum">     285 </span><span class="lineCov">       7797 :   fN =  nClStack;</span>
+<span class="lineNum">     286 </span>            :   nClStack = 0;
+<span class="lineNum">     287 </span>            :   // Reset Positions array
+<span class="lineNum">     288 </span><span class="lineCov">       7797 :   memset(fPositions, 0, sizeof(UChar_t)*kMaxRows);</span>
+<span class="lineNum">     289 </span>            :   AliTRDcluster **cliter = &amp;helpCL[0]; // Declare iterator running over the whole array
+<span class="lineNum">     290 </span><span class="lineCov">       7797 :   const AliTRDrecoParam* const recoParam = fkReconstructor-&gt;GetRecoParam(); //the dynamic cast in GetRecoParam is slow, so caching the pointer to it</span>
+<span class="lineNum">     291 </span>            :   Int_t tb(-1);
+<span class="lineNum">     292 </span><span class="lineCov">      52498 :   for(Int_t i = 0; i &lt; fN; i++){</span>
+<span class="lineNum">     293 </span>            :     // boundary check
+<span class="lineNum">     294 </span><span class="lineCov">      18452 :     AliTRDcluster *cl = *(cliter++);</span>
+<span class="lineNum">     295 </span><span class="lineCov">      18452 :     UChar_t rowIndex = cl-&gt;GetPadRow();</span>
+<span class="lineNum">     296 </span><span class="lineCov">      26249 :     if(tb&lt;0) tb=cl-&gt;GetLocalTimeBin();</span>
+<span class="lineNum">     297 </span>            :     // Insert Leaf
+<span class="lineNum">     298 </span><span class="lineCov">      18452 :     Int_t pos = FindYPosition(cl-&gt;GetY(), rowIndex, nClStack);</span>
+<span class="lineNum">     299 </span><span class="lineCov">      18452 :     if(pos == -2) continue;   // zbin error;</span>
+<span class="lineNum">     300 </span><span class="lineCov">      18452 :     else if(pos == -1) {    // zbin is empty;</span>
+<span class="lineNum">     301 </span><span class="lineCov">      34185 :       Int_t upper = (rowIndex == fNRows - 1) ? nClStack : fPositions[rowIndex + 1];</span>
+<span class="lineNum">     302 </span><span class="lineCov">      11395 :       memmove(fClusters + upper + 1, fClusters + upper, (sizeof(AliTRDcluster *))*(nClStack-upper));</span>
+<span class="lineNum">     303 </span><span class="lineCov">      11395 :       memmove(fIndex + upper + 1, fIndex + upper, (sizeof(UInt_t))*(nClStack-upper));</span>
+<span class="lineNum">     304 </span><span class="lineCov">      11395 :       fClusters[upper] = cl;</span>
+<span class="lineNum">     305 </span><span class="lineCov">      11395 :       fIndex[upper] = helpInd[i]; </span>
+<span class="lineNum">     306 </span>            :       // Move All pointer one position back
+<span class="lineNum">     307 </span><span class="lineCov">     172288 :       for(UChar_t j = rowIndex + 1; j &lt; fNRows; j++) fPositions[j]++;</span>
+<span class="lineNum">     308 </span><span class="lineCov">      11395 :       nClStack++;</span>
+<span class="lineNum">     309 </span><span class="lineCov">      11395 :     } else {            // zbin not empty</span>
+<span class="lineNum">     310 </span><span class="lineCov">       7057 :       memmove(fClusters + pos + 2, fClusters + pos+1, (sizeof(AliTRDcluster *))*(nClStack-(pos+1)));</span>
+<span class="lineNum">     311 </span><span class="lineCov">       7057 :       memmove(fIndex + pos + 2, fIndex + pos+1, (sizeof(UInt_t))*(nClStack-(pos+1)));</span>
+<span class="lineNum">     312 </span><span class="lineCov">       7057 :       fClusters[pos + 1] = cl;  //fIndex[i];</span>
+<span class="lineNum">     313 </span><span class="lineCov">       7057 :       fIndex[pos + 1] = helpInd[i];</span>
+<span class="lineNum">     314 </span>            :       // Move All pointer one position back
+<span class="lineNum">     315 </span><span class="lineCov">      86068 :       for(UChar_t j = rowIndex + 1; j &lt; fNRows; j++) fPositions[j]++;        </span>
+<span class="lineNum">     316 </span><span class="lineCov">       7057 :       nClStack++;</span>
+<span class="lineNum">     317 </span>            :     }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            :     // calculate mean x
+<span class="lineNum">     320 </span><span class="lineCov">      18452 :     fX += cl-&gt;GetX(); </span>
+<span class="lineNum">     321 </span>            :     
+<span class="lineNum">     322 </span>            :     // Debug Streaming
+<span class="lineNum">     323 </span><span class="lineCov">      18452 :     if(recoParam-&gt;GetStreamLevel(AliTRDrecoParam::kTracker) &gt;= 3){</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :       AliTRDcluster dcl(*cl);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :       TTreeSRedirector &amp;cstream = *fkReconstructor-&gt;GetDebugStream(AliTRDrecoParam::kTracker);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :       cstream &lt;&lt; &quot;BuildIndices&quot;</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;Plane=&quot;    &lt;&lt; fPlane</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;Stack=&quot;    &lt;&lt; fStack</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;Sector=&quot;   &lt;&lt; fSector</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;Iter=&quot;     &lt;&lt; iter</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;C.=&quot;       &lt;&lt; &amp;dcl</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;rowIndex=&quot; &lt;&lt; rowIndex</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :       &lt;&lt; &quot;\n&quot;;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     335 </span><span class="lineCov">      36904 :   }</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : //      AliInfo(&quot;Positions&quot;);
+<span class="lineNum">     338 </span>            : //      for(int ir=0; ir&lt;fNRows; ir++) printf(&quot;pos[%d] %d\n&quot;, ir, fPositions[ir]);
+<span class="lineNum">     339 </span><span class="lineCov">       7797 :   if(nClStack &lt; fN){</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     AliWarning(Form(&quot;Found %d out of %d clusters outside in ChamberTimeBin[%02d_%d_%d|%2d]&quot;, fN-nClStack, fN, fSector, fStack, fPlane, tb));</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     fN =  nClStack;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     if(!fN){ // Nothing left in this time bin. Reset indexes</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :       memset(&amp;fPositions[0], 0, sizeof(UChar_t) * kMaxRows);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :       memset(&amp;fClusters[0], 0, sizeof(AliTRDcluster*) * kMaxClustersLayer);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :       memset(&amp;fIndex[0], 0, sizeof(UInt_t) * kMaxClustersLayer);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     347 </span>            :     }
+<span class="lineNum">     348 </span>            :   }
+<span class="lineNum">     349 </span><span class="lineCov">      15594 :   if(fN) fX /= fN;</span>
+<span class="lineNum">     350 </span><span class="lineCov">      23391 : }</span>
+<a name="351"><span class="lineNum">     351 </span>            : </a>
+<span class="lineNum">     352 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     353 </span>            : Int_t AliTRDchamberTimeBin::Find(Float_t y) const
+<span class="lineNum">     354 </span>            : {
+<span class="lineNum">     355 </span>            :   //
+<span class="lineNum">     356 </span>            :   // Returns index of the cluster nearest in Y    
+<span class="lineNum">     357 </span>            :   //
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineCov">      21310 :   if (fN &lt;= 0) return 0;</span>
+<span class="lineNum">     360 </span>            :   
+<span class="lineNum">     361 </span><span class="lineCov">      15205 :   if (y &lt;= fClusters[0]-&gt;GetY()) return 0;</span>
+<span class="lineNum">     362 </span>            :   
+<span class="lineNum">     363 </span><span class="lineCov">       7871 :   if (y &gt;  fClusters[fN-1]-&gt;GetY()) return fN;</span>
+<span class="lineNum">     364 </span>            :   
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :   Int_t b = 0;
+<span class="lineNum">     367 </span><span class="lineCov">       4339 :   Int_t e = fN - 1;</span>
+<span class="lineNum">     368 </span><span class="lineCov">       4339 :   Int_t m = (b + e) / 2;</span>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineCov">      34356 :   for ( ; b &lt; e; m = (b + e) / 2) {</span>
+<span class="lineNum">     371 </span><span class="lineCov">      19554 :     if (y &gt; fClusters[m]-&gt;GetY()) b = m + 1;</span>
+<span class="lineNum">     372 </span>            :     else e = m;
+<span class="lineNum">     373 </span>            :   }
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            :   return m;
+<span class="lineNum">     376 </span><span class="lineCov">      10655 : }    </span>
+<a name="377"><span class="lineNum">     377 </span>            : </a>
+<span class="lineNum">     378 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     379 </span>            : Int_t AliTRDchamberTimeBin::FindYPosition(Double_t y, UChar_t z, Int_t nClusters) const
+<span class="lineNum">     380 </span>            : {
+<span class="lineNum">     381 </span>            : //
+<span class="lineNum">     382 </span>            : // Tree search Algorithm to find the nearest left cluster for a given
+<span class="lineNum">     383 </span>            : // y-position in a certain z-bin (in fact AVL-tree). 
+<span class="lineNum">     384 </span>            : // Making use of the fact that clusters are sorted in y-direction.
+<span class="lineNum">     385 </span>            : //
+<span class="lineNum">     386 </span>            : // Parameters:
+<span class="lineNum">     387 </span>            : //   y : y position of the reference point in tracking coordinates
+<span class="lineNum">     388 </span>            : //   z : z reference bin.
+<span class="lineNum">     389 </span>            : //   nClusters : 
+<span class="lineNum">     390 </span>            : //
+<span class="lineNum">     391 </span>            : // Output :
+<span class="lineNum">     392 </span>            : // Index of the nearest left cluster in the StackLayer indexing (-1 if no clusters are found)
+<span class="lineNum">     393 </span>            : //
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">      36904 :   if(z&gt;=fNRows){ // check pad row of cluster</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     AliDebug(1, Form(&quot;Row[%2d] outside range [0 %2d] in %02d_%d_%d.&quot;, z, fNRows, fSector, fStack, fPlane));</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     return -2;</span>
+<span class="lineNum">     398 </span>            :   }
+<span class="lineNum">     399 </span><span class="lineCov">      18452 :   Int_t start = fPositions[z];          // starting Position of the bin</span>
+<span class="lineNum">     400 </span><span class="lineCov">      55356 :   Int_t upper = (Int_t)((z != fNRows - 1) ? fPositions[z+1] : nClusters); // ending Position of the bin </span>
+<span class="lineNum">     401 </span><span class="lineCov">      18452 :   Int_t end = upper - 1; // ending Position of the bin </span>
+<span class="lineNum">     402 </span><span class="lineCov">      29847 :   if(end &lt; start) return -1; // Bin is empty</span>
+<span class="lineNum">     403 </span><span class="lineCov">       7057 :   Int_t middle = static_cast&lt;Int_t&gt;((start + end)/2);</span>
+<span class="lineNum">     404 </span>            :   // 1st Part: climb down the tree: get the next cluster BEFORE ypos
+<span class="lineNum">     405 </span><span class="lineCov">      23942 :   while(start + 1 &lt; end){</span>
+<span class="lineNum">     406 </span><span class="lineCov">       9828 :     if(y &gt;= fClusters[middle]-&gt;GetY()) start = middle;</span>
+<span class="lineNum">     407 </span>            :     else end = middle;
+<span class="lineNum">     408 </span><span class="lineCov">       4914 :     middle = static_cast&lt;Int_t&gt;((start + end)/2);</span>
+<span class="lineNum">     409 </span>            :   }
+<span class="lineNum">     410 </span><span class="lineCov">      14114 :   if(y &gt; fClusters[end]-&gt;GetY()) return end;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   return start;</span>
+<span class="lineNum">     412 </span><span class="lineCov">      18452 : }</span>
+<a name="413"><span class="lineNum">     413 </span>            : </a>
+<span class="lineNum">     414 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     415 </span>            : Int_t AliTRDchamberTimeBin::FindNearestYCluster(Double_t y, UChar_t z) const
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            : //
+<span class="lineNum">     418 </span>            : // Tree search Algorithm to find the nearest cluster for a given
+<span class="lineNum">     419 </span>            : // y-position in a certain z-bin (in fact AVL-tree). 
+<span class="lineNum">     420 </span>            : // Making use of the fact that clusters are sorted in y-direction.
+<span class="lineNum">     421 </span>            : //
+<span class="lineNum">     422 </span>            : // Parameters:
+<span class="lineNum">     423 </span>            : //   y : y position of the reference point in tracking coordinates
+<span class="lineNum">     424 </span>            : //   z : z reference bin.
+<span class="lineNum">     425 </span>            : //
+<span class="lineNum">     426 </span>            : // Output 
+<span class="lineNum">     427 </span>            : // Index of the nearest cluster in the StackLayer indexing (-1 if no clusters are found)
+<span class="lineNum">     428 </span>            : //
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   Int_t position = FindYPosition(y, z, fN);</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   if(position == -2 || position == -1) return position; // bin empty</span>
+<span class="lineNum">     432 </span>            :   // FindYPosition always returns the left Neighbor. We don't know if the left or the right Neighbor is nearest
+<span class="lineNum">     433 </span>            :   // to the Reference y-position, so test both
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   Int_t upper = (Int_t)((z &lt; fNRows-1) ? fPositions[z+1] : fN); // ending Position of the bin</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   if((position + 1) &lt; (upper)){</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     if(TMath::Abs(y - fClusters[position + 1]-&gt;GetY()) &lt; TMath::Abs(y - fClusters[position]-&gt;GetY())) return position + 1;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     else return position;</span>
+<span class="lineNum">     438 </span>            :   }
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   return position;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 : }</span>
+<a name="441"><span class="lineNum">     441 </span>            : </a>
+<span class="lineNum">     442 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     443 </span>            : Int_t AliTRDchamberTimeBin::SearchNearestCluster(Double_t y, Double_t z, Double_t maxroady, Double_t maxroadz) const
+<span class="lineNum">     444 </span>            : {
+<span class="lineNum">     445 </span>            : //
+<span class="lineNum">     446 </span>            : // Finds the nearest cluster from a given point in a defined range.
+<span class="lineNum">     447 </span>            : // Distance is determined in a 2D space by the 2-Norm.
+<span class="lineNum">     448 </span>            : //
+<span class="lineNum">     449 </span>            : // Parameters :
+<span class="lineNum">     450 </span>            : //   y : y position of the reference point in tracking coordinates
+<span class="lineNum">     451 </span>            : //   z : z reference bin.
+<span class="lineNum">     452 </span>            : //   maxroady : maximum searching distance in y direction
+<span class="lineNum">     453 </span>            : //   maxroadz : maximum searching distance in z direction
+<span class="lineNum">     454 </span>            : //
+<span class="lineNum">     455 </span>            : // Output 
+<span class="lineNum">     456 </span>            : // Index of the nearest cluster in the StackLayer indexing (-1 if no cluster is found).
+<span class="lineNum">     457 </span>            : // Cluster can be accessed with the operator[] or GetCluster(Int_t index)
+<span class="lineNum">     458 </span>            : //
+<span class="lineNum">     459 </span>            : // Detail description
+<span class="lineNum">     460 </span>            : //
+<span class="lineNum">     461 </span>            : // The following steps are perfomed:
+<span class="lineNum">     462 </span>            : // 1. Get the expected z bins inside maxroadz.
+<span class="lineNum">     463 </span>            : // 2. For each z bin find nearest y cluster.
+<span class="lineNum">     464 </span>            : // 3. Select best candidate
+<span class="lineNum">     465 </span>            : //
+<span class="lineNum">     466 </span>            :   Int_t   index   = -1;
+<span class="lineNum">     467 </span>            :   // initial minimal distance will be represented as ellipse: semi-major = z-direction
+<span class="lineNum">     468 </span>            :   // later 2-Norm will be used  
+<span class="lineNum">     469 </span>            : //      Float_t nExcentricity = TMath::Sqrt(maxroadz*maxroadz - maxroad*maxroad)/maxroadz;
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   Float_t mindist = maxroadz;</span>
+<span class="lineNum">     471 </span>            :   
+<span class="lineNum">     472 </span>            :   // not very nice but unfortunately neccessarry: we have ho check the neighbors in both directions (+ and -) too. How 
+<span class="lineNum">     473 </span>            :   // much neighbors depends on the Quotient maxroadz/fZLength   
+<span class="lineNum">     474 </span>            :   UChar_t maxRows = 3;
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :   UChar_t zpos[kMaxRows];</span>
+<span class="lineNum">     476 </span>            :   // Float_t mindist = TMath::Sqrt(maxroad*maxroad + maxroadz*maxroadz);
+<span class="lineNum">     477 </span>            : //      UChar_t myZbin = FindTreePosition(z, fZ0 + fZLength/2, fZLength/4, 8, 8, kFALSE);
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   UChar_t myZbin = fNRows - 1 - (UChar_t)(TMath::Abs(fZ0 - z)/fZLength * fNRows);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :   if(z &lt; fZ0) myZbin = fNRows - 1;</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   if(z &gt; fZ0 + fZLength) myZbin = 0;</span>
+<span class="lineNum">     481 </span>            :   //printf(&quot;\n%f &lt; %f &lt; %f [%d]\n&quot;, fZ0, z, fZ0 + fZLength, myZbin);
+<span class="lineNum">     482 </span>            :   //for(int ic=0; ic&lt;fN; ic++) printf(&quot;%d z = %f row %d\n&quot;, ic, fClusters[ic]-&gt;GetZ(), fClusters[ic]-&gt;GetPadRow());
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :   UChar_t nNeighbors = 0;
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   for(UChar_t i = 0; i &lt; maxRows; i++){</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     if((myZbin - 1 + i) &lt; 0) continue;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     if((myZbin - 1 + i) &gt; fNRows - 1) break;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     zpos[nNeighbors] = myZbin - 1 + i;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     nNeighbors++;</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     491 </span>            :   Float_t ycl = 0, zcl = 0;
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   for(UChar_t neighbor = 0; neighbor &lt; nNeighbors; neighbor++){      // Always test the neighbors too</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     Int_t pos = FindNearestYCluster(y, zpos[neighbor]);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     if(pos == -1) continue;     // No cluster in bin</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     AliTRDcluster *c = (AliTRDcluster *) (fClusters[pos]);</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     if(c-&gt;IsUsed()) continue;                // we are only interested in unused clusters</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     ycl = c-&gt;GetY();</span>
+<span class="lineNum">     498 </span>            :     // Too far away in y-direction (Prearrangement)
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     if (TMath::Abs(ycl - y) &gt; maxroady){ </span>
+<span class="lineNum">     500 </span>            :       //printf(&quot;y[%f] ycl[%f] roady[%f]\n&quot;, y, ycl, maxroady);
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     502 </span>            :     }
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     zcl = c-&gt;GetZ();</span>
+<span class="lineNum">     504 </span>            :     // Too far away in z-Direction
+<span class="lineNum">     505 </span>            :     // (Prearrangement since we have not so many bins to test)
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     if (TMath::Abs(zcl - z) &gt; maxroadz) continue;</span>
+<span class="lineNum">     507 </span>            :     
+<span class="lineNum">     508 </span>            :     Float_t dist;               // distance defined as 2-Norm   
+<span class="lineNum">     509 </span>            :     // if we havent found a Particle that is in the ellipse around (y,z) with maxroad as semi-minor and
+<span class="lineNum">     510 </span>            :     // maxroadz as semi-major, we take the radius of the ellipse concerning the cluster as mindist, later we 
+<span class="lineNum">     511 </span>            :     // take the 2-Norm when we found a cluster inside the ellipse (The value 10000 is taken because it is surely
+<span class="lineNum">     512 </span>            :     // large enough to be usable as an indicator whether we have found a nearer cluster or not)
+<span class="lineNum">     513 </span>            : //              if(mindist &gt; 10000.){
+<span class="lineNum">     514 </span>            : //                      Float_t phi = ((zcl - z) == 0) ? TMath::Pi()/2 : TMath::ATan((ycl - y)/(zcl - z));
+<span class="lineNum">     515 </span>            : //                      mindist = maxroad/TMath::Sqrt(1 - nExcentricity*nExcentricity * (TMath::Cos(phi))*(TMath::Cos(phi)));
+<span class="lineNum">     516 </span>            : //              }
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     dist = TMath::Max(TMath::Abs(y-ycl),TMath::Abs(z-zcl));     // infinity Norm</span>
+<span class="lineNum">     518 </span>            : //              dist = TMath::Sqrt((ycl - y)*(ycl - y) + (zcl - z)*(zcl - z));
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     if((Int_t)(dist * 100000) &lt; (Int_t)(mindist * 100000)){</span>
+<span class="lineNum">     520 </span>            :     //if((dist = TMath::Sqrt((ycl - y)*(ycl - y) + (zcl - z)*(zcl - z))) &lt; mindist){
+<span class="lineNum">     521 </span>            :       mindist = dist;
+<span class="lineNum">     522 </span>            :       index   = pos;
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     }   </span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     525 </span>            :   // This is the Array Position in fIndex2D of the Nearest cluster: if a
+<span class="lineNum">     526 </span>            :   // cluster is called, then the function has to retrieve the Information
+<span class="lineNum">     527 </span>            :   // which is Stored in the Array called, the function
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :   return index;</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 : }</span>
+<a name="530"><span class="lineNum">     530 </span>            : </a>
+<span class="lineNum">     531 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     532 </span>            : void AliTRDchamberTimeBin::BuildCond(AliTRDcluster * const cl, Double_t *cond, UChar_t Layer, Double_t theta, Double_t phi)
+<span class="lineNum">     533 </span>            : {
+<span class="lineNum">     534 </span>            : // Helper function to calculate the area where to expect a cluster in THIS
+<span class="lineNum">     535 </span>            : // layer. 
+<span class="lineNum">     536 </span>            : //
+<span class="lineNum">     537 </span>            : // Parameters :
+<span class="lineNum">     538 </span>            : //   cl    : 
+<span class="lineNum">     539 </span>            : //   cond  :
+<span class="lineNum">     540 </span>            : //   Layer : 
+<span class="lineNum">     541 </span>            : //   theta : 
+<span class="lineNum">     542 </span>            : //   phi   : 
+<span class="lineNum">     543 </span>            : //
+<span class="lineNum">     544 </span>            : // Detail description
+<span class="lineNum">     545 </span>            : //
+<span class="lineNum">     546 </span>            : // Helper function to calculate the area where to expect a cluster in THIS
+<span class="lineNum">     547 </span>            : // layer. by using the information of a former cluster in another layer
+<span class="lineNum">     548 </span>            : // and the angle in theta- and phi-direction between layer 0 and layer 3.
+<span class="lineNum">     549 </span>            : // If the layer is zero, initial conditions are calculated. Otherwise a
+<span class="lineNum">     550 </span>            : // linear interpolation is performed. 
+<span class="lineNum">     551 </span>            : //Begin_Html
+<span class="lineNum">     552 </span>            : //&lt;img src=&quot;gif/build_cond.gif&quot;&gt;
+<span class="lineNum">     553 </span>            : //End_Html
+<span class="lineNum">     554 </span>            : //
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :   if(!fkReconstructor){</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     AliError(&quot;Reconstructor not set.&quot;);</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     559 </span>            :   }
+<span class="lineNum">     560 </span>            :   
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   if(Layer == 0){</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     cond[0] = cl-&gt;GetY();                    // center: y-Direction</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     cond[1] = cl-&gt;GetZ();                    // center: z-Direction</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     cond[2] = fkReconstructor-&gt;GetRecoParam()-&gt;GetMaxPhi()   * (cl-&gt;GetX() - GetX()) + 1.0;                    // deviation: y-Direction</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     cond[3] = fkReconstructor-&gt;GetRecoParam()-&gt;GetMaxTheta() * (cl-&gt;GetX() - GetX()) + 1.0;                    // deviation: z-Direction</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     cond[0] = cl-&gt;GetY() + phi   * (GetX() - cl-&gt;GetX()); </span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     cond[1] = cl-&gt;GetZ() + theta * (GetX() - cl-&gt;GetX());</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     cond[2] = fkReconstructor-&gt;GetRecoParam()-&gt;GetRoad0y() + phi;</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     cond[3] = fkReconstructor-&gt;GetRecoParam()-&gt;GetRoad0z();</span>
+<span class="lineNum">     571 </span>            :   }
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 : }</span>
+<a name="573"><span class="lineNum">     573 </span>            : </a>
+<span class="lineNum">     574 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     575 </span>            : void AliTRDchamberTimeBin::GetClusters(const Double_t * const cond, Int_t *index, Int_t&amp; ncl, Int_t BufferSize)
+<span class="lineNum">     576 </span>            : {
+<span class="lineNum">     577 </span>            : // Finds all clusters situated in this layer inside a rectangle  given by the center an ranges.
+<span class="lineNum">     578 </span>            : //
+<span class="lineNum">     579 </span>            : // Parameters :
+<span class="lineNum">     580 </span>            : //   cond  :
+<span class="lineNum">     581 </span>            : //   index : 
+<span class="lineNum">     582 </span>            : //   ncl :
+<span class="lineNum">     583 </span>            : //   BufferSize   :
+<span class="lineNum">     584 </span>            : //
+<span class="lineNum">     585 </span>            : // Output :
+<span class="lineNum">     586 </span>            : //
+<span class="lineNum">     587 </span>            : // Detail description
+<span class="lineNum">     588 </span>            : //
+<span class="lineNum">     589 </span>            : // Function returs an array containing the indices in the stacklayer of
+<span class="lineNum">     590 </span>            : // the clusters found an  the number of found clusters in the stacklayer
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineCov">      11790 :   ncl = 0;</span>
+<span class="lineNum">     593 </span><span class="lineCov">       5895 :   memset(index, 0, BufferSize*sizeof(Int_t));</span>
+<span class="lineNum">     594 </span><span class="lineCov">       5895 :   if(fN == 0) return;</span>
+<span class="lineNum">     595 </span>            :     
+<span class="lineNum">     596 </span>            :   //Boundary checks
+<span class="lineNum">     597 </span>            :   Double_t zvals[2];
+<span class="lineNum">     598 </span><span class="lineCov">      11790 :   if(((cond[1] - cond[3]) &gt;= (fZ0 + fZLength)) || (cond[1] + cond[3]) &lt;= fZ0) return; // We are outside of the chamvber</span>
+<span class="lineNum">     599 </span><span class="lineCov">      17685 :   zvals[0] = ((cond[1] - cond[3]) &lt; fZ0) ? fZ0 : (cond[1] - cond[3]);</span>
+<span class="lineNum">     600 </span><span class="lineCov">      17685 :   zvals[1] = ((cond[1] + cond[3]) &lt; fZ0 + fZLength) ? (cond[1] + cond[3]) : fZ0 + fZLength - 1.E-3;</span>
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span><span class="lineCov">       5895 :   UChar_t zhi = fNRows - 1 - (UChar_t)(TMath::Abs(fZ0 - zvals[0])/fZLength * fNRows);</span>
+<span class="lineNum">     603 </span><span class="lineCov">       5895 :   UChar_t zlo = fNRows - 1 - (UChar_t)(TMath::Abs(fZ0 - zvals[1])/fZLength * fNRows);</span>
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span>            : /*      AliInfo(Form(&quot;yc[%f] zc[%f] dy[%f] dz[%f]&quot;, cond[0], cond[1], cond[2], cond[3]));
+<span class="lineNum">     606 </span>            :   PrintClusters();
+<span class="lineNum">     607 </span>            :   AliInfo(Form(&quot;zlo[%f] zhi[%f]&quot;, zvals[0], zvals[1]));
+<span class="lineNum">     608 </span>            :   AliInfo(Form(&quot;zlo[%d] zhi[%d]&quot;, zlo, zhi));*/
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineCov">       5895 :   Double_t ylo = cond[0] - cond[2],</span>
+<span class="lineNum">     611 </span><span class="lineCov">       5895 :            yhi = cond[0] + cond[2];</span>
+<span class="lineNum">     612 </span>            :   //printf(&quot;CTB : ylo[%f] yhi[%f]\n&quot;, ylo, yhi);
+<span class="lineNum">     613 </span>            :   //Preordering in Direction z saves a lot of loops (boundary checked)
+<span class="lineNum">     614 </span><span class="lineCov">      99835 :   for(UChar_t z = zlo; z &lt;= zhi; z++){</span>
+<span class="lineNum">     615 </span><span class="lineCov">     123225 :     UInt_t upper = (z &lt; fNRows-1) ? fPositions[z+1] : fN;</span>
+<span class="lineNum">     616 </span>            :     //AliInfo(Form(&quot;z[%d] y [%d %d]&quot;, z, fPositions[z], upper));
+<span class="lineNum">     617 </span><span class="lineCov">     138135 :     for(Int_t y = fPositions[z]; y &lt; (Int_t)upper; y++){</span>
+<span class="lineNum">     618 </span><span class="lineCov">       8496 :       if(ncl == BufferSize){</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :         AliDebug(1, Form(&quot;Buffer size [%d] riched. Some clusters may be lost.&quot;, BufferSize));</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :         return; //Buffer filled</span>
+<span class="lineNum">     621 </span>            :       }
+<span class="lineNum">     622 </span>            :       
+<span class="lineNum">     623 </span><span class="lineCov">       9190 :       if(fClusters[y]-&gt;GetY() &gt; yhi) break;                       // Abbortion conditions!!!</span>
+<span class="lineNum">     624 </span><span class="lineCov">       7802 :       if(fClusters[y]-&gt;GetY() &lt; ylo) continue;    // Too small</span>
+<span class="lineNum">     625 </span><span class="lineCov">      11062 :       if(((Int_t)((fClusters[y]-&gt;GetZ())*1000) &lt; (Int_t)(zvals[0]*1000)) || ((Int_t)((fClusters[y]-&gt;GetZ())*1000) &gt; (Int_t)(zvals[1]*1000))){/*printf(&quot;exit z\n&quot;); TODO*/ continue;}</span>
+<span class="lineNum">     626 </span><span class="lineCov">       5487 :       index[ncl] = y;</span>
+<span class="lineNum">     627 </span><span class="lineCov">       5487 :       ncl++;</span>
+<span class="lineNum">     628 </span><span class="lineCov">       5487 :     }</span>
+<span class="lineNum">     629 </span><span class="lineCov">      41075 :   }</span>
+<span class="lineNum">     630 </span><span class="lineCov">       5895 :   if(ncl&gt;fN) AliError(Form(&quot;Clusters found %d &gt; %d (clusters in layer)&quot;, ncl, fN));</span>
+<span class="lineNum">     631 </span><span class="lineCov">      11790 : }</span>
+<a name="632"><span class="lineNum">     632 </span>            : </a>
+<span class="lineNum">     633 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     634 </span>            : AliTRDcluster *AliTRDchamberTimeBin::GetNearestCluster(Double_t *cond)
+<span class="lineNum">     635 </span>            : {
+<span class="lineNum">     636 </span>            : // Function returning a pointer to the nearest cluster (nullpointer if not successfull).
+<span class="lineNum">     637 </span>            : //
+<span class="lineNum">     638 </span>            : // Parameters :
+<span class="lineNum">     639 </span>            : //   cond  :
+<span class="lineNum">     640 </span>            : //
+<span class="lineNum">     641 </span>            : // Output :
+<span class="lineNum">     642 </span>            : //   pointer to the nearest cluster (nullpointer if not successfull).
+<span class="lineNum">     643 </span>            : // 
+<span class="lineNum">     644 </span>            : // Detail description
+<span class="lineNum">     645 </span>            : //
+<span class="lineNum">     646 </span>            : // returns a pointer to the nearest cluster (nullpointer if not
+<span class="lineNum">     647 </span>            : // successfull) by the help of the method FindNearestCluster
+<span class="lineNum">     648 </span>            :   
+<span class="lineNum">     649 </span>            :   
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :   Double_t maxroad  = fkReconstructor-&gt;GetRecoParam()-&gt;GetRoad2y();</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :   Double_t maxroadz = fkReconstructor-&gt;GetRecoParam()-&gt;GetRoad2z();</span>
+<span class="lineNum">     652 </span>            :   
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :   Int_t index = SearchNearestCluster(cond[0],cond[1],maxroad,maxroadz);</span>
+<span class="lineNum">     654 </span>            :   AliTRDcluster *returnCluster = NULL;
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :   if(index != -1) returnCluster = (AliTRDcluster *) fClusters[index];</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :   return returnCluster;</span>
+<span class="lineNum">     657 </span>            : }
+<a name="658"><span class="lineNum">     658 </span>            : </a>
+<span class="lineNum">     659 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     660 </span>            : void AliTRDchamberTimeBin::Print(Option_t *) const
+<span class="lineNum">     661 </span>            : {
+<span class="lineNum">     662 </span>            : // Prints the position of each cluster in the stacklayer on the stdout
+<span class="lineNum">     663 </span>            : //
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   if(!fN) return;</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Layer[%d] Stack[%d] Sector[%2d] nRows[%2d]&quot;, fPlane, fStack, fSector, fNRows));</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Z0[%7.3f] Z1[%7.3f]&quot;, fZ0, fZ0+fZLength));</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :   AliTRDcluster* const* icl = &amp;fClusters[0];</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :   for(Int_t jcl = 0; jcl &lt; fN; jcl++, icl++){</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;%2d X[%7.3f] Y[%7.3f] Z[%7.3f] tb[%2d] col[%3d] row[%2d] used[%s]&quot;, jcl,  (*icl)-&gt;GetX(), (*icl)-&gt;GetY(), (*icl)-&gt;GetZ(), (*icl)-&gt;GetLocalTimeBin(), (*icl)-&gt;GetPadCol(), (*icl)-&gt;GetPadRow(),</span>
+<span class="lineNum">     670 </span>            :     (*icl)-&gt;IsUsed() ? &quot;y&quot; : &quot;n&quot;));
+<span class="lineNum">     671 </span>            :   }
+<span class="lineNum">     672 </span>            :   Int_t irow = 0;
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :   for(UChar_t const* pos = &amp;fPositions[0]; irow&lt;fNRows; pos++, irow++){ </span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :     if((*pos) != 0xff) AliInfo(Form(&quot;r[%2d] pos[%d]&quot;, irow, (*pos)));</span>
+<span class="lineNum">     675 </span>            :   }
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

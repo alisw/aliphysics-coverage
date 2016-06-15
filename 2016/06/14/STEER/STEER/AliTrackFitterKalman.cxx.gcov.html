@@ -1,0 +1,406 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliTrackFitterKalman.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliTrackFitterKalman.cxx<span style="font-size: 80%;"> (source / <a href="AliTrackFitterKalman.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">168</td>
+            <td class="headerCovTableEntryLo">0.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">9.1 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      17 </span>            : //
+<span class="lineNum">      18 </span>            : //                      Kalman-Filter-like fit 
+<span class="lineNum">      19 </span>            : //   to a straight-line crossing a set of arbitrarily oriented planes.
+<span class="lineNum">      20 </span>            : //   The resulting line is given by the equation:
+<span class="lineNum">      21 </span>            : //                  (x-x0)/vx = (y-y0)/1 = (z-z0)/vz
+<span class="lineNum">      22 </span>            : //   Parameters of the fit are:
+<span class="lineNum">      23 </span>            : //        x0,y0,z0 (a point on the line) and
+<span class="lineNum">      24 </span>            : //        vx,1,vz  (a vector collinear with the line)
+<span class="lineNum">      25 </span>            : //
+<span class="lineNum">      26 </span>            : //   LIMITATION:  The line must not be perpendicular to the Y axis. 
+<span class="lineNum">      27 </span>            : //
+<span class="lineNum">      28 </span>            : //          Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
+<span class="lineNum">      29 </span>            : //
+<span class="lineNum">      30 </span>            : //////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;TMatrixD.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;TMatrixDSym.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &quot;AliLog.h&quot;
+<a name="36"><span class="lineNum">      36 </span>            : #include &quot;AliTrackFitterKalman.h&quot;</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineCov">        126 : ClassImp(AliTrackFitterKalman)</span>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : const Double_t AliTrackFitterKalman::fgkMaxChi2=33.;
+<a name="41"><span class="lineNum">      41 </span>            : </a>
+<span class="lineNum">      42 </span>            : AliTrackFitterKalman::
+<span class="lineNum">      43 </span>            : AliTrackFitterKalman(AliTrackPointArray *array, Bool_t owner):
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   AliTrackFitter(array,owner),</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   fMaxChi2(fgkMaxChi2)</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      47 </span>            :   //
+<span class="lineNum">      48 </span>            :   // Constructor
+<span class="lineNum">      49 </span>            :   //
+<a name="50"><span class="lineNum">      50 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : Bool_t AliTrackFitterKalman::Begin(Int_t first, Int_t last) {
+<span class="lineNum">      53 </span>            :   //
+<span class="lineNum">      54 </span>            :   // Make a seed out of the track points with the indices &quot;first&quot; and &quot;last&quot;. 
+<span class="lineNum">      55 </span>            :   // This is the &quot;default&quot; seed.
+<span class="lineNum">      56 </span>            :   //
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fPoints-&gt;Sort();</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   AliTrackPoint fp,lp;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fPoints-&gt;GetPoint(fp,first); fPoints-&gt;GetPoint(lp,last);</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   return MakeSeed(&amp;fp,&amp;lp);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      62 </span>            : 
+<a name="63"><span class="lineNum">      63 </span>            : </a>
+<span class="lineNum">      64 </span>            : Bool_t AliTrackFitterKalman::
+<span class="lineNum">      65 </span>            : MakeSeed(const AliTrackPoint *p0, const AliTrackPoint *p1) {
+<span class="lineNum">      66 </span>            :   //
+<span class="lineNum">      67 </span>            :   // Make a seed out of the two track points 
+<span class="lineNum">      68 </span>            :   //
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   Double_t x0=p0-&gt;GetX(), y0=p0-&gt;GetY(), z0=p0-&gt;GetZ();</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   Double_t dx=p1-&gt;GetX()-x0, dy=p1-&gt;GetY()-y0, dz=p1-&gt;GetZ()-z0;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   if (dy==0.) { </span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :      AliError(&quot;Seeds perpendicular to Y axis are not allowed !&quot;); </span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :      return kFALSE; </span>
+<span class="lineNum">      74 </span>            :   }
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   Double_t vx=dx/dy;</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   Double_t vz=dz/dy;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   Double_t par[5]={x0,y0,z0,vx,vz};</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   const Float_t *cv0=p0-&gt;GetCov();</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   const Float_t *cv1=p1-&gt;GetCov();</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   Double_t rdy2=(cv0[3]+cv1[3])/dy/dy;</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   Double_t svx2=(cv0[0]+cv1[0])/dy/dy + vx*vx*rdy2;     </span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   Double_t svz2=(cv0[5]+cv1[5])/dy/dy + vz*vz*rdy2;     </span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   Double_t cov[15]={</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :      cv0[0],</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :      cv0[1],cv0[3],</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :      cv0[2],cv0[4],cv0[5],</span>
+<span class="lineNum">      88 </span>            :      0.,0.,0.,svx2,
+<span class="lineNum">      89 </span>            :      0.,0.,0.,0.,svz2
+<span class="lineNum">      90 </span>            :   };
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   SetSeed(par,cov);</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :   return kTRUE;
+<a name="95"><span class="lineNum">      95 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : Bool_t AliTrackFitterKalman::AddPoint(const AliTrackPoint *p)
+<span class="lineNum">      98 </span>            : {
+<span class="lineNum">      99 </span>            :   //
+<span class="lineNum">     100 </span>            :   // Add a point to the fit
+<span class="lineNum">     101 </span>            :   //
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   if (!Propagate(p))   return kFALSE;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   Double_t chi2=GetPredictedChi2(p);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   if (chi2&gt;fMaxChi2)   return kFALSE;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   if (!Update(p,chi2)) return kFALSE;</span>
+<span class="lineNum">     107 </span>            :   
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 : }</span>
+<a name="110"><span class="lineNum">     110 </span>            : </a>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : Double_t AliTrackFitterKalman::GetPredictedChi2(const AliTrackPoint *p) const {
+<span class="lineNum">     113 </span>            :   //
+<span class="lineNum">     114 </span>            :   // Calculate the predicted chi2 increment.
+<span class="lineNum">     115 </span>            :   //
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   Float_t txyz[3]={static_cast&lt;Float_t&gt;(GetParam()[0]),static_cast&lt;Float_t&gt;(GetParam()[1]),static_cast&lt;Float_t&gt;(GetParam()[2])};</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   TMatrixDSym &amp;cv=*fCov;</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   Float_t tcov[6]={</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     static_cast&lt;Float_t&gt;(cv(0,0)),static_cast&lt;Float_t&gt;(cv(1,0)),static_cast&lt;Float_t&gt;(cv(2,0)),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :             static_cast&lt;Float_t&gt;(cv(1,1)),static_cast&lt;Float_t&gt;(cv(2,1)),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                     static_cast&lt;Float_t&gt;(cv(2,2))</span>
+<span class="lineNum">     123 </span>            :   };
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   AliTrackPoint tp(txyz,tcov,p-&gt;GetVolumeID());</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   Double_t chi2=p-&gt;GetResidual(tp,kTRUE);</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :   return chi2;
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 : }</span>
+<a name="130"><span class="lineNum">     130 </span>            : </a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : Bool_t AliTrackFitterKalman::Propagate(const AliTrackPoint *p) {
+<span class="lineNum">     133 </span>            :   //
+<span class="lineNum">     134 </span>            :   // Propagate the track towards the measured point &quot;p&quot;
+<span class="lineNum">     135 </span>            :   //
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   TMatrixDSym &amp;cv=*fCov;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   Double_t s=p-&gt;GetY() - fParams[1];</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   Double_t sig2=s*s/12.; </span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   Double_t vx=fParams[3], vz=fParams[4];</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   fParams[0] += s*vx;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   fParams[1] += s;</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   fParams[2] += s*vz;</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :   Double_t 
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   c00 = cv(0,0) + 2*s*cv(3,0) + s*s*cv(3,3) + vx*vx*sig2,</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   c10 = cv(1,0) + s*cv(1,3) + vx*sig2, c11=cv(1,1) + sig2,</span>
+<span class="lineNum">     150 </span>            :   
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   c20 = cv(2,0) + s*(cv(4,0) + cv(2,3)) + s*s*cv(4,3) + vx*vz*sig2,</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   c21 = cv(2,1) + s*cv(4,1) + vz*sig2,</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   c22 = cv(2,2) + 2*s*cv(4,2) + s*s*cv(4,4) + vz*vz*sig2,</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   c30 = cv(3,0) + s*cv(3,3), c31 = cv(3,1),</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   c32 = cv(3,2) + s*cv(3,4), c33 = cv(3,3),</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   c40 = cv(4,0) + s*cv(4,3), c41 = cv(4,1),</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   c42 = cv(4,2) + s*cv(4,4), c43 = cv(4,3), c44 = cv(4,4);</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   cv(0,0)=c00; cv(0,1)=c10; cv(0,2)=c20; cv(0,3)=c30; cv(0,4)=c40;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   cv(1,0)=c10; cv(1,1)=c11; cv(1,2)=c21; cv(1,3)=c31; cv(1,4)=c41;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   cv(2,0)=c20; cv(2,1)=c21; cv(2,2)=c22; cv(2,3)=c32; cv(2,4)=c42;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   cv(3,0)=c30; cv(3,1)=c31; cv(3,2)=c32; cv(3,3)=c33; cv(3,4)=c43;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   cv(4,0)=c40; cv(4,1)=c41; cv(4,2)=c42; cv(4,3)=c43; cv(4,4)=c44;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="169"><span class="lineNum">     169 </span>            : }</a>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : Bool_t AliTrackFitterKalman::Update(const AliTrackPoint *p, Double_t chi2) {
+<span class="lineNum">     172 </span>            :   //
+<span class="lineNum">     173 </span>            :   // Update the track params using the measured point &quot;p&quot;
+<span class="lineNum">     174 </span>            :   //
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   TMatrixDSym &amp;c=*fCov;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   const Float_t *cov=p-&gt;GetCov();</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   TMatrixDSym v(3);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   v(0,0)=cov[0]+c(0,0); v(0,1)=cov[1]+c(0,1); v(0,2)=cov[2]+c(0,2);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   v(1,0)=cov[1]+c(1,0); v(1,1)=cov[3]+c(1,1); v(1,2)=cov[4]+c(1,2);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   v(2,0)=cov[2]+c(2,0); v(2,1)=cov[4]+c(2,1); v(2,2)=cov[5]+c(2,2);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   if (TMath::Abs(v.Determinant()) &lt; 1.e-33) return kFALSE;</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   v.Invert();</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   TMatrixD ch(5,3);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   ch(0,0)=c(0,0); ch(0,1)=c(0,1); ch(0,2)=c(0,2);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   ch(1,0)=c(1,0); ch(1,1)=c(1,1); ch(1,2)=c(1,2);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   ch(2,0)=c(2,0); ch(2,1)=c(2,1); ch(2,2)=c(2,2);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   ch(3,0)=c(3,0); ch(3,1)=c(3,1); ch(3,2)=c(3,2);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   ch(4,0)=c(4,0); ch(4,1)=c(4,1); ch(4,2)=c(4,2);</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   TMatrixD k(ch,TMatrixD::kMult,v);</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   TMatrixD d(3,1);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   d(0,0) = p-&gt;GetX() - fParams[0];</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   d(1,0) = p-&gt;GetY() - fParams[1];</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   d(2,0) = p-&gt;GetZ() - fParams[2];</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   TMatrixD x(k,TMatrixD::kMult,d);</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   fParams[0]+=x(0,0);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :   fParams[1]+=x(1,0);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   fParams[2]+=x(2,0);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :   fParams[3]+=x(3,0);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   fParams[4]+=x(4,0);</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   TMatrixD hc(3,5);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   hc(0,0)=c(0,0);hc(0,1)=c(0,1);hc(0,2)=c(0,2);hc(0,3)=c(0,3);hc(0,4)=c(0,4);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   hc(1,0)=c(1,0);hc(1,1)=c(1,1);hc(1,2)=c(1,2);hc(1,3)=c(1,3);hc(1,4)=c(1,4);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   hc(2,0)=c(2,0);hc(2,1)=c(2,1);hc(2,2)=c(2,2);hc(2,3)=c(2,3);hc(2,4)=c(2,4);</span>
+<span class="lineNum">     212 </span>            :   
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   TMatrixD s(k,TMatrixD::kMult,hc);</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   c(0,0)-=s(0,0);c(0,1)-=s(0,1);c(0,2)-=s(0,2);c(0,3)-=s(0,3);c(0,4)-=s(0,4);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   c(1,0)-=s(1,0);c(1,1)-=s(1,1);c(1,2)-=s(1,2);c(1,3)-=s(1,3);c(1,4)-=s(1,4);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   c(2,0)-=s(2,0);c(2,1)-=s(2,1);c(2,2)-=s(2,2);c(2,3)-=s(2,3);c(2,4)-=s(2,4);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   c(3,0)-=s(3,0);c(3,1)-=s(3,1);c(3,2)-=s(3,2);c(3,3)-=s(3,3);c(3,4)-=s(3,4);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   c(4,0)-=s(4,0);c(4,1)-=s(4,1);c(4,2)-=s(4,2);c(4,3)-=s(4,3);c(4,4)-=s(4,4);</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   fChi2 += chi2;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   fNdf  += 2;</span>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :   return kTRUE;
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 : }</span>
+<a name="226"><span class="lineNum">     226 </span>            : </a>
+<span class="lineNum">     227 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     228 </span>            : Bool_t AliTrackFitterKalman::GetPCA(const AliTrackPoint &amp;p, AliTrackPoint &amp;i) const
+<span class="lineNum">     229 </span>            : {
+<span class="lineNum">     230 </span>            :   //
+<span class="lineNum">     231 </span>            :   // Get the intersection point &quot;i&quot; between the track and the plane
+<span class="lineNum">     232 </span>            :   // the point &quot;p&quot; belongs to.
+<span class="lineNum">     233 </span>            :   //
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   TMatrixD t(3,1);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   Double_t s=p.GetY() - fParams[1];</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   Double_t vx=fParams[3], vz=fParams[4];</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   t(0,0) = fParams[0] + s*vx;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   t(1,0) = fParams[1] + s;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   t(2,0) = fParams[2] + s*vz;</span>
+<span class="lineNum">     241 </span>            :   
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   TMatrixDSym tC(3);</span>
+<span class="lineNum">     243 </span>            :   {
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   Double_t sig2=s*s/12.;</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   tC(0,0) = vx*vx*sig2;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   tC(1,0) = vx*sig2; </span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   tC(1,1) = sig2;</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   tC(2,0) = vx*vz*sig2;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   tC(2,1) = vz*sig2;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   tC(2,2) = vz*vz*sig2;</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   tC(0,1) = tC(1,0); tC(0,2) = tC(2,0);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                      tC(1,2) = tC(2,1);</span>
+<span class="lineNum">     255 </span>            :   }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   TMatrixD m(3,1);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   m(0,0)=p.GetX();</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   m(1,0)=p.GetY();</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   m(2,0)=p.GetZ();</span>
+<span class="lineNum">     261 </span>            :  
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   TMatrixDSym mC(3);</span>
+<span class="lineNum">     263 </span>            :   {
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   const Float_t *cv=p.GetCov();</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   mC(0,0)=cv[0]; mC(0,1)=cv[1]; mC(0,2)=cv[2];</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   mC(1,0)=cv[1]; mC(1,1)=cv[3]; mC(1,2)=cv[4];</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   mC(2,0)=cv[2]; mC(2,1)=cv[4]; mC(2,2)=cv[5];</span>
+<span class="lineNum">     268 </span>            :   }
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   TMatrixDSym tmW(tC);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   tmW+=mC;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   if (TMath::Abs(tmW.Determinant()) &lt; 1.e-33) return kFALSE;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   tmW.Invert();</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   TMatrixD mW(tC,TMatrixD::kMult,tmW);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   TMatrixD tW(mC,TMatrixD::kMult,tmW);</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   TMatrixD mi(mW,TMatrixD::kMult,m);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   TMatrixD ti(tW,TMatrixD::kMult,t);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   ti+=mi;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   TMatrixD iC(tC,TMatrixD::kMult,tmW);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   iC*=mC;</span>
+<span class="lineNum">     284 </span>            :   Double_t sig2=1.;  // Releasing the matrix by 1 cm along the track direction 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   iC(0,0) += vx*vx*sig2;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   iC(0,1) += vx*sig2; </span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   iC(1,1) += sig2;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   iC(0,2) += vx*vz*sig2;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   iC(1,2) += vz*sig2;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   iC(2,2) += vz*vz*sig2;</span>
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   Float_t cov[6]={</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     static_cast&lt;Float_t&gt;(iC(0,0)), static_cast&lt;Float_t&gt;(iC(0,1)), static_cast&lt;Float_t&gt;(iC(0,2)),</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :              static_cast&lt;Float_t&gt;(iC(1,1)), static_cast&lt;Float_t&gt;(iC(1,2)),</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                       static_cast&lt;Float_t&gt;(iC(2,2))</span>
+<span class="lineNum">     297 </span>            :   };
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   i.SetXYZ(ti(0,0),ti(1,0),ti(2,0),cov);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :   UShort_t id=p.GetVolumeID();</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   i.SetVolumeID(id);</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :   return kTRUE;
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            : 
+<a name="306"><span class="lineNum">     306 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     307 </span>            : void 
+<span class="lineNum">     308 </span>            : AliTrackFitterKalman::SetSeed(const Double_t par[5], const Double_t cov[15]) {
+<span class="lineNum">     309 </span>            :   //
+<span class="lineNum">     310 </span>            :   // Set the initial approximation for the track parameters
+<span class="lineNum">     311 </span>            :   //
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;5; i++) fParams[i]=par[i];</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   fParams[5]=0.;</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   delete fCov;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   fCov=new TMatrixDSym(5);</span>
+<span class="lineNum">     317 </span>            :   TMatrixDSym &amp;cv=*fCov;
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   cv(0,0)=cov[0 ];</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   cv(1,0)=cov[1 ]; cv(1,1)=cov[2 ];</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   cv(2,0)=cov[3 ]; cv(2,1)=cov[4 ]; cv(2,2)=cov[5 ];</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   cv(3,0)=cov[6 ]; cv(3,1)=cov[7 ]; cv(3,2)=cov[8 ]; cv(3,3)=cov[9 ];</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   cv(4,0)=cov[10]; cv(4,1)=cov[11]; cv(4,2)=cov[12]; cv(4,3)=cov[13]; cv(4,4)=cov[14];</span>
+<span class="lineNum">     324 </span>            :  
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :   cv(0,1)=cv(1,0);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   cv(0,2)=cv(2,0); cv(1,2)=cv(2,1);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :   cv(0,3)=cv(3,0); cv(1,3)=cv(3,1); cv(2,3)=cv(3,2);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   cv(0,4)=cv(4,0); cv(1,4)=cv(4,1); cv(2,4)=cv(4,2); cv(3,4)=cv(4,3);</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - PHOS/PHOSbase/AliPHOSRawFitterv1.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">PHOS/PHOSbase</a> - AliPHOSRawFitterv1.cxx<span style="font-size: 80%;"> (source / <a href="AliPHOSRawFitterv1.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">259</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">8.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 2007, ALICE Experiment at CERN, All rights reserved.      *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id: $ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : // This class extracts the signal parameters (energy, time, quality)
+<span class="lineNum">      19 </span>            : // from ALTRO samples. Energy is in ADC counts, time is in time bin units.
+<span class="lineNum">      20 </span>            : // A fitting algorithm evaluates the energy and the time from Minuit minimization
+<span class="lineNum">      21 </span>            : // 
+<span class="lineNum">      22 </span>            : // Typical use case:
+<span class="lineNum">      23 </span>            : //     AliPHOSRawFitter *fitter=new AliPHOSRawFitter();
+<span class="lineNum">      24 </span>            : //     fitter-&gt;SetChannelGeo(module,cellX,cellZ,caloFlag);
+<span class="lineNum">      25 </span>            : //     fitter-&gt;SetCalibData(fgCalibData) ;
+<span class="lineNum">      26 </span>            : //     fitter-&gt;Eval(sig,sigStart,sigLength);
+<span class="lineNum">      27 </span>            : //     Double_t amplitude = fitter.GetEnergy();
+<span class="lineNum">      28 </span>            : //     Double_t time      = fitter.GetTime();
+<span class="lineNum">      29 </span>            : //     Bool_t   isLowGain = fitter.GetCaloFlag()==0;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : // Author: Dmitri Peressounko (Oct.2008)
+<span class="lineNum">      32 </span>            : // Modified: Yuri Kharlov (Jul.2009)
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : // --- ROOT system ---
+<span class="lineNum">      35 </span>            : #include &quot;TArrayI.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;TList.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;TMinuit.h&quot;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : // --- AliRoot header files ---
+<span class="lineNum">      41 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliPHOSCalibData.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliPHOSRawFitterv1.h&quot;
+<a name="44"><span class="lineNum">      44 </span>            : #include &quot;AliPHOSPulseGenerator.h&quot;</a>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">         22 : ClassImp(AliPHOSRawFitterv1)</span>
+<a name="47"><span class="lineNum">      47 </span>            : </a>
+<span class="lineNum">      48 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      49 </span>            : AliPHOSRawFitterv1::AliPHOSRawFitterv1():
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   AliPHOSRawFitterv0(),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :   fSampleParamsLow(0x0),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   fSampleParamsHigh(0x0),</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   fToFit(0x0)</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      55 </span>            :   //Default constructor.
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   if(!gMinuit) </span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     gMinuit = new TMinuit(100);</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   fSampleParamsHigh =new TArrayD(7) ;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fSampleParamsHigh-&gt;AddAt(2.174,0) ;</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   fSampleParamsHigh-&gt;AddAt(0.106,1) ;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   fSampleParamsHigh-&gt;AddAt(0.173,2) ;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   fSampleParamsHigh-&gt;AddAt(0.06106,3) ;</span>
+<span class="lineNum">      63 </span>            :   //last two parameters are pedestal and overflow
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   fSampleParamsLow=new TArrayD(7) ;</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   fSampleParamsLow-&gt;AddAt(2.456,0) ;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   fSampleParamsLow-&gt;AddAt(0.137,1) ;</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   fSampleParamsLow-&gt;AddAt(2.276,2) ;</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   fSampleParamsLow-&gt;AddAt(0.08246,3) ;</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   fToFit = new TList() ;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : }</span>
+<a name="71"><span class="lineNum">      71 </span>            : </a>
+<span class="lineNum">      72 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      73 </span>            : AliPHOSRawFitterv1::~AliPHOSRawFitterv1()
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      75 </span>            :   //Destructor.
+<span class="lineNum">      76 </span>            :   //Destructor
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   if(fSampleParamsLow){</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     delete fSampleParamsLow ; </span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     fSampleParamsLow=0 ;</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   if(fSampleParamsHigh){</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     delete fSampleParamsHigh ;</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     fSampleParamsHigh=0;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   if(fToFit){</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     delete fToFit ;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     fToFit=0 ;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 : }</span>
+<a name="90"><span class="lineNum">      90 </span>            : </a>
+<span class="lineNum">      91 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      92 </span>            : AliPHOSRawFitterv1::AliPHOSRawFitterv1(const AliPHOSRawFitterv1 &amp;phosFitter ):
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   AliPHOSRawFitterv0(phosFitter),</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   fSampleParamsLow(0x0),</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fSampleParamsHigh(0x0),</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fToFit(0x0)</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      98 </span>            :   //Copy constructor.
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   fToFit = new TList() ;</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fSampleParamsLow =new TArrayD(*(phosFitter.fSampleParamsLow)) ;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fSampleParamsHigh=new TArrayD(*(phosFitter.fSampleParamsHigh)) ;</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 : }</span>
+<a name="103"><span class="lineNum">     103 </span>            : </a>
+<span class="lineNum">     104 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     105 </span>            : AliPHOSRawFitterv1&amp; AliPHOSRawFitterv1::operator = (const AliPHOSRawFitterv1 &amp;phosFitter)
+<span class="lineNum">     106 </span>            : {
+<span class="lineNum">     107 </span>            :   //Assignment operator.
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   if(this != &amp;phosFitter) {</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     fToFit = new TList() ;</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     if(fSampleParamsLow){</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :       fSampleParamsLow = phosFitter.fSampleParamsLow ;</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :       fSampleParamsHigh= phosFitter.fSampleParamsHigh ;</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     114 </span>            :     else{
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :       fSampleParamsLow =new TArrayD(*(phosFitter.fSampleParamsLow)) ; </span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       fSampleParamsHigh=new TArrayD(*(phosFitter.fSampleParamsHigh)) ;</span>
+<span class="lineNum">     117 </span>            :     }
+<span class="lineNum">     118 </span>            :   }
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 : }</span>
+<a name="121"><span class="lineNum">     121 </span>            : </a>
+<span class="lineNum">     122 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     123 </span>            : Bool_t AliPHOSRawFitterv1::Eval(const UShort_t *signal, Int_t sigStart, Int_t sigLength)
+<span class="lineNum">     124 </span>            : {
+<span class="lineNum">     125 </span>            :   //Extract an energy deposited in the crystal,
+<span class="lineNum">     126 </span>            :   //crystal' position (module,column,row),
+<span class="lineNum">     127 </span>            :   //time and gain (high or low).
+<span class="lineNum">     128 </span>            :   //First collects sample, then evaluates it and if it has
+<span class="lineNum">     129 </span>            :   //reasonable shape, fits it with Gamma2 function and extracts 
+<span class="lineNum">     130 </span>            :   //energy and time.
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   if (fCaloFlag == 2 || fNBunches &gt; 1) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     fQuality = 1000;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<span class="lineNum">     135 </span>            :   }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            :   Float_t pedMean = 0;
+<span class="lineNum">     138 </span>            :   Float_t pedRMS  = 0;
+<span class="lineNum">     139 </span>            :   Int_t   nPed    = 0;
+<span class="lineNum">     140 </span>            :   const Float_t kBaseLine   = 1.0;
+<span class="lineNum">     141 </span>            :   const Int_t   kPreSamples = 10;
+<span class="lineNum">     142 </span>            :   
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   TArrayI *fSamples = new TArrayI(sigLength); // array of sample amplitudes</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   TArrayI *fTimes   = new TArrayI(sigLength); // array of sample time stamps</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;sigLength; i++) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (i&lt;kPreSamples) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :       nPed++;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :       pedMean += signal[i];</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :       pedRMS  += signal[i]*signal[i] ;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     fSamples-&gt;AddAt(signal[i],sigLength-i-1);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     fTimes  -&gt;AddAt(i ,i);</span>
+<span class="lineNum">     153 </span>            :   }
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   fEnergy = -111;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   fQuality= 999. ;</span>
+<span class="lineNum">     157 </span>            :   const Float_t sampleMaxHG=102.332 ;  //maximal height of HG sample with given parameterization
+<span class="lineNum">     158 </span>            :   const Float_t sampleMaxLG=277.196 ;  //maximal height of LG sample with given parameterization
+<span class="lineNum">     159 </span>            :   const Float_t maxEtoFit=5 ; //fit only samples above this energy, accept all samples (with good aRMS) below it
+<span class="lineNum">     160 </span>            :   Double_t pedestal = 0;
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   if (fPedSubtract) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     if (nPed &gt; 0) {</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :       fPedestalRMS=(pedRMS - pedMean*pedMean/nPed)/nPed ;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :       if(fPedestalRMS &gt; 0.) </span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         fPedestalRMS = TMath::Sqrt(fPedestalRMS) ;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :       fEnergy -= (Double_t)(pedMean/nPed); // pedestal subtraction</span>
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span>            :     else
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     172 </span>            :   else {
+<span class="lineNum">     173 </span>            :     //take pedestals from DB
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     pedestal = (Double_t) fAmpOffset ;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     if (fCalibData) {</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :       Float_t truePed       = fCalibData-&gt;GetADCpedestalEmc(fModule, fCellZ, fCellX) ;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :       Int_t   altroSettings = fCalibData-&gt;GetAltroOffsetEmc(fModule, fCellZ, fCellX) ;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :       pedestal += truePed - altroSettings ;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     180 </span>            :     else{
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :       AliWarning(Form(&quot;Can not read data from OCDB&quot;)) ;</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     fEnergy-=pedestal ;</span>
+<span class="lineNum">     184 </span>            :   }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   if (fEnergy &lt; kBaseLine) fEnergy = 0;</span>
+<span class="lineNum">     187 </span>            :   //Evaluate time
+<span class="lineNum">     188 </span>            :   Int_t iStart = 0;
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   while(iStart&lt;sigLength &amp;&amp; fSamples-&gt;At(iStart)-pedestal &lt;kBaseLine) iStart++ ;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   fTime = sigStart-sigLength+iStart; </span>
+<span class="lineNum">     191 </span>            :   
+<span class="lineNum">     192 </span>            :   //calculate time and energy
+<span class="lineNum">     193 </span>            :   Int_t    maxBin=0 ;
+<span class="lineNum">     194 </span>            :   Int_t    maxAmp=0 ;
+<span class="lineNum">     195 </span>            :   Double_t aMean =0. ;
+<span class="lineNum">     196 </span>            :   Double_t aRMS  =0. ;
+<span class="lineNum">     197 </span>            :   Double_t wts   =0 ;
+<span class="lineNum">     198 </span>            :   Int_t    tStart=0 ;
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;sigLength; i++){</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     if(signal[i] &gt; pedestal){</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       Double_t de = signal[i] - pedestal ;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :       if(de &gt; 1.) {</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         aMean += de*i ;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         aRMS  += de*i*i ;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         wts   += de; </span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :       if(de &gt; 2 &amp;&amp; tStart==0) </span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         tStart = i ;</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :       if(maxAmp &lt; signal[i]){</span>
+<span class="lineNum">     211 </span>            :         maxBin = i ;
+<span class="lineNum">     212 </span>            :         maxAmp = signal[i] ;
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     215 </span>            :   }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   if (maxBin==sigLength-1){//bad &quot;rising&quot; sample</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     fEnergy =    0. ;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     fTime   = -999. ;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     fQuality=  999. ;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     return kTRUE ;</span>
+<span class="lineNum">     222 </span>            :   }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   fEnergy=Double_t(maxAmp)-pedestal ;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   fOverflow =0 ;  //look for plato on the top of sample</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   if (fEnergy&gt;500 &amp;&amp;  //this is not fluctuation of soft sample</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :      maxBin&lt;sigLength-1 &amp;&amp; fSamples-&gt;At(maxBin+1)==maxAmp){ //and there is a plato</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     fOverflow = kTRUE ;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     230 </span>            :   
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   if (wts &gt; 0) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     aMean /= wts; </span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     aRMS   = aRMS/wts - aMean*aMean;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :   //do not take too small energies
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   if (fEnergy &lt; kBaseLine) </span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     fEnergy = 0;</span>
+<span class="lineNum">     239 </span>            :   
+<span class="lineNum">     240 </span>            :   //do not test quality of too soft samples
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   if (fEnergy &lt; maxEtoFit){</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     fTime = tStart;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     if (aRMS &lt; 2.) //sigle peak</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       fQuality = 999. ;</span>
+<span class="lineNum">     245 </span>            :     else
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       fQuality =   0. ;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     return kTRUE ;</span>
+<span class="lineNum">     248 </span>            :   }
+<span class="lineNum">     249 </span>            :       
+<span class="lineNum">     250 </span>            :   // if sample has reasonable mean and RMS, try to fit it with gamma2
+<span class="lineNum">     251 </span>            :   
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mncler();                     // Reset Minuit's list of paramters</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   gMinuit-&gt;SetPrintLevel(-1) ;           // No Printout</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   gMinuit-&gt;SetFCN(AliPHOSRawFitterv1::UnfoldingChiSquare) ;  </span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :   // To set the address of the minimization function 
+<span class="lineNum">     257 </span>            :   
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   fToFit-&gt;Clear(&quot;nodelete&quot;) ;</span>
+<span class="lineNum">     259 </span>            :   Double_t b=0,bmin=0,bmax=0 ;
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   if      (fCaloFlag == 0){ // Low gain</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     fSampleParamsLow-&gt;AddAt(pedestal,4) ;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     if (fOverflow)</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :       fSampleParamsLow-&gt;AddAt(double(maxAmp),5) ;</span>
+<span class="lineNum">     264 </span>            :     else
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       fSampleParamsLow-&gt;AddAt(double(1023),5) ;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     fSampleParamsLow-&gt;AddAt(double(iStart),6) ;</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     fToFit-&gt;AddFirst((TObject*)fSampleParamsLow) ; </span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     b=fSampleParamsLow-&gt;At(2) ;</span>
+<span class="lineNum">     269 </span>            :     bmin=0.5 ;
+<span class="lineNum">     270 </span>            :     bmax=10. ;
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   else if (fCaloFlag == 1){ // High gain</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     fSampleParamsHigh-&gt;AddAt(pedestal,4) ;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     if (fOverflow)</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :       fSampleParamsHigh-&gt;AddAt(double(maxAmp),5) ;</span>
+<span class="lineNum">     276 </span>            :     else
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :       fSampleParamsHigh-&gt;AddAt(double(1023),5);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     fSampleParamsHigh-&gt;AddAt(double(iStart),6);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     fToFit-&gt;AddFirst((TObject*)fSampleParamsHigh) ; </span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     b=fSampleParamsHigh-&gt;At(2) ;</span>
+<span class="lineNum">     281 </span>            :     bmin=0.05 ;
+<span class="lineNum">     282 </span>            :     bmax=0.4 ;
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   fToFit-&gt;AddLast((TObject*)fSamples) ;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   fToFit-&gt;AddLast((TObject*)fTimes) ;</span>
+<span class="lineNum">     286 </span>            :   
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   gMinuit-&gt;SetObjectFit((TObject*)fToFit) ;         // To tranfer pointer to UnfoldingChiSquare</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   Int_t ierflg ;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnparm(0, &quot;t0&quot;,  1.*tStart, 0.01, -500., 500., ierflg) ;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   if(ierflg != 0){</span>
+<span class="lineNum">     291 </span>            :     //    AliWarning(Form(&quot;Unable to set initial value for fit procedure : t0=%e\n&quot;,1.*tStart) ) ;
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :    fEnergy =   0. ;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     fTime   =-999. ;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     fQuality= 999. ;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     return kTRUE ; //will scan further</span>
+<span class="lineNum">     296 </span>            :   }
+<span class="lineNum">     297 </span>            :   Double_t amp0=0; 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   if      (fCaloFlag == 0) // Low gain</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     amp0 = fEnergy/sampleMaxLG;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   else if (fCaloFlag == 1) // High gain</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     amp0 = fEnergy/sampleMaxHG;</span>
+<span class="lineNum">     302 </span>            :   
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnparm(1, &quot;Energy&quot;, amp0 , 0.01*amp0, 0, 0, ierflg) ;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   if(ierflg != 0){</span>
+<span class="lineNum">     305 </span>            :     //    AliWarning(Form(&quot;Unable to set initial value for fit procedure : E=%e\n&quot;, amp0)) ;
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     fEnergy =   0. ;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     fTime   =-999. ;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     fQuality= 999. ;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     return kTRUE ; //will scan further</span>
+<span class="lineNum">     310 </span>            :   }
+<span class="lineNum">     311 </span>            :   
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnparm(2, &quot;p2&quot;, b, 0.01*b, bmin, bmax, ierflg) ;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   if(ierflg != 0){                                         </span>
+<span class="lineNum">     314 </span>            :     //        AliWarning(Form(&quot;Unable to set initial value for fit procedure : E=%e\n&quot;, amp0)) ;  
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     fEnergy =   0. ;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     fTime   =-999. ;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     fQuality= 999. ;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     return kTRUE ; //will scan further  </span>
+<span class="lineNum">     319 </span>            :   }             
+<span class="lineNum">     320 </span>            :   
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   Double_t p0 = 0.0001 ; // &quot;Tolerance&quot; Evaluation stops when EDM = 0.0001*p0 ; The number of function call slightly</span>
+<span class="lineNum">     322 </span>            :   //  depends on it. 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   Double_t p1 = 1.0 ;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   Double_t p2 = 0.0 ;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnexcm(&quot;SET STR&quot;, &amp;p2, 0, ierflg) ;   // force TMinuit to reduce function calls  </span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnexcm(&quot;SET GRA&quot;, &amp;p1, 1, ierflg) ;   // force TMinuit to use my gradient  </span>
+<span class="lineNum">     327 </span>            :   //    gMinuit-&gt;SetMaxIterations(100);
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnexcm(&quot;SET NOW&quot;, &amp;p2 , 0, ierflg) ;  // No Warnings</span>
+<span class="lineNum">     329 </span>            :   
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnexcm(&quot;MIGRAD&quot;, &amp;p0, 0, ierflg) ;    // minimize </span>
+<span class="lineNum">     331 </span>            :   
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   Double_t err=0.,t0err=0. ;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   Double_t t0=0.,efit=0. ;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :   gMinuit-&gt;GetParameter(0,t0, t0err) ;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   gMinuit-&gt;GetParameter(1,efit, err) ;</span>
+<span class="lineNum">     336 </span>            :   
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   Double_t bfit=0., berr=0. ;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   gMinuit-&gt;GetParameter(2,bfit,berr) ;</span>
+<span class="lineNum">     339 </span>            :   
+<span class="lineNum">     340 </span>            :   //Calculate total energy
+<span class="lineNum">     341 </span>            :   //this is parameterization of dependence of pulse height on parameter b
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   if(fCaloFlag == 0) // Low gain</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     efit *= 99.54910 + 78.65038*bfit ;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :   else if(fCaloFlag == 1) // High gain</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     efit *= 80.33109 + 128.6433*bfit ;</span>
+<span class="lineNum">     346 </span>            :   
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :   if(efit &lt; 0. || efit &gt; 10000.){</span>
+<span class="lineNum">     348 </span>            :     //set energy to previously found max
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     fTime   =-999.;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     fQuality= 999 ;</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<span class="lineNum">     352 </span>            :   }                                                                             
+<span class="lineNum">     353 </span>            :   
+<span class="lineNum">     354 </span>            :   //evaluate fit quality
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :   Double_t fmin=0.,fedm=0.,errdef=0. ;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :   Int_t npari,nparx,istat;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   gMinuit-&gt;mnstat(fmin,fedm,errdef,npari,nparx,istat) ;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   fQuality = fmin/sigLength ;</span>
+<span class="lineNum">     359 </span>            :   //compare quality with some parameterization
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :   if      (fCaloFlag == 0) // Low gain</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     fQuality /= 2.00 + 0.0020*fEnergy ;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :   else if (fCaloFlag == 1) // High gain</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     fQuality /= 0.75 + 0.0025*fEnergy ;</span>
+<span class="lineNum">     364 </span>            :   
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :   fEnergy = efit ;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :   fTime  += t0 - 4.024*bfit ; //-10.402*bfit+4.669*bfit*bfit ; //Correction for 70 samples</span>
+<span class="lineNum">     367 </span>            : //  fTime  += sigStart;
+<span class="lineNum">     368 </span>            :   
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :   delete fSamples ;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   delete fTimes ;</span>
+<span class="lineNum">     371 </span>            :   return kTRUE;
+<a name="372"><span class="lineNum">     372 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     373 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     374 </span>            : Double_t AliPHOSRawFitterv1::Gamma2(Double_t dt,Double_t en,Double_t b,TArrayD * params){  //Function for fitting samples
+<span class="lineNum">     375 </span>            :   //parameters:
+<span class="lineNum">     376 </span>            :   //dt-time after start
+<span class="lineNum">     377 </span>            :   //en-amplutude
+<span class="lineNum">     378 </span>            :   //function parameters
+<span class="lineNum">     379 </span>            :   
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :   Double_t ped=params-&gt;At(4) ;</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :   if(dt&lt;0.)</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     return ped ; //pedestal</span>
+<span class="lineNum">     383 </span>            :   else
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     return ped+en*(TMath::Power(dt,params-&gt;At(0))*TMath::Exp(-dt*params-&gt;At(1))+b*dt*dt*TMath::Exp(-dt*params-&gt;At(3))) ;</span>
+<a name="385"><span class="lineNum">     385 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     386 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     387 </span>            : void AliPHOSRawFitterv1::UnfoldingChiSquare(Int_t &amp; /*nPar*/, Double_t * Grad, Double_t &amp; fret, Double_t * x, Int_t iflag)
+<span class="lineNum">     388 </span>            : {
+<span class="lineNum">     389 </span>            :   // Number of parameters, Gradient, Chi squared, parameters, what to do
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :   TList * toFit= (TList*)gMinuit-&gt;GetObjectFit() ;</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   TArrayD * params=(TArrayD*)toFit-&gt;At(0) ; </span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   TArrayI * samples = (TArrayI*)toFit-&gt;At(1) ;</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   TArrayI * times = (TArrayI*)toFit-&gt;At(2) ;</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :   fret = 0. ;     </span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   if(iflag == 2)</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     for(Int_t iparam = 0 ; iparam &lt; 3 ; iparam++)    </span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :       Grad[iparam] = 0 ; // Will evaluate gradient</span>
+<span class="lineNum">     400 </span>            :   
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :   Double_t t0=x[0] ;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   Double_t en=x[1] ;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   Double_t b=x[2] ;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   Double_t n=params-&gt;At(0) ;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   Double_t alpha=params-&gt;At(1) ;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   Double_t beta=params-&gt;At(3) ;</span>
+<span class="lineNum">     407 </span>            :   //  Double_t ped=params-&gt;At(4) ;
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   Double_t overflow=params-&gt;At(5) ;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   Int_t iBin = (Int_t) params-&gt;At(6) ;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   Int_t nSamples=TMath::Min(iBin+70,samples-&gt;GetSize()) ; //Here we set number of points to fit (70)</span>
+<span class="lineNum">     412 </span>            :   // iBin - first non-zero sample 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :   Int_t tStep=times-&gt;At(iBin+1)-times-&gt;At(iBin) ;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   Double_t ddt=times-&gt;At(iBin)-t0-tStep ;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   Double_t exp1=TMath::Exp(-alpha*ddt) ;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   Double_t exp2=TMath::Exp(-beta*ddt) ;</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   Double_t dexp1=TMath::Exp(-alpha*tStep) ;</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :   Double_t dexp2=TMath::Exp(-beta*tStep) ;</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   for(Int_t i = iBin; i&lt;nSamples ; i++) {</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     Double_t dt=double(times-&gt;At(i))-t0 ;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     Double_t fsample = double(samples-&gt;At(i)) ;</span>
+<span class="lineNum">     422 </span>            :     Double_t diff=0. ;
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     exp1*=dexp1 ;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     exp2*=dexp2 ;</span>
+<span class="lineNum">     425 </span>            : //    if(fsample&gt;=overflow)
+<span class="lineNum">     426 </span>            : //      continue ;    
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     if(dt&lt;=0.){</span>
+<span class="lineNum">     428 </span>            :       diff=fsample ; 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :       fret += diff*diff ;</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :       continue ;</span>
+<span class="lineNum">     431 </span>            :     }
+<span class="lineNum">     432 </span>            :     
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     Double_t dtn=TMath::Power(dt,n) ;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     Double_t dtnE=dtn*exp1 ;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     Double_t dt2E=dt*dt*exp2 ;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     Double_t fit=en*(dtnE + b*dt2E) ;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     if(fsample&gt;=overflow &amp;&amp; fit&gt;=overflow)</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :       continue ;    </span>
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     diff = fsample - fit ;</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     fret += diff*diff ;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     if(iflag == 2){  // calculate gradient</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :       Grad[0] += en*diff*(dtnE*(n/dt-alpha)+b*dt2E*(2./dt-beta))  ; //derivative over t0</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :       Grad[1] -= diff*(dtnE+b*dt2E) ;</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :       Grad[2] -= en*diff*dt2E ;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     447 </span>            :     
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   if(iflag == 2)</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     for(Int_t iparam = 0 ; iparam &lt; 3 ; iparam++)    </span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       Grad[iparam] *= 2. ; </span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

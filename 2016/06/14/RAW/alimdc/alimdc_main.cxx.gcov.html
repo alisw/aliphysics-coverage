@@ -1,0 +1,374 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - RAW/alimdc/alimdc_main.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">RAW/alimdc</a> - alimdc_main.cxx<span style="font-size: 80%;"> (source / <a href="alimdc_main.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">57</td>
+            <td class="headerCovTableEntry">108</td>
+            <td class="headerCovTableEntryLo">52.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // @(#)alimdc:$Name:  $:$Id$</a>
+<span class="lineNum">       2 </span>            : // Author: Fons Rademakers  26/11/99
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : //////////////////////////////////////////////////////////////////////////
+<span class="lineNum">       5 </span>            : //                                                                      //
+<span class="lineNum">       6 </span>            : // alimdc                                                               //
+<span class="lineNum">       7 </span>            : //                                                                      //
+<span class="lineNum">       8 </span>            : // Main program used to create application that reads a data stream     //
+<span class="lineNum">       9 </span>            : // from the DATE DAQ system and that creates a ROOT database.           //
+<span class="lineNum">      10 </span>            : //                                                                      //
+<span class="lineNum">      11 </span>            : // Written by: Fons Rademakers, 1/4/99.                                 //
+<span class="lineNum">      12 </span>            : //                                                                      //
+<span class="lineNum">      13 </span>            : //////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      17 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      18 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;TError.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;AliLog.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #ifdef USE_SMI
+<span class="lineNum">      29 </span>            : extern &quot;C&quot; {
+<span class="lineNum">      30 </span>            :    #include &lt;smirtl.h&gt;
+<span class="lineNum">      31 </span>            : }
+<span class="lineNum">      32 </span>            : #endif
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;AliMDC.h&quot;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #ifdef __APPLE__
+<span class="lineNum">      37 </span>            : // avoid loading pythia and pdf
+<span class="lineNum">      38 </span>            : #include &lt;Hepevt.h&gt;
+<span class="lineNum">      39 </span>            : #endif
+<a name="40"><span class="lineNum">      40 </span>            : </a>
+<span class="lineNum">      41 </span>            : //______________________________________________________________________________
+<span class="lineNum">      42 </span>            : static void AliMDCErrorHandler(int level, Bool_t abort, const char *location,
+<span class="lineNum">      43 </span>            :                                const char *msg)
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span>            :    // The default error handler function. It prints the message on stderr and
+<span class="lineNum">      46 </span>            :    // if abort is set it aborts the application. Comapared to the default
+<span class="lineNum">      47 </span>            :    // ROOT error handler this one also prints the date and time in front
+<span class="lineNum">      48 </span>            :    // of each message.
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">          3 :    if (level &lt; gErrorIgnoreLevel)</span>
+<span class="lineNum">      51 </span>            :       return;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            :    const char *type = 0;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineCov">          3 :    if (level &gt;= kInfo)</span>
+<span class="lineNum">      56 </span>            :       type = &quot;Info&quot;;
+<span class="lineNum">      57 </span><span class="lineCov">          3 :    if (level &gt;= kWarning)</span>
+<span class="lineNum">      58 </span>            :       type = &quot;Warning&quot;;
+<span class="lineNum">      59 </span><span class="lineCov">          3 :    if (level &gt;= kError)</span>
+<span class="lineNum">      60 </span>            :       type = &quot;Error&quot;;
+<span class="lineNum">      61 </span><span class="lineCov">          3 :    if (level &gt;= kBreak)</span>
+<span class="lineNum">      62 </span>            :       type = &quot;\n *** Break ***&quot;;
+<span class="lineNum">      63 </span><span class="lineCov">          3 :    if (level &gt;= kSysError)</span>
+<span class="lineNum">      64 </span>            :       type = &quot;SysError&quot;;
+<span class="lineNum">      65 </span><span class="lineCov">          3 :    if (level &gt;= kFatal)</span>
+<span class="lineNum">      66 </span>            :       type = &quot;Fatal&quot;;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineCov">          3 :    TDatime dt;</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineCov">          3 :    if (level &gt;= kBreak &amp;&amp; level &lt; kSysError)</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;%s: %s %s\n&quot;, dt.AsSQLString(), type, msg);</span>
+<span class="lineNum">      72 </span><span class="lineCov">          9 :    else if (!location || strlen(location) == 0)</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;%s: %s: %s\n&quot;, dt.AsSQLString(), type, msg);</span>
+<span class="lineNum">      74 </span>            :    else
+<span class="lineNum">      75 </span><span class="lineCov">          6 :       fprintf(stderr, &quot;%s: %s in &lt;%s&gt;: %s\n&quot;, dt.AsSQLString(), type, location,</span>
+<span class="lineNum">      76 </span>            :               msg);
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">          3 :    fflush(stderr);</span>
+<span class="lineNum">      79 </span><span class="lineCov">          3 :    if (abort) {</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;aborting\n&quot;);</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :       fflush(stderr);</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :       if (gSystem) {</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :          gSystem-&gt;StackTrace();</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :          gSystem-&gt;Abort();</span>
+<span class="lineNum">      85 </span>            :       } else
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :          ::abort();</span>
+<span class="lineNum">      87 </span>            :    }
+<span class="lineNum">      88 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : #ifdef USE_SMI
+<span class="lineNum">      91 </span>            : static void SMI_handle_command()
+<span class="lineNum">      92 </span>            : {
+<span class="lineNum">      93 </span>            :    // Handle SMI commands
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :    char action[64], param[64];
+<span class="lineNum">      96 </span>            :    int n_params;
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            :    smi_get_action(action, &amp;n_params);
+<span class="lineNum">      99 </span>            :    if (n_params &gt;= 1) {
+<span class="lineNum">     100 </span>            :       smi_get_par_value(&quot;PARAM&quot;, param);
+<span class="lineNum">     101 </span>            :    } else {
+<span class="lineNum">     102 </span>            :       strcpy(param, &quot;&quot;);
+<span class="lineNum">     103 </span>            :    }
+<span class="lineNum">     104 </span>            :    if (strcmp(action, &quot;STOP&quot;) == 0) {
+<span class="lineNum">     105 </span>            :       if (AliMDC::Instance()) AliMDC::Instance()-&gt;SetStopLoop();
+<span class="lineNum">     106 </span>            :    }
+<span class="lineNum">     107 </span>            :    smi_set_state(&quot;RUNNING&quot;);
+<span class="lineNum">     108 </span>            : }
+<span class="lineNum">     109 </span>            : #endif
+<a name="110"><span class="lineNum">     110 </span>            : </a>
+<span class="lineNum">     111 </span>            : //______________________________________________________________________________
+<span class="lineNum">     112 </span>            : static void Usage(const char *prognam)
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            : #ifdef USE_SMI
+<span class="lineNum">     115 </span>            :       fprintf(stderr, &quot;Usage: %s &lt;sminame&gt; &lt;dbsize&gt; &lt;tagdbsize&gt; &lt;filter&gt; &lt;compmode&gt; [date_file]\n&quot;,
+<span class="lineNum">     116 </span>            :               prognam);
+<span class="lineNum">     117 </span>            :       fprintf(stderr, &quot; &lt;sminame&gt; = name used by SMI\n&quot;);
+<span class="lineNum">     118 </span>            : #else
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Usage: %s &lt;dbsize&gt; &lt;tagdbsize&gt; &lt;filter&gt; &lt;compmode&gt; [date_file]\n&quot;,</span>
+<span class="lineNum">     120 </span>            :               prognam);
+<span class="lineNum">     121 </span>            : #endif
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot; &lt;dbsize&gt; = maximum raw DB size (in bytes)\n&quot;);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;    (precede by - to delete raw and tag databases on close)\n&quot;);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot; &lt;tagdbsize&gt; = maximum tag DB size (in bytes, 0 for no tag DB)\n&quot;);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot; &lt;filter&gt; = state of 3rd level filter (0: off, 1: transparent, 2: on)\n&quot;);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot; &lt;compmode&gt; = compression level (see TFile)\n&quot;);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;    (precede by - to use RFIO, -0 is RFIO and 0 compression)\n&quot;);</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;    (precede by + to use rootd, +0 is rootd and 0 compression)\n&quot;);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;    (precede by %% to use Castor/rootd, %%0 is Castor/rootd and 0 compression)\n&quot;);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;    (precede by @ to use /dev/null as sink)\n&quot;);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot; [date_file] = optional input file (default reads from DATE EventBuffer)\n&quot;);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;    (precede with - for endless loop on same file (use SIGUSR1 to stop)\n&quot;);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 : }</span>
+<a name="134"><span class="lineNum">     134 </span>            : </a>
+<span class="lineNum">     135 </span>            : //______________________________________________________________________________
+<span class="lineNum">     136 </span>            : int main(int argc, char **argv)
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :    // Convert a DATE data stream to a ROOT DB.
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :    // Set ROOT in batch mode
+<span class="lineNum">     141 </span><span class="lineCov">          2 :    gROOT-&gt;SetBatch();</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            :    // Set custom error handler
+<span class="lineNum">     144 </span><span class="lineCov">          1 :    AliLog::SetHandleRootMessages(kFALSE);</span>
+<span class="lineNum">     145 </span><span class="lineCov">          1 :    SetErrorHandler(AliMDCErrorHandler);</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :    // Default file system locations
+<span class="lineNum">     148 </span>            : #ifdef USE_EB
+<span class="lineNum">     149 </span>            :    const char* rawDBFS[2] = { &quot;/data1/mdc&quot;, &quot;/data2/mdc&quot; };
+<span class="lineNum">     150 </span>            :    const char* tagDBFS    = &quot;/data1/mdc/tags&quot;;
+<span class="lineNum">     151 </span>            :    const char* rfioFS     = &quot;rfio:/castor/cern.ch/lcg/dc5&quot;;
+<span class="lineNum">     152 </span>            :    const char* castorFS   = &quot;castor:/castor/cern.ch/lcg/dc5&quot;;
+<span class="lineNum">     153 </span>            : #else
+<span class="lineNum">     154 </span>            :    const char* rawDBFS[2] = { &quot;/tmp/mdc1&quot;, &quot;/tmp/mdc2&quot; };
+<span class="lineNum">     155 </span>            :    const char* tagDBFS    = &quot;/tmp/mdc1/tags&quot;;
+<span class="lineNum">     156 </span><span class="lineCov">          3 :    TString user(gSystem-&gt;Getenv(&quot;USER&quot;)[0] + TString(&quot;/&quot;) + </span>
+<span class="lineNum">     157 </span><span class="lineCov">          1 :                 gSystem-&gt;Getenv(&quot;USER&quot;));</span>
+<span class="lineNum">     158 </span><span class="lineCov">          1 :    TString rfioStr(&quot;rfio:/castor/cern.ch/user/&quot; + user);</span>
+<span class="lineNum">     159 </span><span class="lineCov">          1 :    const char* rfioFS     = rfioStr.Data();</span>
+<span class="lineNum">     160 </span><span class="lineCov">          1 :    TString castorStr(&quot;castor:/castor/cern.ch/user/&quot; + user);</span>
+<span class="lineNum">     161 </span><span class="lineCov">          1 :    const char* castorFS   = castorStr.Data();</span>
+<span class="lineNum">     162 </span>            : #endif
+<span class="lineNum">     163 </span>            :    const char* rootdFS    = &quot;root://localhost//tmp/mdc1&quot;;
+<span class="lineNum">     164 </span>            :    
+<span class="lineNum">     165 </span>            :    Int_t basketSize = 16000;
+<span class="lineNum">     166 </span>            :    Long64_t autoflush = -5000000LL;
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :    // User defined file system locations
+<span class="lineNum">     169 </span><span class="lineCov">          2 :    if (gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB1&quot;)) </span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :      rawDBFS[0] = gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB1&quot;);</span>
+<span class="lineNum">     171 </span><span class="lineCov">          2 :    if (gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB2&quot;)) </span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :      rawDBFS[1] = gSystem-&gt;Getenv(&quot;ALIMDC_RAWDB2&quot;);</span>
+<span class="lineNum">     173 </span><span class="lineCov">          2 :    if (gSystem-&gt;Getenv(&quot;ALIMDC_TAGDB&quot;)) </span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :      tagDBFS = gSystem-&gt;Getenv(&quot;ALIMDC_TAGDB&quot;);</span>
+<span class="lineNum">     175 </span><span class="lineCov">          2 :    if (gSystem-&gt;Getenv(&quot;ALIMDC_RFIO&quot;)) </span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :      rfioFS = gSystem-&gt;Getenv(&quot;ALIMDC_RFIO&quot;);</span>
+<span class="lineNum">     177 </span><span class="lineCov">          2 :    if (gSystem-&gt;Getenv(&quot;ALIMDC_CASTOR&quot;)) </span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :      castorFS = gSystem-&gt;Getenv(&quot;ALIMDC_CASTOR&quot;);</span>
+<span class="lineNum">     179 </span><span class="lineCov">          2 :    if (gSystem-&gt;Getenv(&quot;ALIMDC_ROOTD&quot;)) </span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :      rootdFS = gSystem-&gt;Getenv(&quot;ALIMDC_ROOTD&quot;);</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :    // User defined basket and autoflush settings
+<span class="lineNum">     183 </span><span class="lineCov">          2 :    TString autoflushS = gSystem-&gt;Getenv(&quot;ALIMDC_AUTOFLUSH&quot;);</span>
+<span class="lineNum">     184 </span><span class="lineCov">          2 :    if (!autoflushS.IsNull()) {</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :      autoflush = autoflushS.Atoll();</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :      Info(argv[0],&quot;Set autoflush to %lld&quot;,autoflush);</span>
+<span class="lineNum">     187 </span>            :    }
+<span class="lineNum">     188 </span><span class="lineCov">          2 :    TString bsksizeS = gSystem-&gt;Getenv(&quot;ALIMDC_BASKETSIZE&quot;);</span>
+<span class="lineNum">     189 </span><span class="lineCov">          2 :    if (!bsksizeS.IsNull()) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :      basketSize = bsksizeS.Atoi();</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :      Info(argv[0],&quot;Set basket size to %d&quot;,basketSize);</span>
+<span class="lineNum">     192 </span>            :    }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :    // Handle command line arguments
+<span class="lineNum">     195 </span><span class="lineCov">          1 :    if ((argc == 2 &amp;&amp; (!strcmp(argv[1], &quot;-?&quot;) || !strcmp(argv[1], &quot;-help&quot;))) ||</span>
+<span class="lineNum">     196 </span>            : #ifdef USE_SMI
+<span class="lineNum">     197 </span>            :        argc &gt; 7 || argc &lt; 6) {
+<span class="lineNum">     198 </span>            : #else
+<span class="lineNum">     199 </span><span class="lineCov">          1 :        argc &gt; 6 || argc &lt; 5) {</span>
+<span class="lineNum">     200 </span>            : #endif
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :       Usage(argv[0]);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       return 1;</span>
+<span class="lineNum">     203 </span>            :    }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :    Int_t iarg = 1;
+<span class="lineNum">     206 </span>            : #ifdef USE_SMI
+<span class="lineNum">     207 </span>            :    char smiobj[128];
+<span class="lineNum">     208 </span>            :    strcpy(smiobj, argv[iarg]);
+<span class="lineNum">     209 </span>            :    smi_attach(smiobj, SMI_handle_command);
+<span class="lineNum">     210 </span>            :    smi_volatile();
+<span class="lineNum">     211 </span>            :    smi_set_state(&quot;RUNNING&quot;);
+<span class="lineNum">     212 </span>            :    iarg++;
+<span class="lineNum">     213 </span>            : #endif
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :    AliMDC::EWriteMode wmode = AliMDC::kLOCAL;
+<span class="lineNum">     216 </span>            :    Int_t    filterMode = 0;
+<span class="lineNum">     217 </span>            :    Bool_t   useLoop = kFALSE;
+<span class="lineNum">     218 </span>            :    Bool_t   delFiles = kFALSE;
+<span class="lineNum">     219 </span>            :    Int_t    compress;
+<span class="lineNum">     220 </span>            :    Double_t maxFileSize;
+<span class="lineNum">     221 </span>            :    Double_t maxTagSize;
+<span class="lineNum">     222 </span>            :    const char* fs1 = NULL;
+<span class="lineNum">     223 </span>            :    const char* fs2 = NULL;
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            :    // no special arg checking so don't make errors
+<span class="lineNum">     226 </span><span class="lineCov">          1 :    if (argv[iarg][0] == '-') {</span>
+<span class="lineNum">     227 </span>            :       delFiles = kTRUE;
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :       maxFileSize = atoll(argv[iarg]+1);</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :    } else</span>
+<span class="lineNum">     230 </span><span class="lineCov">          2 :       maxFileSize = atoll(argv[iarg]);</span>
+<span class="lineNum">     231 </span><span class="lineCov">          1 :    if (maxFileSize &lt; 1000 || maxFileSize &gt; 20.e9) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :       Error(argv[0], &quot;unreasonable file size %f\n&quot;, maxFileSize);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :       return 1;</span>
+<span class="lineNum">     234 </span>            :    }
+<span class="lineNum">     235 </span>            :    iarg++;
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineCov">          2 :    maxTagSize = atoi(argv[iarg]);</span>
+<span class="lineNum">     238 </span><span class="lineCov">          2 :    if (maxTagSize &gt; 0 &amp;&amp; (maxTagSize &lt; 1000 || maxTagSize &gt; 20.e9)) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       Error(argv[0], &quot;unreasonable tag file size %f\n&quot;, maxTagSize);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       return 1;</span>
+<span class="lineNum">     241 </span>            :    }
+<span class="lineNum">     242 </span><span class="lineCov">          1 :    if (maxTagSize == 0) tagDBFS = NULL;</span>
+<span class="lineNum">     243 </span>            :    iarg++;
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineCov">          1 :    filterMode = atoi(argv[iarg]);</span>
+<span class="lineNum">     246 </span><span class="lineCov">          1 :    if (filterMode &lt; 0 || filterMode &gt; 2) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :       Error(argv[0], &quot;unreasonable filter mode %d\n&quot;, filterMode);</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       return 1;</span>
+<span class="lineNum">     249 </span>            :    }
+<span class="lineNum">     250 </span>            :    iarg++;
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineCov">          1 :    if (argv[iarg][0] == '-') {</span>
+<span class="lineNum">     253 </span>            :       wmode = AliMDC::kRFIO;
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       compress = atoi(argv[iarg]+1);</span>
+<span class="lineNum">     255 </span>            :       fs1 = rfioFS;
+<span class="lineNum">     256 </span><span class="lineCov">          1 :    } else if (argv[iarg][0] == '+') {</span>
+<span class="lineNum">     257 </span>            :       wmode = AliMDC::kROOTD;
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       compress = atoi(argv[iarg]+1);</span>
+<span class="lineNum">     259 </span>            :       fs1 = rootdFS;
+<span class="lineNum">     260 </span><span class="lineCov">          1 :    } else if (argv[iarg][0] == '%') {</span>
+<span class="lineNum">     261 </span>            :       wmode = AliMDC::kCASTOR;
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       compress = atoi(argv[iarg]+1);</span>
+<span class="lineNum">     263 </span>            :       fs1 = castorFS;
+<span class="lineNum">     264 </span><span class="lineCov">          1 :    } else if (argv[iarg][0] == '@') {</span>
+<span class="lineNum">     265 </span>            :       wmode = AliMDC::kDEVNULL;
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :       compress = atoi(argv[iarg]+1);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :    } else {</span>
+<span class="lineNum">     268 </span><span class="lineCov">          1 :       compress = atoi(argv[iarg]);</span>
+<span class="lineNum">     269 </span>            :       fs1 = rawDBFS[0];
+<span class="lineNum">     270 </span>            :       fs2 = rawDBFS[1];
+<span class="lineNum">     271 </span>            :    }
+<span class="lineNum">     272 </span><span class="lineCov">          1 :    if (compress &gt; 9) {</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       Error(argv[0], &quot;unreasonable compression mode %d\n&quot;, compress);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       return 1;</span>
+<span class="lineNum">     275 </span>            :    }
+<span class="lineNum">     276 </span>            :    iarg++;
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            :    char* file = NULL;
+<span class="lineNum">     279 </span><span class="lineCov">          1 :    if (iarg &lt; argc) {</span>
+<span class="lineNum">     280 </span><span class="lineCov">          1 :       file = argv[iarg];</span>
+<span class="lineNum">     281 </span><span class="lineCov">          1 :       if (argv[iarg][0] == '-') {</span>
+<span class="lineNum">     282 </span>            :          useLoop = kTRUE;
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :          file = argv[iarg]+1;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     285 </span>            :    }
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :    // Create MDC processor object and process input stream
+<span class="lineNum">     288 </span><span class="lineCov">          1 :    AliMDC mdcproc(compress, delFiles, AliMDC::EFilterMode(filterMode), </span>
+<span class="lineNum">     289 </span>            :                   maxTagSize, tagDBFS,NULL,basketSize,autoflush);
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineCov">          1 :    Int_t result = mdcproc.Run(file, useLoop, wmode, maxFileSize, fs1, fs2);</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineCov">          2 :    if (result == 0)</span>
+<span class="lineNum">     294 </span><span class="lineCov">          2 :       Info(argv[0], &quot;normal termination of run&quot;);</span>
+<span class="lineNum">     295 </span>            :    else
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       Error(argv[0], &quot;error termination of run, status: %d&quot;, result);</span>
+<span class="lineNum">     297 </span>            :    return result;
+<span class="lineNum">     298 </span><span class="lineCov">          2 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

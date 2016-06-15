@@ -1,0 +1,397 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/ITS/clusterfinders/AliHLTITSClusterFinderSPD.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">HLT/ITS/clusterfinders</a> - AliHLTITSClusterFinderSPD.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTITSClusterFinderSPD.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">186</td>
+            <td class="headerCovTableEntryLo">0.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">10.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-2003, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : ////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      16 </span>            : //            Implementation of the ITS clusterer V2 class                //
+<span class="lineNum">      17 </span>            : //                                                                        //
+<span class="lineNum">      18 </span>            : //          Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch            //
+<span class="lineNum">      19 </span>            : //          Unfolding switch from AliITSRecoParam: D. Elia, INFN Bari     //
+<span class="lineNum">      20 </span>            : //                                                                        //
+<span class="lineNum">      21 </span>            : ////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;AliITSCalibrationSPD.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;AliHLTITSClusterFinderSPD.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliITSRecPoint.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliITSgeomTGeo.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliITSDetTypeRec.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliITSReconstructor.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliRawReader.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliITSRawStreamSPD.h&quot;
+<span class="lineNum">      32 </span>            : #include &lt;TClonesArray.h&gt;
+<span class="lineNum">      33 </span>            : #include &quot;AliITSdigitSPD.h&quot;
+<a name="34"><span class="lineNum">      34 </span>            : #include &quot;AliITSFOSignalsSPD.h&quot;</a>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineCov">          6 : ClassImp(AliHLTITSClusterFinderSPD)</span>
+<a name="37"><span class="lineNum">      37 </span>            : </a>
+<span class="lineNum">      38 </span>            : //__________________________________________________________________________
+<span class="lineNum">      39 </span>            : AliHLTITSClusterFinderSPD::AliHLTITSClusterFinderSPD(AliITSDetTypeRec* dettyp)
+<span class="lineNum">      40 </span>            :   :
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :   TObject(),</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :   fRecoParam(0),</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :   fDetTypeRec( dettyp ),</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   fNModules(AliITSgeomTGeo::GetNModules()),</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   fLastSPD1(AliITSgeomTGeo::GetModuleIndex(2,1,1)-1),</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :   fNySPD(256),</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :   fNzSPD(160),</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :   fNzBins( fNzSPD + 2 ),</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :   fNyBins( fNySPD + 2),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   fMaxBin( fNzBins * fNyBins ),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :   fYpitchSPD(0.0050),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   fZ1pitchSPD(0.0425),</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   fZ2pitchSPD(0.0625),</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   fHwSPD(0.64),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   fHlSPD(3.48),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fNSignals(0),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fSignal2Bin(0),</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   fBin2Signal(0)</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :   //Default constructor
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   fRecoParam = (AliITSRecoParam*) AliITSReconstructor::GetRecoParam();</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   if(!fRecoParam){</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     fRecoParam = AliITSRecoParam::GetHighFluxParam();</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     AliWarning(&quot;Using default AliITSRecoParam class&quot;);</span>
+<span class="lineNum">      67 </span>            :   }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :  //
+<span class="lineNum">      70 </span>            :  // Initialisation of ITS geometry
+<span class="lineNum">      71 </span>            :  //
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   Int_t mmax=AliITSgeomTGeo::GetNModules();</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   for (Int_t m=0; m&lt;mmax; m++) {</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     Int_t lay,lad,det; AliITSgeomTGeo::GetModuleId(m,lay,lad,det);</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     fNdet[m] = (lad-1)*AliITSgeomTGeo::GetNDetectors(lay) + (det-1);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     fNlayer[m] = lay-1;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fYSPD[0]=0.5*fYpitchSPD;</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   for (Int_t m=1; m&lt;fNySPD; m++) fYSPD[m]=fYSPD[m-1]+fYpitchSPD; </span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fZSPD[0]=fZ1pitchSPD;</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   for (Int_t m=1; m&lt;fNzSPD; m++) {</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     Double_t dz=fZ1pitchSPD;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     if (m==31 || m==32 || m==63  || m==64  || m==95 || m==96 || </span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         m==127 || m==128) dz=fZ2pitchSPD; </span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     fZSPD[m]=fZSPD[m-1]+dz;</span>
+<span class="lineNum">      87 </span>            :   }
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   for (Int_t m=0; m&lt;fNzSPD; m++) {</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     Double_t dz=0.5*fZ1pitchSPD;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     if (m==31 || m==32 || m==63  || m==64  || m==95 || m==96 || </span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :         m==127 || m==128) dz=0.5*fZ2pitchSPD; </span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     fZSPD[m]-=dz;</span>
+<span class="lineNum">      93 </span>            :   }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fSignal2Bin = new UShort_t[fMaxBin];</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fBin2Signal = new UShort_t [fMaxBin];  </span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   for( int i=0; i&lt;fMaxBin; i++ ) fBin2Signal[i] = 0;</span>
+<span class="lineNum">      98 </span>            : 
+<a name="99"><span class="lineNum">      99 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : AliHLTITSClusterFinderSPD::AliHLTITSClusterFinderSPD( const AliHLTITSClusterFinderSPD &amp;)
+<span class="lineNum">     102 </span>            :   :
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   TObject(),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   fRecoParam(0),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fDetTypeRec(0),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fNModules(0),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fLastSPD1(0),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   fNySPD(256),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fNzSPD(160),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   fNzBins( fNzSPD + 2 ),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   fNyBins( fNySPD + 2),</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   fMaxBin( fNzBins * fNyBins ),</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   fYpitchSPD(0.0050),</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   fZ1pitchSPD(0.0425),</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   fZ2pitchSPD(0.0625),</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fHwSPD(0.64),</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   fHlSPD(3.48),</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   fNSignals(0),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   fSignal2Bin(0),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   fBin2Signal(0)</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     122 </span>            :   // dummy
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   for (Int_t m=0; m&lt;2200; m++) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     fNdet[m] = 0;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     fNlayer[m] = 0;</span>
+<span class="lineNum">     126 </span>            :   }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   for (Int_t m=0; m&lt;fNySPD; m++) fYSPD[m]=0;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   for (Int_t m=0; m&lt;fNzSPD; m++) fZSPD[m]=0;  </span>
+<a name="130"><span class="lineNum">     130 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : AliHLTITSClusterFinderSPD &amp;AliHLTITSClusterFinderSPD::operator=( const AliHLTITSClusterFinderSPD &amp;)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span>            :   // dummy
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="136"><span class="lineNum">     136 </span>            : }</a>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : void AliHLTITSClusterFinderSPD::RawdataToClusters(AliRawReader* rawReader, std::vector&lt;AliITSRecPoint&gt; &amp; clusters){
+<span class="lineNum">     139 </span>            :   //------------------------------------------------------------
+<span class="lineNum">     140 </span>            :   // This function creates ITS clusters from raw data
+<span class="lineNum">     141 </span>            :   //------------------------------------------------------------
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   rawReader-&gt;Reset();</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   AliITSRawStreamSPD inputSPD(rawReader);</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   FindClustersSPD(&amp;inputSPD, clusters);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : }</span>
+<a name="146"><span class="lineNum">     146 </span>            : </a>
+<span class="lineNum">     147 </span>            : //__________________________________________________________________________
+<span class="lineNum">     148 </span>            : void AliHLTITSClusterFinderSPD::FindClustersSPD(AliITSRawStreamSPD* input, 
+<span class="lineNum">     149 </span>            :                                                   std::vector&lt;AliITSRecPoint&gt; &amp; clusters) 
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span>            :   //------------------------------------------------------------
+<span class="lineNum">     152 </span>            :   // SPD cluster finder for raw data (this method is called once per event)
+<span class="lineNum">     153 </span>            :   //------------------------------------------------------------
+<span class="lineNum">     154 </span>            :   
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   fNSignals = 0;</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :   // read raw data input stream
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   while (kTRUE) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     Bool_t next = input-&gt;Next();</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (!next || input-&gt;IsNewModule()) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :       Int_t iModule = input-&gt;GetPrevModuleID();</span>
+<span class="lineNum">     162 </span>            :       // when all data from a module was read, search for clusters
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :       if ( fNSignals &gt; 0) { </span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :         ClustersSPD( clusters, iModule );       </span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         for( int i=0; i&lt;fNSignals; i++ ){</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :           fBin2Signal[fSignal2Bin[i]] = 0;</span>
+<span class="lineNum">     167 </span>            :         }
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         fNSignals = 0;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :       if (!next) break;      </span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     172 </span>            :     // fill the current digit into the bins array
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     UShort_t  index = (UShort_t ) ( (input-&gt;GetCoord2()+1) * fNzBins + (input-&gt;GetCoord1()+1) );</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     fSignal2Bin[fNSignals] = index;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     fBin2Signal[index] = fNSignals+1;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     fNSignals++;  </span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   }  </span>
+<span class="lineNum">     178 </span>            :   //cout&lt;&lt;clusters.size()&lt;&lt;endl;
+<a name="179"><span class="lineNum">     179 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : void AliHLTITSClusterFinderSPD::FindCluster(Int_t k,Int_t &amp;n,Int_t *idx) {
+<span class="lineNum">     182 </span>            :   //------------------------------------------------------------
+<span class="lineNum">     183 </span>            :   // returns an array of indices of digits belonging to the cluster
+<span class="lineNum">     184 </span>            :   // (needed when the segmentation is not regular) 
+<span class="lineNum">     185 </span>            :   //------------------------------------------------------------
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   if (n&lt;200) idx[n++]=fBin2Signal[k];</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   fBin2Signal[k]=0;</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   if (fBin2Signal[k-fNzBins] ) FindCluster(k-fNzBins,n,idx);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   if (fBin2Signal[k-1   ] ) FindCluster(k-1 ,n,idx);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   if (fBin2Signal[k+fNzBins] ) FindCluster(k+fNzBins,n,idx);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   if (fBin2Signal[k+1   ] ) FindCluster(k+1   ,n,idx);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     194 </span>            : 
+<a name="195"><span class="lineNum">     195 </span>            : </a>
+<span class="lineNum">     196 </span>            : //__________________________________________________________________________
+<span class="lineNum">     197 </span>            : Int_t AliHLTITSClusterFinderSPD::ClustersSPD( std::vector&lt;AliITSRecPoint&gt; &amp; clusters, Int_t iModule ){
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            :   //Cluster finder for SPD (from digits and from rawdata)
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   const TGeoHMatrix *mT2L=AliITSgeomTGeo::GetTracking2LocalMatrix(iModule);</span>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :    if (fRecoParam-&gt;GetSPDRemoveNoisyFlag()) {</span>
+<span class="lineNum">     204 </span>            :     // Loop on noisy pixels and reset them
+<span class="lineNum">     205 </span>            :     AliITSCalibrationSPD *cal =  
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :       (AliITSCalibrationSPD*) fDetTypeRec-&gt;GetCalibrationModel(iModule);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     for(Int_t ipix = 0; ipix&lt;cal-&gt;GetNrBad(); ipix++){</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :       Int_t row, col;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :       cal-&gt;GetBadPixel(ipix,row,col);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :       Int_t index = (row+1) * fNzBins + (col+1);      </span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       fBin2Signal[index] = 0;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     214 </span>            :   
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :    if (fRecoParam-&gt;GetSPDRemoveDeadFlag()) {</span>
+<span class="lineNum">     216 </span>            :      // Loop on dead pixels and reset them
+<span class="lineNum">     217 </span>            :      AliITSCalibrationSPD *cal =  
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :        (AliITSCalibrationSPD*) fDetTypeRec-&gt;GetSPDDeadModel(iModule); </span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :      if (cal-&gt;IsBad()) return 0; // if all ladder is dead, return to save time</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :      for(Int_t ipix = 0; ipix&lt;cal-&gt;GetNrBad(); ipix++){</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :        Int_t row, col;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :        cal-&gt;GetBadPixel(ipix,row,col);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :        Int_t index = (row+1) * fNzBins + (col+1);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :        fBin2Signal[index] = 0;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     227 </span>            :   
+<span class="lineNum">     228 </span>            :   Int_t nclu=0;
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   for(Int_t is =0; is&lt;fNSignals; is++ ){</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     int iBin = fSignal2Bin[is];</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     if(fBin2Signal[iBin]==0) continue;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     Int_t nBins = 0; </span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     Int_t idxBins[200];</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     Int_t idxSignals[200];</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     FindCluster(iBin,nBins,idxSignals );</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     if (nBins &gt;= 199 ){</span>
+<span class="lineNum">     238 </span>            :       //Error(&quot;ClustersSPD&quot;,&quot;SPD Too big cluster !\n&quot;); 
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     idxBins[0] = 0;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     for( int i=0; i&lt;nBins; i++ ) idxBins[i] = fSignal2Bin[idxSignals[i]-1];</span>
+<span class="lineNum">     243 </span>            :     
+<span class="lineNum">     244 </span>            :     Int_t ymin,ymax,zmin,zmax;
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     ymin = (idxBins[0] / fNzBins) - 1;</span>
+<span class="lineNum">     246 </span>            :     ymax = ymin;
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     zmin = (idxBins[0] % fNzBins) - 1;</span>
+<span class="lineNum">     248 </span>            :     zmax = zmin;
+<span class="lineNum">     249 </span>            :     
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     for (Int_t idx = 0; idx &lt; nBins; idx++) {</span>
+<span class="lineNum">     251 </span>            :       Int_t iy;
+<span class="lineNum">     252 </span>            :       Int_t iz; 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       iy  = (idxBins[idx] / fNzBins) - 1;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       iz  = (idxBins[idx] % fNzBins) - 1;      </span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :       if (ymin &gt; iy) ymin = iy;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :       if (ymax &lt; iy) ymax = iy;</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       if (zmin &gt; iz) zmin = iz;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       if (zmax &lt; iz) zmax = iz;</span>
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span>            :     
+<span class="lineNum">     261 </span>            :     Int_t idy =0; //max 2 clusters
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     if((iModule &lt;= fLastSPD1) &amp;&amp;idy&lt;3) idy=3;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     if((iModule &gt; fLastSPD1) &amp;&amp;idy&lt;4) idy=4;</span>
+<span class="lineNum">     264 </span>            :     Int_t idz=3;
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            :     // Switch the unfolding OFF/ON
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     if(!fRecoParam-&gt;GetUseUnfoldingInClusterFinderSPD()) {</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :       idy=ymax-ymin+1;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :       idz=zmax-zmin+1;</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     271 </span>            :     
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     for(Int_t iiz=zmin; iiz&lt;=zmax;iiz+=idz){</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       for(Int_t iiy=ymin;iiy&lt;=ymax;iiy+=idy){</span>
+<span class="lineNum">     274 </span>            :         Int_t ndigits=0;
+<span class="lineNum">     275 </span>            :         Float_t y=0.,z=0.,q=0.;
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         for(Int_t idx=0;idx&lt;nBins;idx++){</span>
+<span class="lineNum">     277 </span>            :           Int_t iy;
+<span class="lineNum">     278 </span>            :           Int_t iz; 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :           iy  = (idxBins[idx] / fNzBins)-1;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :           iz  = (idxBins[idx] % fNzBins)-1;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :           if(zmax-zmin&gt;=idz || ymax-ymin&gt;=idy){</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             if(TMath::Abs(iy-iiy)&gt;0.75*idy) continue;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             if(TMath::Abs(iz-iiz)&gt;0.75*idz) continue;</span>
+<span class="lineNum">     284 </span>            :           }
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :           ndigits++;</span>
+<span class="lineNum">     286 </span>            :           Float_t qBin=0.;
+<span class="lineNum">     287 </span>            :           qBin = 1;
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :           y+= qBin * fYSPD[iy];</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :           z+= qBin * fZSPD[iz];</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :           q+= qBin;     </span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         }// for idx</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         if(ndigits==0) continue;</span>
+<span class="lineNum">     293 </span>            :          
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :         y /= q;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         z /= q;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         y -= fHwSPD;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         z -= fHlSPD;</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         Float_t hit[6]; //y,z,sigma(y)^2, sigma(z)^2, charge</span>
+<span class="lineNum">     300 </span>            :         {
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         Double_t loc[3]={y,0.,z},trk[3]={0.,0.,0.};</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         mT2L-&gt;MasterToLocal(loc,trk);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         hit[0]=trk[1];</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         hit[1]=trk[2];</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         hit[2] = fYpitchSPD*fYpitchSPD/12.;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         hit[3] = fZ1pitchSPD*fZ1pitchSPD/12.;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         hit[4] = 1.;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         hit[5] = 0;</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         Int_t info[3] = {ymax-ymin+1,zmax-zmin+1,fNlayer[iModule]};</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         Int_t label[4]={-2,-2,-2, fNdet[iModule] };</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         AliITSRecPoint cl(label, hit,info);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         cl.SetType(nBins);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         clusters.push_back(cl);       </span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         nclu++;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :       }// for iiy</span>
+<span class="lineNum">     318 </span>            :     }// for iiz
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   }//end for iBin</span>
+<span class="lineNum">     320 </span>            :   return nclu;  
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

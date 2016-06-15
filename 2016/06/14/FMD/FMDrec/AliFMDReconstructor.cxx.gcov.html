@@ -1,0 +1,1200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - FMD/FMDrec/AliFMDReconstructor.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">FMD/FMDrec</a> - AliFMDReconstructor.cxx<span style="font-size: 80%;"> (source / <a href="AliFMDReconstructor.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">257</td>
+            <td class="headerCovTableEntry">434</td>
+            <td class="headerCovTableEntryLo">59.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntryLo">67.6 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">       2 </span>            : //
+<span class="lineNum">       3 </span>            : // This is a class that constructs AliFMDRecPoint objects from of Digits
+<span class="lineNum">       4 </span>            : // This class reads either digits from a TClonesArray or raw data from 
+<span class="lineNum">       5 </span>            : // a DDL file (or similar), and stores the read ADC counts in an
+<span class="lineNum">       6 </span>            : // internal cache (fAdcs).   The rec-points are made via the naiive
+<span class="lineNum">       7 </span>            : // method. 
+<span class="lineNum">       8 </span>            : //
+<span class="lineNum">       9 </span>            : //-- Authors: Evgeny Karpechev(INR) and Alla Maevsksia
+<span class="lineNum">      10 </span>            : //  Latest changes by Christian Holm Christensen &lt;cholm@nbi.dk&gt;
+<span class="lineNum">      11 </span>            : //
+<span class="lineNum">      12 </span>            : //
+<span class="lineNum">      13 </span>            : //____________________________________________________________________
+<span class="lineNum">      14 </span>            : /**************************************************************************
+<span class="lineNum">      15 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">      16 </span>            :  *                                                                        *
+<span class="lineNum">      17 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">      18 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">      19 </span>            :  *                                                                        *
+<span class="lineNum">      20 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      21 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      22 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      23 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      24 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      25 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      26 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      27 </span>            :  **************************************************************************/
+<span class="lineNum">      28 </span>            : /* $Id$ */
+<span class="lineNum">      29 </span>            : /** 
+<span class="lineNum">      30 </span>            :  * @file    AliFMDReconstructor.cxx
+<span class="lineNum">      31 </span>            :  * @author  Christian Holm Christensen &lt;cholm@nbi.dk&gt;
+<span class="lineNum">      32 </span>            :  * @date    Mon Mar 27 12:47:09 2006
+<span class="lineNum">      33 </span>            :  * @brief   FMD reconstruction 
+<span class="lineNum">      34 </span>            : */
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : // #include &lt;AliLog.h&gt;                        // ALILOG_H
+<span class="lineNum">      37 </span>            : // #include &lt;AliRun.h&gt;                        // ALIRUN_H
+<span class="lineNum">      38 </span>            : #include &quot;AliFMDDebug.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliFMDGeometry.h&quot;                // ALIFMDGEOMETRY_H
+<span class="lineNum">      40 </span>            : #include &quot;AliFMDParameters.h&quot;              // ALIFMDPARAMETERS_H
+<span class="lineNum">      41 </span>            : #include &quot;AliFMDAltroMapping.h&quot;            // ALIFMDALTROMAPPING_H
+<span class="lineNum">      42 </span>            : #include &quot;AliFMDDigit.h&quot;                   // ALIFMDDIGIT_H
+<span class="lineNum">      43 </span>            : #include &quot;AliFMDSDigit.h&quot;                  // ALIFMDDIGIT_H
+<span class="lineNum">      44 </span>            : #include &quot;AliFMDReconstructor.h&quot;           // ALIFMDRECONSTRUCTOR_H
+<span class="lineNum">      45 </span>            : #include &quot;AliFMDRecoParam.h&quot;               // ALIFMDRECOPARAM_H
+<span class="lineNum">      46 </span>            : #include &quot;AliFMDRawReader.h&quot;               // ALIFMDRAWREADER_H
+<span class="lineNum">      47 </span>            : #include &quot;AliFMDRecPoint.h&quot;              // ALIFMDMULTNAIIVE_H
+<span class="lineNum">      48 </span>            : #include &quot;AliESDEvent.h&quot;                 // ALIESDEVENT_H
+<span class="lineNum">      49 </span>            : #include &quot;AliESDVertex.h&quot;                // ALIESDVERTEX_H
+<span class="lineNum">      50 </span>            : #include &quot;AliESDTZERO.h&quot;                 // ALIESDVERTEX_H
+<span class="lineNum">      51 </span>            : #include &lt;AliESDFMD.h&gt;                       // ALIESDFMD_H
+<span class="lineNum">      52 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      53 </span>            : #include &lt;TH1.h&gt;
+<span class="lineNum">      54 </span>            : #include &lt;TH2.h&gt;
+<span class="lineNum">      55 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      56 </span>            : #include &lt;climits&gt;
+<span class="lineNum">      57 </span>            : #include &quot;AliFMDESDRevertexer.h&quot;
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : class AliRawReader;
+<a name="61"><span class="lineNum">      61 </span>            : </a>
+<span class="lineNum">      62 </span>            : //____________________________________________________________________
+<span class="lineNum">      63 </span><span class="lineCov">         12 : ClassImp(AliFMDReconstructor)</span>
+<span class="lineNum">      64 </span>            : #if 0
+<span class="lineNum">      65 </span>            :   ; // This is here to keep Emacs for indenting the next line
+<span class="lineNum">      66 </span>            : #endif
+<a name="67"><span class="lineNum">      67 </span>            : </a>
+<span class="lineNum">      68 </span>            : //____________________________________________________________________
+<span class="lineNum">      69 </span>            : AliFMDReconstructor::AliFMDReconstructor() 
+<span class="lineNum">      70 </span><span class="lineCov">          2 :   : AliReconstructor(),</span>
+<span class="lineNum">      71 </span><span class="lineCov">          2 :     fMult(0x0), </span>
+<span class="lineNum">      72 </span><span class="lineCov">          2 :     fNMult(0),</span>
+<span class="lineNum">      73 </span><span class="lineCov">          2 :     fTreeR(0x0),</span>
+<span class="lineNum">      74 </span><span class="lineCov">          2 :     fCurrentVertex(0),</span>
+<span class="lineNum">      75 </span><span class="lineCov">          2 :     fESDObj(0x0),</span>
+<span class="lineNum">      76 </span><span class="lineCov">          2 :     fNoiseFactor(0),</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 :     fAngleCorrect(kTRUE),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          2 :     fVertexType(kNoVertex),</span>
+<span class="lineNum">      79 </span><span class="lineCov">          2 :     fESD(0x0),</span>
+<span class="lineNum">      80 </span><span class="lineCov">          2 :     fDiagnostics(kFALSE),</span>
+<span class="lineNum">      81 </span><span class="lineCov">          2 :     fDiagStep1(0), </span>
+<span class="lineNum">      82 </span><span class="lineCov">          2 :     fDiagStep2(0),</span>
+<span class="lineNum">      83 </span><span class="lineCov">          2 :     fDiagStep3(0),</span>
+<span class="lineNum">      84 </span><span class="lineCov">          2 :     fDiagStep4(0),</span>
+<span class="lineNum">      85 </span><span class="lineCov">          2 :     fDiagAll(0),</span>
+<span class="lineNum">      86 </span><span class="lineCov">          2 :     fBad(0), </span>
+<span class="lineNum">      87 </span><span class="lineCov">          2 :     fZombie(false)</span>
+<span class="lineNum">      88 </span><span class="lineCov">         10 : {</span>
+<span class="lineNum">      89 </span>            :   // Make a new FMD reconstructor object - default CTOR.  
+<span class="lineNum">      90 </span><span class="lineCov">          2 :   SetNoiseFactor();</span>
+<span class="lineNum">      91 </span><span class="lineCov">          2 :   SetAngleCorrect();</span>
+<span class="lineNum">      92 </span><span class="lineCov">          8 :   if (AliDebugLevel() &gt; 0) fDiagnostics = kTRUE;</span>
+<span class="lineNum">      93 </span><span class="lineCov">         16 :   for(Int_t det = 1; det&lt;=3; det++) {</span>
+<span class="lineNum">      94 </span><span class="lineCov">          6 :     fZS[det-1]       = kFALSE;</span>
+<span class="lineNum">      95 </span><span class="lineCov">          6 :     fZSFactor[det-1] = 0;</span>
+<span class="lineNum">      96 </span>            :   }
+<span class="lineNum">      97 </span><span class="lineCov">          4 : }</span>
+<a name="98"><span class="lineNum">      98 </span>            : </a>
+<span class="lineNum">      99 </span>            : //____________________________________________________________________
+<span class="lineNum">     100 </span>            : AliFMDReconstructor::~AliFMDReconstructor() 
+<span class="lineNum">     101 </span><span class="lineCov">         12 : {</span>
+<span class="lineNum">     102 </span>            :   // Destructor 
+<span class="lineNum">     103 </span><span class="lineCov">          4 :   if (fMult)   fMult-&gt;Delete();</span>
+<span class="lineNum">     104 </span><span class="lineCov">          6 :   if (fMult)   delete fMult;</span>
+<span class="lineNum">     105 </span><span class="lineCov">          6 :   if (fESDObj) delete fESDObj;</span>
+<span class="lineNum">     106 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     107 </span>            : 
+<a name="108"><span class="lineNum">     108 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     109 </span>            : void 
+<span class="lineNum">     110 </span>            : AliFMDReconstructor::Init() 
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span>            :   // Initialize the reconstructor 
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :   // Initialize the geometry 
+<span class="lineNum">     115 </span><span class="lineCov">          4 :   AliFMDGeometry* geom = AliFMDGeometry::Instance();</span>
+<span class="lineNum">     116 </span><span class="lineCov">          2 :   geom-&gt;Init();</span>
+<span class="lineNum">     117 </span><span class="lineCov">          2 :   geom-&gt;InitTransformations();</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :   // Initialize the parameters
+<span class="lineNum">     120 </span><span class="lineCov">          2 :   AliFMDParameters* param = AliFMDParameters::Instance();</span>
+<span class="lineNum">     121 </span><span class="lineCov">          2 :   if (param-&gt;Init(true) != 0) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     AliError(&quot;Failed to initialize parameters, making zombie&quot;);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     fZombie = true;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     125 </span>            :   else 
+<span class="lineNum">     126 </span><span class="lineCov">          2 :     fZombie = false;</span>
+<span class="lineNum">     127 </span>            :   
+<span class="lineNum">     128 </span>            :   // Current vertex position
+<span class="lineNum">     129 </span><span class="lineCov">          2 :   fCurrentVertex = 0;</span>
+<span class="lineNum">     130 </span>            :   // Create array of reconstructed strip multiplicities 
+<span class="lineNum">     131 </span>            :   // fMult = new TClonesArray(&quot;AliFMDRecPoint&quot;, 51200);
+<span class="lineNum">     132 </span>            :   // Create ESD output object 
+<span class="lineNum">     133 </span><span class="lineCov">          4 :   fESDObj = new AliESDFMD;</span>
+<span class="lineNum">     134 </span>            :   
+<span class="lineNum">     135 </span>            :   // Check if we need diagnostics histograms 
+<span class="lineNum">     136 </span><span class="lineCov">          4 :   if (!fDiagnostics) return;</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   AliInfo(&quot;Making diagnostics histograms&quot;);</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   if (!fDiagStep1) {</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     fDiagStep1   = new TH2I(&quot;diagStep1&quot;, &quot;Read ADC vs. Noise surpressed ADC&quot;,</span>
+<span class="lineNum">     140 </span>            :                             1024, -.5, 1023.5, 1024, -.5, 1023.5);
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     fDiagStep1-&gt;SetDirectory(0);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     fDiagStep1-&gt;GetXaxis()-&gt;SetTitle(&quot;ADC (read)&quot;);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     fDiagStep1-&gt;GetYaxis()-&gt;SetTitle(Form(&quot;ADC (noise surpressed %4.f)&quot;, </span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                                           fNoiseFactor));</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   if (!fDiagStep2) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     fDiagStep2  = new TH2F(&quot;diagStep2&quot;,  &quot;ADC vs Edep deduced&quot;,</span>
+<span class="lineNum">     148 </span>            :                            1024, -.5, 1023.5, 100, 0, 2);
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     fDiagStep2-&gt;SetDirectory(0);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     fDiagStep2-&gt;GetXaxis()-&gt;SetTitle(&quot;ADC (noise surpressed)&quot;);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     fDiagStep2-&gt;GetYaxis()-&gt;SetTitle(&quot;#Delta E [GeV]&quot;);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   if (!fDiagStep3) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     fDiagStep3  = new TH2F(&quot;diagStep3&quot;,  &quot;Edep vs Edep path corrected&quot;,</span>
+<span class="lineNum">     155 </span>            :                            100, 0., 2., 100, 0., 2.);
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     fDiagStep3-&gt;SetDirectory(0);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     fDiagStep3-&gt;GetXaxis()-&gt;SetTitle(&quot;#Delta E [GeV]&quot;);</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     fDiagStep3-&gt;GetYaxis()-&gt;SetTitle(&quot;#Delta E/#Delta x #times #delta x [GeV]&quot;);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   if (!fDiagStep4) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     fDiagStep4  = new TH2F(&quot;diagStep4&quot;,  &quot;Edep vs Multiplicity deduced&quot;, </span>
+<span class="lineNum">     162 </span>            :                            100, 0., 2., 100, -.1, 19.9);
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     fDiagStep4-&gt;SetDirectory(0);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     fDiagStep4-&gt;GetXaxis()-&gt;SetTitle(&quot;#Delta E/#Delta x #times #delta x [GeV]&quot;);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     fDiagStep4-&gt;GetYaxis()-&gt;SetTitle(&quot;Multiplicity&quot;);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     fDiagAll    = new TH2F(&quot;diagAll&quot;,    &quot;Read ADC vs Multiplicity deduced&quot;, </span>
+<span class="lineNum">     167 </span>            :                            1024, -.5, 1023.5, 100, -.1, 19.9);
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   if (fDiagAll) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     fDiagAll-&gt;SetDirectory(0);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     fDiagAll-&gt;GetXaxis()-&gt;SetTitle(&quot;ADC (read)&quot;);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     fDiagAll-&gt;GetYaxis()-&gt;SetTitle(&quot;Multiplicity&quot;);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     174 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     175 </span>            : 
+<a name="176"><span class="lineNum">     176 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     177 </span>            : void 
+<span class="lineNum">     178 </span>            : AliFMDReconstructor::ConvertDigits(AliRawReader* reader, 
+<span class="lineNum">     179 </span>            :                                    TTree* digitsTree) const
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :   // Convert Raw digits to AliFMDDigit's in a tree 
+<span class="lineNum">     182 </span><span class="lineCov">          8 :   if (fZombie) { </span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     185 </span>            :   }
+<span class="lineNum">     186 </span><span class="lineCov">          8 :   AliFMDDebug(1, (&quot;Reading raw data into digits tree&quot;));</span>
+<span class="lineNum">     187 </span><span class="lineCov">          4 :   if (!digitsTree) { </span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     AliError(&quot;No digits tree passed&quot;);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     190 </span>            :   }
+<span class="lineNum">     191 </span>            :   static TClonesArray* array = 0;
+<span class="lineNum">     192 </span><span class="lineCov">          6 :   if (!array) array = new TClonesArray(&quot;AliFMDDigit&quot;);</span>
+<span class="lineNum">     193 </span><span class="lineCov">          4 :   digitsTree-&gt;Branch(&quot;FMD&quot;, &amp;array);</span>
+<span class="lineNum">     194 </span><span class="lineCov">          4 :   array-&gt;Clear();</span>
+<span class="lineNum">     195 </span>            :   
+<span class="lineNum">     196 </span><span class="lineCov">          4 :   AliFMDRawReader rawRead(reader, digitsTree);</span>
+<span class="lineNum">     197 </span>            :   // rawRead.SetSampleRate(fFMD-&gt;GetSampleRate());
+<span class="lineNum">     198 </span>            :   // rawRead.Exec();
+<span class="lineNum">     199 </span><span class="lineCov">          4 :   rawRead.ReadAdcs(array);</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineCov">          4 :   Int_t nWrite = digitsTree-&gt;Fill();</span>
+<span class="lineNum">     202 </span><span class="lineCov">         20 :   AliDebugF(1, &quot;Got a grand total of %d digits, wrote %d bytes to tree&quot;, </span>
+<span class="lineNum">     203 </span>            :             array-&gt;GetEntriesFast(), nWrite);
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :   
+<span class="lineNum">     206 </span><span class="lineCov">          8 :   AliFMDAltroMapping* map = AliFMDParameters::Instance()-&gt;GetAltroMap();</span>
+<span class="lineNum">     207 </span><span class="lineCov">         32 :   for (UShort_t i = 1; i &lt;= 3; i++) { </span>
+<span class="lineNum">     208 </span><span class="lineCov">         12 :     fZS[i-1]       = rawRead.IsZeroSuppressed(map-&gt;Detector2DDL(i));</span>
+<span class="lineNum">     209 </span><span class="lineCov">         12 :     fZSFactor[i-1] = rawRead.NoiseFactor(map-&gt;Detector2DDL(i));</span>
+<span class="lineNum">     210 </span><span class="lineCov">         60 :     AliDebugF(2, &quot;Noise factor for FMD%hu: %d&quot;, i, fZSFactor[i-1]);</span>
+<span class="lineNum">     211 </span>            :   }
+<span class="lineNum">     212 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     213 </span>            : 
+<a name="214"><span class="lineNum">     214 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     215 </span>            : void 
+<span class="lineNum">     216 </span>            : AliFMDReconstructor::GetVertex(AliESDEvent* esd) const
+<span class="lineNum">     217 </span>            : {
+<span class="lineNum">     218 </span>            :   // Return the vertex to use. 
+<span class="lineNum">     219 </span>            :   // This is obtained from the ESD object. 
+<span class="lineNum">     220 </span>            :   // If not found, a warning is issued.
+<span class="lineNum">     221 </span><span class="lineCov">         32 :   fVertexType    = kNoVertex;</span>
+<span class="lineNum">     222 </span><span class="lineCov">         16 :   fCurrentVertex = 0;</span>
+<span class="lineNum">     223 </span><span class="lineCov">         16 :   if (!esd) return;</span>
+<span class="lineNum">     224 </span>            :   
+<span class="lineNum">     225 </span><span class="lineCov">          8 :   const AliESDVertex* vertex = esd-&gt;GetPrimaryVertex();</span>
+<span class="lineNum">     226 </span><span class="lineCov">          8 :   if (!vertex)        vertex = esd-&gt;GetPrimaryVertexSPD();</span>
+<span class="lineNum">     227 </span><span class="lineCov">          8 :   if (!vertex)        vertex = esd-&gt;GetPrimaryVertexTPC();</span>
+<span class="lineNum">     228 </span><span class="lineCov">          8 :   if (!vertex)        vertex = esd-&gt;GetVertex();</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">          8 :   if (vertex) {</span>
+<span class="lineNum">     231 </span><span class="lineCov">         16 :     AliFMDDebug(2, (&quot;Got %s (%s) from ESD: %f&quot;, </span>
+<span class="lineNum">     232 </span>            :                     vertex-&gt;GetName(), vertex-&gt;GetTitle(), vertex-&gt;GetZ()));
+<span class="lineNum">     233 </span><span class="lineCov">          8 :     fCurrentVertex = vertex-&gt;GetZ();</span>
+<span class="lineNum">     234 </span><span class="lineCov">          8 :     fVertexType    = kESDVertex;</span>
+<span class="lineNum">     235 </span><span class="lineCov">          8 :     return;</span>
+<span class="lineNum">     236 </span>            :   }
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   else if (esd-&gt;GetESDTZERO()) { </span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     AliFMDDebug(2, (&quot;Got primary vertex from T0: %f&quot;, esd-&gt;GetT0zVertex()));</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     fCurrentVertex = esd-&gt;GetT0zVertex();</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     fVertexType    = kESDVertex;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     242 </span>            :   }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   AliWarning(&quot;Didn't get any vertex from ESD or generator&quot;);</span>
+<span class="lineNum">     244 </span><span class="lineCov">         16 : }</span>
+<span class="lineNum">     245 </span>            :   
+<a name="246"><span class="lineNum">     246 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     247 </span>            : Int_t
+<span class="lineNum">     248 </span>            : AliFMDReconstructor::GetIdentifier() const
+<span class="lineNum">     249 </span>            : {
+<span class="lineNum">     250 </span>            :   // Get the detector identifier. 
+<span class="lineNum">     251 </span>            :   // Note the actual value is cached so that we do not 
+<span class="lineNum">     252 </span>            :   // need to do many expensive string comparisons. 
+<span class="lineNum">     253 </span><span class="lineCov">         24 :   static Int_t idx = AliReconstruction::GetDetIndex(GetDetectorName());</span>
+<span class="lineNum">     254 </span><span class="lineCov">          8 :   return idx;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     256 </span>            : 
+<a name="257"><span class="lineNum">     257 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     258 </span>            : const AliFMDRecoParam*
+<span class="lineNum">     259 </span>            : AliFMDReconstructor::GetParameters() const
+<span class="lineNum">     260 </span>            : {
+<span class="lineNum">     261 </span>            :   // Get the reconstruction parameters. 
+<span class="lineNum">     262 </span>            :   // 
+<span class="lineNum">     263 </span>            :   // Return: 
+<span class="lineNum">     264 </span>            :   //   Pointer to reconstruction parameters or null if not found or wrong type
+<span class="lineNum">     265 </span><span class="lineCov">         16 :   Int_t iDet = GetIdentifier(); // Was 12 - but changed on Cvetans request</span>
+<span class="lineNum">     266 </span><span class="lineCov">          8 :   const AliDetectorRecoParam* params = AliReconstructor::GetRecoParam(iDet);</span>
+<span class="lineNum">     267 </span><span class="lineCov">         16 :   if (!params || params-&gt;IsA() != AliFMDRecoParam::Class()) return 0;</span>
+<span class="lineNum">     268 </span><span class="lineCov">          8 :   return static_cast&lt;const AliFMDRecoParam*&gt;(params);</span>
+<span class="lineNum">     269 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     270 </span>            : 
+<a name="271"><span class="lineNum">     271 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     272 </span>            : void 
+<span class="lineNum">     273 </span>            : AliFMDReconstructor::UseRecoParam(Bool_t set) const
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span>            :   // 
+<span class="lineNum">     276 </span>            :   // Set-up reconstructor to use values from reconstruction
+<span class="lineNum">     277 </span>            :   // parameters, if present, for this event.   If the argument @a set
+<span class="lineNum">     278 </span>            :   // is @c false, then restore preset values. 
+<span class="lineNum">     279 </span>            :   // 
+<span class="lineNum">     280 </span>            :   // Parameters:
+<span class="lineNum">     281 </span>            :   //    set 
+<span class="lineNum">     282 </span>            :   //  
+<span class="lineNum">     283 </span><span class="lineCov">         20 :   static Float_t savedNoiseFactor  = fNoiseFactor;</span>
+<span class="lineNum">     284 </span><span class="lineCov">         20 :   static Bool_t  savedAngleCorrect = fAngleCorrect;</span>
+<span class="lineNum">     285 </span><span class="lineCov">         16 :   if (set) { </span>
+<span class="lineNum">     286 </span><span class="lineCov">          8 :     const AliFMDRecoParam* params  = GetParameters();</span>
+<span class="lineNum">     287 </span><span class="lineCov">          8 :     if (params) { </span>
+<span class="lineNum">     288 </span><span class="lineCov">          8 :       fNoiseFactor  = params-&gt;NoiseFactor();</span>
+<span class="lineNum">     289 </span><span class="lineCov">          8 :       fAngleCorrect = params-&gt;AngleCorrect();</span>
+<span class="lineNum">     290 </span><span class="lineCov">          8 :     }</span>
+<span class="lineNum">     291 </span>            :     return;
+<span class="lineNum">     292 </span>            :   }
+<span class="lineNum">     293 </span><span class="lineCov">          8 :   fNoiseFactor  = savedNoiseFactor;</span>
+<span class="lineNum">     294 </span><span class="lineCov">          8 :   fAngleCorrect = savedAngleCorrect;</span>
+<span class="lineNum">     295 </span><span class="lineCov">         24 : }</span>
+<span class="lineNum">     296 </span>            :   
+<span class="lineNum">     297 </span>            :   
+<a name="298"><span class="lineNum">     298 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     299 </span>            : void 
+<span class="lineNum">     300 </span>            : AliFMDReconstructor::MarkDeadChannels(AliESDFMD* esd) const
+<span class="lineNum">     301 </span>            : {
+<span class="lineNum">     302 </span>            :   // Loop over all entries of the ESD and mark 
+<span class="lineNum">     303 </span>            :   // those that are dead as such 
+<span class="lineNum">     304 </span>            :   // - otherwise put in the zero signal. 
+<span class="lineNum">     305 </span><span class="lineCov">         16 :   AliFMDParameters* param = AliFMDParameters::Instance();</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">         64 :   for (UShort_t d = 1; d &lt;= 3; d++) { </span>
+<span class="lineNum">     308 </span><span class="lineCov">         24 :     UShort_t nR = (d == 1 ? 1 : 2);</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineCov">        128 :     for (UShort_t q = 0; q &lt; nR; q++) {</span>
+<span class="lineNum">     311 </span><span class="lineCov">         40 :       Char_t   r  = (q == 0 ? 'I' : 'O');</span>
+<span class="lineNum">     312 </span><span class="lineCov">         40 :       UShort_t nS = (q == 0 ?  20 :  40);</span>
+<span class="lineNum">     313 </span><span class="lineCov">         40 :       UShort_t nT = (q == 0 ? 512 : 256);</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineCov">       2320 :       for (UShort_t s = 0; s &lt; nS; s++) { </span>
+<span class="lineNum">     316 </span><span class="lineCov">     821440 :         for (UShort_t t = 0; t &lt; nT; t++) {</span>
+<span class="lineNum">     317 </span>            :           // A strip can be marked `bad' for two reasons: 
+<span class="lineNum">     318 </span>            :           // 
+<span class="lineNum">     319 </span>            :           // - The raw reader fails to read the value 
+<span class="lineNum">     320 </span>            :           // - The strip is marked in OCDB as bad (IsDead) 
+<span class="lineNum">     321 </span>            :           // 
+<span class="lineNum">     322 </span>            :           // Hence, a dead strip will always be marked kInvalid here, 
+<span class="lineNum">     323 </span>            :           // while a non-dead bad-read strip will be filled with 0. 
+<span class="lineNum">     324 </span><span class="lineCov">     409600 :           if (fBad(d, r, s, t)) { </span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :             AliDebugF(5, &quot;Marking FMD%d%c[%2d,%3d] as bad&quot;, d, r, s, t);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             esd-&gt;SetMultiplicity(d, r, s, t, AliESDFMD::kInvalidMult);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :           }         </span>
+<span class="lineNum">     328 </span><span class="lineCov">     409600 :           if (param-&gt;IsDead(d, r, s, t)) { </span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             AliDebugF(5, &quot;Marking FMD%d%c[%2d,%3d] as dead&quot;, d, r, s, t);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :             esd-&gt;SetMultiplicity(d, r, s, t, AliESDFMD::kInvalidMult);</span>
+<span class="lineNum">     331 </span>            :             // esd-&gt;SetEta(d, r, s, t, AliESDFMD::kInvalidEta);
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     333 </span><span class="lineCov">     819200 :           else if (esd-&gt;Multiplicity(d, r, s, t) == AliESDFMD::kInvalidMult) {</span>
+<span class="lineNum">     334 </span><span class="lineCov">     409600 :             AliDebugF(20, &quot;Setting null signal in FMD%d%c[%2d,%3d]&quot;, </span>
+<span class="lineNum">     335 </span>            :                       d, r, s, t);
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             esd-&gt;SetMultiplicity(d, r, s, t, 0);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     338 </span>            :           else {
+<span class="lineNum">     339 </span><span class="lineCov">    1228800 :             AliDebugF(10, &quot;Setting FMD%d%c[%2d,%3d]=%f&quot;,d,r,s,t,</span>
+<span class="lineNum">     340 </span>            :                       esd-&gt;Multiplicity(d, r, s, t));
+<span class="lineNum">     341 </span>            :           }
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span>            :       }
+<span class="lineNum">     344 </span>            :     }
+<span class="lineNum">     345 </span>            :   }
+<span class="lineNum">     346 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     347 </span>            : 
+<a name="348"><span class="lineNum">     348 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     349 </span>            : Bool_t
+<span class="lineNum">     350 </span>            : AliFMDReconstructor::PreReconstruct() const
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span><span class="lineCov">         24 :   AliFMDDebug(1, (&quot;Before reoconstructing&quot;));</span>
+<span class="lineNum">     353 </span><span class="lineCov">          8 :   if (fZombie) { </span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     356 </span>            :   }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :   // Get our vertex
+<span class="lineNum">     359 </span><span class="lineCov">          8 :   GetVertex(fESD);</span>
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :   // Reset bad flags 
+<span class="lineNum">     362 </span><span class="lineCov">          8 :   fBad.Reset(false);</span>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :   // Reset the output ESD 
+<span class="lineNum">     365 </span><span class="lineCov">          8 :   if (fESDObj) {</span>
+<span class="lineNum">     366 </span><span class="lineCov">          8 :     fESDObj-&gt;Clear();</span>
+<span class="lineNum">     367 </span>            :     
+<span class="lineNum">     368 </span>            :     // Pre-set eta values 
+<span class="lineNum">     369 </span><span class="lineCov">         64 :     for (UShort_t d=1; d&lt;=3; d++) { </span>
+<span class="lineNum">     370 </span><span class="lineCov">         24 :       UShort_t nQ = (d == 1 ? 1 : 2);</span>
+<span class="lineNum">     371 </span><span class="lineCov">        128 :       for (UShort_t q=0; q&lt;nQ; q++) { </span>
+<span class="lineNum">     372 </span><span class="lineCov">         40 :         UShort_t nStr = (q == 0 ? 512 : 256);</span>
+<span class="lineNum">     373 </span><span class="lineCov">         40 :         Char_t   r    = (q == 0 ? 'I' : 'O');</span>
+<span class="lineNum">     374 </span>            :         
+<span class="lineNum">     375 </span><span class="lineCov">      32848 :         for (UShort_t t = 0; t &lt; nStr; t++) { </span>
+<span class="lineNum">     376 </span><span class="lineCov">      16384 :           Float_t eta, phi;</span>
+<span class="lineNum">     377 </span>            :           // Always use sector 0
+<span class="lineNum">     378 </span><span class="lineCov">      16384 :           PhysicalCoordinates(d, r, 0, t, eta, phi);</span>
+<span class="lineNum">     379 </span><span class="lineCov">      16384 :           fESDObj-&gt;SetEta(d, r, 0, t, eta);</span>
+<span class="lineNum">     380 </span><span class="lineCov">      16384 :         }</span>
+<span class="lineNum">     381 </span>            :       }
+<span class="lineNum">     382 </span>            :     }
+<span class="lineNum">     383 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">          8 :   return true;</span>
+<span class="lineNum">     387 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     388 </span>            : 
+<a name="389"><span class="lineNum">     389 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     390 </span>            : void 
+<span class="lineNum">     391 </span>            : AliFMDReconstructor::Reconstruct(AliFMDRawReader&amp; rawReader) const
+<span class="lineNum">     392 </span>            : {
+<span class="lineNum">     393 </span>            :   // Reconstruct directly from raw data (no intermediate output on
+<span class="lineNum">     394 </span>            :   // digit tree or rec point tree).  
+<span class="lineNum">     395 </span>            :   // 
+<span class="lineNum">     396 </span>            :   // Parameters: 
+<span class="lineNum">     397 </span>            :   //   rawReader        FMD Raw event reader 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   AliFMDDebug(1, (&quot;Reconstructing from FMD raw reader&quot;));</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :   if (!PreReconstruct()) return;</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :   UShort_t det, sec, str, fac;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   Short_t  adc, oldDet = -1;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   Bool_t   zs;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   Char_t   rng;</span>
+<span class="lineNum">     405 </span>            :  
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   UseRecoParam(kTRUE);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   while (rawReader.NextSignal(det, rng, sec, str, adc, zs, fac)) { </span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     if (det != oldDet) { </span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :       fZS[det-1]       = zs;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :       fZSFactor[det-1] = fac;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :       oldDet           = det;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     ProcessSignal(det, rng, sec, str, adc);</span>
+<span class="lineNum">     414 </span>            :   }
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   UseRecoParam(kFALSE);</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     418 </span>            : 
+<a name="419"><span class="lineNum">     419 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     420 </span>            : void 
+<span class="lineNum">     421 </span>            : AliFMDReconstructor::Reconstruct(AliRawReader* reader, TTree*) const
+<span class="lineNum">     422 </span>            : {
+<span class="lineNum">     423 </span>            :   // Reconstruct directly from raw data (no intermediate output on
+<span class="lineNum">     424 </span>            :   // digit tree or rec point tree).  
+<span class="lineNum">     425 </span>            :   // 
+<span class="lineNum">     426 </span>            :   // Parameters: 
+<span class="lineNum">     427 </span>            :   //   reader   Raw event reader 
+<span class="lineNum">     428 </span>            :   //   ctree    Not used - 'cluster tree' to store rec-points in. 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :   AliFMDDebug(1, (&quot;Reconstructing from raw reader&quot;));</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   if (fZombie) { </span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     433 </span>            :   }
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   AliFMDRawReader rawReader(reader, 0);</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   Reconstruct(rawReader);</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     437 </span>            : 
+<a name="438"><span class="lineNum">     438 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     439 </span>            : void 
+<span class="lineNum">     440 </span>            : AliFMDReconstructor::Digitize(AliRawReader* reader, TClonesArray* sdigits) const
+<span class="lineNum">     441 </span>            : {
+<span class="lineNum">     442 </span>            :   // Reconstruct directly from raw data (no intermediate output on
+<span class="lineNum">     443 </span>            :   // digit tree or rec point tree).  
+<span class="lineNum">     444 </span>            :   // 
+<span class="lineNum">     445 </span>            :   // Parameters: 
+<span class="lineNum">     446 </span>            :   //   reader   Raw event reader 
+<span class="lineNum">     447 </span>            :   //   ctree    Not used. 
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   if (fZombie) { </span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     451 </span>            :   }
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   AliFMDRawReader rawReader(reader, 0);</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :   UShort_t det, sec, str, sam, rat, fac;</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :   Short_t  adc, oldDet = -1;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :   Bool_t   zs;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   Char_t   rng;</span>
+<span class="lineNum">     458 </span>            :     
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   UseRecoParam(kTRUE);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   while (rawReader.NextSample(det, rng, sec, str, sam, rat, adc, zs, fac)) { </span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     if (!rawReader.SelectSample(sam, rat)) continue;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     if (det != oldDet) { </span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :       fZS[det-1]       = zs;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :       fZSFactor[det-1] = fac;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :       oldDet           = det;</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     DigitizeSignal(sdigits, det, rng, sec, str, sam, adc);</span>
+<span class="lineNum">     468 </span>            :   }
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   UseRecoParam(kFALSE);</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     471 </span>            : 
+<a name="472"><span class="lineNum">     472 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     473 </span>            : void 
+<span class="lineNum">     474 </span>            : AliFMDReconstructor::Reconstruct(TTree* digitsTree, 
+<span class="lineNum">     475 </span>            :                                  TTree* clusterTree) const 
+<span class="lineNum">     476 </span>            : {
+<span class="lineNum">     477 </span>            :   // Reconstruct event from digits in tree 
+<span class="lineNum">     478 </span>            :   // Get the FMD branch holding the digits. 
+<span class="lineNum">     479 </span>            :   // FIXME: The vertex may not be known yet, so we may have to move
+<span class="lineNum">     480 </span>            :   // some of this to FillESD. 
+<span class="lineNum">     481 </span>            :   // 
+<span class="lineNum">     482 </span>            :   // Parameters: 
+<span class="lineNum">     483 </span>            :   //   digitsTree       Pointer to a tree containing digits 
+<span class="lineNum">     484 </span>            :   //   clusterTree      Pointer to output tree 
+<span class="lineNum">     485 </span>            :   // 
+<span class="lineNum">     486 </span><span class="lineCov">         16 :   if (!PreReconstruct()) return;</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineCov">         12 :   if (!fMult) fMult = new TClonesArray(&quot;AliFMDRecPoint&quot;);</span>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineCov">         16 :   AliFMDDebug(1, (&quot;Reconstructing from digits in a tree&quot;));</span>
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :   // Get the digitis array 
+<span class="lineNum">     493 </span><span class="lineCov">         16 :   static TClonesArray* digits      = new TClonesArray(&quot;AliFMDDigit&quot;);</span>
+<span class="lineNum">     494 </span><span class="lineCov">          8 :   TBranch*             digitBranch = digitsTree-&gt;GetBranch(&quot;FMD&quot;);</span>
+<span class="lineNum">     495 </span><span class="lineCov">          8 :   if (!digitBranch) {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     Error(&quot;Exec&quot;, &quot;No digit branch for the FMD found&quot;);</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     498 </span>            :   }
+<span class="lineNum">     499 </span><span class="lineCov">          8 :   digitBranch-&gt;SetAddress(&amp;digits);</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineCov">         16 :   if (digits)  digits-&gt;Clear();</span>
+<span class="lineNum">     502 </span><span class="lineCov">         16 :   if (fMult)   fMult-&gt;Clear();</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            :   // Create rec-point output branch 
+<span class="lineNum">     505 </span><span class="lineCov">          8 :   fNMult = 0;</span>
+<span class="lineNum">     506 </span><span class="lineCov">          8 :   fTreeR = clusterTree;</span>
+<span class="lineNum">     507 </span><span class="lineCov">          8 :   fTreeR-&gt;Branch(&quot;FMD&quot;, &amp;fMult);</span>
+<span class="lineNum">     508 </span>            :   
+<span class="lineNum">     509 </span><span class="lineCov">         24 :   AliDebug(5, &quot;Getting entry 0 from digit branch&quot;);</span>
+<span class="lineNum">     510 </span><span class="lineCov">          8 :   digitBranch-&gt;GetEntry(0);</span>
+<span class="lineNum">     511 </span>            :   
+<span class="lineNum">     512 </span><span class="lineCov">         24 :   AliDebugF(5, &quot;Processing %d digits&quot;, digits-&gt;GetEntriesFast());</span>
+<span class="lineNum">     513 </span><span class="lineCov">          8 :   UseRecoParam(kTRUE);</span>
+<span class="lineNum">     514 </span><span class="lineCov">          8 :   ProcessDigits(digits);</span>
+<span class="lineNum">     515 </span><span class="lineCov">          8 :   UseRecoParam(kFALSE);</span>
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineCov">          8 :   Int_t written = clusterTree-&gt;Fill();</span>
+<span class="lineNum">     518 </span><span class="lineCov">         16 :   AliFMDDebug(10, (&quot;Filled %d bytes into cluster tree&quot;, written));</span>
+<span class="lineNum">     519 </span>            :   // digits-&gt;Delete();
+<span class="lineNum">     520 </span>            :   // delete digits;
+<span class="lineNum">     521 </span><span class="lineCov">         16 : }</span>
+<span class="lineNum">     522 </span>            :  
+<span class="lineNum">     523 </span>            : 
+<a name="524"><span class="lineNum">     524 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     525 </span>            : void
+<span class="lineNum">     526 </span>            : AliFMDReconstructor::ProcessDigits(TClonesArray* digits, 
+<span class="lineNum">     527 </span>            :                                    const AliFMDRawReader&amp; rawRead) const
+<span class="lineNum">     528 </span>            : {
+<span class="lineNum">     529 </span>            :   // For each digit, find the pseudo rapdity, azimuthal angle, and
+<span class="lineNum">     530 </span>            :   // number of corrected ADC counts, and pass it on to the algorithms
+<span class="lineNum">     531 </span>            :   // used. 
+<span class="lineNum">     532 </span>            :   // 
+<span class="lineNum">     533 </span>            :   // Parameters: 
+<span class="lineNum">     534 </span>            :   //    digits  Array of digits
+<span class="lineNum">     535 </span>            :   // 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   if (fZombie) { </span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     539 </span>            :   }
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :   AliFMDAltroMapping* map = AliFMDParameters::Instance()-&gt;GetAltroMap();</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :   for (size_t i = 1; i &lt;= 3; i++) { </span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     fZS[i-1]       = rawRead.IsZeroSuppressed(map-&gt;Detector2DDL(i));</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     fZSFactor[i-1] = rawRead.NoiseFactor(map-&gt;Detector2DDL(i));</span>
+<span class="lineNum">     544 </span>            :   }
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :   UseRecoParam(kTRUE);</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :   ProcessDigits(digits);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   UseRecoParam(kFALSE);</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     549 </span>            : 
+<a name="550"><span class="lineNum">     550 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     551 </span>            : void
+<span class="lineNum">     552 </span>            : AliFMDReconstructor::ProcessDigits(TClonesArray* digits) const
+<span class="lineNum">     553 </span>            : {
+<span class="lineNum">     554 </span>            :   // For each digit, find the pseudo rapdity, azimuthal angle, and
+<span class="lineNum">     555 </span>            :   // number of corrected ADC counts, and pass it on to the algorithms
+<span class="lineNum">     556 </span>            :   // used. 
+<span class="lineNum">     557 </span>            :   // 
+<span class="lineNum">     558 </span>            :   // Parameters: 
+<span class="lineNum">     559 </span>            :   //    digits  Array of digits
+<span class="lineNum">     560 </span>            :   // 
+<span class="lineNum">     561 </span><span class="lineCov">         16 :   Int_t nDigits = digits-&gt;GetEntries();</span>
+<span class="lineNum">     562 </span><span class="lineCov">         16 :   AliFMDDebug(2, (&quot;Got %d digits&quot;, nDigits));</span>
+<span class="lineNum">     563 </span><span class="lineCov">          8 :   fESDObj-&gt;SetNoiseFactor(fNoiseFactor);</span>
+<span class="lineNum">     564 </span><span class="lineCov">          8 :   fESDObj-&gt;SetAngleCorrected(fAngleCorrect);</span>
+<span class="lineNum">     565 </span><span class="lineCov">          8 :   fBad.Reset(false);</span>
+<span class="lineNum">     566 </span><span class="lineCov">     819216 :   for (Int_t i = 0; i &lt; nDigits; i++) {</span>
+<span class="lineNum">     567 </span><span class="lineCov">     409600 :     AliFMDDigit* digit = static_cast&lt;AliFMDDigit*&gt;(digits-&gt;At(i));</span>
+<span class="lineNum">     568 </span><span class="lineCov">     409600 :     if (!digit) continue;</span>
+<span class="lineNum">     569 </span><span class="lineCov">     409600 :     ProcessDigit(digit);</span>
+<span class="lineNum">     570 </span><span class="lineCov">     409600 :   }</span>
+<span class="lineNum">     571 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     572 </span>            : 
+<a name="573"><span class="lineNum">     573 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     574 </span>            : void
+<span class="lineNum">     575 </span>            : AliFMDReconstructor::ProcessDigit(AliFMDDigit* digit) const
+<span class="lineNum">     576 </span>            : {
+<span class="lineNum">     577 </span>            :   // 
+<span class="lineNum">     578 </span>            :   // Process a single digit 
+<span class="lineNum">     579 </span>            :   // 
+<span class="lineNum">     580 </span>            :   // Parameters:
+<span class="lineNum">     581 </span>            :   //    digit Digiti to process
+<span class="lineNum">     582 </span>            :   // 
+<span class="lineNum">     583 </span><span class="lineCov">     819200 :   UShort_t det = digit-&gt;Detector();</span>
+<span class="lineNum">     584 </span><span class="lineCov">     409600 :   Char_t   rng = digit-&gt;Ring();</span>
+<span class="lineNum">     585 </span><span class="lineCov">     409600 :   UShort_t sec = digit-&gt;Sector();</span>
+<span class="lineNum">     586 </span><span class="lineCov">     409600 :   UShort_t str = digit-&gt;Strip();</span>
+<span class="lineNum">     587 </span><span class="lineCov">     409600 :   Short_t  adc = digit-&gt;Counts();</span>
+<span class="lineNum">     588 </span>            :   // if (AliLog::GetDebugLevel(&quot;FMD&quot;,&quot;&quot;)&gt;3) digit-&gt;Print();
+<span class="lineNum">     589 </span><span class="lineCov">     409600 :   ProcessSignal(det, rng, sec, str, adc);</span>
+<span class="lineNum">     590 </span><span class="lineCov">     409600 : }</span>
+<span class="lineNum">     591 </span>            : 
+<a name="592"><span class="lineNum">     592 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     593 </span>            : void
+<span class="lineNum">     594 </span>            : AliFMDReconstructor::ProcessSignal(UShort_t det, 
+<span class="lineNum">     595 </span>            :                                    Char_t   rng, 
+<span class="lineNum">     596 </span>            :                                    UShort_t sec, 
+<span class="lineNum">     597 </span>            :                                    UShort_t str, 
+<span class="lineNum">     598 </span>            :                                    Short_t  adc) const
+<span class="lineNum">     599 </span>            : {
+<span class="lineNum">     600 </span>            :   // Process the signal from a single strip 
+<span class="lineNum">     601 </span>            :   // 
+<span class="lineNum">     602 </span>            :   // Parameters: 
+<span class="lineNum">     603 </span>            :   //    det     Detector ID
+<span class="lineNum">     604 </span>            :   //    rng     Ring ID
+<span class="lineNum">     605 </span>            :   //    sec     Sector ID
+<span class="lineNum">     606 </span>            :   //    rng     Strip ID
+<span class="lineNum">     607 </span>            :   //    adc     ADC counts
+<span class="lineNum">     608 </span>            :   // 
+<span class="lineNum">     609 </span><span class="lineCov">     819200 :   Int_t  dbg = AliLog::GetDebugLevel(&quot;FMD&quot;,&quot;&quot;);</span>
+<span class="lineNum">     610 </span><span class="lineCov">     409600 :   Bool_t dhr = dbg &gt; 3 &amp;&amp; dbg &lt; 10;</span>
+<span class="lineNum">     611 </span><span class="lineCov">     409600 :   if (dhr) printf(&quot;FMD%d%c[%2d,%3d] adc=%4d &quot;, det, rng, sec, str, adc);</span>
+<span class="lineNum">     612 </span>            :   
+<span class="lineNum">     613 </span><span class="lineCov">     409600 :   if (adc &gt;= AliFMDRawReader::kBadSignal) { </span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     AliFMDDebug(10, (&quot;FMD%d%c[%2d,%3d] is marked bad&quot;, det, rng, sec, str));</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     if (dhr) Printf(&quot;bad&quot;);</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     fBad(det,rng,sec,str) = true;</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     618 </span>            :   }
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span>            :   // Check that the strip is not marked as dead 
+<span class="lineNum">     621 </span><span class="lineCov">     409600 :   AliFMDParameters* param  = AliFMDParameters::Instance();</span>
+<span class="lineNum">     622 </span><span class="lineCov">     409600 :   if (param-&gt;IsDead(det, rng, sec, str)) {</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :     AliFMDDebug(10, (&quot;FMD%d%c[%2d,%3d] is dead&quot;, det, rng, sec, str));</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :     if (dhr) Printf(&quot;dead&quot;);</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     fBad(det,rng,sec,str) = true;</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     627 </span>            :   }
+<span class="lineNum">     628 </span>            :   
+<span class="lineNum">     629 </span>            :   // digit-&gt;Print();
+<span class="lineNum">     630 </span>            :   // Get eta and phi 
+<span class="lineNum">     631 </span><span class="lineCov">     409600 :   Float_t eta = fESDObj-&gt;Eta(det, rng, 0, str);</span>
+<span class="lineNum">     632 </span>            :     
+<span class="lineNum">     633 </span>            :   // Substract pedestal. 
+<span class="lineNum">     634 </span><span class="lineCov">     409600 :   UShort_t counts   = SubtractPedestal(det, rng, sec, str, adc);</span>
+<span class="lineNum">     635 </span><span class="lineCov">     409600 :   if(counts == USHRT_MAX)  { </span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     if (dhr) Printf(&quot;invalid&quot;);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     638 </span>            :   }
+<span class="lineNum">     639 </span><span class="lineCov">     409600 :   if (dhr) printf(&quot;counts=%4d &quot;, counts);</span>
+<span class="lineNum">     640 </span>            :   
+<span class="lineNum">     641 </span>            :     // Gain match digits. 
+<span class="lineNum">     642 </span><span class="lineCov">     409600 :   Double_t edep     = Adc2Energy(det, rng, sec, str, eta, counts);</span>
+<span class="lineNum">     643 </span>            :   // Get rid of nonsense energy
+<span class="lineNum">     644 </span><span class="lineCov">     409600 :   if(edep &lt; 0)  { </span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     if (dhr) Printf(&quot;zero&quot;);</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     647 </span>            :   }
+<span class="lineNum">     648 </span><span class="lineCov">     409600 :   if (dhr) printf(&quot;edep=%f &quot;, edep);</span>
+<span class="lineNum">     649 </span>            :   
+<span class="lineNum">     650 </span>            :   // Make rough multiplicity 
+<span class="lineNum">     651 </span><span class="lineCov">     409600 :   Double_t mult     = Energy2Multiplicity(det, rng, sec, str, edep);</span>
+<span class="lineNum">     652 </span>            :   // Get rid of nonsense mult
+<span class="lineNum">     653 </span>            :   //if (mult &gt; 20) { 
+<span class="lineNum">     654 </span>            :   //  AliWarning(Form(&quot;The mutliplicity in FMD%d%c[%2d,%3d]=%f &gt; 20 &quot;
+<span class="lineNum">     655 </span>            :   //                &quot;(ADC: %d, Energy: %f)&quot;, det, rng, sec, str, mult, 
+<span class="lineNum">     656 </span>            :   //                counts, edep));
+<span class="lineNum">     657 </span>            :   // }
+<span class="lineNum">     658 </span><span class="lineCov">     409600 :   if (mult &lt; 0)  {</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :     if (dhr) Printf(&quot;not hit&quot;);</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     return; </span>
+<span class="lineNum">     661 </span>            :   }
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span><span class="lineCov">     409600 :   if (dhr) Printf(&quot;mult=%f &quot;, mult);</span>
+<span class="lineNum">     664 </span><span class="lineCov">     819200 :   AliFMDDebug(10, (&quot;FMD%d%c[%2d,%3d]: &quot;</span>
+<span class="lineNum">     665 </span>            :                     &quot;ADC: %d, Counts: %d, Energy: %f, Mult: %f&quot;,
+<span class="lineNum">     666 </span>            :                   det, rng, sec, str, adc, counts, edep, mult));
+<span class="lineNum">     667 </span>            :   
+<span class="lineNum">     668 </span>            :   // Create a `RecPoint' on the output branch. 
+<span class="lineNum">     669 </span><span class="lineCov">     409600 :   if (fMult) {</span>
+<span class="lineNum">     670 </span><span class="lineCov">     409600 :     Float_t phi;</span>
+<span class="lineNum">     671 </span><span class="lineCov">     409600 :     PhysicalCoordinates(det, rng, sec, str, eta, phi);</span>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span>            :     AliFMDRecPoint* m = 
+<span class="lineNum">     674 </span><span class="lineCov">     819200 :       new ((*fMult)[fNMult]) AliFMDRecPoint(det, rng, sec, str, </span>
+<span class="lineNum">     675 </span><span class="lineCov">     409600 :                                             eta, phi, edep, mult);</span>
+<span class="lineNum">     676 </span>            :     (void)m; // Suppress warnings about unused variables. 
+<span class="lineNum">     677 </span><span class="lineCov">     409600 :     fNMult++;</span>
+<span class="lineNum">     678 </span><span class="lineCov">     409600 :   }</span>
+<span class="lineNum">     679 </span>            :   
+<span class="lineNum">     680 </span><span class="lineCov">     409600 :   fESDObj-&gt;SetMultiplicity(det, rng, sec, str, mult);</span>
+<span class="lineNum">     681 </span>            :   // fESDObj-&gt;SetEta(det, rng, sec, str, eta);
+<span class="lineNum">     682 </span>            :   
+<span class="lineNum">     683 </span><span class="lineCov">     409600 :   if (fDiagAll) fDiagAll-&gt;Fill(adc, mult);  </span>
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span><span class="lineCov">    1228800 : }</span>
+<span class="lineNum">     686 </span>            : 
+<a name="687"><span class="lineNum">     687 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     688 </span>            : void
+<span class="lineNum">     689 </span>            : AliFMDReconstructor::DigitizeSignal(TClonesArray* sdigits, 
+<span class="lineNum">     690 </span>            :                                     UShort_t det, 
+<span class="lineNum">     691 </span>            :                                     Char_t   rng, 
+<span class="lineNum">     692 </span>            :                                     UShort_t sec, 
+<span class="lineNum">     693 </span>            :                                     UShort_t str, 
+<span class="lineNum">     694 </span>            :                                     UShort_t /* sam */,
+<span class="lineNum">     695 </span>            :                                     Short_t  adc) const
+<span class="lineNum">     696 </span>            : {
+<span class="lineNum">     697 </span>            :   // Process the signal from a single strip 
+<span class="lineNum">     698 </span>            :   // 
+<span class="lineNum">     699 </span>            :   // Parameters: 
+<span class="lineNum">     700 </span>            :   //    det     Detector ID
+<span class="lineNum">     701 </span>            :   //    rng     Ring ID
+<span class="lineNum">     702 </span>            :   //    sec     Sector ID
+<span class="lineNum">     703 </span>            :   //    rng     Strip ID
+<span class="lineNum">     704 </span>            :   //    adc     ADC counts
+<span class="lineNum">     705 </span>            :   // 
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   AliFMDParameters* param  = AliFMDParameters::Instance();</span>
+<span class="lineNum">     707 </span>            :   // Check that the strip is not marked as dead 
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :   if (param-&gt;IsDead(det, rng, sec, str)) {</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     AliFMDDebug(10, (&quot;FMD%d%c[%2d,%3d] is dead&quot;, det, rng, sec, str));</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     711 </span>            :   }
+<span class="lineNum">     712 </span>            :   
+<span class="lineNum">     713 </span>            :   // Substract pedestal. 
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   UShort_t counts   = SubtractPedestal(det, rng, sec, str, adc);</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :   if(counts == USHRT_MAX || counts == 0) return;</span>
+<span class="lineNum">     716 </span>            :   
+<span class="lineNum">     717 </span>            :     // Gain match digits. 
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :   Double_t edep     = Adc2Energy(det, rng, sec, str, counts);</span>
+<span class="lineNum">     719 </span>            :   // Get rid of nonsense energy
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :   if(edep &lt; 0)  return;</span>
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :   Int_t n = sdigits-&gt;GetEntriesFast();</span>
+<span class="lineNum">     723 </span>            :   // AliFMDSDigit* sdigit = 
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :   new ((*sdigits)[n]) </span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     AliFMDSDigit(det, rng, sec, str, edep, counts, counts, counts, counts);</span>
+<span class="lineNum">     726 </span>            :   // sdigit-&gt;SetCount(sam, counts);
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     728 </span>            : 
+<a name="729"><span class="lineNum">     729 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     730 </span>            : UShort_t
+<span class="lineNum">     731 </span>            : AliFMDReconstructor::SubtractPedestal(UShort_t det, 
+<span class="lineNum">     732 </span>            :                                       Char_t   rng, 
+<span class="lineNum">     733 </span>            :                                       UShort_t sec, 
+<span class="lineNum">     734 </span>            :                                       UShort_t str, 
+<span class="lineNum">     735 </span>            :                                       UShort_t adc, 
+<span class="lineNum">     736 </span>            :                                       Float_t  noiseFactor,
+<span class="lineNum">     737 </span>            :                                       Bool_t   zsEnabled, 
+<span class="lineNum">     738 </span>            :                                       UShort_t zsNoiseFactor) const
+<span class="lineNum">     739 </span>            : {
+<span class="lineNum">     740 </span>            :   // 
+<span class="lineNum">     741 </span>            :   // Subtract the pedestal off the ADC counts. 
+<span class="lineNum">     742 </span>            :   // 
+<span class="lineNum">     743 </span>            :   // Parameters:
+<span class="lineNum">     744 </span>            :   //    det           Detector number
+<span class="lineNum">     745 </span>            :   //    rng           Ring identifier
+<span class="lineNum">     746 </span>            :   //    sec           Sector number
+<span class="lineNum">     747 </span>            :   //    str           Strip number
+<span class="lineNum">     748 </span>            :   //    adc           ADC counts
+<span class="lineNum">     749 </span>            :   //    noiseFactor   If pedestal substracted pedestal is less then
+<span class="lineNum">     750 </span>            :   //        this times the noise, then consider this to be 0. 
+<span class="lineNum">     751 </span>            :   //    zsEnabled     Whether zero-suppression is on.
+<span class="lineNum">     752 </span>            :   //    zsNoiseFactor Noise factor used in on-line pedestal
+<span class="lineNum">     753 </span>            :   //        subtraction. 
+<span class="lineNum">     754 </span>            :   // 
+<span class="lineNum">     755 </span>            :   // Return:
+<span class="lineNum">     756 </span>            :   //    The pedestal subtracted ADC counts (possibly 0), or @c
+<span class="lineNum">     757 </span>            :   //         USHRT_MAX in case of problems.
+<span class="lineNum">     758 </span>            :   //  
+<span class="lineNum">     759 </span><span class="lineCov">     409600 :   AliFMDParameters* param  = AliFMDParameters::Instance();</span>
+<span class="lineNum">     760 </span><span class="lineCov">    1228800 :   Float_t           ped    = (zsEnabled ? 0 : </span>
+<span class="lineNum">     761 </span><span class="lineCov">     409600 :                               param-&gt;GetPedestal(det, rng, sec, str));</span>
+<span class="lineNum">     762 </span><span class="lineCov">     409600 :   Float_t           noise  = param-&gt;GetPedestalWidth(det, rng, sec, str);</span>
+<span class="lineNum">     763 </span><span class="lineCov">     409600 :   if (ped &lt; 0 || noise &lt; 0) { </span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     AliWarningClass(Form(&quot;Invalid pedestal (%f) or noise (%f) &quot;</span>
+<span class="lineNum">     765 </span>            :                          &quot;for FMD%d%c[%02d,%03d]&quot;, 
+<span class="lineNum">     766 </span>            :                     ped, noise, det, rng, sec, str));
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     return USHRT_MAX;</span>
+<span class="lineNum">     768 </span>            :   }
+<span class="lineNum">     769 </span><span class="lineCov">    1228800 :   AliDebugClass(10, Form(&quot;Subtracting pedestal for FMD%d%c[%2d,%3d]=%4d &quot;</span>
+<span class="lineNum">     770 </span>            :                          &quot;(%s w/factor %d, noise factor %f, &quot;
+<span class="lineNum">     771 </span>            :                          &quot;pedestal %8.2f+/-%8.2f)&quot;,
+<span class="lineNum">     772 </span>            :                          det, rng, sec, str, adc, 
+<span class="lineNum">     773 </span>            :                          (zsEnabled ? &quot;zs'ed&quot; : &quot;straight&quot;), 
+<span class="lineNum">     774 </span>            :                          zsNoiseFactor, noiseFactor, ped, noise));
+<span class="lineNum">     775 </span>            : 
+<span class="lineNum">     776 </span><span class="lineCov">    1228800 :   Int_t counts = adc + Int_t(zsEnabled ? zsNoiseFactor * noise : - ped);</span>
+<span class="lineNum">     777 </span><span class="lineCov">     409600 :   counts =  TMath::Max(Int_t(counts), 0);</span>
+<span class="lineNum">     778 </span>            :   // Calculate the noise factor for suppressing remenants of the noise
+<span class="lineNum">     779 </span>            :   // peak.  If we have done on-line zero suppression, we only check
+<span class="lineNum">     780 </span>            :   // for noise signals that are larger than the suppressed noise.  If
+<span class="lineNum">     781 </span>            :   // the noise factor used on line is larger than the factor used
+<span class="lineNum">     782 </span>            :   // here, we do not do this check at all.  
+<span class="lineNum">     783 </span>            :   // 
+<span class="lineNum">     784 </span>            :   // For example:
+<span class="lineNum">     785 </span>            :   //    Online factor  |  Read factor |  Result 
+<span class="lineNum">     786 </span>            :   //    ---------------+--------------+-------------------------------
+<span class="lineNum">     787 </span>            :   //           2       |      3       | Check if signal &gt; 1 * noise
+<span class="lineNum">     788 </span>            :   //           3       |      3       | Check if signal &gt; 0
+<span class="lineNum">     789 </span>            :   //           3       |      2       | Check if signal &gt; 0
+<span class="lineNum">     790 </span>            :   //
+<span class="lineNum">     791 </span>            :   // In this way, we make sure that we do not suppress away too much
+<span class="lineNum">     792 </span>            :   // data, and that the read-factor is the most stringent cut. 
+<span class="lineNum">     793 </span><span class="lineCov">     409600 :   Float_t nf = zsNoiseFactor; // TMath::Max(0.F, noiseFactor - (zsEnabled ? zsNoiseFactor : 0));</span>
+<span class="lineNum">     794 </span><span class="lineCov">     738667 :   if (counts &lt;= noise * nf) counts = 0;</span>
+<span class="lineNum">     795 </span><span class="lineCov">     651199 :   if (counts &gt; 0) AliDebugClass(15, &quot;Got a hit strip&quot;);</span>
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span><span class="lineCov">     409600 :   UShort_t ret = counts &lt; 0 ? 0 : counts;</span>
+<span class="lineNum">     798 </span>            :   return ret;
+<span class="lineNum">     799 </span><span class="lineCov">     409600 : }</span>
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span>            : 
+<a name="802"><span class="lineNum">     802 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     803 </span>            : UShort_t
+<span class="lineNum">     804 </span>            : AliFMDReconstructor::SubtractPedestal(UShort_t det, 
+<span class="lineNum">     805 </span>            :                                       Char_t   rng, 
+<span class="lineNum">     806 </span>            :                                       UShort_t sec, 
+<span class="lineNum">     807 </span>            :                                       UShort_t str, 
+<span class="lineNum">     808 </span>            :                                       Short_t  adc) const
+<span class="lineNum">     809 </span>            : {
+<span class="lineNum">     810 </span>            :   // Member function to subtract the pedestal from a digit
+<span class="lineNum">     811 </span>            :   //
+<span class="lineNum">     812 </span>            :   // Parameters: 
+<span class="lineNum">     813 </span>            :   //    det     Detector ID
+<span class="lineNum">     814 </span>            :   //    rng     Ring ID
+<span class="lineNum">     815 </span>            :   //    sec     Sector ID
+<span class="lineNum">     816 </span>            :   //    rng     Strip ID
+<span class="lineNum">     817 </span>            :   //    adc     # of ADC counts
+<span class="lineNum">     818 </span>            :   // Return:
+<span class="lineNum">     819 </span>            :   //    Pedestal subtracted signal or USHRT_MAX in case of problems 
+<span class="lineNum">     820 </span>            :   //
+<span class="lineNum">     821 </span><span class="lineCov">    1228800 :   UShort_t counts = SubtractPedestal(det, rng, sec, str, adc, </span>
+<span class="lineNum">     822 </span><span class="lineCov">     409600 :                                      fNoiseFactor, fZS[det-1], </span>
+<span class="lineNum">     823 </span><span class="lineCov">     409600 :                                      fZSFactor[det-1]);</span>
+<span class="lineNum">     824 </span><span class="lineCov">     409600 :   if (fDiagStep1) fDiagStep1-&gt;Fill(adc, counts);</span>
+<span class="lineNum">     825 </span>            :   
+<span class="lineNum">     826 </span><span class="lineCov">     409600 :   return counts;</span>
+<span class="lineNum">     827 </span>            : }
+<span class="lineNum">     828 </span>            : 
+<a name="829"><span class="lineNum">     829 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     830 </span>            : Float_t
+<span class="lineNum">     831 </span>            : AliFMDReconstructor::Adc2Energy(UShort_t det, 
+<span class="lineNum">     832 </span>            :                                 Char_t   rng, 
+<span class="lineNum">     833 </span>            :                                 UShort_t sec, 
+<span class="lineNum">     834 </span>            :                                 UShort_t str, 
+<span class="lineNum">     835 </span>            :                                 UShort_t count) const
+<span class="lineNum">     836 </span>            : {
+<span class="lineNum">     837 </span>            :   // Converts number of ADC counts to energy deposited. 
+<span class="lineNum">     838 </span>            :   // Note, that this member function can be overloaded by derived
+<span class="lineNum">     839 </span>            :   // classes to do strip-specific look-ups in databases or the like,
+<span class="lineNum">     840 </span>            :   // to find the proper gain for a strip. 
+<span class="lineNum">     841 </span>            :   // 
+<span class="lineNum">     842 </span>            :   // In the first simple version, we calculate the energy deposited as 
+<span class="lineNum">     843 </span>            :   // 
+<span class="lineNum">     844 </span>            :   //    EnergyDeposited = cos(theta) * gain * count
+<span class="lineNum">     845 </span>            :   // 
+<span class="lineNum">     846 </span>            :   // where 
+<span class="lineNum">     847 </span>            :   // 
+<span class="lineNum">     848 </span>            :   //           Pre_amp_MIP_Range
+<span class="lineNum">     849 </span>            :   //    gain = ----------------- * Energy_deposited_per_MIP
+<span class="lineNum">     850 </span>            :   //           ADC_channel_size    
+<span class="lineNum">     851 </span>            :   // 
+<span class="lineNum">     852 </span>            :   // is constant and the same for all strips.
+<span class="lineNum">     853 </span>            :   //
+<span class="lineNum">     854 </span>            :   // For the production we use the conversion measured in the NBI lab.
+<span class="lineNum">     855 </span>            :   // The total conversion is then:
+<span class="lineNum">     856 </span>            :   // 
+<span class="lineNum">     857 </span>            :   //    gain = ADC / DAC
+<span class="lineNum">     858 </span>            :   // 
+<span class="lineNum">     859 </span>            :   //                  EdepMip * count
+<span class="lineNum">     860 </span>            :   //      =&gt; energy = ----------------
+<span class="lineNum">     861 </span>            :   //                  gain * DACPerADC
+<span class="lineNum">     862 </span>            :   // 
+<span class="lineNum">     863 </span>            :   // Parameters: 
+<span class="lineNum">     864 </span>            :   //    det     Detector ID
+<span class="lineNum">     865 </span>            :   //    rng     Ring ID
+<span class="lineNum">     866 </span>            :   //    sec     Sector ID
+<span class="lineNum">     867 </span>            :   //    rng     Strip ID
+<span class="lineNum">     868 </span>            :   //    counts  Number of ADC counts over pedestal
+<span class="lineNum">     869 </span>            :   // Return 
+<span class="lineNum">     870 </span>            :   //    The energy deposited in a single strip, or -1 in case of problems
+<span class="lineNum">     871 </span>            :   //
+<span class="lineNum">     872 </span><span class="lineCov">    1148267 :   if (count &lt;= 0) return 0;</span>
+<span class="lineNum">     873 </span><span class="lineCov">      80533 :   AliFMDParameters* param = AliFMDParameters::Instance();</span>
+<span class="lineNum">     874 </span><span class="lineCov">      80533 :   Float_t           gain  = param-&gt;GetPulseGain(det, rng, sec, str);</span>
+<span class="lineNum">     875 </span>            :   // 'Tagging' bad gains as bad energy
+<span class="lineNum">     876 </span><span class="lineCov">     161066 :   if (gain &lt; 0) { </span>
+<span class="lineNum">     877 </span><span class="lineCov">      80533 :     AliDebugF(10, &quot;Invalid gain (%f) for FMD%d%c[%02d,%03d]&quot;, </span>
+<span class="lineNum">     878 </span>            :                 gain, det, rng, sec, str);
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     880 </span>            :   }
+<span class="lineNum">     881 </span><span class="lineCov">     241599 :   AliDebugF(10, &quot;Converting counts %d to energy (factor=%f, DAC2MIP=%f)&quot;, </span>
+<span class="lineNum">     882 </span>            :             count, gain,param-&gt;GetDACPerMIP());
+<span class="lineNum">     883 </span>            : 
+<span class="lineNum">     884 </span><span class="lineCov">     161066 :   Double_t edep  = ((count * param-&gt;GetEdepMip()) </span>
+<span class="lineNum">     885 </span><span class="lineCov">      80533 :                     / (gain * param-&gt;GetDACPerMIP()));</span>
+<span class="lineNum">     886 </span><span class="lineCov">      80533 :   return edep;</span>
+<span class="lineNum">     887 </span><span class="lineCov">     409600 : }</span>
+<span class="lineNum">     888 </span>            : 
+<a name="889"><span class="lineNum">     889 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     890 </span>            : Float_t
+<span class="lineNum">     891 </span>            : AliFMDReconstructor::Adc2Energy(UShort_t det, 
+<span class="lineNum">     892 </span>            :                                 Char_t   rng, 
+<span class="lineNum">     893 </span>            :                                 UShort_t sec, 
+<span class="lineNum">     894 </span>            :                                 UShort_t str, 
+<span class="lineNum">     895 </span>            :                                 Float_t  eta, 
+<span class="lineNum">     896 </span>            :                                 UShort_t count) const
+<span class="lineNum">     897 </span>            : {
+<span class="lineNum">     898 </span>            :   // Converts number of ADC counts to energy deposited. 
+<span class="lineNum">     899 </span>            :   // Note, that this member function can be overloaded by derived
+<span class="lineNum">     900 </span>            :   // classes to do strip-specific look-ups in databases or the like,
+<span class="lineNum">     901 </span>            :   // to find the proper gain for a strip. 
+<span class="lineNum">     902 </span>            :   // 
+<span class="lineNum">     903 </span>            :   // In the first simple version, we calculate the energy deposited as 
+<span class="lineNum">     904 </span>            :   // 
+<span class="lineNum">     905 </span>            :   //    EnergyDeposited = cos(theta) * gain * count
+<span class="lineNum">     906 </span>            :   // 
+<span class="lineNum">     907 </span>            :   // where 
+<span class="lineNum">     908 </span>            :   // 
+<span class="lineNum">     909 </span>            :   //           Pre_amp_MIP_Range
+<span class="lineNum">     910 </span>            :   //    gain = ----------------- * Energy_deposited_per_MIP
+<span class="lineNum">     911 </span>            :   //           ADC_channel_size    
+<span class="lineNum">     912 </span>            :   // 
+<span class="lineNum">     913 </span>            :   // is constant and the same for all strips.
+<span class="lineNum">     914 </span>            :   //
+<span class="lineNum">     915 </span>            :   // For the production we use the conversion measured in the NBI lab.
+<span class="lineNum">     916 </span>            :   // The total conversion is then:
+<span class="lineNum">     917 </span>            :   // 
+<span class="lineNum">     918 </span>            :   //    gain = ADC / DAC
+<span class="lineNum">     919 </span>            :   // 
+<span class="lineNum">     920 </span>            :   //                  EdepMip * count
+<span class="lineNum">     921 </span>            :   //      =&gt; energy = ----------------
+<span class="lineNum">     922 </span>            :   //                  gain * DACPerADC
+<span class="lineNum">     923 </span>            :   // 
+<span class="lineNum">     924 </span>            :   // Parameters: 
+<span class="lineNum">     925 </span>            :   //    det     Detector ID
+<span class="lineNum">     926 </span>            :   //    rng     Ring ID
+<span class="lineNum">     927 </span>            :   //    sec     Sector ID
+<span class="lineNum">     928 </span>            :   //    rng     Strip ID
+<span class="lineNum">     929 </span>            :   //    eta     Psuedo-rapidity
+<span class="lineNum">     930 </span>            :   //    counts  Number of ADC counts over pedestal
+<span class="lineNum">     931 </span>            :   // Return 
+<span class="lineNum">     932 </span>            :   //    The energy deposited in a single strip, or -1 in case of problems
+<span class="lineNum">     933 </span>            :   //
+<span class="lineNum">     934 </span><span class="lineCov">     819200 :   Double_t edep = Adc2Energy(det, rng, sec, str, count);</span>
+<span class="lineNum">     935 </span>            :   
+<span class="lineNum">     936 </span><span class="lineCov">     409600 :   if (fDiagStep2) fDiagStep2-&gt;Fill(count, edep);  </span>
+<span class="lineNum">     937 </span><span class="lineCov">     409600 :   if (fAngleCorrect) {</span>
+<span class="lineNum">     938 </span><span class="lineCov">     409600 :     Double_t theta = 2 * TMath::ATan(TMath::Exp(-eta));</span>
+<span class="lineNum">     939 </span><span class="lineCov">     409600 :     Double_t corr  = TMath::Abs(TMath::Cos(theta));</span>
+<span class="lineNum">     940 </span><span class="lineCov">     409600 :     Double_t cedep = corr * edep;</span>
+<span class="lineNum">     941 </span><span class="lineCov">    1228800 :     AliDebugF(10, &quot;correcting for path %f * %f = %f (eta=%f, theta=%f)&quot;,</span>
+<span class="lineNum">     942 </span>            :               edep, corr, cedep, eta, theta);
+<span class="lineNum">     943 </span><span class="lineCov">     409600 :     if (fDiagStep3) fDiagStep3-&gt;Fill(edep, cedep);  </span>
+<span class="lineNum">     944 </span>            :     edep = cedep;
+<span class="lineNum">     945 </span><span class="lineCov">     409600 :   }</span>
+<span class="lineNum">     946 </span><span class="lineCov">     409600 :   return edep;</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     948 </span>            : 
+<a name="949"><span class="lineNum">     949 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     950 </span>            : Float_t
+<span class="lineNum">     951 </span>            : AliFMDReconstructor::Energy2Multiplicity(UShort_t /*det*/, 
+<span class="lineNum">     952 </span>            :                                          Char_t   /*rng*/, 
+<span class="lineNum">     953 </span>            :                                          UShort_t /*sec*/, 
+<span class="lineNum">     954 </span>            :                                          UShort_t /*str*/, 
+<span class="lineNum">     955 </span>            :                                          Float_t  edep) const
+<span class="lineNum">     956 </span>            : {
+<span class="lineNum">     957 </span>            :   // Converts an energy signal to number of particles. 
+<span class="lineNum">     958 </span>            :   // Note, that this member function can be overloaded by derived
+<span class="lineNum">     959 </span>            :   // classes to do strip-specific look-ups in databases or the like,
+<span class="lineNum">     960 </span>            :   // to find the proper gain for a strip. 
+<span class="lineNum">     961 </span>            :   // 
+<span class="lineNum">     962 </span>            :   // In this simple version, we calculate the multiplicity as 
+<span class="lineNum">     963 </span>            :   // 
+<span class="lineNum">     964 </span>            :   //   multiplicity = Energy_deposited / Energy_deposited_per_MIP
+<span class="lineNum">     965 </span>            :   // 
+<span class="lineNum">     966 </span>            :   // where 
+<span class="lineNum">     967 </span>            :   //
+<span class="lineNum">     968 </span>            :   //   Energy_deposited_per_MIP = 1.664 * SI_density * SI_thickness 
+<span class="lineNum">     969 </span>            :   // 
+<span class="lineNum">     970 </span>            :   // is constant and the same for all strips 
+<span class="lineNum">     971 </span>            :   //
+<span class="lineNum">     972 </span>            :   // Parameters: 
+<span class="lineNum">     973 </span>            :   //    det     Detector ID
+<span class="lineNum">     974 </span>            :   //    rng     Ring ID
+<span class="lineNum">     975 </span>            :   //    sec     Sector ID
+<span class="lineNum">     976 </span>            :   //    rng     Strip ID
+<span class="lineNum">     977 </span>            :   //    edep    Energy deposited in a single strip
+<span class="lineNum">     978 </span>            :   // Return 
+<span class="lineNum">     979 </span>            :   //    The &quot;bare&quot; multiplicity corresponding to the energy deposited
+<span class="lineNum">     980 </span><span class="lineCov">     819200 :   AliFMDParameters* param   = AliFMDParameters::Instance();</span>
+<span class="lineNum">     981 </span><span class="lineCov">     409600 :   Double_t          edepMIP = param-&gt;GetEdepMip();</span>
+<span class="lineNum">     982 </span><span class="lineCov">     409600 :   Float_t           mult    = edep / edepMIP;</span>
+<span class="lineNum">     983 </span>            : #if 0
+<span class="lineNum">     984 </span>            :   if (edep &gt; 0) 
+<span class="lineNum">     985 </span>            :     AliFMDDebug(15, (&quot;Translating energy %f to multiplicity via &quot;
+<span class="lineNum">     986 </span>            :                      &quot;divider %f-&gt;%f&quot;, edep, edepMIP, mult));
+<span class="lineNum">     987 </span>            : #endif
+<span class="lineNum">     988 </span><span class="lineCov">     409600 :   if (fDiagStep4) fDiagStep4-&gt;Fill(edep, mult);  </span>
+<span class="lineNum">     989 </span><span class="lineCov">     409600 :   return mult;</span>
+<span class="lineNum">     990 </span>            : }
+<span class="lineNum">     991 </span>            : 
+<a name="992"><span class="lineNum">     992 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">     993 </span>            : void
+<span class="lineNum">     994 </span>            : AliFMDReconstructor::PhysicalCoordinates(UShort_t det, 
+<span class="lineNum">     995 </span>            :                                          Char_t   rng, 
+<span class="lineNum">     996 </span>            :                                          UShort_t sec, 
+<span class="lineNum">     997 </span>            :                                          UShort_t str, 
+<span class="lineNum">     998 </span>            :                                          Float_t&amp; eta, 
+<span class="lineNum">     999 </span>            :                                          Float_t&amp; phi) const
+<span class="lineNum">    1000 </span>            : {
+<span class="lineNum">    1001 </span>            :   // Get the eta and phi of a digit 
+<span class="lineNum">    1002 </span>            :   // 
+<span class="lineNum">    1003 </span>            :   // Parameters: 
+<span class="lineNum">    1004 </span>            :   //    det     Detector ID
+<span class="lineNum">    1005 </span>            :   //    rng     Ring ID
+<span class="lineNum">    1006 </span>            :   //    sec     Sector ID
+<span class="lineNum">    1007 </span>            :   //    rng     Strip ID
+<span class="lineNum">    1008 </span>            :   //    eta     On return, contains the psuedo-rapidity of the strip
+<span class="lineNum">    1009 </span>            :   //    phi     On return, contains the azimuthal angle of the strip
+<span class="lineNum">    1010 </span>            :   // 
+<span class="lineNum">    1011 </span><span class="lineCov">     851968 :   AliFMDGeometry* geom = AliFMDGeometry::Instance();</span>
+<span class="lineNum">    1012 </span><span class="lineCov">     425984 :   Double_t x, y, z, r, theta, deta, dphi;</span>
+<span class="lineNum">    1013 </span><span class="lineCov">     425984 :   geom-&gt;Detector2XYZ(det, rng, sec, str, x, y, z);</span>
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            :   // Correct for vertex offset. 
+<span class="lineNum">    1016 </span><span class="lineCov">     425984 :   z     -= fCurrentVertex;</span>
+<span class="lineNum">    1017 </span><span class="lineCov">     425984 :   AliFMDGeometry::XYZ2REtaPhiTheta(x, y, z, r, deta, dphi, theta);</span>
+<span class="lineNum">    1018 </span><span class="lineCov">     425984 :   eta = deta;</span>
+<span class="lineNum">    1019 </span><span class="lineCov">     425984 :   phi = dphi;</span>
+<span class="lineNum">    1020 </span><span class="lineCov">     425984 : }</span>
+<a name="1021"><span class="lineNum">    1021 </span>            : </a>
+<span class="lineNum">    1022 </span>            : namespace { 
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :   class ESDPrinter : public AliESDFMD::ForOne</span>
+<a name="1024"><span class="lineNum">    1024 </span>            :   {</a>
+<a name="1025"><span class="lineNum">    1025 </span>            :   public:</a>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :     ESDPrinter() {}</span>
+<span class="lineNum">    1027 </span>            :     Bool_t operator()(UShort_t d, Char_t r, UShort_t s, UShort_t t, 
+<span class="lineNum">    1028 </span>            :                       Float_t m, Float_t e)
+<span class="lineNum">    1029 </span>            :     {
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :       if (m &gt; 0 &amp;&amp; m != AliESDFMD::kInvalidMult) </span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :         printf(&quot;  FMD%d%c[%2d,%3d] = %6.3f / %6.3f\n&quot;, d, r, s, t, m, e);</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">    1033 </span>            :     }
+<span class="lineNum">    1034 </span>            :   };
+<span class="lineNum">    1035 </span>            : }
+<span class="lineNum">    1036 </span>            : 
+<span class="lineNum">    1037 </span>            : 
+<a name="1038"><span class="lineNum">    1038 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">    1039 </span>            : void 
+<span class="lineNum">    1040 </span>            : AliFMDReconstructor::FillESD(TTree*  /* digitsTree */, 
+<span class="lineNum">    1041 </span>            :                              TTree*  /* clusterTree */,
+<span class="lineNum">    1042 </span>            :                              AliESDEvent* esd) const
+<span class="lineNum">    1043 </span>            : {
+<span class="lineNum">    1044 </span>            :   // nothing to be done
+<span class="lineNum">    1045 </span>            :   // FIXME: The vertex may not be known when Reconstruct is executed,
+<span class="lineNum">    1046 </span>            :   // so we may have to move some of that member function here. 
+<span class="lineNum">    1047 </span><span class="lineCov">         24 :   AliFMDDebug(2, (&quot;Calling FillESD with two trees and one ESD&quot;));</span>
+<span class="lineNum">    1048 </span><span class="lineCov">          8 :   if (fZombie) { </span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1051 </span>            :   }
+<span class="lineNum">    1052 </span>            :   // fESDObj-&gt;Print();
+<span class="lineNum">    1053 </span>            : 
+<span class="lineNum">    1054 </span>            :   // Fix up ESD so that only truely dead channels get the kInvalidMult flag. 
+<span class="lineNum">    1055 </span><span class="lineCov">          8 :   MarkDeadChannels(fESDObj);</span>
+<span class="lineNum">    1056 </span>            : 
+<span class="lineNum">    1057 </span><span class="lineCov">          8 :   Double_t oldVz = fCurrentVertex;</span>
+<span class="lineNum">    1058 </span><span class="lineCov">          8 :   GetVertex(esd);</span>
+<span class="lineNum">    1059 </span><span class="lineCov">          8 :   if (fVertexType != kNoVertex) { </span>
+<span class="lineNum">    1060 </span><span class="lineCov">         16 :     AliFMDDebug(2, (&quot;Revertexing the ESD data to vz=%f (was %f)&quot;,</span>
+<span class="lineNum">    1061 </span>            :                     fCurrentVertex, oldVz));
+<span class="lineNum">    1062 </span><span class="lineCov">          8 :     AliFMDESDRevertexer revertexer;</span>
+<span class="lineNum">    1063 </span><span class="lineCov">          8 :     revertexer.Revertex(fESDObj, fCurrentVertex);</span>
+<span class="lineNum">    1064 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">    1065 </span>            :   
+<span class="lineNum">    1066 </span><span class="lineCov">         24 :   if (AliDebugLevel() &gt; 10) { </span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :     ESDPrinter p;</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :     fESDObj-&gt;ForEach(p);</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1070 </span>            : 
+<span class="lineNum">    1071 </span><span class="lineCov">          8 :   if (esd) { </span>
+<span class="lineNum">    1072 </span><span class="lineCov">         16 :     AliFMDDebug(2, (&quot;Writing FMD data to ESD tree&quot;));</span>
+<span class="lineNum">    1073 </span><span class="lineCov">          8 :     esd-&gt;SetFMDData(fESDObj);</span>
+<span class="lineNum">    1074 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">    1075 </span>            : 
+<span class="lineNum">    1076 </span><span class="lineCov">         16 :   if (!fDiagnostics || !esd) return;</span>
+<span class="lineNum">    1077 </span>            :   static bool first = true;
+<span class="lineNum">    1078 </span>            :   // This is most likely NOT the event number you'd like to use. It
+<span class="lineNum">    1079 </span>            :   // has nothing to do with the 'real' event number. 
+<span class="lineNum">    1080 </span>            :   // - That's OK.  We just use it for the name of the directory -
+<span class="lineNum">    1081 </span>            :   // nothing else.  Christian
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :   Int_t evno = esd-&gt;GetEventNumberInFile(); </span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   AliFMDDebug(3, (&quot;Writing diagnostics histograms to FMD.Diag.root/%03d&quot;,evno));</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :   TFile f(&quot;FMD.Diag.root&quot;, (first ? &quot;RECREATE&quot; : &quot;UPDATE&quot;));</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :   first = false;</span>
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :   f.cd(); </span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :   TDirectory* d = f.mkdir(Form(&quot;%03d&quot;, evno), </span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :                           Form(&quot;Diagnostics histograms for event # %d&quot;, evno));</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :   d-&gt;cd();</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :   if (fDiagStep1) fDiagStep1-&gt;Write();</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :   if (fDiagStep2) fDiagStep2-&gt;Write();</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :   if (fDiagStep3) fDiagStep3-&gt;Write();</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :   if (fDiagStep4) fDiagStep4-&gt;Write();</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :   if (fDiagAll)   fDiagAll-&gt;Write();</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :   d-&gt;Write();</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :   f.Write();</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :   f.Close();</span>
+<span class="lineNum">    1098 </span>            : 
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :   if (fDiagStep1) fDiagStep1-&gt;Reset();</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :   if (fDiagStep2) fDiagStep2-&gt;Reset();</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :   if (fDiagStep3) fDiagStep3-&gt;Reset();</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :   if (fDiagStep4) fDiagStep4-&gt;Reset();</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :   if (fDiagAll)   fDiagAll-&gt;Reset();</span>
+<span class="lineNum">    1104 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">    1105 </span>            : 
+<a name="1106"><span class="lineNum">    1106 </span>            : //____________________________________________________________________</a>
+<span class="lineNum">    1107 </span>            : void
+<span class="lineNum">    1108 </span>            : AliFMDReconstructor::FillESD(AliRawReader*, TTree* clusterTree, 
+<span class="lineNum">    1109 </span>            :                              AliESDEvent* esd) const
+<span class="lineNum">    1110 </span>            : {
+<span class="lineNum">    1111 </span>            :   // 
+<span class="lineNum">    1112 </span>            :   // Forwards to above member function 
+<span class="lineNum">    1113 </span>            :   //
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :   if (fZombie) { </span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :     AliWarning(&quot;I'm a zombie - cannot do anything&quot;);</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1117 </span>            :   }
+<span class="lineNum">    1118 </span>            :   TTree* dummy = 0;
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :   FillESD(dummy, clusterTree, esd);</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1121 </span>            : //____________________________________________________________________
+<span class="lineNum">    1122 </span>            : //
+<span class="lineNum">    1123 </span>            : // EOF
+<span class="lineNum">    1124 </span>            : //
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

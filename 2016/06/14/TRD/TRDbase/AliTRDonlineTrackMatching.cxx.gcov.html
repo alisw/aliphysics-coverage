@@ -1,0 +1,880 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TRD/TRDbase/AliTRDonlineTrackMatching.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TRD/TRDbase</a> - AliTRDonlineTrackMatching.cxx<span style="font-size: 80%;"> (source / <a href="AliTRDonlineTrackMatching.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">267</td>
+            <td class="headerCovTableEntry">336</td>
+            <td class="headerCovTableEntryMed">79.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryMed">85.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-2012, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      17 </span>            : //
+<span class="lineNum">      18 </span>            : // Track matching between TRD online tracks and ESD tracks.
+<span class="lineNum">      19 </span>            : //
+<span class="lineNum">      20 </span>            : // Author: Felix Rettig &lt;rettig@compeng.uni-frankfurt.de&gt;
+<span class="lineNum">      21 </span>            : //
+<span class="lineNum">      22 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &lt;TH1.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;AliESDEvent.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;AliExternalTrackParam.h&gt;
+<span class="lineNum">      27 </span>            : #include &quot;AliESDtrack.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliESDTrdTrack.h&quot;
+<span class="lineNum">      29 </span>            : #include &lt;AliGeomManager.h&gt;
+<span class="lineNum">      30 </span>            : #include &quot;AliTRDgeometry.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliTRDpadPlane.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliTRDonlineTrackMatching.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : const Float_t AliTRDonlineTrackMatching::fgkSaveInnerRadius = 290.5;
+<span class="lineNum">      35 </span>            : const Float_t AliTRDonlineTrackMatching::fgkSaveOuterRadius = 364.5;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutMinTPCrows = 0.;
+<span class="lineNum">      38 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutMinRatioRowsFindableClusters = 0.;
+<span class="lineNum">      39 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutMaxChi2TPCclusters = 0.;
+<span class="lineNum">      40 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutMaxChi2ITSclusters = 0.;
+<span class="lineNum">      41 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutMaxDCAtoVertexXY = 0.;
+<span class="lineNum">      42 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutMaxDCAtoVertexZ = 0.;
+<span class="lineNum">      43 </span>            : UShort_t AliTRDonlineTrackMatching::fEsdTrackCutsITSlayerMask = 0;  // similar to 2011 default cut: 0x3
+<span class="lineNum">      44 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackVCutsChi2TPCconstrainedVsGlobal = 0.;
+<span class="lineNum">      45 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutPtDCAOfs = 0.;
+<span class="lineNum">      46 </span>            : Float_t AliTRDonlineTrackMatching::fEsdTrackCutPtDCACoeff = 0.;
+<span class="lineNum">      47 </span>            : Bool_t AliTRDonlineTrackMatching::fEsdTrackCutMinimal = kFALSE;
+<span class="lineNum">      48 </span>            : Bool_t AliTRDonlineTrackMatching::fEsdTrackCutRequireTPCrefit = kTRUE;
+<span class="lineNum">      49 </span>            : Bool_t AliTRDonlineTrackMatching::fEsdTrackCutRequireITSrefit = kFALSE;
+<a name="50"><span class="lineNum">      50 </span>            : Bool_t AliTRDonlineTrackMatching::fEsdTrackCutPrim = kFALSE;</a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : AliTRDonlineTrackMatching::AliTRDonlineTrackMatching() :
+<span class="lineNum">      53 </span><span class="lineCov">         24 :   TObject(),</span>
+<span class="lineNum">      54 </span><span class="lineCov">         24 :   fTRDgeo(NULL),</span>
+<span class="lineNum">      55 </span><span class="lineCov">         24 :   fMinMatchRating(0.25),</span>
+<span class="lineNum">      56 </span><span class="lineCov">         24 :   fHistMatchRating(NULL)</span>
+<span class="lineNum">      57 </span><span class="lineCov">        120 : {</span>
+<span class="lineNum">      58 </span>            :   // default ctor
+<span class="lineNum">      59 </span><span class="lineCov">         24 :   SetEsdTrackDefaultCuts(&quot;minimal&quot;);</span>
+<a name="60"><span class="lineNum">      60 </span><span class="lineCov">         48 : }</span></a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : AliTRDonlineTrackMatching::AliTRDonlineTrackMatching(const AliTRDonlineTrackMatching &amp;c) :
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   TObject(c),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   fTRDgeo(c.fTRDgeo),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   fMinMatchRating(c.fMinMatchRating),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   fHistMatchRating(c.fHistMatchRating)</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      68 </span>            :   // copy ctor
+<a name="69"><span class="lineNum">      69 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span><span class="lineCov">         96 : AliTRDonlineTrackMatching::~AliTRDonlineTrackMatching() {</span>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            :   // dtor
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineCov">         26 :   delete fTRDgeo;</span>
+<span class="lineNum">      76 </span><span class="lineCov">         24 :   fTRDgeo = NULL;</span>
+<a name="77"><span class="lineNum">      77 </span><span class="lineCov">         48 : }</span></a>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : Short_t AliTRDonlineTrackMatching::EstimateSector(const Double_t globalCoords[3]) {
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :   // estimates sector by phi angle in x-y plane
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineCov">       7288 :   if ((TMath::Abs(globalCoords[0]) &gt; 600) || (TMath::Abs(globalCoords[0]) &gt; 600) || (TMath::Sqrt(globalCoords[0]*globalCoords[0] + globalCoords[1]*globalCoords[1]) &lt; 0.01)){</span>
+<span class="lineNum">      84 </span>            :     //printf(&quot;GGG %.3f/%.3f\n&quot;, globalCoords[0], globalCoords[1]);
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">      86 </span>            :   } else {
+<span class="lineNum">      87 </span><span class="lineCov">       1822 :     Double_t ang = TMath::ATan2(globalCoords[1], globalCoords[0]);</span>
+<span class="lineNum">      88 </span><span class="lineCov">       1822 :     if (ang &gt; 0){</span>
+<span class="lineNum">      89 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">      90 </span>            :       printf(&quot;       es: %.2f/%.2f  -&gt; phi: %.2fdeg -&gt; Sec %02d  (A)\n&quot;,
+<span class="lineNum">      91 </span>            :              globalCoords[0], globalCoords[1], TMath::ATan2(globalCoords[1], globalCoords[0])*180./TMath::Pi(),
+<span class="lineNum">      92 </span>            :              TMath::FloorNint(ang/(20./180.*TMath::Pi())));
+<span class="lineNum">      93 </span>            : #endif
+<span class="lineNum">      94 </span><span class="lineCov">       1426 :       return TMath::FloorNint(ang/(20./180.*TMath::Pi()));</span>
+<span class="lineNum">      95 </span>            :     } else {
+<span class="lineNum">      96 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">      97 </span>            :       printf(&quot;       es: %.2f/%.2f  -&gt; phi: %.2fdeg -&gt; Sec %02d  (B)\n&quot;,
+<span class="lineNum">      98 </span>            :              globalCoords[0], globalCoords[1], TMath::ATan2(globalCoords[1], globalCoords[0])*180./TMath::Pi(),
+<span class="lineNum">      99 </span>            :              17 - TMath::FloorNint(TMath::Abs(ang)/(20./180.*TMath::Pi())));
+<span class="lineNum">     100 </span>            : #endif
+<span class="lineNum">     101 </span><span class="lineCov">        396 :       return 17 - TMath::FloorNint(TMath::Abs(ang)/(20./180.*TMath::Pi()));</span>
+<span class="lineNum">     102 </span>            :     }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :   }
+<a name="105"><span class="lineNum">     105 </span><span class="lineCov">       1822 : }</span></a>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : Short_t AliTRDonlineTrackMatching::EstimateLayer(Double_t radius) {
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :   // estimates layer by radial distance (for virtual stack at phi = 0)
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :   const Float_t rBoundaries[7] = {290.80, 302.20, 315.06, 327.55, 340.3, 352.80, 364.15}; // radial border lines centered between anode plane and successing radiator
+<span class="lineNum">     112 </span>            :   const Short_t rLayers[7] = {-1, 0, 1, 2, 3, 4, 5};
+<span class="lineNum">     113 </span><span class="lineCov">      10422 :   for (UShort_t i = 0; i &lt; 7; ++i){</span>
+<span class="lineNum">     114 </span><span class="lineCov">       4300 :     if (radius &lt; rBoundaries[i])</span>
+<span class="lineNum">     115 </span><span class="lineCov">       1822 :       return rLayers[i];</span>
+<span class="lineNum">     116 </span>            :   }
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   return -2; // radius larger than outmost layer</span>
+<a name="118"><span class="lineNum">     118 </span><span class="lineCov">       1822 : }</span></a>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : Short_t AliTRDonlineTrackMatching::EstimateLocalStack(const Double_t globalCoords[3]) {
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :   // determines stack within sector by z position
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">       3644 :   Double_t absZ = TMath::Abs(globalCoords[2]);</span>
+<span class="lineNum">     125 </span><span class="lineCov">       1822 :   Short_t signZ = (globalCoords[2] &gt; 0.) ? 1 : -1;</span>
+<span class="lineNum">     126 </span><span class="lineCov">       1822 :   Double_t r = TMath::Sqrt(globalCoords[0]*globalCoords[0] + globalCoords[1]*globalCoords[1]);</span>
+<span class="lineNum">     127 </span><span class="lineCov">       1822 :   Short_t layer = EstimateLayer(r);</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     130 </span>            :   printf(&quot;EstimateLocalStack A     r: %.2f   x: %.2f/%.2f/%.2f  -&gt; layer: %i    absZ = %.2f\n&quot;,
+<span class="lineNum">     131 </span>            :          r, globalCoords[0], globalCoords[1], globalCoords[2], layer, absZ);
+<span class="lineNum">     132 </span>            : #endif
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineCov">       1822 :   if (layer &lt; 0)</span>
+<span class="lineNum">     135 </span><span class="lineCov">         34 :     return -1;</span>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineCov">       1788 :   Double_t innerStackHalfLength = AliTRDgeometry::GetChamberLength(0, 2) / 2.;  // same for all layers</span>
+<span class="lineNum">     138 </span><span class="lineCov">       1788 :   if (absZ &lt; innerStackHalfLength)</span>
+<span class="lineNum">     139 </span><span class="lineCov">       1142 :     return 2;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">        646 :   Double_t outerStackLength = AliTRDgeometry::GetChamberLength(layer, 1);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span><span class="lineCov">        646 :   absZ -= innerStackHalfLength;</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     146 </span>            :   printf(&quot;EstimateLocalStack B     r: %.2f   x: %.2f/%.2f/%.2f  -&gt; layer: %i    absZ = %.2f    il: %.2f   ol: %.2f\n&quot;,
+<span class="lineNum">     147 </span>            :          r, globalCoords[0], globalCoords[1], globalCoords[2], layer, absZ, 2.*innerStackHalfLength, outerStackLength);
+<span class="lineNum">     148 </span>            : #endif
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineCov">        646 :   if (absZ &gt; 2.05*outerStackLength)</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     return (signZ &gt; 0) ? -2 : -1; // outside supermodule in z direction</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">       1292 :   if (absZ &lt; outerStackLength)</span>
+<span class="lineNum">     154 </span><span class="lineCov">       1190 :     return (signZ &gt; 0) ? 1 : 3;</span>
+<span class="lineNum">     155 </span>            :   else
+<span class="lineNum">     156 </span><span class="lineCov">        102 :     return (signZ &gt; 0) ? 0 : 4;</span>
+<span class="lineNum">     157 </span>            : 
+<a name="158"><span class="lineNum">     158 </span><span class="lineCov">       1822 : }</span></a>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : Short_t AliTRDonlineTrackMatching::EstimateStack(const Double_t globalCoords[3]) {
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            :   // returns the closest TRD stack to a 3D position in global coordinates
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">       3644 :   Short_t sec = EstimateSector(globalCoords);</span>
+<span class="lineNum">     165 </span><span class="lineCov">       1822 :   Short_t st = EstimateLocalStack(globalCoords);</span>
+<span class="lineNum">     166 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     167 </span>            :   printf(&quot;EstimateStack sec %d  st %d\n&quot;, sec, st);
+<span class="lineNum">     168 </span>            : #endif
+<span class="lineNum">     169 </span><span class="lineCov">       3644 :   if ((sec &lt; 0) || (st &lt; 0))</span>
+<span class="lineNum">     170 </span><span class="lineCov">         34 :     return -1;</span>
+<span class="lineNum">     171 </span>            :   else
+<span class="lineNum">     172 </span><span class="lineCov">       1788 :     return 5*sec + st;</span>
+<a name="173"><span class="lineNum">     173 </span><span class="lineCov">       1822 : }</span></a>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliExternalTrackParam *track, Short_t &amp;stack, UShort_t &amp;layersWithTracklet, Double_t magFieldinKiloGauss){
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :   // returns stack to track param
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">        260 :   stack = -1;</span>
+<span class="lineNum">     180 </span><span class="lineCov">        130 :   layersWithTracklet = 0;</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineCov">        130 :   UInt_t stackHits[fgkTrdStacks];</span>
+<span class="lineNum">     183 </span><span class="lineCov">        130 :   Double_t x[3] = { 0. };</span>
+<span class="lineNum">     184 </span><span class="lineCov">        130 :   memset(stackHits, 0, fgkTrdStacks*sizeof(UInt_t));</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     187 </span>            :   printf(&quot;STACK-TO-TRACK\n&quot;);
+<span class="lineNum">     188 </span>            : #endif
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :   Double_t r = fgkSaveInnerRadius;
+<span class="lineNum">     191 </span><span class="lineCov">       7504 :   while (r &lt; fgkSaveOuterRadius){</span>
+<span class="lineNum">     192 </span><span class="lineCov">       3726 :     if (track-&gt;GetXYZAt(r, magFieldinKiloGauss, x)) {</span>
+<span class="lineNum">     193 </span><span class="lineCov">       1822 :       stack = EstimateStack(x);</span>
+<span class="lineNum">     194 </span><span class="lineCov">       1822 :       if (stack &gt;= 0){</span>
+<span class="lineNum">     195 </span><span class="lineCov">       1788 :         stackHits[stack]++;</span>
+<span class="lineNum">     196 </span><span class="lineCov">       1788 :         if (stackHits[stack] &gt; 16) // experimental</span>
+<span class="lineNum">     197 </span>            :           break;
+<span class="lineNum">     198 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     199 </span>            :         printf(&quot; r=%.3fcm  %.2f/%.2f  -  %d hits for stack %d  S%02d-%d   (mag=%.1f)\n&quot;,
+<span class="lineNum">     200 </span>            :                r, x[0], x[1], stackHits[stack], stack, stack/5, stack%5, magFieldinKiloGauss);
+<span class="lineNum">     201 </span>            : #endif
+<span class="lineNum">     202 </span>            :       }
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span><span class="lineCov">       3622 :     r += 1.;</span>
+<span class="lineNum">     205 </span>            :   }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :   // find stack with most hits
+<span class="lineNum">     208 </span>            :   UInt_t bestHits = 0;
+<span class="lineNum">     209 </span><span class="lineCov">      23660 :   for (UShort_t iStack = 0; iStack &lt; fgkTrdStacks; ++iStack){</span>
+<span class="lineNum">     210 </span><span class="lineCov">      11700 :     if (stackHits[iStack] == 0)</span>
+<span class="lineNum">     211 </span>            :       continue;
+<span class="lineNum">     212 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     213 </span>            :     printf(&quot;  finally %d hits in stack S%02d-%d\n&quot;, stackHits[iStack], iStack/5, iStack%5);
+<span class="lineNum">     214 </span>            : #endif
+<span class="lineNum">     215 </span><span class="lineCov">        108 :     if (stackHits[iStack] &gt; bestHits){</span>
+<span class="lineNum">     216 </span>            :       bestHits = stackHits[iStack];
+<span class="lineNum">     217 </span><span class="lineCov">        108 :       stack = iStack;</span>
+<span class="lineNum">     218 </span><span class="lineCov">        108 :     }</span>
+<span class="lineNum">     219 </span>            :   }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineCov">        130 :   if (stack &gt;= 0){</span>
+<span class="lineNum">     222 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     223 </span>            :     printf(&quot;best stack: S%02d-%d\n&quot;, TrdLsiSec(stack), TrdLsiSi(stack));
+<span class="lineNum">     224 </span>            : #endif
+<span class="lineNum">     225 </span><span class="lineCov">        106 :     return kTRUE;</span>
+<span class="lineNum">     226 </span>            :   }
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineCov">         24 :   return kFALSE;</span>
+<a name="229"><span class="lineNum">     229 </span><span class="lineCov">        130 : }</span></a>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            : Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliESDtrack* track, Short_t &amp;stack, UShort_t &amp;layersWithTracklet, Double_t magFieldinKiloGauss){
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :   // returns stack to ESD track
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineCov">        390 :   if (track-&gt;GetOuterParam())</span>
+<span class="lineNum">     236 </span><span class="lineCov">        260 :     return StackToTrack(track-&gt;GetOuterParam(), stack, layersWithTracklet, magFieldinKiloGauss);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   else if (track-&gt;GetInnerParam())</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     return StackToTrack(track-&gt;GetInnerParam(), stack, layersWithTracklet, magFieldinKiloGauss);</span>
+<span class="lineNum">     239 </span>            :   else
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     return StackToTrack(track, stack, layersWithTracklet, magFieldinKiloGauss);</span>
+<a name="241"><span class="lineNum">     241 </span><span class="lineCov">        130 : }</span></a>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : Bool_t AliTRDonlineTrackMatching::AcceptTrack(const AliESDtrack* esdTrack, const AliESDEvent* esdEvent){
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :   // returns result ESD track cuts
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">        304 :   if (!esdTrack)</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineCov">        152 :   UInt_t status = esdTrack-&gt;GetStatus();</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineCov">        152 :   if (fEsdTrackCutMinimal){</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     return ((status &amp; AliESDtrack::kTPCout) &gt; 0);</span>
+<span class="lineNum">     254 </span>            :   }
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :   // require TPC fit
+<span class="lineNum">     257 </span><span class="lineCov">        304 :   if ((fEsdTrackCutRequireTPCrefit) &amp;&amp; (!(status &amp; AliESDtrack::kTPCrefit)))</span>
+<span class="lineNum">     258 </span><span class="lineCov">         16 :     return kFALSE;</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            :   // require ITS re-fit
+<span class="lineNum">     261 </span><span class="lineCov">        136 :   if ((fEsdTrackCutRequireITSrefit) &amp;&amp; (!(status &amp; AliESDtrack::kITSrefit)))</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :   // TPC requirements
+<span class="lineNum">     265 </span><span class="lineCov">        136 :   Float_t nCrossedRowsTPC = esdTrack-&gt;GetTPCCrossedRows();</span>
+<span class="lineNum">     266 </span>            :   Float_t ratioCrossedRowsOverFindableClustersTPC =
+<span class="lineNum">     267 </span><span class="lineCov">        408 :     (esdTrack-&gt;GetTPCNclsF() &gt; 0) ? (nCrossedRowsTPC / esdTrack-&gt;GetTPCNclsF()) : 1.0;</span>
+<span class="lineNum">     268 </span>            :   Float_t chi2PerClusterTPC =
+<span class="lineNum">     269 </span><span class="lineCov">        408 :     (esdTrack-&gt;GetTPCclusters(0) &gt; 0) ? (esdTrack-&gt;GetTPCchi2()/Float_t(esdTrack-&gt;GetTPCclusters(0))) : 100.;</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            :   if (
+<span class="lineNum">     272 </span><span class="lineCov">        266 :       (nCrossedRowsTPC &lt; fEsdTrackCutMinTPCrows) ||</span>
+<span class="lineNum">     273 </span><span class="lineCov">        130 :       (ratioCrossedRowsOverFindableClustersTPC &lt; fEsdTrackCutMinRatioRowsFindableClusters) ||</span>
+<span class="lineNum">     274 </span><span class="lineCov">        130 :       (chi2PerClusterTPC &gt; fEsdTrackCutMaxChi2TPCclusters)</span>
+<span class="lineNum">     275 </span>            :       )
+<span class="lineNum">     276 </span><span class="lineCov">          6 :     return kFALSE;</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            :   // ITS requirements
+<span class="lineNum">     279 </span><span class="lineCov">        342 :   Float_t chi2PerClusterITS = (esdTrack-&gt;GetITSclusters(0) &gt; 0) ? esdTrack-&gt;GetITSchi2()/Float_t(esdTrack-&gt;GetITSclusters(0)) : 1000.;</span>
+<span class="lineNum">     280 </span>            :   UShort_t clustersInAnyITSlayer = kFALSE;
+<span class="lineNum">     281 </span><span class="lineCov">       1820 :   for (UShort_t layer = 0; layer &lt; 6; ++layer)</span>
+<span class="lineNum">     282 </span><span class="lineCov">        780 :     clustersInAnyITSlayer += (esdTrack-&gt;HasPointOnITSLayer(layer) &amp; ((fEsdTrackCutsITSlayerMask &gt;&gt; layer) &amp; 1));</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">        130 :   if ((fEsdTrackCutsITSlayerMask != 0) &amp;&amp;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :       ((clustersInAnyITSlayer == 0) || (chi2PerClusterITS &gt;= fEsdTrackCutMaxChi2ITSclusters))</span>
+<span class="lineNum">     286 </span>            :       )
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            :   // geometric requirements
+<span class="lineNum">     290 </span><span class="lineCov">        130 :   Float_t impactPos[2], impactCov[3];</span>
+<span class="lineNum">     291 </span><span class="lineCov">        130 :   esdTrack-&gt;GetImpactParameters(impactPos, impactCov);</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineCov">        130 :   if (TMath::Abs(impactPos[0]) &gt; fEsdTrackCutMaxDCAtoVertexXY)</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">        130 :   if (TMath::Abs(impactPos[1]) &gt; fEsdTrackCutMaxDCAtoVertexZ)</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">        130 :   if (fEsdTrackCutPrim){</span>
+<span class="lineNum">     300 </span>            :     // additional requirements for primary tracks
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     const AliESDVertex* vertex = esdEvent-&gt;GetPrimaryVertexTracks();</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     if ((!vertex) || (!vertex-&gt;GetStatus()))</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       vertex = esdEvent-&gt;GetPrimaryVertexSPD();</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :     Float_t chi2TPCConstrainedVsGlobal =
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :       (vertex-&gt;GetStatus()) ? esdTrack-&gt;GetChi2TPCConstrainedVsGlobal(vertex) : (fEsdTrackVCutsChi2TPCconstrainedVsGlobal + 10.);</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     if (chi2TPCConstrainedVsGlobal &gt; fEsdTrackVCutsChi2TPCconstrainedVsGlobal)</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            :     Float_t cutDCAToVertexXYPtDep =
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :       fEsdTrackCutPtDCAOfs + fEsdTrackCutPtDCACoeff/((TMath::Abs(esdTrack-&gt;Pt()) &gt; 0.0001) ? esdTrack-&gt;Pt() : 0.0001);</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     if (TMath::Abs(impactPos[0]) &gt;= cutDCAToVertexXYPtDep)</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineCov">        130 :   return kTRUE;</span>
+<a name="321"><span class="lineNum">     321 </span><span class="lineCov">        282 : }</span></a>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            : Bool_t AliTRDonlineTrackMatching::ProcessEvent(AliESDEvent *esdEvent, Bool_t updateRef, Int_t label) {
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :   // performs track matching for all TRD online tracks of the ESD event
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineCov">          8 :   UInt_t numTrdTracks = esdEvent-&gt;GetNumberOfTrdTracks();</span>
+<span class="lineNum">     328 </span><span class="lineCov">          8 :   if (numTrdTracks &lt;= 0)</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">          8 :   if (!AliGeomManager::GetGeometry()){</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     AliError(&quot;Geometry not available! Skipping TRD track matching.&quot;);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     334 </span>            :   }
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineCov">          8 :   if (!fTRDgeo){</span>
+<span class="lineNum">     337 </span><span class="lineCov">          4 :     fTRDgeo = new AliTRDgeometry();</span>
+<span class="lineNum">     338 </span><span class="lineCov">          2 :   }</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            :   //
+<span class="lineNum">     341 </span>            :   // ESD track selection and sorting by TRD stack
+<span class="lineNum">     342 </span>            :   //
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineCov">          8 :   UInt_t esdTracksByStack[fgkTrdStacks][fgkMaxEsdTracksPerStack];</span>
+<span class="lineNum">     345 </span><span class="lineCov">          8 :   UInt_t esdTrackNumByStack[fgkTrdStacks];</span>
+<span class="lineNum">     346 </span><span class="lineCov">          8 :   memset(esdTrackNumByStack, 0, fgkTrdStacks*sizeof(UInt_t));</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineCov">          8 :   UInt_t numEsdTracks = esdEvent-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">     349 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     350 </span>            :   UInt_t numEsdTracksAccepted = 0;
+<span class="lineNum">     351 </span>            : #endif
+<span class="lineNum">     352 </span><span class="lineCov">          8 :   Short_t stack;</span>
+<span class="lineNum">     353 </span><span class="lineCov">          8 :   UShort_t layers;</span>
+<span class="lineNum">     354 </span>            :   AliESDtrack* esdTrack;
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">        320 :   for (UInt_t iEsdTrack = 0; iEsdTrack &lt; numEsdTracks; ++iEsdTrack){</span>
+<span class="lineNum">     357 </span><span class="lineCov">        152 :     esdTrack = esdEvent-&gt;GetTrack(iEsdTrack);</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineCov">        152 :     if (!esdTrack){</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       AliError(&quot;invalid ESD track!&quot;);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     362 </span>            :     }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :     // track filter here
+<span class="lineNum">     365 </span><span class="lineCov">        152 :     if (!AcceptTrack(esdTrack, esdEvent))</span>
+<span class="lineNum">     366 </span>            :       continue;
+<span class="lineNum">     367 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     368 </span>            :     else
+<span class="lineNum">     369 </span>            :       numEsdTracksAccepted++;
+<span class="lineNum">     370 </span>            : #endif
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :     // assign ESD track to TRD stack
+<span class="lineNum">     373 </span><span class="lineCov">        130 :     if (StackToTrack(esdTrack, stack, layers, esdEvent-&gt;GetMagneticField())){</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineCov">        106 :       if (stack &lt; 0){</span>
+<span class="lineNum">     376 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     377 </span>            :         printf(&quot;#TRACKMATCHING - invalid stack for ESD track\n&quot;);
+<span class="lineNum">     378 </span>            : #endif
+<span class="lineNum">     379 </span>            :         continue;
+<span class="lineNum">     380 </span>            :       }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            :       // register track in relevant stacks
+<span class="lineNum">     383 </span><span class="lineCov">        106 :       Int_t stacksForReg[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};</span>
+<span class="lineNum">     384 </span><span class="lineCov">        106 :       stacksForReg[0] = stack; // stack hit</span>
+<span class="lineNum">     385 </span><span class="lineCov">        106 :       stacksForReg[1] = (stack + 5) % 90; // same stack in next supermodule</span>
+<span class="lineNum">     386 </span><span class="lineCov">        106 :       stacksForReg[2] = (stack - 5); // same stack in previous supermodule</span>
+<span class="lineNum">     387 </span><span class="lineCov">        106 :       if (stacksForReg[2] &lt; 0)</span>
+<span class="lineNum">     388 </span><span class="lineCov">         16 :         stacksForReg[2] += 90;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineCov">        212 :       switch(TrdLsiSi(stack)){</span>
+<span class="lineNum">     391 </span>            :       case 0:
+<span class="lineNum">     392 </span>            :         // stack 0
+<span class="lineNum">     393 </span><span class="lineCov">          4 :         stacksForReg[3] = stack + 1; // next stack in same supermodule</span>
+<span class="lineNum">     394 </span><span class="lineCov">          4 :         stacksForReg[4] =  stacksForReg[1] + 1; // next stack in next supermodule</span>
+<span class="lineNum">     395 </span><span class="lineCov">          4 :         stacksForReg[5] =  stacksForReg[2] + 1; // next stack in previous supermodule</span>
+<span class="lineNum">     396 </span><span class="lineCov">          4 :         break;</span>
+<span class="lineNum">     397 </span>            :       case 1:
+<span class="lineNum">     398 </span>            :       case 2:
+<span class="lineNum">     399 </span>            :       case 3:
+<span class="lineNum">     400 </span><span class="lineCov">        100 :         stacksForReg[3] = stack + 1; // next stack in same supermodule</span>
+<span class="lineNum">     401 </span><span class="lineCov">        100 :         stacksForReg[4] =  stacksForReg[1] + 1; // next stack in next supermodule</span>
+<span class="lineNum">     402 </span><span class="lineCov">        100 :         stacksForReg[5] =  stacksForReg[2] + 1; // next stack in previous supermodule</span>
+<span class="lineNum">     403 </span><span class="lineCov">        100 :         stacksForReg[6] = stack - 1; // previous stack in same supermodule</span>
+<span class="lineNum">     404 </span><span class="lineCov">        100 :         stacksForReg[7] =  stacksForReg[1] - 1; // previous stack in next supermodule</span>
+<span class="lineNum">     405 </span><span class="lineCov">        100 :         stacksForReg[8] =  stacksForReg[2] - 1; // previous stack in previous supermodule</span>
+<span class="lineNum">     406 </span><span class="lineCov">        100 :         break;</span>
+<span class="lineNum">     407 </span>            :       case 4:
+<span class="lineNum">     408 </span><span class="lineCov">          2 :         stacksForReg[3] = stack - 1; // previous stack in same supermodule</span>
+<span class="lineNum">     409 </span><span class="lineCov">          2 :         stacksForReg[4] =  stacksForReg[1] - 1; // previous stack in next supermodule</span>
+<span class="lineNum">     410 </span><span class="lineCov">          2 :         stacksForReg[5] =  stacksForReg[2] - 1; // previous stack in previous supermodule</span>
+<span class="lineNum">     411 </span><span class="lineCov">          2 :         break;</span>
+<span class="lineNum">     412 </span>            :       default:
+<span class="lineNum">     413 </span>            :         break;
+<span class="lineNum">     414 </span>            :       }
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     417 </span>            :       printf(&quot;#TRACKMATCHING - assigned ESD track %d to following TRD stacks:&quot;, iEsdTrack);
+<span class="lineNum">     418 </span>            : #endif
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            :       // register for stacks
+<span class="lineNum">     421 </span><span class="lineCov">       2184 :       for (UShort_t iReg = 0; iReg &lt; 9; ++iReg){</span>
+<span class="lineNum">     422 </span><span class="lineCov">        942 :         if (stacksForReg[iReg] &lt; 0)</span>
+<span class="lineNum">     423 </span><span class="lineCov">          6 :           break;</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineCov">        936 :         if (stacksForReg[iReg] &gt;= 90){</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :           AliError(Form(&quot;invalid stack for registration: %i&quot;, stacksForReg[iReg]));</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     428 </span>            :         }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineCov">        936 :         if (esdTrackNumByStack[stacksForReg[iReg]] &lt; fgkMaxEsdTracksPerStack - 1)</span>
+<span class="lineNum">     431 </span><span class="lineCov">        936 :           esdTracksByStack[stacksForReg[iReg]][esdTrackNumByStack[stacksForReg[iReg]]++] = iEsdTrack;</span>
+<span class="lineNum">     432 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     433 </span>            :         else
+<span class="lineNum">     434 </span>            :           printf(&quot;#TRACKMATCHING - maximum number (%d) of ESD tracks per stack reached for S%02d-%d (%d tracks total). Skipping track!\n&quot;,
+<span class="lineNum">     435 </span>            :                  fgkMaxEsdTracksPerStack, TrdLsiSec(stacksForReg[iReg]), TrdLsiSi(stacksForReg[iReg]), numEsdTracks);
+<span class="lineNum">     436 </span>            :         printf(&quot; S%02d-%d&quot;, TrdLsiSec(stacksForReg[iReg]), TrdLsiSi(stacksForReg[iReg]));
+<span class="lineNum">     437 </span>            : #endif
+<span class="lineNum">     438 </span>            :       }
+<span class="lineNum">     439 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     440 </span>            :       printf(&quot; (ESD-ASSIGN)\n&quot;);
+<span class="lineNum">     441 </span>            : #endif
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            : //      if (esdTrackNumByStack[stack] &gt;= fgkMaxEsdTracksPerStack){
+<span class="lineNum">     444 </span>            : //#ifdef TRD_TM_DEBUG
+<span class="lineNum">     445 </span>            : //      printf(&quot;#TRACKMATCHING - maximum number (%d) of ESD tracks per stack reached for S%02d-%d (%d tracks total). Skipping track!\n&quot;,
+<span class="lineNum">     446 </span>            : //             fgkMaxEsdTracksPerStack, TrdLsiSec(stack), TrdLsiSi(stack), numEsdTracks);
+<span class="lineNum">     447 </span>            : //#endif
+<span class="lineNum">     448 </span>            : //      continue;
+<span class="lineNum">     449 </span>            : //      }
+<span class="lineNum">     450 </span>            : //
+<span class="lineNum">     451 </span>            : //      esdTracksByStack[stack][esdTrackNumByStack[stack]++] = iEsdTrack;
+<span class="lineNum">     452 </span>            : //#ifdef TRD_TM_DEBUG
+<span class="lineNum">     453 </span>            : //      printf(&quot;#TRACKMATCHING - assigned ESD track %d to TRD stack S%02d-%d\n&quot;,
+<span class="lineNum">     454 </span>            : //           iEsdTrack, TrdLsiSec(stack), TrdLsiSi(stack));
+<span class="lineNum">     455 </span>            : //#endif
+<span class="lineNum">     456 </span><span class="lineCov">        106 :     }</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :   } // loop over esd tracks
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     461 </span>            :   printf(&quot;#TRACKMATCHING - %d ESD tracks accepted, %d rejected\n&quot;,
+<span class="lineNum">     462 </span>            :          numEsdTracksAccepted, numEsdTracks - numEsdTracksAccepted);
+<span class="lineNum">     463 </span>            : #endif
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :   //
+<span class="lineNum">     466 </span>            :   // search matching ESD track for each TRD online track
+<span class="lineNum">     467 </span>            :   //
+<span class="lineNum">     468 </span>            :   AliESDTrdTrack* trdTrack;
+<span class="lineNum">     469 </span>            :   Double_t trdPt;
+<span class="lineNum">     470 </span>            :   AliESDtrack* matchCandidate;
+<span class="lineNum">     471 </span>            :   AliESDtrack* matchTrack;
+<span class="lineNum">     472 </span>            :   Int_t matchEsdTrackIndexInStack;
+<span class="lineNum">     473 </span>            :   Double_t matchRating;
+<span class="lineNum">     474 </span>            :   Int_t matchCandidateCount;
+<span class="lineNum">     475 </span><span class="lineCov">          8 :   Double_t distY, distZ;</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineCov">       4654 :   for (UInt_t iTrdTrack = 0; iTrdTrack &lt; numTrdTracks; ++iTrdTrack){</span>
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineCov">       2319 :     trdTrack = esdEvent-&gt;GetTrdTrack(iTrdTrack);</span>
+<span class="lineNum">     480 </span><span class="lineCov">       2319 :     if ((label != -1) &amp;&amp;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :         (trdTrack-&gt;GetLabel() != label))</span>
+<span class="lineNum">     482 </span>            :       continue;
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineCov">       6957 :     if ((trdTrack-&gt;GetSector() &lt; 0) || (trdTrack-&gt;GetSector() &gt; 17) ||</span>
+<span class="lineNum">     485 </span><span class="lineCov">       4638 :         (trdTrack-&gt;GetStack() &lt; 0) || (trdTrack-&gt;GetStack() &gt; 4))</span>
+<span class="lineNum">     486 </span>            :       continue;
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineCov">       2319 :     stack = TrdSecSiLsi(trdTrack-&gt;GetSector(), trdTrack-&gt;GetStack());</span>
+<span class="lineNum">     489 </span><span class="lineCov">       2319 :     trdPt = (esdEvent-&gt;GetMagneticField() &gt; 0.) ? (-1.*trdTrack-&gt;Pt()) : trdTrack-&gt;Pt();</span>
+<span class="lineNum">     490 </span>            :     matchTrack = NULL;
+<span class="lineNum">     491 </span>            :     matchEsdTrackIndexInStack = -1;
+<span class="lineNum">     492 </span>            :     matchRating = 0.;
+<span class="lineNum">     493 </span>            :     matchCandidateCount = 0;
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     496 </span>            :     printf(&quot;#TRACKMATCHING - trying to match TRD online track %d in S%02d-%d\n&quot;,
+<span class="lineNum">     497 </span>            :            iTrdTrack, trdTrack-&gt;GetSector(), trdTrack-&gt;GetStack());
+<span class="lineNum">     498 </span>            : #endif
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span>            :     // loop over all esd tracks in the same stack and check distance
+<span class="lineNum">     501 </span><span class="lineCov">       6678 :     for (UInt_t iEsdTrack = 0; iEsdTrack &lt; esdTrackNumByStack[stack]; ++iEsdTrack){</span>
+<span class="lineNum">     502 </span><span class="lineCov">       1020 :       matchCandidate = esdEvent-&gt;GetTrack(esdTracksByStack[stack][iEsdTrack]);</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineCov">       1020 :       if (EstimateTrackDistance(matchCandidate, trdTrack, esdEvent-&gt;GetMagneticField(), &amp;distY, &amp;distZ) == 0){</span>
+<span class="lineNum">     505 </span><span class="lineCov">         60 :         Double_t rating = RateTrackMatch(distY, distZ, matchCandidate-&gt;GetSignedPt(), trdPt);</span>
+<span class="lineNum">     506 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     507 </span>            :         printf(&quot;#TRACKMATCHING  S%02d-%d  trd %d - esd %d   dy: %.3f    dz: %.3f   r: %.3f    pt e: %.2f  t: %.2f   match: %d\n&quot;,
+<span class="lineNum">     508 </span>            :                trdTrack-&gt;GetSector(), trdTrack-&gt;GetStack(), iTrdTrack, iEsdTrack,
+<span class="lineNum">     509 </span>            :                distY, distZ, rating, matchCandidate-&gt;GetSignedPt(), trdPt,
+<span class="lineNum">     510 </span>            :                (rating &gt;= fMinMatchRating) ? 1 : 0);
+<span class="lineNum">     511 </span>            : #endif
+<span class="lineNum">     512 </span><span class="lineCov">         60 :         if (rating &gt; 0.){</span>
+<span class="lineNum">     513 </span>            :           // possibly matching pair found
+<span class="lineNum">     514 </span><span class="lineCov">         14 :           matchCandidateCount++;</span>
+<span class="lineNum">     515 </span><span class="lineCov">         14 :           if ((matchTrack == NULL) || (rating &gt; matchRating)){</span>
+<span class="lineNum">     516 </span>            :             // new best match
+<span class="lineNum">     517 </span>            :             matchTrack = matchCandidate;
+<span class="lineNum">     518 </span>            :             matchEsdTrackIndexInStack = iEsdTrack;
+<span class="lineNum">     519 </span>            :             matchRating = rating;
+<span class="lineNum">     520 </span><span class="lineCov">         14 :           }</span>
+<span class="lineNum">     521 </span>            :         }
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span><span class="lineCov">         60 :       } else {</span>
+<span class="lineNum">     524 </span>            :         // estimation of distance failed
+<span class="lineNum">     525 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     526 </span>            :         printf(&quot;TRACKMATCHING  S%02d-%d  trd %d - esd %d   failed\n&quot;,
+<span class="lineNum">     527 </span>            :                trdTrack-&gt;GetSector(), trdTrack-&gt;GetStack(), iTrdTrack, iEsdTrack);
+<span class="lineNum">     528 </span>            : #endif
+<span class="lineNum">     529 </span>            :       }
+<span class="lineNum">     530 </span>            :     } // loop over esd tracks in same stack
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineCov">       2319 :     if (fHistMatchRating){</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :       fHistMatchRating-&gt;Fill(matchRating);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineCov">       2333 :     if ((matchTrack) &amp;&amp; (matchRating &gt;= fMinMatchRating)){</span>
+<span class="lineNum">     537 </span><span class="lineCov">         39 :       AliDebug(1, Form(&quot;S%02d-%d  trd %d - esd %d   match!    pt:  %.2f  %.2f&quot;,</span>
+<span class="lineNum">     538 </span>            :                        trdTrack-&gt;GetSector(), trdTrack-&gt;GetStack(), iTrdTrack, matchEsdTrackIndexInStack,
+<span class="lineNum">     539 </span>            :                        trdPt, matchTrack-&gt;GetSignedPt()));
+<span class="lineNum">     540 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     541 </span>            :       printf(&quot;#TRACKMATCHING  S%02d-%d  trd %d - esd %d   match!    pt:  %.2f  %.2f\n&quot;,
+<span class="lineNum">     542 </span>            :              trdTrack-&gt;GetSector(), trdTrack-&gt;GetStack(), iTrdTrack, matchEsdTrackIndexInStack,
+<span class="lineNum">     543 </span>            :              trdPt, matchTrack-&gt;GetSignedPt());
+<span class="lineNum">     544 </span>            : #endif
+<span class="lineNum">     545 </span><span class="lineCov">         13 :       if (updateRef)</span>
+<span class="lineNum">     546 </span><span class="lineCov">         13 :         trdTrack-&gt;SetTrackMatchReference(matchTrack);</span>
+<span class="lineNum">     547 </span>            :     } else {
+<span class="lineNum">     548 </span><span class="lineCov">       2306 :       if (updateRef)</span>
+<span class="lineNum">     549 </span><span class="lineCov">       2306 :         trdTrack-&gt;SetTrackMatchReference(NULL);</span>
+<span class="lineNum">     550 </span>            :     }
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            :   } // loop over TRD online tracks
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            :   return kTRUE;
+<a name="555"><span class="lineNum">     555 </span><span class="lineCov">         16 : }</span></a>
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            : Bool_t AliTRDonlineTrackMatching::TrackPlaneIntersect(AliExternalTrackParam *trk, Double_t pnt[3], Double_t norm[3], Double_t mag){
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            :   // calculates the intersection point of a track param and a plane defined by point pnt and normal vector norm
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span>            :   UInt_t its = 0;
+<span class="lineNum">     562 </span>            :   Double_t r = 290.;
+<span class="lineNum">     563 </span>            :   Double_t step = 10.;
+<span class="lineNum">     564 </span>            :   Int_t flag = 0;
+<span class="lineNum">     565 </span>            :   Double_t dist = 0, dist_prev = 0;
+<span class="lineNum">     566 </span><span class="lineCov">        584 :   Double_t x[3] = {0., 0., 0.};</span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineCov">        292 :   dist = (x[0] - pnt[0]) * norm[0] + (x[1] - pnt[1]) *norm[1] + (x[2] - pnt[2]) * norm[2];</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineCov">       5544 :   while(TMath::Abs(dist) &gt; 0.1) {</span>
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineCov">       5001 :     trk-&gt;GetXYZAt(r, mag, x);</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineCov">       5001 :     if ((x[0] * x[0] + x[1] * x[1]) &lt; 100.)  // extrapolation to radius failed</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span>            :     //distance between current track position and plane
+<span class="lineNum">     578 </span><span class="lineCov">       5001 :     dist_prev = TMath::Abs(dist);</span>
+<span class="lineNum">     579 </span><span class="lineCov">       5001 :     dist = (x[0] - pnt[0]) * norm[0] + (x[1] - pnt[1]) * norm[1];</span>
+<span class="lineNum">     580 </span><span class="lineCov">       9710 :     if ((flag) &amp;&amp; (TMath::Abs(dist) &gt; dist_prev)){</span>
+<span class="lineNum">     581 </span><span class="lineCov">       1080 :       step /= -2.;</span>
+<span class="lineNum">     582 </span><span class="lineCov">       1080 :     }</span>
+<span class="lineNum">     583 </span>            :     flag=1;
+<span class="lineNum">     584 </span><span class="lineCov">       5001 :     r += step;</span>
+<span class="lineNum">     585 </span><span class="lineCov">       5001 :     its++;</span>
+<span class="lineNum">     586 </span><span class="lineCov">       9961 :     if ((r &gt; 380.) || (r &lt; 100.) || (its &gt; 100) || (TMath::Abs(step) &lt; 0.00001)){</span>
+<span class="lineNum">     587 </span>            :       break;
+<span class="lineNum">     588 </span>            :     }
+<span class="lineNum">     589 </span>            :   }
+<span class="lineNum">     590 </span><span class="lineCov">       2336 :   for (Int_t i=0; i&lt;3; i++)</span>
+<span class="lineNum">     591 </span><span class="lineCov">        876 :     pnt[i] = x[i];</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span><span class="lineCov">        292 :   return kTRUE;</span>
+<a name="594"><span class="lineNum">     594 </span><span class="lineCov">        292 : }</span></a>
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            : Int_t AliTRDonlineTrackMatching::EstimateTrackDistance(AliESDtrack *esd_track, AliESDTrdTrack* gtu_track, Double_t mag, Double_t *ydist, Double_t *zdist){
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span>            :   // returns an estimate for the spatial distance between TPC offline track and GTU online track
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineCov">       2040 :   if ((!esd_track) || (!gtu_track))</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     return -3;</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :   // AssertTRDGeometry();
+<span class="lineNum">     604 </span><span class="lineCov">       1020 :   if (!fTRDgeo)</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     fTRDgeo = new AliTRDgeometry();</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :   Float_t diff_y = 0;
+<span class="lineNum">     608 </span>            :   Float_t diff_z = 0;
+<span class="lineNum">     609 </span>            :   Int_t nLayers = 0;
+<span class="lineNum">     610 </span><span class="lineCov">       1020 :   Double_t xtrkl[3];</span>
+<span class="lineNum">     611 </span><span class="lineCov">       1020 :   Double_t ptrkl[3];</span>
+<span class="lineNum">     612 </span><span class="lineCov">       1020 :   Double_t ptrkl2[3];</span>
+<span class="lineNum">     613 </span>            :   UInt_t trklDet;
+<span class="lineNum">     614 </span>            :   UShort_t trklLayer;
+<span class="lineNum">     615 </span>            :   UInt_t stack_gtu;
+<span class="lineNum">     616 </span>            :   UShort_t stackInSector;
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineCov">      15300 :   for (UShort_t iLayer = 0; iLayer &lt; 6; iLayer++){</span>
+<span class="lineNum">     619 </span><span class="lineCov">       6120 :     AliESDTrdTracklet* trkl = gtu_track-&gt;GetTracklet(iLayer);</span>
+<span class="lineNum">     620 </span><span class="lineCov">       6120 :     if (trkl){</span>
+<span class="lineNum">     621 </span><span class="lineCov">        292 :       trklDet = trkl-&gt;GetDetector();</span>
+<span class="lineNum">     622 </span><span class="lineCov">        292 :       trklLayer = TrdDetLyr(trklDet);</span>
+<span class="lineNum">     623 </span><span class="lineCov">        292 :       stack_gtu = TrdDetLsi(trklDet);</span>
+<span class="lineNum">     624 </span><span class="lineCov">        292 :       stackInSector = TrdDetSi(trklDet);</span>
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span>            :       // local coordinates of the outer end point of the tracklet
+<span class="lineNum">     627 </span><span class="lineCov">        292 :       xtrkl[0] = AliTRDgeometry::AnodePos();</span>
+<span class="lineNum">     628 </span><span class="lineCov">        292 :       xtrkl[1] = trkl-&gt;GetLocalY();</span>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineCov">        584 :       if(stackInSector == 2){ // corrected version by Felix Muecke</span>
+<span class="lineNum">     631 </span><span class="lineCov">        800 :         xtrkl[2] = fTRDgeo-&gt;GetPadPlane(trklLayer, stackInSector)-&gt;GetRowPos(trkl-&gt;GetBinZ()) -</span>
+<span class="lineNum">     632 </span><span class="lineCov">        508 :           (fTRDgeo-&gt;GetPadPlane(trklLayer, stackInSector)-&gt;GetRowSize(trkl-&gt;GetBinZ()))/2. -</span>
+<span class="lineNum">     633 </span><span class="lineCov">        508 :           fTRDgeo-&gt;GetPadPlane(trklLayer, stackInSector)-&gt;GetRowPos(6);</span>
+<span class="lineNum">     634 </span><span class="lineCov">        216 :       } else {</span>
+<span class="lineNum">     635 </span><span class="lineCov">         76 :         xtrkl[2] = fTRDgeo-&gt;GetPadPlane(trklLayer, stackInSector)-&gt;GetRowPos(trkl-&gt;GetBinZ()) -</span>
+<span class="lineNum">     636 </span><span class="lineCov">         76 :           (fTRDgeo-&gt;GetPadPlane(trklLayer, stackInSector)-&gt;GetRowSize(trkl-&gt;GetBinZ()))/2. -</span>
+<span class="lineNum">     637 </span><span class="lineCov">         76 :           fTRDgeo-&gt;GetPadPlane(trklLayer, stackInSector)-&gt;GetRowPos(8);</span>
+<span class="lineNum">     638 </span>            :       }
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span>            :       // old draft version
+<span class="lineNum">     641 </span>            :       // xtrkl[2] = fTRDgeo-&gt;GetPadPlane(trklLayer, (trklDet/6) % 5)-&gt;GetRowPos(trkl-&gt;GetBinZ()) -
+<span class="lineNum">     642 </span>            :       //        fTRDgeo-&gt;GetPadPlane(trklLayer, (trklDet/6) % 5)-&gt;GetRowSize(trkl-&gt;GetBinZ()) -
+<span class="lineNum">     643 </span>            :       //        fTRDgeo-&gt;GetPadPlane(trklLayer, (trklDet/6) % 5)-&gt;GetRowPos(8);
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span>            :       // transform to global coordinates
+<span class="lineNum">     646 </span><span class="lineCov">        292 :       TGeoHMatrix *matrix = fTRDgeo-&gt;GetClusterMatrix(trklDet);</span>
+<span class="lineNum">     647 </span><span class="lineCov">        292 :       if (!matrix){</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :         if ((stack_gtu != 13*5+2) &amp;&amp; (stack_gtu != 14*5+2) &amp;&amp; (stack_gtu != 15*5+2))</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :           AliDebug(1, Form(&quot;invalid TRD cluster matrix in EstimateTrackDistance for detector %i&quot;, trklDet));</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :         return -5;</span>
+<span class="lineNum">     651 </span>            :       }
+<span class="lineNum">     652 </span><span class="lineCov">        292 :       matrix-&gt;LocalToMaster(xtrkl, ptrkl);</span>
+<span class="lineNum">     653 </span><span class="lineCov">        292 :       fTRDgeo-&gt;RotateBack(gtu_track-&gt;GetSector() * 30, ptrkl, ptrkl2);  // ptrkl2 now contains the global position of the outer end point of the tracklet</span>
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            :       // calculate parameterization of plane representing the tracklets layer
+<span class="lineNum">     656 </span><span class="lineCov">        292 :       Double_t layer_zero_local[3] = {0., 0.,  0.};</span>
+<span class="lineNum">     657 </span><span class="lineCov">        292 :       Double_t layer_zero_global[3], layer_zero_global2[3];</span>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span><span class="lineCov">        292 :       matrix-&gt;LocalToMaster(layer_zero_local, layer_zero_global);</span>
+<span class="lineNum">     660 </span><span class="lineCov">        292 :       fTRDgeo-&gt;RotateBack(trklDet, layer_zero_global, layer_zero_global2); // layer_zero_global2 points to chamber origin in global coords</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineCov">        292 :       Double_t layer_ref_local[3] = {AliTRDgeometry::AnodePos(), 0.,  0.};</span>
+<span class="lineNum">     663 </span><span class="lineCov">        292 :       Double_t layer_ref_global[3], layer_ref_global2[3];</span>
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span><span class="lineCov">        292 :       matrix-&gt;LocalToMaster(layer_ref_local, layer_ref_global);</span>
+<span class="lineNum">     666 </span><span class="lineCov">        292 :       fTRDgeo-&gt;RotateBack(trklDet, layer_ref_global, layer_ref_global2); // layer_ref_global2 points to center anode pos within plane in global coords</span>
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span><span class="lineCov">        292 :       Double_t n0[3] = {layer_ref_global2[0]-layer_zero_global2[0],</span>
+<span class="lineNum">     669 </span><span class="lineCov">        292 :                         layer_ref_global2[1]-layer_zero_global2[1],</span>
+<span class="lineNum">     670 </span><span class="lineCov">        292 :                         layer_ref_global2[2]-layer_zero_global2[2]};</span>
+<span class="lineNum">     671 </span>            : 
+<span class="lineNum">     672 </span><span class="lineCov">        292 :       Double_t n_len = TMath::Sqrt(n0[0]*n0[0] + n0[1]*n0[1] + n0[2]*n0[2]);</span>
+<span class="lineNum">     673 </span><span class="lineCov">        292 :       if (n_len == 0.){ // This should never happen</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :         AliError(&quot;divison by zero in estimate_track_distance!&quot;);</span>
+<span class="lineNum">     675 </span>            :         n_len = 1.;
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     677 </span><span class="lineCov">        292 :       Double_t n[3] = {n0[0]/n_len, n0[1]/n_len, n0[2]/n_len}; // normal vector of plane</span>
+<span class="lineNum">     678 </span>            : 
+<span class="lineNum">     679 </span><span class="lineCov">        292 :       const AliExternalTrackParam *trackParam = esd_track-&gt;GetOuterParam();</span>
+<span class="lineNum">     680 </span><span class="lineCov">        292 :       if (!trackParam) {</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         trackParam = esd_track-&gt;GetInnerParam();</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :         if (!trackParam)</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :           trackParam = esd_track;</span>
+<span class="lineNum">     684 </span>            :       }
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span><span class="lineCov">        292 :       AliExternalTrackParam *outerTPC = new AliExternalTrackParam(*trackParam);</span>
+<span class="lineNum">     687 </span><span class="lineCov">        292 :       Bool_t isects = TrackPlaneIntersect(outerTPC, layer_ref_global2, n, mag); // find intersection point between track and TRD layer</span>
+<span class="lineNum">     688 </span><span class="lineCov">        584 :       delete outerTPC;</span>
+<span class="lineNum">     689 </span>            :       outerTPC = NULL;
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineCov">        292 :       if (isects == kFALSE){ // extrapolation fails, because track never reaches the TRD radius</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     693 </span>            :       }
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineCov">        292 :       Double_t m[2] = {ptrkl2[0] - layer_ref_global2[0], ptrkl2[1] - layer_ref_global2[1]};</span>
+<span class="lineNum">     696 </span><span class="lineCov">        292 :       Double_t len_m = TMath::Sqrt(m[0]*m[0] + m[1]*m[1]);</span>
+<span class="lineNum">     697 </span><span class="lineCov">        292 :       diff_y += len_m;</span>
+<span class="lineNum">     698 </span><span class="lineCov">        292 :       diff_z += TMath::Abs(ptrkl2[2] - layer_ref_global2[2]);</span>
+<span class="lineNum">     699 </span><span class="lineCov">        292 :       nLayers++;</span>
+<span class="lineNum">     700 </span><span class="lineCov">        584 :     }</span>
+<span class="lineNum">     701 </span><span class="lineCov">       6120 :   }</span>
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span><span class="lineCov">       1020 :   if (nLayers &gt; 0){</span>
+<span class="lineNum">     704 </span><span class="lineCov">         60 :     *ydist = diff_y / nLayers;</span>
+<span class="lineNum">     705 </span><span class="lineCov">         60 :     *zdist = diff_z / nLayers;</span>
+<span class="lineNum">     706 </span><span class="lineCov">         60 :     return 0;</span>
+<span class="lineNum">     707 </span>            :   }
+<span class="lineNum">     708 </span>            :   else
+<span class="lineNum">     709 </span><span class="lineCov">        960 :     return -4;</span>
+<a name="710"><span class="lineNum">     710 </span><span class="lineCov">       2040 : }</span></a>
+<span class="lineNum">     711 </span>            : 
+<span class="lineNum">     712 </span>            : Double_t AliTRDonlineTrackMatching::PtDiffRel(Double_t refPt, Double_t gtuPt){
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            :   // return relative pt difference
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span><span class="lineCov">         28 :   if (TMath::Abs(refPt) &gt; 0.000001){</span>
+<span class="lineNum">     717 </span><span class="lineCov">         14 :     return (gtuPt - refPt) / refPt;</span>
+<span class="lineNum">     718 </span>            :   } else
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     return 0.;</span>
+<span class="lineNum">     720 </span><span class="lineCov">         14 : }</span>
+<a name="721"><span class="lineNum">     721 </span>            : </a>
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span>            : Double_t AliTRDonlineTrackMatching::RateTrackMatch(Double_t distY, Double_t distZ, Double_t rpt, Double_t gpt){
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span>            :   // returns a match rating derived from Y and Z distance as well as pt difference
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            :   // maximum limits for spatial distance
+<span class="lineNum">     728 </span><span class="lineCov">        120 :   if ((distY &gt; 5.) || (distZ &gt; 20.))</span>
+<span class="lineNum">     729 </span><span class="lineCov">         46 :     return 0.;</span>
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span>            :   // same pt sign required
+<span class="lineNum">     732 </span><span class="lineCov">         14 :   if ((rpt * gpt) &lt; 0.)</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     return 0.;</span>
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span><span class="lineCov">         14 :   Double_t rating_distY = -0.1 * distY + 1.;</span>
+<span class="lineNum">     736 </span><span class="lineCov">         14 :   Double_t rating_distZ = -0.025 * distZ + 1.;</span>
+<span class="lineNum">     737 </span><span class="lineCov">         14 :   Double_t rating_ptDiff = 1. - TMath::Abs(PtDiffRel(rpt, gpt));</span>
+<span class="lineNum">     738 </span>            : 
+<span class="lineNum">     739 </span><span class="lineCov">         14 :   if (rating_ptDiff &lt;  0.)</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     rating_ptDiff = 0.2;</span>
+<span class="lineNum">     741 </span>            : 
+<span class="lineNum">     742 </span><span class="lineCov">         14 :   Double_t total = rating_distY * rating_distZ * rating_ptDiff;</span>
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     745 </span>            :   if (total &gt; 1.){
+<span class="lineNum">     746 </span>            :     printf(&quot;&lt;ERROR&gt; track match rating exceeds limit of 1.0: %.3f&quot;, total);
+<span class="lineNum">     747 </span>            :   }
+<span class="lineNum">     748 </span>            : #endif
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :   return total;
+<span class="lineNum">     751 </span><span class="lineCov">         60 : }</span>
+<a name="752"><span class="lineNum">     752 </span>            : </a>
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span>            : void AliTRDonlineTrackMatching::SetEsdTrackDefaultCuts(const char* cutIdent) {
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span><span class="lineCov">         48 :   if (strcmp(cutIdent, &quot;strict&quot;) == 0){</span>
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     759 </span>            :     printf(&quot;AliTRDonlineTrackMatching -- default track cuts selected&quot;);
+<span class="lineNum">     760 </span>            : #endif
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     fEsdTrackCutMinimal = kFALSE;</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     fEsdTrackCutPrim = kFALSE;</span>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     fEsdTrackCutMinTPCrows = 70;</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     fEsdTrackCutRequireTPCrefit = kTRUE;</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     fEsdTrackCutMinRatioRowsFindableClusters = 0.8;</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     fEsdTrackCutMaxChi2TPCclusters = 4.;</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     fEsdTrackVCutsChi2TPCconstrainedVsGlobal = 36.;</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     fEsdTrackCutRequireITSrefit = kFALSE;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     fEsdTrackCutMaxChi2ITSclusters = 36.;</span>
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     fEsdTrackCutMaxDCAtoVertexXY = 1000.;</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     fEsdTrackCutMaxDCAtoVertexZ = 2.;</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     fEsdTrackCutsITSlayerMask = 0x0;</span>
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     fEsdTrackCutPtDCAOfs = 0.0105;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     fEsdTrackCutPtDCACoeff = 0.0350;</span>
+<span class="lineNum">     780 </span><span class="lineCov">         24 :   } else if (strcmp(cutIdent, &quot;minimal&quot;) == 0){</span>
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span>            : #ifdef TRD_TM_DEBUG
+<span class="lineNum">     783 </span>            :     printf(&quot;AliTRDonlineTrackMatching -- minimal track cuts selected\n&quot;);
+<span class="lineNum">     784 </span>            : #endif
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span><span class="lineCov">         24 :     fEsdTrackCutMinimal = kFALSE;</span>
+<span class="lineNum">     787 </span><span class="lineCov">         24 :     fEsdTrackCutPrim = kFALSE;</span>
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span><span class="lineCov">         24 :     fEsdTrackCutMinTPCrows = 70;</span>
+<span class="lineNum">     790 </span><span class="lineCov">         24 :     fEsdTrackCutRequireTPCrefit = kTRUE;</span>
+<span class="lineNum">     791 </span><span class="lineCov">         24 :     fEsdTrackCutMinRatioRowsFindableClusters = 0.;</span>
+<span class="lineNum">     792 </span><span class="lineCov">         24 :     fEsdTrackCutMaxChi2TPCclusters = 100.;</span>
+<span class="lineNum">     793 </span><span class="lineCov">         24 :     fEsdTrackVCutsChi2TPCconstrainedVsGlobal = 1000.;</span>
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span><span class="lineCov">         24 :     fEsdTrackCutRequireITSrefit = kFALSE;</span>
+<span class="lineNum">     796 </span><span class="lineCov">         24 :     fEsdTrackCutMaxChi2ITSclusters = 0.;</span>
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span><span class="lineCov">         24 :     fEsdTrackCutMaxDCAtoVertexXY = 1000.;</span>
+<span class="lineNum">     799 </span><span class="lineCov">         24 :     fEsdTrackCutMaxDCAtoVertexZ = 1000.;</span>
+<span class="lineNum">     800 </span><span class="lineCov">         24 :     fEsdTrackCutsITSlayerMask = 0x0;</span>
+<span class="lineNum">     801 </span><span class="lineCov">         24 :   } else</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;invalid cut set&quot;);</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span><span class="lineCov">         24 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

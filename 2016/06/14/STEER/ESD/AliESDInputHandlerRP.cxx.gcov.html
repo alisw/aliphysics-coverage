@@ -1,0 +1,447 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/ESD/AliESDInputHandlerRP.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/ESD</a> - AliESDInputHandlerRP.cxx<span style="font-size: 80%;"> (source / <a href="AliESDInputHandlerRP.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">187</td>
+            <td class="headerCovTableEntryLo">0.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">6.2 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-2007, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //-------------------------------------------------------------------------
+<span class="lineNum">      19 </span>            : //     Event handler for ESD input reading the RecPoint Trees in parallel
+<span class="lineNum">      20 </span>            : //     Author: Andreas Morsch, CERN
+<span class="lineNum">      21 </span>            : //-------------------------------------------------------------------------
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;TTree.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;TList.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;TArchiveFile.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;TSystemDirectory.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;TString.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;TProcessID.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;TGrid.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &quot;AliESDInputHandlerRP.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliESDEvent.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliESD.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliLog.h&quot;
+<a name="39"><span class="lineNum">      39 </span>            : #include &quot;AliDAQ.h&quot;</a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineCov">        172 : ClassImp(AliESDInputHandlerRP)</span>
+<a name="42"><span class="lineNum">      42 </span>            : </a>
+<span class="lineNum">      43 </span>            : //______________________________________________________________________________
+<span class="lineNum">      44 </span>            : AliESDInputHandlerRP::AliESDInputHandlerRP() :
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     AliESDInputHandler(),</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     fRTrees(   new TObjArray()),</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     fRDirs (   new TObjArray()),</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     fRFiles(   new TList()),</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     fDetectors(new TList()),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     fDirR(0),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     fEventNumber(-1),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     fFileNumber(0),</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     fEventsPerFile(0),</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     fExtension(&quot;&quot;),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     fPathName(new TString(&quot;./&quot;)),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     fIsArchive(kFALSE),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     fReadDirectory(kFALSE)</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      59 </span>            :   // Default constructor
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      61 </span>            : 
+<a name="62"><span class="lineNum">      62 </span>            : </a>
+<span class="lineNum">      63 </span>            : //______________________________________________________________________________
+<span class="lineNum">      64 </span>            : AliESDInputHandlerRP::AliESDInputHandlerRP(const char* name, const char* title):
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     AliESDInputHandler(name, title),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     fRTrees(   new TObjArray()),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     fRDirs (   new TObjArray()),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     fRFiles(   new TList()),</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     fDetectors(new TList()),</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     fDirR(0),</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     fEventNumber(-1),</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     fFileNumber(0),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     fEventsPerFile(0),</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     fExtension(&quot;&quot;),</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     fPathName(new TString(&quot;./&quot;)),</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     fIsArchive(kFALSE),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     fReadDirectory(kFALSE)</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      79 </span>            :     // Constructor
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : }</span>
+<a name="81"><span class="lineNum">      81 </span>            : </a>
+<span class="lineNum">      82 </span>            : //______________________________________________________________________________
+<span class="lineNum">      83 </span>            : AliESDInputHandlerRP::~AliESDInputHandlerRP() 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      85 </span>            :   // Destructor
+<a name="86"><span class="lineNum">      86 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : Bool_t AliESDInputHandlerRP::Init(Option_t* opt)
+<span class="lineNum">      89 </span>            : {
+<span class="lineNum">      90 </span>            :     //
+<span class="lineNum">      91 </span>            :     // Initialize input
+<span class="lineNum">      92 </span>            :     //
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     if (!(strcmp(opt, &quot;proof&quot;)) || !(strcmp(opt, &quot;local&quot;))) return kTRUE;</span>
+<span class="lineNum">      94 </span>            :     //
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     TIter next(fDetectors);</span>
+<span class="lineNum">      96 </span>            :     TNamed* det;
+<span class="lineNum">      97 </span>            :     TFile* file = 0;
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     while ((det = (TNamed*) next()))</span>
+<span class="lineNum">      99 </span>            :     {
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :       TString rppath;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :       if (det-&gt;TestBit(kReadFromArchiveBIT)) {</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         if (fPathName-&gt;EndsWith(&quot;root_archive.zip&quot;))</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :           rppath.Form(&quot;%s#%s.RecPoints.root&quot;, fPathName-&gt;Data(), det-&gt;GetName());</span>
+<span class="lineNum">     104 </span>            :         else
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :           rppath.Form(&quot;%sroot_archive.zip#%s.RecPoints.root&quot;, fPathName-&gt;Data(), det-&gt;GetName());</span>
+<span class="lineNum">     106 </span>            :       }
+<span class="lineNum">     107 </span>            :       else
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         rppath.Form(&quot;%s%s.RecPoints.root&quot;, fPathName-&gt;Data(), det-&gt;GetName());</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :       file = TFile::Open(rppath.Data());</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :       if (!file) {</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         AliErrorF(&quot;AliESDInputHandlerRP: Failed to open %s&quot;,rppath.Data());</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">     113 </span>            :       }
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       fRFiles-&gt;Add(file);</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     if (file) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         fEventsPerFile = file-&gt;GetNkeys() - file-&gt;GetNProcessIDs();</span>
+<span class="lineNum">     119 </span>            :     } else {
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         AliErrorF(&quot;AliESDInputHandlerRP: No file with RecPoints found in %s !&quot;, fPathName-&gt;Data());</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            :     
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            :     // Reset the event number
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     fEventNumber      = -1;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     fFileNumber       =  0;</span>
+<span class="lineNum">     128 </span>            :     // Get number of events from esd tree 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     printf(&quot;AliESDInputHandlerRP::Init() %d %d\n&quot;,__LINE__, fNEvents);</span>
+<span class="lineNum">     130 </span>            :     //
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     AliESDInputHandler::Init(opt);</span>
+<span class="lineNum">     132 </span>            :     //
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<a name="134"><span class="lineNum">     134 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : Bool_t AliESDInputHandlerRP::BeginEvent(Long64_t entry)
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :     // Begin the next event
+<span class="lineNum">     139 </span>            :     //
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     if (entry == -1) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         fEventNumber++;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         entry = fEventNumber;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         fEventNumber = entry;</span>
+<span class="lineNum">     145 </span>            :     }
+<span class="lineNum">     146 </span>            :     
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     if (entry &gt;= fNEvents) {</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         AliWarning(Form(&quot;AliESDInputHandlerRP: Event number out of range %5lld %5d\n&quot;, entry, fNEvents));</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">     150 </span>            :     }
+<span class="lineNum">     151 </span>            :     
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     LoadEvent(entry);</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            :     // Delegate to base class
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     return AliESDInputHandler::BeginEvent(entry);</span>
+<span class="lineNum">     156 </span>            : 
+<a name="157"><span class="lineNum">     157 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : Bool_t AliESDInputHandlerRP::LoadEvent(Int_t iev)
+<span class="lineNum">     160 </span>            : {
+<span class="lineNum">     161 </span>            :     // Load the event number iev
+<span class="lineNum">     162 </span>            :     //
+<span class="lineNum">     163 </span>            :     // Calculate the file number
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   if (fEventsPerFile&lt;=0) return kFALSE;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     Int_t inew  = iev / fEventsPerFile;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     if (inew != fFileNumber) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         fFileNumber = inew;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         if (!OpenFile(fFileNumber)){</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     170 </span>            :         }
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span>            :     // Folder name
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     char folder[20];</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     snprintf(folder, 20, &quot;Event%d&quot;, iev);</span>
+<span class="lineNum">     175 </span>            :     // Tree R
+<span class="lineNum">     176 </span>            :     // AliInfo(&quot;List of files&quot;);
+<span class="lineNum">     177 </span>            :     // fRFiles-&gt;ls();
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     TIter next(fRFiles);</span>
+<span class="lineNum">     179 </span>            :     TFile* file;
+<span class="lineNum">     180 </span>            :     Int_t idx  = 0;
+<span class="lineNum">     181 </span>            :     
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     while ((file = (TFile*) next()))</span>
+<span class="lineNum">     183 </span>            :     {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         file-&gt;GetObject(folder, fDirR);</span>
+<span class="lineNum">     185 </span>            :         
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         if (!fDirR) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             AliWarning(Form(&quot;AliESDInputHandlerRP: Event #%5d not found\n&quot;, iev));</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             return kFALSE;</span>
+<span class="lineNum">     189 </span>            :         }
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         TTree* tree = 0;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         fDirR-&gt;GetObject(&quot;TreeR&quot;, tree);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         fRDirs -&gt;AddAt(fDirR, idx  );</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         fRTrees-&gt;AddAt(tree,  idx++);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<a name="196"><span class="lineNum">     196 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : Bool_t AliESDInputHandlerRP::OpenFile(Int_t i)
+<span class="lineNum">     199 </span>            : {
+<span class="lineNum">     200 </span>            :     // Open file i
+<span class="lineNum">     201 </span>            :     Bool_t ok = kTRUE;
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     if (i &gt; 0) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         fExtension = Form(&quot;%d&quot;, i);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         fExtension = &quot;&quot;;</span>
+<span class="lineNum">     206 </span>            :     }
+<span class="lineNum">     207 </span>            :     
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     fRFiles-&gt;Delete();</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     TIter next(fDetectors);</span>
+<span class="lineNum">     210 </span>            :     TNamed* det;
+<span class="lineNum">     211 </span>            :     TFile* file;
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     while ((det = (TNamed*) next()))</span>
+<span class="lineNum">     213 </span>            :     {
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       TString rppath;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :       if (det-&gt;TestBit(kReadFromArchiveBIT)) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         if (fPathName-&gt;EndsWith(&quot;root_archive.zip&quot;))</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :           rppath.Form(&quot;%s#%s.RecPoints.root&quot;, fPathName-&gt;Data(), det-&gt;GetName());</span>
+<span class="lineNum">     218 </span>            :         else
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :           rppath.Form(&quot;%sroot_archive.zip#%s.RecPoints.root&quot;, fPathName-&gt;Data(), det-&gt;GetName());</span>
+<span class="lineNum">     220 </span>            :       }
+<span class="lineNum">     221 </span>            :       else
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         rppath.Form(&quot;%s%s.RecPoints.root&quot;, fPathName-&gt;Data(), det-&gt;GetName());</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :       file = TFile::Open(rppath.Data());</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :       if (!file) AliFatalF(&quot;AliESDInputHandlerRP: Failed to open %s !&quot;,rppath.Data());</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :       fRFiles-&gt;Add(file);</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     227 </span>            :     return ok;
+<a name="228"><span class="lineNum">     228 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            : Bool_t AliESDInputHandlerRP::Notify(const char *path)
+<span class="lineNum">     231 </span>            : {
+<span class="lineNum">     232 </span>            :   // Notify about directory change
+<span class="lineNum">     233 </span>            :   // The directory is taken from the 'path' argument
+<span class="lineNum">     234 </span>            :   // 
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :     // Get path to directory
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     TString fileName(path);</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     if (fileName.IsNull()) return kFALSE;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Directory change %s \n&quot;, path));</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     TString esdname = gSystem-&gt;BaseName(fileName);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     Int_t index = esdname.Index(&quot;#&quot;)+1;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if (index) esdname.Remove(0,index);</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     if(fileName.Contains(&quot;#&quot;)){</span>
+<span class="lineNum">     249 </span>            :     // If this is an archive it will contain a # 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       fIsArchive = kTRUE;</span>
+<span class="lineNum">     251 </span>            :       /// AliInfoF(&quot;%s is an archive&quot;, fileName.Data());
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     else  if(fileName.Contains(esdname)){</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       fileName.ReplaceAll(esdname, &quot;&quot;);</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :     //
+<span class="lineNum">     258 </span>            :     // At this point we have a path to the directory or to the archive anchor
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     *fPathName = fileName;</span>
+<span class="lineNum">     260 </span>            :     // AliInfoF(&quot;Path name is now %s&quot;, fPathName-&gt;Data());
+<span class="lineNum">     261 </span>            :     //
+<span class="lineNum">     262 </span>            :     // Now filter the files containing RecPoints *.RecPoints.*
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :     TSeqCollection* membersArch=0;
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            :     
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     if (fIsArchive) {</span>
+<span class="lineNum">     268 </span>            :         // Archive
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :       TFile* file = TFile::Open(fPathName-&gt;Data());</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :       TArchiveFile* arch = file-&gt;GetArchive();</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :       membersArch = arch-&gt;GetMembers();</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       fPathName-&gt;ReplaceAll(&quot;#&quot;, &quot;&quot;);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       fPathName-&gt;ReplaceAll(esdname, &quot;&quot;);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     275 </span>            :     else {
+<span class="lineNum">     276 </span>            :         // Directory or alien archive
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :       if (fileName.BeginsWith(&quot;alien:&quot;)) {</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         AliInfoF(&quot;prefix is, alien: trying to open %s/root_archive.zip&quot;, fPathName-&gt;Data());</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         TFile* file = TFile::Open(Form(&quot;%s/root_archive.zip&quot;, fPathName-&gt;Data()));</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         TArchiveFile* arch = file-&gt;GetArchive();</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         membersArch = arch-&gt;GetMembers();</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :       } </span>
+<span class="lineNum">     283 </span>            :     }
+<span class="lineNum">     284 </span>            :     // if (membersArch) {
+<span class="lineNum">     285 </span>            :     //   AliInfo(&quot;List of archive members&quot;);
+<span class="lineNum">     286 </span>            :     //   membersArch-&gt;Print();
+<span class="lineNum">     287 </span>            :     // }
+<span class="lineNum">     288 </span>            :     TFile* entry;
+<span class="lineNum">     289 </span>            :     Int_t ien = 0;
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     fDetectors-&gt;Delete(); </span>
+<span class="lineNum">     291 </span>            :     
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     if (membersArch) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :       TIter next(membersArch);</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :       while ( (entry = (TFile*) next()) ) {</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         TString name(entry-&gt;GetName());</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         TObjArray* tokens = name.Tokenize(&quot;.&quot;);</span>
+<span class="lineNum">     297 </span>            :         Int_t ntok = 0;
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         if (tokens) {</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :           ntok = tokens-&gt;GetEntries();</span>
+<span class="lineNum">     300 </span>            :         } else {
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     302 </span>            :         }
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         if (ntok &lt;= 1) continue;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         TString str = ((TObjString*) tokens-&gt;At(1))-&gt;GetString();</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         if (!(strcmp(str.Data(), &quot;RecPoints&quot;))){</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :           TString det = ((TObjString*) tokens-&gt;At(0))-&gt;GetString();</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :           printf(&quot;Found file with RecPoints for %s \n&quot;, det.Data());</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :           TNamed* ent = new TNamed(det.Data(), det.Data());</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :           fRTrees-&gt;AddAt(0, ien);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :           ent-&gt;SetUniqueID(ien++);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :           ent-&gt;SetBit(kReadFromArchiveBIT);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :           fDetectors-&gt;Add(ent);</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         if(tokens) delete tokens;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :       } // loop over files</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     317 </span>            :     //
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     if (!fDetectors-&gt;GetEntries() || fReadDirectory) { // read from directory, overlaps will be sorted out later</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :       if (fPathName-&gt;BeginsWith(&quot;alien:&quot;) &amp;&amp; !gGrid) TGrid::Connect(&quot;alien://&quot;);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :       for (int id=0;id&lt;AliDAQ::kNDetectors;id++) {</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         const char* dname = AliDAQ::OfflineModuleName(id);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         if (!dname || fDetectors-&gt;FindObject(dname)) continue; // skip already accounted one</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         if (gSystem-&gt;AccessPathName(Form(&quot;%s%s.RecPoints.root&quot;,fPathName-&gt;Data(),dname))) continue; // no recpoints</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         TNamed* ent = new TNamed(dname, dname);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         fRTrees-&gt;AddAt(0, ien);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         ent-&gt;SetUniqueID(ien++);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         fDetectors-&gt;Add(ent);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     }  </span>
+<span class="lineNum">     330 </span>            :     //
+<span class="lineNum">     331 </span>            :     // Now we have the path and the list of detectors
+<span class="lineNum">     332 </span>            :     
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     printf(&quot;AliESDInputHandlerRP::Notify() Path: %s\n&quot;, fPathName-&gt;Data());</span>
+<span class="lineNum">     334 </span>            :     //
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     ResetIO();</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     InitIO(&quot;&quot;);</span>
+<span class="lineNum">     337 </span>            :     // Some clean-up
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     if (membersArch) membersArch-&gt;Delete();</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     AliESDInputHandler::Notify(path);</span>
+<span class="lineNum">     341 </span>            :     
+<span class="lineNum">     342 </span>            :     return kTRUE;
+<a name="343"><span class="lineNum">     343 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            : Bool_t AliESDInputHandlerRP::FinishEvent()
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span>            :     // Clean-up after each event
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     fRDirs-&gt;Delete();</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     AliESDInputHandler::FinishEvent();</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<a name="351"><span class="lineNum">     351 </span>            : }</a>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            : void AliESDInputHandlerRP::ResetIO()
+<span class="lineNum">     354 </span>            : {
+<span class="lineNum">     355 </span>            : // Delete trees and files
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     fRFiles-&gt;Clear(&quot;nodelete&quot;);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     fExtension=&quot;&quot;;</span>
+<a name="358"><span class="lineNum">     358 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span>            : TTree* AliESDInputHandlerRP::GetTreeR(const char* det)
+<span class="lineNum">     361 </span>            : {
+<span class="lineNum">     362 </span>            : // Return pointer to RecPoint tree for detector det
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     TNamed* entry = (TNamed*) (fDetectors-&gt;FindObject(det));</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     if (!entry) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :         AliWarning(Form(&quot;AliESDInputHandlerRP: No RecPoints for detector %s available \n&quot;, det));</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     367 </span>            :     } else {
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         Int_t ien = entry-&gt;GetUniqueID();</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         return ((TTree*) (fRTrees-&gt;At(ien)));</span>
+<span class="lineNum">     370 </span>            :     }
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

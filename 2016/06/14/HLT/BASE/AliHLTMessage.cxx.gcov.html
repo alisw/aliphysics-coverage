@@ -1,0 +1,644 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/BASE/AliHLTMessage.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">HLT/BASE</a> - AliHLTMessage.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTMessage.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">264</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryLo">3.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : /** @file   AliHLTMessage.cxx
+<span class="lineNum">       4 </span>            :     @author Matthias Richter (customization of Root TMessage )
+<span class="lineNum">       5 </span>            :     @date   
+<span class="lineNum">       6 </span>            :     @brief  Serialization of Root objects in the ALICE HLT. */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : // This is the original Root TMessage implementation with a few minor
+<span class="lineNum">       9 </span>            : // modifications, original revision:
+<span class="lineNum">      10 </span>            : // root/net: v5-14-00 $: TMessage.cxx,v 1.6 2004/05/07 09:51:58 brun
+<span class="lineNum">      11 </span>            : // Author: Fons Rademakers   19/12/96
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : /*************************************************************************
+<span class="lineNum">      14 </span>            :  * Copyright (C) 1995-2000, Rene Brun and Fons Rademakers.               *
+<span class="lineNum">      15 </span>            :  * All rights reserved.                                                  *
+<span class="lineNum">      16 </span>            :  *                                                                       *
+<span class="lineNum">      17 </span>            :  * For the licensing terms see $ROOTSYS/LICENSE.                         *
+<span class="lineNum">      18 </span>            :  * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+<span class="lineNum">      19 </span>            :  *************************************************************************/
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : //////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      22 </span>            : //                                                                      //
+<span class="lineNum">      23 </span>            : // TMessage                                                             //
+<span class="lineNum">      24 </span>            : //                                                                      //
+<span class="lineNum">      25 </span>            : // Message buffer class used for serializing objects and sending them   //
+<span class="lineNum">      26 </span>            : // over a network. This class inherits from TBuffer the basic I/O       //
+<span class="lineNum">      27 </span>            : // serializer.                                                          //
+<span class="lineNum">      28 </span>            : //                                                                      //
+<span class="lineNum">      29 </span>            : //////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;AliHLTMessage.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;TVirtualStreamerInfo.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;Bytes.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;TFile.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;TProcessID.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;TClass.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : extern &quot;C&quot; void R__zip (Int_t cxlevel, Int_t *nin, char *bufin, Int_t *lout, char *bufout, Int_t *nout);
+<span class="lineNum">      39 </span>            : extern &quot;C&quot; void R__unzip(Int_t *nin, UChar_t *bufin, Int_t *lout, char *bufout, Int_t *nout);
+<span class="lineNum">      40 </span>            : const Int_t kMAXBUF = 0xffffff;
+<span class="lineNum">      41 </span>            : 
+<a name="42"><span class="lineNum">      42 </span>            : Bool_t AliHLTMessage::fgEvolution = kFALSE;</a>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineCov">        126 : ClassImp(AliHLTMessage)</span>
+<a name="45"><span class="lineNum">      45 </span>            : </a>
+<span class="lineNum">      46 </span>            : //______________________________________________________________________________
+<span class="lineNum">      47 </span>            : AliHLTMessage::AliHLTMessage(UInt_t what) 
+<span class="lineNum">      48 </span>            :   :
+<span class="lineNum">      49 </span>            : # ifdef ROOT_TBufferFile
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   TBufferFile(kWrite),</span>
+<span class="lineNum">      51 </span>            : # else
+<span class="lineNum">      52 </span>            :   TBuffer(kWrite),
+<span class="lineNum">      53 </span>            : # endif
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   AliHLTLogging(),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   fWhat(what),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fClass(0),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fCompress(0),</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   fBufComp(0),</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fBufCompCur(0),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   fCompPos(0)</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   , fBufUncompressed(0)</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   , fBitsPIDs(0)</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   , fInfos(NULL)</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   , fEvolution(kFALSE)</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      66 </span>            :    // Create a AliHLTMessage object for storing objects. The &quot;what&quot; integer
+<span class="lineNum">      67 </span>            :    // describes the type of message. Predifined ROOT system message types
+<span class="lineNum">      68 </span>            :    // can be found in MessageTypes.h. Make sure your own message types are
+<span class="lineNum">      69 </span>            :    // unique from the ROOT defined message types (i.e. 0 - 10000 are
+<span class="lineNum">      70 </span>            :    // reserved by ROOT). In case you OR &quot;what&quot; with kMESS_ACK, the message
+<span class="lineNum">      71 </span>            :    // will wait for an acknowledgement from the remote side. This makes
+<span class="lineNum">      72 </span>            :    // the sending process synchronous. In case you OR &quot;what&quot; with kMESS_ZIP,
+<span class="lineNum">      73 </span>            :    // the message will be compressed in TSocket using the zip algorithm
+<span class="lineNum">      74 </span>            :    // (only if message is &gt; 256 bytes).
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            :    // space at the beginning of the message reserved for the message length
+<span class="lineNum">      77 </span>            :    UInt_t   reserved = 0;
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :    *this &lt;&lt; reserved;</span>
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :    *this &lt;&lt; what;</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :    SetBit(kCannotHandleMemberWiseStreaming);</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : const Int_t AliHLTMessage::fgkMinimumSize=30;
+<span class="lineNum">      86 </span>            : UInt_t AliHLTMessage::fgkDefaultBuffer[2]={0,0};
+<a name="87"><span class="lineNum">      87 </span>            : </a>
+<span class="lineNum">      88 </span>            : //______________________________________________________________________________
+<span class="lineNum">      89 </span>            : AliHLTMessage::AliHLTMessage(void *buf, Int_t bufsize)
+<span class="lineNum">      90 </span>            :   :
+<span class="lineNum">      91 </span>            : # if defined(ROOT_TBufferFile)
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   TBufferFile(kRead, bufsize&gt;fgkMinimumSize?bufsize:sizeof(fgkDefaultBuffer), bufsize&gt;fgkMinimumSize?buf:&amp;fgkDefaultBuffer, 0),</span>
+<span class="lineNum">      93 </span>            : # else
+<span class="lineNum">      94 </span>            :   TBuffer(kRead, bufsize&gt;fgkMinimumSize?bufsize:sizeof(fgkDefaultBuffer), bufsize&gt;fgkMinimumSize?buf:&amp;fgkDefaultBuffer, 0),
+<span class="lineNum">      95 </span>            : # endif
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   AliHLTLogging(),</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   fWhat(0),</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   fClass(0),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   fCompress(0),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fBufComp(0),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fBufCompCur(0),</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   fCompPos(0)</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   , fBufUncompressed(0)</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   , fBitsPIDs(0)</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   , fInfos(NULL)</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   , fEvolution(kFALSE)</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     108 </span>            :    // Create a AliHLTMessage object for reading objects. The objects will be
+<span class="lineNum">     109 </span>            :    // read from buf. Use the What() method to get the message type.
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :    // skip space at the beginning of the message reserved for the message length
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :    fBufCur += sizeof(UInt_t);</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :    *this &gt;&gt; fWhat;</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :    if (fWhat &amp; kMESS_ZIP) {</span>
+<span class="lineNum">     117 </span>            :       // if buffer has kMESS_ZIP set, move it to fBufComp and uncompress
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :       fBufComp    = fBuffer;</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :       fBufCompCur = fBuffer + bufsize;</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :       fBuffer     = 0;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :       Uncompress();</span>
+<span class="lineNum">     122 </span>            :       // Matthias Sep 2008
+<span class="lineNum">     123 </span>            :       // NOTE: this is not done in TMessage and will lead to the deletion
+<span class="lineNum">     124 </span>            :       // of the buffer. This is not allowed in case of HLT where the
+<span class="lineNum">     125 </span>            :       // buffer is handled by the framework. In general, I think this
+<span class="lineNum">     126 </span>            :       // is a very bad idea to do it like that in TMessage
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :       fBufComp    = NULL;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :       fBufCompCur = 0;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :    if (fWhat == kMESS_OBJECT) {</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :       InitMap();</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :       fClass = ReadClass();     // get first the class stored in message</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :       SetBufferOffset(sizeof(UInt_t) + sizeof(fWhat));</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :       ResetMap();</span>
+<span class="lineNum">     136 </span>            :    } else {
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :       fClass = 0;</span>
+<span class="lineNum">     138 </span>            :    }
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 : }</span>
+<a name="140"><span class="lineNum">     140 </span>            : </a>
+<span class="lineNum">     141 </span>            : //______________________________________________________________________________
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : AliHLTMessage::~AliHLTMessage()</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     144 </span>            :    // Clean up compression buffer.
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   Reset();</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 : }</span>
+<a name="147"><span class="lineNum">     147 </span>            : </a>
+<span class="lineNum">     148 </span>            : //______________________________________________________________________________
+<span class="lineNum">     149 </span>            : void AliHLTMessage::EnableSchemaEvolutionForAll(Bool_t enable)
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span>            :    // Static function enabling or disabling the automatic schema evolution.
+<span class="lineNum">     152 </span>            :    // By default schema evolution support is off.
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :    fgEvolution = enable;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 : }</span>
+<a name="156"><span class="lineNum">     156 </span>            : </a>
+<span class="lineNum">     157 </span>            : //______________________________________________________________________________
+<span class="lineNum">     158 </span>            : Bool_t AliHLTMessage::UsesSchemaEvolutionForAll()
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span>            :    // Static function returning status of global schema evolution.
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :    return fgEvolution;</span>
+<span class="lineNum">     163 </span>            : }
+<a name="164"><span class="lineNum">     164 </span>            : </a>
+<span class="lineNum">     165 </span>            : //______________________________________________________________________________
+<span class="lineNum">     166 </span>            : void AliHLTMessage::ForceWriteInfo(TVirtualStreamerInfo *info, Bool_t /* force */)
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span>            :    // Force writing the TStreamerInfo to the message.
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :    if (fgEvolution || fEvolution) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :       if (!fInfos) fInfos = new TObjArray();</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :       if (fInfos-&gt;FindObject(info-&gt;GetName())==NULL) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         fInfos-&gt;Add(info);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     175 </span>            :    }
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 : }</span>
+<a name="177"><span class="lineNum">     177 </span>            : </a>
+<span class="lineNum">     178 </span>            : //______________________________________________________________________________
+<span class="lineNum">     179 </span>            : void AliHLTMessage::Forward()
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :    // Change a buffer that was received into one that can be send, i.e.
+<span class="lineNum">     182 </span>            :    // forward a just received message.
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :    if (IsReading()) {</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :       SetWriteMode();</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :       SetBufferOffset(fBufSize);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :       SetBit(kCannotHandleMemberWiseStreaming);</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :       if (fBufComp) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :          fCompPos = fBufCur;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     192 </span>            :    }
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 : }</span>
+<a name="194"><span class="lineNum">     194 </span>            : </a>
+<span class="lineNum">     195 </span>            : //______________________________________________________________________________
+<span class="lineNum">     196 </span>            : void AliHLTMessage::TagStreamerInfo(TVirtualStreamerInfo *info)
+<span class="lineNum">     197 </span>            : {
+<span class="lineNum">     198 </span>            :    // Remember that the StreamerInfo is being used in writing.
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :    if (fgEvolution || fEvolution) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :       if (!fInfos) fInfos = new TObjArray();</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       fInfos-&gt;Add(info);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 : }</span>
+<a name="205"><span class="lineNum">     205 </span>            : </a>
+<span class="lineNum">     206 </span>            : //______________________________________________________________________________
+<span class="lineNum">     207 </span>            : void AliHLTMessage::IncrementLevel(TVirtualStreamerInfo *info)
+<span class="lineNum">     208 </span>            : {
+<span class="lineNum">     209 </span>            :    // Increment level.
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :    TBufferFile::IncrementLevel(info);</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :    if (!info) return;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :    if (fgEvolution || fEvolution) {</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :       if (!fInfos) fInfos = new TObjArray();</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :       // add the streamer info, but only once
+<span class="lineNum">     218 </span>            :       // this assumes that there is only one version
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :       if (fInfos-&gt;FindObject(info-&gt;GetName())==NULL) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         fInfos-&gt;Add(info);</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     222 </span>            :    }
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 : }</span>
+<a name="224"><span class="lineNum">     224 </span>            : </a>
+<span class="lineNum">     225 </span>            : //______________________________________________________________________________
+<span class="lineNum">     226 </span>            : void AliHLTMessage::Reset()
+<span class="lineNum">     227 </span>            : {
+<span class="lineNum">     228 </span>            :    // Reset the message buffer so we can use (i.e. fill) it again.
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :    SetBufferOffset(sizeof(UInt_t) + sizeof(fWhat));</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :    ResetMap();</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :    if (fBufComp) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :       delete [] fBufComp;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :       fBufComp    = 0;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :       fBufCompCur = 0;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :       fCompPos    = 0;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :    if (fBufUncompressed) {</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :      delete [] fBufUncompressed;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :      fBufUncompressed=NULL;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :    delete fInfos; fInfos=NULL;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 : }</span>
+<a name="246"><span class="lineNum">     246 </span>            : </a>
+<span class="lineNum">     247 </span>            : //______________________________________________________________________________
+<span class="lineNum">     248 </span>            : void AliHLTMessage::SetLength() const
+<span class="lineNum">     249 </span>            : {
+<span class="lineNum">     250 </span>            :    // Set the message length at the beginning of the message buffer.
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :    if (IsWriting()) {</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       char *buf = Buffer();</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       *((UInt_t*)buf) = (UInt_t)(Length() - sizeof(UInt_t));</span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :       if (fBufComp) {</span>
+<span class="lineNum">     257 </span>            :          buf = fBufComp;
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :          *((UInt_t*)buf) = (UInt_t)(CompLength() - sizeof(UInt_t));</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 : }</span>
+<a name="262"><span class="lineNum">     262 </span>            : </a>
+<span class="lineNum">     263 </span>            : //______________________________________________________________________________
+<span class="lineNum">     264 </span>            : void AliHLTMessage::SetWhat(UInt_t what)
+<span class="lineNum">     265 </span>            : {
+<span class="lineNum">     266 </span>            :    // Using this method one can change the message type a-posteriory.
+<span class="lineNum">     267 </span>            :    // In case you OR &quot;what&quot; with kMESS_ACK, the message will wait for
+<span class="lineNum">     268 </span>            :    // an acknowledgement from the remote side. This makes the sending
+<span class="lineNum">     269 </span>            :    // process synchronous.
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :    fWhat = what;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :    char *buf = Buffer();</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :    buf += sizeof(UInt_t);   // skip reserved length space</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :    tobuf(buf, what);</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :    if (fBufComp) {</span>
+<span class="lineNum">     278 </span>            :       buf = fBufComp;
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :       buf += sizeof(UInt_t);   // skip reserved length space</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :       tobuf(buf, what | kMESS_ZIP);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 : }</span>
+<a name="283"><span class="lineNum">     283 </span>            : </a>
+<span class="lineNum">     284 </span>            : //______________________________________________________________________________
+<span class="lineNum">     285 </span>            : void AliHLTMessage::SetCompressionLevel(Int_t level)
+<span class="lineNum">     286 </span>            : {
+<span class="lineNum">     287 </span>            :    // Set the message compression level. Can be between 0 and 9 with 0
+<span class="lineNum">     288 </span>            :    // being no compression and 9 maximum compression. In general the default
+<span class="lineNum">     289 </span>            :    // level of 1 is the best compromise between achieved compression and
+<span class="lineNum">     290 </span>            :    // cpu time. Compression will only happen when the message is &gt; 256 bytes.
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :    if (level &lt; 0) level = 0;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :    if (level &gt; 9) level = 9;</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :    if (level != fCompress &amp;&amp; fBufComp) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       delete [] fBufComp;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :       fBufComp    = 0;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :       fBufCompCur = 0;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :       fCompPos    = 0;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :    fCompress = level;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 : }</span>
+<a name="303"><span class="lineNum">     303 </span>            : </a>
+<span class="lineNum">     304 </span>            : //______________________________________________________________________________
+<span class="lineNum">     305 </span>            : Int_t AliHLTMessage::Compress()
+<span class="lineNum">     306 </span>            : {
+<span class="lineNum">     307 </span>            :    // Compress the message. The message will only be compressed if the
+<span class="lineNum">     308 </span>            :    // compression level &gt; 0 and the if the message is &gt; 256 bytes.
+<span class="lineNum">     309 </span>            :    // Returns -1 in case of error (when compression fails or
+<span class="lineNum">     310 </span>            :    // when the message increases in size in some pathological cases),
+<span class="lineNum">     311 </span>            :    // otherwise returns 0.
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :    if (fCompress == 0) {</span>
+<span class="lineNum">     314 </span>            :       // no compression specified
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :       if (fBufComp) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :          delete [] fBufComp;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :          fBufComp    = 0;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :          fBufCompCur = 0;</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :          fCompPos    = 0;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     322 </span>            :    }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :    if (fBufComp &amp;&amp; fCompPos == fBufCur) {</span>
+<span class="lineNum">     325 </span>            :       // the message was already compressed
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     327 </span>            :    }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            :    // remove any existing compressed buffer before compressing modified message
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :    if (fBufComp) {</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :       delete [] fBufComp;</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       fBufComp    = 0;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :       fBufCompCur = 0;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :       fCompPos    = 0;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :    if (Length() &lt;= (Int_t)(256 + 2*sizeof(UInt_t))) {</span>
+<span class="lineNum">     338 </span>            :       // this message is too small to be compressed
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     340 </span>            :    }
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span>            :    Int_t hdrlen   = 2*sizeof(UInt_t);
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :    Int_t messlen  = Length() - hdrlen;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :    Int_t nbuffers = messlen / kMAXBUF;</span>
+<span class="lineNum">     345 </span>            :    Int_t chdrlen  = 3*sizeof(UInt_t);   // compressed buffer header length
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :    Int_t buflen   = TMath::Max(512, chdrlen + messlen + 9*nbuffers);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :    fBufComp       = new char[buflen];</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :    char *messbuf  = Buffer() + hdrlen;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :    char *bufcur   = fBufComp + chdrlen;</span>
+<span class="lineNum">     350 </span>            :    Int_t noutot   = 0;
+<span class="lineNum">     351 </span>            :    Int_t nzip     = 0;
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :    Int_t nout, bufmax;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :    for (Int_t i = 0; i &lt;= nbuffers; i++) {</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :       if (i == nbuffers)</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :          bufmax = messlen - nzip;</span>
+<span class="lineNum">     356 </span>            :       else
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :          bufmax = kMAXBUF;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :       R__zip(fCompress, &amp;bufmax, messbuf, &amp;bufmax, bufcur, &amp;nout);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :       if (nout == 0 || nout &gt;= messlen) {</span>
+<span class="lineNum">     360 </span>            :          //this happens when the buffer cannot be compressed
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :          delete [] fBufComp;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :          fBufComp    = 0;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :          fBufCompCur = 0;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :          fCompPos    = 0;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :          return -1;</span>
+<span class="lineNum">     366 </span>            :       }
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :       bufcur  += nout;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :       noutot  += nout;</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :       messbuf += kMAXBUF;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :       nzip    += kMAXBUF;</span>
+<span class="lineNum">     371 </span>            :    }
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :    fBufCompCur = bufcur;</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :    fCompPos    = fBufCur;</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :    bufcur = fBufComp;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :    tobuf(bufcur, (UInt_t)(CompLength() - sizeof(UInt_t)));</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :    Int_t what = fWhat | kMESS_ZIP;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :    tobuf(bufcur, what);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :    tobuf(bufcur, Length());    // original uncompressed buffer length</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :    return 0;
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 : }</span>
+<a name="383"><span class="lineNum">     383 </span>            : </a>
+<span class="lineNum">     384 </span>            : //______________________________________________________________________________
+<span class="lineNum">     385 </span>            : Int_t AliHLTMessage::Uncompress()
+<span class="lineNum">     386 </span>            : {
+<span class="lineNum">     387 </span>            :    // Uncompress the message. The message will only be uncompressed when
+<span class="lineNum">     388 </span>            :    // kMESS_ZIP is set. Returns -1 in case of error, 0 otherwise.
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :    if (!fBufComp || !(fWhat &amp; kMESS_ZIP))</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :    Int_t buflen;</span>
+<span class="lineNum">     394 </span>            :    Int_t hdrlen = 2*sizeof(UInt_t);
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :    char *bufcur1 = fBufComp + hdrlen;</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :    frombuf(bufcur1, &amp;buflen);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :    UChar_t *bufcur = (UChar_t*)bufcur1;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :    fBuffer  = new char[buflen];</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :    fBufUncompressed = fBuffer;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :    fBufSize = buflen;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :    fBufCur  = fBuffer + sizeof(UInt_t) + sizeof(fWhat);</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :    fBufMax  = fBuffer + fBufSize;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :    char *messbuf = fBuffer + hdrlen;</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :    Int_t nin, nout, nbuf;</span>
+<span class="lineNum">     406 </span>            :    Int_t noutot = 0;
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :    while (1) {</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :       nin  = 9 + ((Int_t)bufcur[3] | ((Int_t)bufcur[4] &lt;&lt; 8) | ((Int_t)bufcur[5] &lt;&lt; 16));</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :       nbuf = (Int_t)bufcur[6] | ((Int_t)bufcur[7] &lt;&lt; 8) | ((Int_t)bufcur[8] &lt;&lt; 16);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :       R__unzip(&amp;nin, bufcur, &amp;nbuf, messbuf, &amp;nout);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :       if (!nout) break;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :       noutot += nout;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :       if (noutot &gt;= buflen - hdrlen) break;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :       bufcur  += nin;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :       messbuf += nout;</span>
+<span class="lineNum">     416 </span>            :    }
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :    fWhat &amp;= ~kMESS_ZIP;</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :    fCompress = 1;</span>
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            :    return 0;
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 : }</span>
+<a name="423"><span class="lineNum">     423 </span>            : </a>
+<span class="lineNum">     424 </span>            : //______________________________________________________________________________
+<span class="lineNum">     425 </span>            : void AliHLTMessage::WriteObject(const TObject *obj)
+<span class="lineNum">     426 </span>            : {
+<span class="lineNum">     427 </span>            :    // Write object to message buffer.
+<span class="lineNum">     428 </span>            :    // When support for schema evolution is enabled the list of TStreamerInfo
+<span class="lineNum">     429 </span>            :    // used to stream this object is kept in fInfos. This information is used
+<span class="lineNum">     430 </span>            :    // by TSocket::Send that sends this list through the socket. This list is in
+<span class="lineNum">     431 </span>            :    // turn used by TSocket::Recv to store the TStreamerInfo objects in the
+<span class="lineNum">     432 </span>            :    // relevant TClass in case the TClass does not know yet about a particular
+<span class="lineNum">     433 </span>            :    // class version. This feature is implemented to support clients and servers
+<span class="lineNum">     434 </span>            :    // with either different ROOT versions or different user classes versions.
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :    if (fgEvolution || fEvolution) {</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :       if (fInfos)</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :          fInfos-&gt;Clear();</span>
+<span class="lineNum">     439 </span>            :       else
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :          fInfos = new TObjArray();</span>
+<span class="lineNum">     441 </span>            :    }
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :    fBitsPIDs.ResetAllBits();</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :    WriteObjectAny(obj, TObject::Class());</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 : }</span>
+<a name="446"><span class="lineNum">     446 </span>            : </a>
+<span class="lineNum">     447 </span>            : //______________________________________________________________________________
+<span class="lineNum">     448 </span>            : UShort_t AliHLTMessage::WriteProcessID(TProcessID *pid)
+<span class="lineNum">     449 </span>            : {
+<span class="lineNum">     450 </span>            :    // Check if the ProcessID pid is already in the message.
+<span class="lineNum">     451 </span>            :    // If not, then:
+<span class="lineNum">     452 </span>            :    //   - mark bit 0 of fBitsPIDs to indicate that a ProcessID has been found
+<span class="lineNum">     453 </span>            :    //   - mark bit uid+1 where uid id the uid of the ProcessID
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :    if (fBitsPIDs.TestBitNumber(0)) return 0;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :    if (!pid)</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :       pid = TProcessID::GetPID();</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :    if (!pid) return 0;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :    fBitsPIDs.SetBitNumber(0);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :    UInt_t uid = pid-&gt;GetUniqueID();</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :    fBitsPIDs.SetBitNumber(uid+1);</span>
+<span class="lineNum">     462 </span>            :    return 1;
+<a name="463"><span class="lineNum">     463 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            : AliHLTMessage* AliHLTMessage::Stream(TObject* pSrc, Int_t compression, unsigned verbosity, bool enableSchema)
+<span class="lineNum">     466 </span>            : {
+<span class="lineNum">     467 </span>            :   /// Helper function to stream an object into an AliHLTMessage
+<span class="lineNum">     468 </span>            :   /// The returned instance must be cleaned by the caller
+<span class="lineNum">     469 </span>            :   ///
+<span class="lineNum">     470 </span>            :   /// Get the data and data size from the message:
+<span class="lineNum">     471 </span>            :   ///  first check
+<span class="lineNum">     472 </span>            :   ///    pMsg-&gt;CompLength();
+<span class="lineNum">     473 </span>            :   ///    pMsg-&gt;CompBuffer();
+<span class="lineNum">     474 </span>            :   ///  if that is NULL
+<span class="lineNum">     475 </span>            :   ///    pMsg-&gt;Length();
+<span class="lineNum">     476 </span>            :   ///    pMsg-&gt;Buffer();
+<span class="lineNum">     477 </span>            :   ///
+<span class="lineNum">     478 </span>            :   /// Note: accessing scheme will be change din the future to just have the two
+<span class="lineNum">     479 </span>            :   ///       latter ones.
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   if (!pSrc) return NULL;</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   AliHLTLogging log;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   AliHLTMessage* pMsg=new AliHLTMessage(kMESS_OBJECT);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :   if (!pMsg) {</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     log.LoggingVarargs(kHLTLogError, &quot;AliHLTMessage&quot;, &quot;Stream&quot; , __FILE__ , __LINE__ , &quot;memory allocation failed&quot;);</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     487 </span>            :   }
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   pMsg-&gt;EnableSchemaEvolution(enableSchema);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   pMsg-&gt;SetCompressionLevel(compression);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   pMsg-&gt;WriteObject(pSrc);</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   if (pMsg-&gt;Length()&gt;0) {</span>
+<span class="lineNum">     493 </span>            :     // Matthias Sep 2008
+<span class="lineNum">     494 </span>            :     // NOTE: AliHLTMessage does implement it's own SetLength method
+<span class="lineNum">     495 </span>            :     // which is not architecture independent. The original SetLength
+<span class="lineNum">     496 </span>            :     // stores the size always in network byte order.
+<span class="lineNum">     497 </span>            :     // I'm trying to remember the rational for that, might be that
+<span class="lineNum">     498 </span>            :     // it was just some lack of knowledge. Want to change this, but
+<span class="lineNum">     499 </span>            :     // has to be done carefully to be backward compatible.
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     pMsg-&gt;SetLength(); // sets the length to the first (reserved) word</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :     // does nothing if the level is 0
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     pMsg-&gt;Compress();</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     if (pMsg-&gt;CompBuffer()) {</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :       pMsg-&gt;SetLength(); // set once more to have the byte order</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :       if (verbosity&gt;0) log.LoggingVarargs(kHLTLogInfo, &quot;AliHLTMessage&quot;, &quot;Stream&quot; , __FILE__ , __LINE__ , &quot;object %p type %s streamed: size %d&quot;, pSrc, pSrc-&gt;GetName(), pMsg-&gt;CompLength());</span>
+<span class="lineNum">     508 </span>            :     } else {
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :       if (verbosity&gt;0) log.LoggingVarargs(kHLTLogInfo, &quot;AliHLTMessage&quot;, &quot;Stream&quot; , __FILE__ , __LINE__ , &quot;object %p type %s streamed: size %d&quot;, pSrc, pSrc-&gt;GetName(), pMsg-&gt;Length());</span>
+<span class="lineNum">     510 </span>            :     }
+<span class="lineNum">     511 </span>            :   }
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   return pMsg;</span>
+<a name="513"><span class="lineNum">     513 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            : TObject* AliHLTMessage::Extract(const void* pBuffer, unsigned bufferSize, unsigned verbosity)
+<span class="lineNum">     516 </span>            : {
+<span class="lineNum">     517 </span>            :    /// Helper function to extract an object from a buffer.
+<span class="lineNum">     518 </span>            :    /// The returned object must be cleaned by the caller
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   AliHLTLogging log;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   if (!pBuffer || bufferSize&lt;sizeof(AliHLTUInt32_t)) {</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     if (verbosity&gt;0) log.LoggingVarargs(kHLTLogWarning, &quot;AliHLTMessage&quot;, &quot;Extract&quot; , __FILE__ , __LINE__ , &quot;invalid input buffer %p %d&quot;, pBuffer, bufferSize);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     523 </span>            :   }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :   AliHLTUInt32_t firstWord=*((AliHLTUInt32_t*)pBuffer);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :   if (firstWord==bufferSize-sizeof(AliHLTUInt32_t) &amp;&amp;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :       firstWord&gt;=34 /*thats the minimum size of a streamed TObject*/) {</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     AliHLTMessage msg((AliHLTUInt8_t*)pBuffer, bufferSize);</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     TClass* objclass=msg.GetClass();</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     TObject* pObject=msg.ReadObject(objclass);</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     if (pObject &amp;&amp; objclass) {</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :       if (verbosity&gt;0) log.LoggingVarargs(kHLTLogInfo, &quot;AliHLTMessage&quot;, &quot;Extract&quot; , __FILE__ , __LINE__ , &quot;object %p type %s created&quot;, pObject, objclass-&gt;GetName());</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :       return pObject;</span>
+<span class="lineNum">     534 </span>            :     } else {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       if (verbosity&gt;0) log.LoggingVarargs(kHLTLogWarning, &quot;AliHLTMessage&quot;, &quot;Extract&quot; , __FILE__ , __LINE__ , &quot;failed to create object from buffer of size %d&quot;, bufferSize);</span>
+<span class="lineNum">     536 </span>            :     }
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     if (verbosity&gt;0) log.LoggingVarargs(kHLTLogWarning, &quot;AliHLTMessage&quot;, &quot;Extract&quot; , __FILE__ , __LINE__ , &quot;not a streamed TObject: block size %d, indicated %d&quot;, bufferSize, firstWord+sizeof(AliHLTUInt32_t));</span>
+<span class="lineNum">     539 </span>            :   }
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :   return NULL;</span>
+<a name="541"><span class="lineNum">     541 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span>            : TObject* AliHLTMessage::Extract(const char* filename, unsigned verbosity)
+<span class="lineNum">     544 </span>            : {
+<span class="lineNum">     545 </span>            :    /// Helper function to extract an object from a file containing the streamed object.
+<span class="lineNum">     546 </span>            :    /// The returned object must be cleaned by the caller
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   if (!filename) return NULL;</span>
+<span class="lineNum">     548 </span>            :   
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :   AliHLTLogging log;</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :   TString input=filename;</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :   input+=&quot;?filetype=raw&quot;;</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :   TFile* pFile=new TFile(input);</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :   if (!pFile) return NULL;</span>
+<span class="lineNum">     554 </span>            :   TObject* pObject=NULL;
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   if (!pFile-&gt;IsZombie()) {</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     pFile-&gt;Seek(0);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     TArrayC buffer;</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     buffer.Set(pFile-&gt;GetSize());</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     if (pFile-&gt;ReadBuffer(buffer.GetArray(), buffer.GetSize())==0) {</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :       pObject=Extract(buffer.GetArray(), buffer.GetSize(), verbosity);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :       log.LoggingVarargs(kHLTLogError, &quot;AliHLTMessage&quot;, &quot;Extract&quot; , __FILE__ , __LINE__ , &quot;failed reading %d byte(s) from file %s&quot;, pFile-&gt;GetSize(), filename);</span>
+<span class="lineNum">     563 </span>            :     }
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   delete pFile;</span>
+<span class="lineNum">     567 </span>            :   return pObject;
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

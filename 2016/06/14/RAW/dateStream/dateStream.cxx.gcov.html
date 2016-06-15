@@ -1,0 +1,1854 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - RAW/dateStream/dateStream.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">RAW/dateStream</a> - dateStream.cxx<span style="font-size: 80%;"> (source / <a href="dateStream.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">407</td>
+            <td class="headerCovTableEntry">1120</td>
+            <td class="headerCovTableEntryLo">36.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntryMed">83.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :                              dateStream.c
+<span class="lineNum">       3 </span>            :                              ============
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            :    Utility to simulate a DATE raw data stream using a given set of raw
+<span class="lineNum">       6 </span>            :    data files and a configuration file.
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            :    Revision history:
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    V01.00  4/05/2004  RD  Created
+<span class="lineNum">      11 </span>            :    V01.01 25/10/2005  RD  Support added for timestamp
+<span class="lineNum">      12 </span>            :    V01.02  4/04/2006  RD  Support for CDH
+<span class="lineNum">      13 </span>            :    V01.03 24/05/2006  RD  Added &quot;Direct disk access&quot; option
+<span class="lineNum">      14 </span>            :    V01.04 15/10/2010  RD  Added possibility to set the run number
+<span class="lineNum">      15 </span>            : */
+<span class="lineNum">      16 </span>            : #define VID &quot;1.04&quot;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      25 </span>            : #include &quot;event.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #define DESCRIPTION &quot;DATE raw data stream simulator&quot;
+<span class="lineNum">      28 </span>            : #ifdef AIX
+<span class="lineNum">      29 </span>            : static
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : char fileHandlerIdent[]= &quot;@(#)&quot;&quot;&quot; __FILE__ &quot;&quot;&quot;: &quot;&quot;&quot; DESCRIPTION \
+<span class="lineNum">      32 </span>            :                          &quot;&quot;&quot; &quot;&quot;&quot; VID &quot;&quot;&quot; &quot;&quot;&quot; \
+<span class="lineNum">      33 </span>            :                          &quot;&quot;&quot; compiled &quot;&quot;&quot; __DATE__ &quot;&quot;&quot; &quot;&quot;&quot; __TIME__;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #define DBG_BASE     if ( debug &gt; 0 )
+<span class="lineNum">      36 </span>            : #define DBG_DETAILED if ( debug &gt; 1 )
+<span class="lineNum">      37 </span>            : #define DBG_VERBOSE  if ( debug &gt; 2 )
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #ifndef TRUE
+<span class="lineNum">      40 </span>            : # define TRUE (0 == 0)
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : #ifndef FALSE
+<span class="lineNum">      43 </span>            : # define FALSE (0 == 1)
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : const char *myName;
+<span class="lineNum">      47 </span>            : int debug;
+<span class="lineNum">      48 </span>            : FILE *outF;
+<span class="lineNum">      49 </span>            : typedef enum { unknown, ldc, gdc } workingAsType;
+<span class="lineNum">      50 </span>            : typedef enum { collider, fixedTarget } workingModeType;
+<span class="lineNum">      51 </span>            : workingAsType workingAs;
+<span class="lineNum">      52 </span>            : workingModeType workingMode;
+<span class="lineNum">      53 </span>            : struct ldcDescriptorStruct {
+<span class="lineNum">      54 </span>            :   eventLdcIdType id;
+<span class="lineNum">      55 </span>            :   struct ldcDescriptorStruct *next;
+<span class="lineNum">      56 </span>            : } *ldcsHead, *ldcsTail;
+<span class="lineNum">      57 </span>            : void *eventsHead, *eventsTail;
+<span class="lineNum">      58 </span>            : struct gdcEventDescriptorStruct {
+<span class="lineNum">      59 </span>            :   struct ldcEventDescriptorStruct *head;
+<span class="lineNum">      60 </span>            :   struct ldcEventDescriptorStruct *tail;
+<span class="lineNum">      61 </span>            :   struct gdcEventDescriptorStruct *next;
+<span class="lineNum">      62 </span>            :   struct eventHeaderStruct header;
+<span class="lineNum">      63 </span>            :   int loaded;
+<span class="lineNum">      64 </span>            :   unsigned long32 detPattern;
+<span class="lineNum">      65 </span>            :   eventTimestampSecType timestamp; 
+<span class="lineNum">      66 </span>            : } *currGdc;
+<span class="lineNum">      67 </span>            : struct ldcEventDescriptorStruct {
+<span class="lineNum">      68 </span>            :   struct equipmentEventDescriptorStruct *head;
+<span class="lineNum">      69 </span>            :   struct equipmentEventDescriptorStruct *tail;
+<span class="lineNum">      70 </span>            :   struct ldcEventDescriptorStruct *next;
+<span class="lineNum">      71 </span>            :   eventLdcIdType id;
+<span class="lineNum">      72 </span>            :   struct eventHeaderStruct header;
+<span class="lineNum">      73 </span>            :   int loaded;
+<span class="lineNum">      74 </span>            :   unsigned long32 detPattern;
+<span class="lineNum">      75 </span>            :   eventTimestampSecType timestamp; 
+<span class="lineNum">      76 </span>            : } *currLdc;
+<span class="lineNum">      77 </span>            : struct equipmentEventDescriptorStruct {
+<span class="lineNum">      78 </span>            :   struct equipmentEventDescriptorStruct *next;
+<span class="lineNum">      79 </span>            :   equipmentIdType id;
+<span class="lineNum">      80 </span>            :   struct payloadDescriptorStruct *payload;
+<span class="lineNum">      81 </span>            :   struct equipmentHeaderStruct header;
+<span class="lineNum">      82 </span>            : } *currEvent;
+<span class="lineNum">      83 </span>            : struct payloadDescriptorStruct {
+<span class="lineNum">      84 </span>            :   struct payloadDescriptorStruct *next;
+<span class="lineNum">      85 </span>            :   char *fileName;
+<span class="lineNum">      86 </span>            :   int fileSize;
+<span class="lineNum">      87 </span>            :   int size;
+<span class="lineNum">      88 </span>            :   void *data;
+<span class="lineNum">      89 </span>            : } *payloadsHead, *payloadsTail;
+<span class="lineNum">      90 </span>            : int lineNmb;
+<span class="lineNum">      91 </span>            : eventGdcIdType currGdcId;
+<span class="lineNum">      92 </span>            : unsigned long32 currDetPattern;
+<span class="lineNum">      93 </span>            : eventTimestampSecType currTimestamp; 
+<span class="lineNum">      94 </span>            : eventLdcIdType currLdcId;
+<span class="lineNum">      95 </span>            : equipmentIdType currEquipmentId;
+<span class="lineNum">      96 </span>            : int currRunNb;
+<span class="lineNum">      97 </span>            : int numOfLdcs;
+<span class="lineNum">      98 </span>            : int numOfEvents;
+<span class="lineNum">      99 </span>            : int createSorEor;
+<span class="lineNum">     100 </span>            : int handleCDH;
+<span class="lineNum">     101 </span>            : eventIdType oneEventDelta;
+<span class="lineNum">     102 </span>            : eventIdType currEventId;
+<span class="lineNum">     103 </span>            : int gotAliceTrigger;
+<span class="lineNum">     104 </span>            : int bufferData;
+<span class="lineNum">     105 </span>            : 
+<a name="106"><span class="lineNum">     106 </span>            : struct commonDataHeaderStruct *cdhRef = NULL;</a>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : void dumpPayload( const struct payloadDescriptorStruct *p ) {
+<span class="lineNum">     109 </span>            :   char *c;
+<span class="lineNum">     110 </span>            :   int i;
+<span class="lineNum">     111 </span>            :   int printable;
+<span class="lineNum">     112 </span>            :           
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   if ( p-&gt;data != NULL ) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     for ( i = 0, c = (char *)p-&gt;data, printable = TRUE;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :           printable &amp;&amp; i != p-&gt;size;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :           c++, i++ )</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :       printable = isascii( *c );</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     if ( printable ) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :       printf( &quot;       \&quot;&quot; );</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :       for ( i = 0, c = (char *)p-&gt;data; i != p-&gt;size; c++, i++ ) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         if ( *c == '\n' )</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :           printf( &quot;\&quot;\n       \&quot;&quot; );</span>
+<span class="lineNum">     123 </span>            :         else
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :           putchar( *c );</span>
+<span class="lineNum">     125 </span>            :       }
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :       if ( *c != '\n' ) printf( &quot;\&quot;\n&quot; );</span>
+<span class="lineNum">     127 </span>            :     } else {
+<span class="lineNum">     128 </span>            :       long32 *v;
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :       for ( i = 0, v = (long32 *)p-&gt;data;</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :             i+4 &lt;= p-&gt;size;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :             v++, i += 4 ) {</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         if ( i % (4*8) == 0 ) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :           if ( i != 0 ) printf( &quot;\n&quot; );</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :           printf( &quot;       &quot; );</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         printf( &quot;%08x &quot;, *v );</span>
+<span class="lineNum">     137 </span>            :       }
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :       if ( i &lt; p-&gt;size ) {</span>
+<span class="lineNum">     139 </span>            :         int j = 0;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         printf( &quot;\n       &quot; );</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         while ( i != p-&gt;size ) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :           printf( &quot;%02x &quot;, *((char *)p-&gt;data + p-&gt;size - j - 1) &amp; 0xff );</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :           j++;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :           i++;</span>
+<span class="lineNum">     146 </span>            :         }
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     148 </span>            :     }
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     printf( &quot;\n&quot; );</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   }</span>
+<a name="151"><span class="lineNum">     151 </span><span class="lineNoCov">          0 : } /* End of dumpPayload */</span></a>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : void dumpEvents() {
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   assert( workingAs == ldc || workingAs == gdc );</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   if ( eventsHead != NULL ) {</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     printf( &quot;Events:\n&quot; );</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     if ( workingAs == gdc ) {</span>
+<span class="lineNum">     158 </span>            :       struct gdcEventDescriptorStruct *gdc;
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :       for ( gdc = (struct gdcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             gdc != NULL;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :             gdc = gdc-&gt;next ) {</span>
+<span class="lineNum">     163 </span>            :         struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         printf( &quot; GDC (%p)\n&quot;, (void*)gdc );</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         for ( ldc = gdc-&gt;head; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">     167 </span>            :           struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">     168 </span>            :             
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :           printf( &quot;   LDC (%p): %d\n&quot;, (void*)ldc, ldc-&gt;id );</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :           for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             printf( &quot;     EQUIPMENT (%p): %d PAYLOAD (%p):&quot;,</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                     (void*)eq,</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                     eq-&gt;id,</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                     (void*)eq-&gt;payload );</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             fflush( stdout );</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :             printf( &quot;\&quot;%s\&quot; (%d bytes)\n&quot;,</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :                     eq-&gt;payload-&gt;fileName,</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                     eq-&gt;payload-&gt;size );</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             dumpPayload( eq-&gt;payload );</span>
+<span class="lineNum">     180 </span>            :           }
+<span class="lineNum">     181 </span>            :         }
+<span class="lineNum">     182 </span>            :       }
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     if ( workingAs == ldc ) {</span>
+<span class="lineNum">     185 </span>            :       struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :       for ( ldc = (struct ldcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             ldc != NULL;</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">     190 </span>            :         struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">     191 </span>            :             
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         printf( &quot;   LDC\n&quot; );</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :           printf( &quot;     EQUIPMENT (%p): %d PAYLOAD (%p):&quot;,</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                   (void*)eq,</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                   eq-&gt;id,</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                   (void*)eq-&gt;payload );</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :           fflush( stdout );</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :           printf( &quot;\&quot;%s\&quot; (%d bytes)\n&quot;,</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                   eq-&gt;payload-&gt;fileName,</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :                   eq-&gt;payload-&gt;size );</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :           dumpPayload( eq-&gt;payload );</span>
+<span class="lineNum">     203 </span>            :         }
+<span class="lineNum">     204 </span>            :       }
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     206 </span>            :   } else {
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     printf( &quot;Events: EMPTY\n&quot; );</span>
+<span class="lineNum">     208 </span>            :   }
+<a name="209"><span class="lineNum">     209 </span><span class="lineNoCov">          0 : } /* End of dumpEvents */</span></a>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            : void getLine( char *line, const int maxSize ) {
+<span class="lineNum">     212 </span>            :   int read;
+<span class="lineNum">     213 </span>            :   int c;
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineCov">     317966 :   for ( read = 0; !feof( stdin ) &amp;&amp; !ferror( stdin ) &amp;&amp; read != maxSize; read++ ) {</span>
+<span class="lineNum">     216 </span><span class="lineCov">      78966 :     if ( (line[read] = getchar()) == '\n' ) break;</span>
+<span class="lineNum">     217 </span>            :   }
+<span class="lineNum">     218 </span><span class="lineCov">       2100 :   if ( ferror( stdin ) ) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     220 </span>            :              &quot;%s: failed to read configuration input errno:%d &quot;,
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :              myName, errno );</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     perror( &quot;&quot; );</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     224 </span>            :   }
+<span class="lineNum">     225 </span><span class="lineCov">       2101 :   if ( feof( stdin ) ) read--;</span>
+<span class="lineNum">     226 </span><span class="lineCov">       2100 :   if ( read == maxSize &amp;&amp; line[read] != '\n' ) {</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     228 </span>            :              &quot;%s: Input line # %d too long (%d chars max)\n&quot;,
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :              myName, lineNmb, maxSize-1 );</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     231 </span>            :   }
+<span class="lineNum">     232 </span><span class="lineCov">       2100 :   line[ read ] = 0;</span>
+<span class="lineNum">     233 </span><span class="lineCov">       2100 :   DBG_VERBOSE {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     if ( !( read == 0 &amp;&amp; feof( stdin ) ) ) {</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :       printf( &quot;%d) [%3d] \&quot;%s\&quot;&quot;, lineNmb, read, line );</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     237 </span>            :   }
+<span class="lineNum">     238 </span><span class="lineCov">     157932 :   for ( c = 0; c != read; c++ ) {</span>
+<span class="lineNum">     239 </span><span class="lineCov">      76866 :     if ( line[c] == '#' ) {</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       line[c] = 0;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     242 </span>            :     }
+<span class="lineNum">     243 </span>            :   }
+<span class="lineNum">     244 </span><span class="lineCov">       2100 :   DBG_VERBOSE {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     if ( read != c ) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       printf( &quot; =&gt; \&quot;%s\&quot;&quot;, line );</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     if ( feof( stdin ) ) printf( &quot;&lt;&lt;&lt; EOF &gt;&gt;&gt;&quot; );</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     if ( ferror( stdin ) ) printf( &quot;&lt;&lt;&lt; FERROR &gt;&gt;&gt;&quot; );</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     printf( &quot;\n&quot; );</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   }</span>
+<a name="252"><span class="lineNum">     252 </span><span class="lineCov">       2100 : } /* End of getLine */</span></a>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : void handleLdc( eventLdcIdType ldcId ) {
+<span class="lineNum">     255 </span>            :   struct ldcDescriptorStruct *ldc;
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">        948 :   if ( ldcsHead != NULL ) {</span>
+<span class="lineNum">     258 </span><span class="lineCov">      56682 :     for ( ldc = ldcsHead; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">     259 </span><span class="lineCov">      28219 :       if ( ldc-&gt;id == ldcId ) {</span>
+<span class="lineNum">     260 </span><span class="lineCov">        351 :         return;</span>
+<span class="lineNum">     261 </span>            :       }
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span>            :   }
+<span class="lineNum">     264 </span><span class="lineCov">        123 :   if ( (ldc = (struct ldcDescriptorStruct *)malloc( sizeof( *ldc ) )) == NULL ) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     266 </span>            :              &quot;%s: Failed to malloc for %d bytes (struct ldcDescriptorStruct)\n&quot;,
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :              myName, (int)sizeof( *ldc ) );</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     269 </span>            :   }
+<span class="lineNum">     270 </span><span class="lineCov">        123 :   ldc-&gt;id = ldcId;</span>
+<span class="lineNum">     271 </span><span class="lineCov">        123 :   ldc-&gt;next = NULL;</span>
+<span class="lineNum">     272 </span><span class="lineCov">        123 :   if ( ldcsHead == NULL ) {</span>
+<span class="lineNum">     273 </span><span class="lineCov">          1 :     ldcsHead = ldcsTail = ldc;</span>
+<span class="lineNum">     274 </span><span class="lineCov">          1 :   } else {</span>
+<span class="lineNum">     275 </span><span class="lineCov">        122 :     ldcsTail-&gt;next = ldc;</span>
+<span class="lineNum">     276 </span><span class="lineCov">        122 :     ldcsTail = ldc;</span>
+<span class="lineNum">     277 </span>            :   }
+<span class="lineNum">     278 </span><span class="lineCov">        123 :   numOfLdcs++;</span>
+<a name="279"><span class="lineNum">     279 </span><span class="lineCov">        597 : } /* End of handleLdc */</span></a>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            : void createNewEvent() {
+<span class="lineNum">     282 </span><span class="lineCov">          8 :   assert( workingAs == ldc || workingAs == gdc );</span>
+<span class="lineNum">     283 </span><span class="lineCov">          4 :   if ( workingAs == ldc ) {</span>
+<span class="lineNum">     284 </span>            :     struct ldcEventDescriptorStruct *p;
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     if ( (p = (struct ldcEventDescriptorStruct *)malloc( sizeof( *p ) ))</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :            == NULL ) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     289 </span>            :                &quot;%s: failed to malloc for %d bytes (createNewEvent: struct ldcEventDescriptorStruct)&quot;,
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                myName, (int)sizeof( *p ) );</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :       perror( &quot;&quot; );</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     293 </span>            :     }
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     p-&gt;loaded = FALSE;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     p-&gt;head = p-&gt;tail = NULL;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     p-&gt;next = NULL;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     currLdc = p;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     if ( eventsHead == NULL ) {</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :       eventsHead = eventsTail = p;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     301 </span>            :       struct ldcEventDescriptorStruct *q =
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         (struct ldcEventDescriptorStruct *)eventsTail;</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       q-&gt;next = p;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :       eventsTail = p;</span>
+<span class="lineNum">     306 </span>            :     }
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     p-&gt;id = currLdcId;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     p-&gt;detPattern = currDetPattern;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     p-&gt;timestamp = currTimestamp;</span>
+<span class="lineNum">     310 </span><span class="lineCov">          4 :   } else if ( workingAs == gdc ) {</span>
+<span class="lineNum">     311 </span>            :     struct gdcEventDescriptorStruct *p;
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineCov">          8 :     if ( (p = (struct gdcEventDescriptorStruct *)malloc( sizeof( *p ) ))</span>
+<span class="lineNum">     314 </span><span class="lineCov">          4 :            == NULL ) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     316 </span>            :                &quot;%s: failed to malloc for %d bytes (createNewEvent: struct gdcEventDescriptorStruct)&quot;,
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                myName, (int)sizeof( *p ) );</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :       perror( &quot;&quot; );</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     320 </span>            :     }
+<span class="lineNum">     321 </span><span class="lineCov">          4 :     p-&gt;loaded = FALSE;</span>
+<span class="lineNum">     322 </span><span class="lineCov">          4 :     p-&gt;next = NULL;</span>
+<span class="lineNum">     323 </span><span class="lineCov">          4 :     p-&gt;head = p-&gt;tail = NULL;</span>
+<span class="lineNum">     324 </span><span class="lineCov">          4 :     currGdc = p;</span>
+<span class="lineNum">     325 </span><span class="lineCov">          4 :     if ( eventsHead == NULL ) {</span>
+<span class="lineNum">     326 </span><span class="lineCov">          1 :       eventsHead = eventsTail = p;</span>
+<span class="lineNum">     327 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">     328 </span>            :       struct gdcEventDescriptorStruct *q =
+<span class="lineNum">     329 </span><span class="lineCov">          3 :         (struct gdcEventDescriptorStruct *)eventsTail;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">          3 :       q-&gt;next = p;</span>
+<span class="lineNum">     332 </span><span class="lineCov">          3 :       eventsTail = p;</span>
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span><span class="lineCov">          4 :     p-&gt;detPattern = currDetPattern;</span>
+<span class="lineNum">     335 </span><span class="lineCov">          4 :     p-&gt;timestamp = currTimestamp;</span>
+<span class="lineNum">     336 </span><span class="lineCov">          4 :   }</span>
+<a name="337"><span class="lineNum">     337 </span><span class="lineCov">          4 : } /* End of createNewEvent */</span></a>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            : void createNewLdcEvent() {
+<span class="lineNum">     340 </span>            :   struct gdcEventDescriptorStruct *gdcDesc;
+<span class="lineNum">     341 </span>            :   struct ldcEventDescriptorStruct *p;
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">       1422 :   if ( (p = (struct ldcEventDescriptorStruct *)malloc( sizeof( *p ) ))</span>
+<span class="lineNum">     344 </span><span class="lineCov">        474 :          == NULL ) {</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     346 </span>            :              &quot;%s: failed to malloc for %d bytes (createNewLdcEvent: struct ldcEventDescriptorStruct)&quot;,
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :              myName, (int)sizeof( *p ) );</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     perror( &quot;&quot; );</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     350 </span>            :   }
+<span class="lineNum">     351 </span><span class="lineCov">        474 :   p-&gt;id = currLdcId;</span>
+<span class="lineNum">     352 </span><span class="lineCov">        474 :   p-&gt;detPattern = currDetPattern;</span>
+<span class="lineNum">     353 </span><span class="lineCov">        474 :   p-&gt;timestamp = currTimestamp;</span>
+<span class="lineNum">     354 </span><span class="lineCov">        474 :   p-&gt;head = p-&gt;tail = NULL;</span>
+<span class="lineNum">     355 </span><span class="lineCov">        474 :   p-&gt;next = NULL;</span>
+<span class="lineNum">     356 </span><span class="lineCov">        474 :   gdcDesc = (struct gdcEventDescriptorStruct *)eventsTail;</span>
+<span class="lineNum">     357 </span><span class="lineCov">        948 :   if ( gdcDesc-&gt;head == NULL ) {</span>
+<span class="lineNum">     358 </span><span class="lineCov">        478 :     gdcDesc-&gt;head = gdcDesc-&gt;tail = p;</span>
+<span class="lineNum">     359 </span><span class="lineCov">          4 :   } else {</span>
+<span class="lineNum">     360 </span><span class="lineCov">        470 :     gdcDesc-&gt;tail-&gt;next = p;</span>
+<span class="lineNum">     361 </span><span class="lineCov">        470 :     gdcDesc-&gt;tail = p;</span>
+<span class="lineNum">     362 </span>            :   }
+<span class="lineNum">     363 </span><span class="lineCov">        474 :   currLdc = p;</span>
+<a name="364"><span class="lineNum">     364 </span><span class="lineCov">        474 : } /* End of createNewLdcEvent */</span></a>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : void loadBuffer( struct payloadDescriptorStruct * const payload ) {
+<span class="lineNum">     367 </span>            :   FILE *f;
+<span class="lineNum">     368 </span>            :   int bytesRead;
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineCov">       3242 :   if ( (f = fopen( payload-&gt;fileName, &quot;r&quot; )) == NULL ) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     372 </span>            :              &quot;%s: line:%d payload file \&quot;%s\&quot; not found or not readable, errno:%d. &quot;,
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :              myName,</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :              lineNmb,</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :              payload-&gt;fileName,</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :              errno );</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     perror( &quot;System-dependent error &quot; );</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     379 </span>            :   }
+<span class="lineNum">     380 </span><span class="lineCov">       1621 :   if ( (payload-&gt;data = malloc( payload-&gt;size )) == NULL ) {</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     382 </span>            :              &quot;%s: line:%d Failed to malloc for payload file \&quot;%s\&quot; size:%d errno:%d &quot;,
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :              myName,</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :              lineNmb,</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :              payload-&gt;fileName,</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :              payload-&gt;size,</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :              errno );</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     perror( &quot;System-dependent status &quot; );</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     390 </span>            :   }
+<span class="lineNum">     391 </span><span class="lineCov">       1621 :   if ( (bytesRead = fread( payload-&gt;data, payload-&gt;fileSize, 1, f )) != 1 ) {</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     393 </span>            :              &quot;%s: line:%d Failed to read payload file \&quot;%s\&quot; size:%d requested:1 got:%d feof:%s ferror:%s errno:%d &quot;,
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :              myName,</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :              lineNmb,</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :              payload-&gt;fileName,</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :              payload-&gt;size,</span>
+<span class="lineNum">     398 </span>            :              bytesRead,
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :              feof(f) ? &quot;TRUE&quot; : &quot;false&quot;,</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :              ferror(f) ? &quot;TRUE&quot; : &quot;false&quot;,</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :              errno );</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     perror( &quot;System-dependent status &quot; );</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     404 </span>            :   }
+<span class="lineNum">     405 </span><span class="lineCov">       1621 :   fclose(f);</span>
+<span class="lineNum">     406 </span><span class="lineCov">       1621 :   if ( payload-&gt;size != payload-&gt;fileSize ) {</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     memset( (char *)payload-&gt;data + payload-&gt;fileSize,</span>
+<span class="lineNum">     408 </span>            :             0,
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             payload-&gt;size - payload-&gt;fileSize );</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   }</span>
+<a name="411"><span class="lineNum">     411 </span><span class="lineCov">       1621 : } /* End of loadBuffer */</span></a>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span>            : void unloadBuffer( struct payloadDescriptorStruct * const payload ) {
+<span class="lineNum">     414 </span><span class="lineCov">       3242 :   if ( payload-&gt;data != NULL ) {</span>
+<span class="lineNum">     415 </span><span class="lineCov">       1621 :     free( payload-&gt;data );</span>
+<span class="lineNum">     416 </span><span class="lineCov">       1621 :     payload-&gt;data = NULL;</span>
+<span class="lineNum">     417 </span><span class="lineCov">       1621 :   }</span>
+<a name="418"><span class="lineNum">     418 </span><span class="lineCov">       1621 : } /* End of unloadBuffer */</span></a>
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            : void unloadAllBuffers() {
+<span class="lineNum">     421 </span>            :   struct payloadDescriptorStruct *payload;
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   for ( payload = payloadsHead; payload != NULL; payload = payload-&gt;next ) {</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     unloadBuffer( payload );</span>
+<span class="lineNum">     425 </span>            :   }
+<a name="426"><span class="lineNum">     426 </span><span class="lineNoCov">          0 : } /* End of unloadAllBuffers */</span></a>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            : void loadPayload( const char *fileName ) {
+<span class="lineNum">     429 </span>            :   struct payloadDescriptorStruct *payload;
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineCov">    2630883 :   for ( payload = payloadsHead; payload != NULL; payload = payload-&gt;next ) {</span>
+<span class="lineNum">     432 </span><span class="lineCov">    1313010 :     if ( strcmp( fileName, payload-&gt;fileName ) == 0 )</span>
+<span class="lineNum">     433 </span>            :       break;
+<span class="lineNum">     434 </span>            :   }
+<span class="lineNum">     435 </span><span class="lineCov">       1621 :   if ( payload == NULL ) {</span>
+<span class="lineNum">     436 </span>            :     FILE *f;
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineCov">       3242 :     if ( (payload = (struct payloadDescriptorStruct *)malloc( sizeof( *payload ) ))</span>
+<span class="lineNum">     439 </span><span class="lineCov">       1621 :            == NULL ) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     441 </span>            :                &quot;%s: failed to malloc for %d bytes (loadPayload/payloadDescriptorStruct)\n&quot;,
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     443 </span>            :                (int)sizeof( *payload ) );
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     445 </span>            :     }
+<span class="lineNum">     446 </span><span class="lineCov">       1621 :     if ( (payload-&gt;fileName = strdup( fileName )) == NULL ) {</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     448 </span>            :                &quot;%s: failed to duplicate string \&quot;%s\&quot; (loadPaload/fileName)\n&quot;,
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     450 </span>            :                fileName );
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     452 </span>            :     }
+<span class="lineNum">     453 </span><span class="lineCov">       1621 :     if ( (f = fopen( fileName, &quot;r&quot; )) == NULL ) {</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     455 </span>            :                &quot;%s: line:%d payload file \&quot;%s\&quot; not found or not readable, errno:%d. &quot;,
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                lineNmb,</span>
+<span class="lineNum">     458 </span>            :                fileName,
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                errno );</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :       perror( &quot;System-dependent error &quot; );</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     462 </span>            :     }
+<span class="lineNum">     463 </span><span class="lineCov">       1621 :     if ( fseek( f, 0L, SEEK_END ) != 0 ) {</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     465 </span>            :                &quot;%s: line:%d Failed to seek payload file \&quot;%s\&quot; errno:%d &quot;,
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                lineNmb,</span>
+<span class="lineNum">     468 </span>            :                fileName,
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                errno );</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :       perror( &quot;System-dependent error &quot; );</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     472 </span>            :     }
+<span class="lineNum">     473 </span><span class="lineCov">       1621 :     if ( (payload-&gt;size = ftell( f )) &lt;= 0 ) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     475 </span>            :                &quot;%s: line:%d Failed to get file \&quot;%s\&quot; size size:%d errno:%d &quot;,
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                lineNmb,</span>
+<span class="lineNum">     478 </span>            :                fileName,
+<span class="lineNum">     479 </span>            :                payload-&gt;size,
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                errno );</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :       perror( &quot;System-dependent status &quot; );</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     483 </span>            :     }
+<span class="lineNum">     484 </span><span class="lineCov">       1621 :     payload-&gt;fileSize = payload-&gt;size;</span>
+<span class="lineNum">     485 </span><span class="lineCov">       3242 :     while ( (payload-&gt;size &amp; 3) != 0 ) payload-&gt;size++;</span>
+<span class="lineNum">     486 </span><span class="lineCov">       1621 :     fclose( f );</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineCov">       1621 :     if ( bufferData ) {</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :       loadBuffer( payload );</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     491 </span><span class="lineCov">       1621 :       payload-&gt;data = NULL;</span>
+<span class="lineNum">     492 </span>            :     }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineCov">       1621 :     payload-&gt;next = NULL;</span>
+<span class="lineNum">     495 </span><span class="lineCov">       1621 :     if ( payloadsHead == NULL ) {</span>
+<span class="lineNum">     496 </span><span class="lineCov">          1 :       payloadsHead = payloadsTail = payload;</span>
+<span class="lineNum">     497 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">     498 </span><span class="lineCov">       1620 :       payloadsTail-&gt;next = payload;</span>
+<span class="lineNum">     499 </span><span class="lineCov">       1620 :       payloadsTail = payload;</span>
+<span class="lineNum">     500 </span>            :     }
+<span class="lineNum">     501 </span><span class="lineCov">       1621 :     DBG_VERBOSE {</span>
+<span class="lineNum">     502 </span>            :       int b, n;
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :       printf( &quot;%d)       Payload \&quot;%s\&quot; loaded at %p\n&quot;,</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :               lineNmb,</span>
+<span class="lineNum">     506 </span>            :               fileName,
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :               (void*)payload );</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :       if ( bufferData ) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         if ( handleCDH &amp;&amp;</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :              strncmp(fileName,&quot;TRG_&quot;,4) != 0 ) {</span>
+<span class="lineNum">     511 </span>            :           struct commonDataHeaderStruct *cdh =
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :             (struct commonDataHeaderStruct *)payload-&gt;data;</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :           printf( &quot; CDH: blockLenght:%d=0x%08x &quot;,</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhBlockLength, cdh-&gt;cdhBlockLength );</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhBlockLength &lt; sizeof( *cdh ) ) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :             printf( &quot;TOO SMALL (minimum:%ld=0x%08lx)\n&quot;,</span>
+<span class="lineNum">     518 </span>            :                    (unsigned long)sizeof( *cdh ),
+<span class="lineNum">     519 </span>            :                    (unsigned long)sizeof( *cdh ) );
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :           } else {</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :             printf( &quot;version:%d=0x%x &quot;, cdh-&gt;cdhVersion, cdh-&gt;cdhVersion );</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :             if ( cdh-&gt;cdhVersion != CDH_VERSION ) {</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :               printf( &quot;EXPECTED:%d=%x (decoding may be inaccurate) &quot;,</span>
+<span class="lineNum">     524 </span>            :                       CDH_VERSION, CDH_VERSION );
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     526 </span>            :           }
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :           printf( &quot;L1TriggerMessage:0x%x&quot;, cdh-&gt;cdhL1TriggerMessage );</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :           if (  cdh-&gt;cdhL1TriggerMessage != 0 ) {</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             for ( b = 0, n = 0; b != 10; b++ ) {</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhL1TriggerMessage &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 )printf( &quot;+&quot; );</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                 switch (b) {</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :                 case 0: printf( &quot;L1SwC&quot; ); break;</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                 case 1: printf( &quot;ESR&quot; ); break;</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :                 case 2: printf( &quot;RoC1&quot; ); break;</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                 case 3: printf( &quot;RoC2&quot; ); break;</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                 case 4: printf( &quot;RoC3&quot; ); break;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                 case 5: printf( &quot;RoC4&quot; ); break;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                 case 6: printf( &quot;ClT&quot; ); break;</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                 default: printf( &quot;spare %d&quot;, b+14 );</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     542 </span>            :               }
+<span class="lineNum">     543 </span>            :             }
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :             printf( &quot;&gt;&quot; );</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :           printf( &quot; &quot; );</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhMBZ0 != 0 )</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :             printf( &quot;MBZ0:0x%x &quot;,</span>
+<span class="lineNum">     549 </span>            :                     cdh-&gt;cdhMBZ0 );
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :           printf( &quot;\n&quot; );</span>
+<span class="lineNum">     551 </span>            :           
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :           printf( &quot;      &quot; );</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :           printf( &quot;EventId2(orbit):%d=0x%x &quot;,</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhEventId2, cdh-&gt;cdhEventId2 );</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :           printf( &quot;EventId1(bunchCrossing):%d=0x%x &quot;,</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhEventId1, cdh-&gt;cdhEventId1 );</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :           printf( &quot;\n&quot; );</span>
+<span class="lineNum">     558 </span>            :           
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :           printf( &quot;      &quot; );</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhMBZ1 != 0 )</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :             printf( &quot;MBZ1:0x%x &quot;,</span>
+<span class="lineNum">     562 </span>            :                     cdh-&gt;cdhMBZ1 );
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :           printf( &quot;BlockAttributes:0x%x&quot;,</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhBlockAttributes );</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhBlockAttributes != 0 ) {</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :             printf( &quot;=&lt;&quot; );</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :             for ( b = 0, n = 0; b != 8; b++ ) {</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhBlockAttributes &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 )</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                   printf( &quot;+&quot; );</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 printf( &quot;%d&quot;, b );</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     573 </span>            :             }
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :             printf( &quot;&gt;&quot; );</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :           printf( &quot; &quot; );</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :           printf( &quot;ParticipatingSubDetectors:0x%x &quot;,</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhParticipatingSubDetectors );</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :           printf( &quot;\n&quot; );</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :           printf( &quot;      &quot; );</span>
+<span class="lineNum">     581 </span>            :           
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :           printf( &quot;Status/Error:0x%x&quot;, cdh-&gt;cdhStatusErrorBits );</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhStatusErrorBits != 0 ) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :             printf( &quot;=&lt;&quot; );</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :             for ( b = 0,n = 0; b != 16; b++ ) {</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhStatusErrorBits &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 ) printf( &quot;+&quot; );</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :                 switch (b) {</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :                 case 0: printf( &quot;TriggerOverLapError&quot; ); break;</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :                 case 1: printf( &quot;TriggerMissingError&quot; ); break;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :                 case 2: printf( &quot;DataParityError&quot; ); break;</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :                 case 3: printf( &quot;ControlParityError&quot; ); break;</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :                 case 4: printf( &quot;TriggerInformationUnavailable&quot; ); break;</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :                 case 5: printf( &quot;FEEError&quot; ); break;</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :                 case 6: printf( &quot;HLTDecision&quot; ); break;</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :                 case 7: printf( &quot;HLTPayload&quot; ); break;</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :                 case 8: printf( &quot;DDGPayload&quot; ); break;</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :                 default: printf( &quot;spare %d&quot;, b );</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     600 </span>            :               }
+<span class="lineNum">     601 </span>            :             }
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :             printf( &quot;&gt;&quot; );</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :           printf( &quot; &quot; );</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :           printf( &quot;MiniEventId(bunchCrossing):%d=0x%x &quot;,</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhMiniEventId, cdh-&gt;cdhMiniEventId );</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :           printf( &quot;\n&quot; );</span>
+<span class="lineNum">     608 </span>            :           
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :           printf( &quot;      &quot; );</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :           printf( &quot;Trigger classes: 0x(%05x-%08x)&quot;,</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhTriggerClassesHigh,</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :                   cdh-&gt;cdhTriggerClassesLow );</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhTriggerClassesHigh != 0</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :                || cdh-&gt;cdhTriggerClassesLow != 0 ) {</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :             printf( &quot;=&lt;&quot; );</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :             for ( b=0, n=0; b != 32; b++ ) {</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhTriggerClassesLow &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 ) printf( &quot;+&quot; );</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :                 printf( &quot;%d&quot;, b );</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     621 </span>            :             }
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :             for ( b=0; b != 18; b++ ) {</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhTriggerClassesHigh &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 ) printf( &quot;+&quot; );</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :                 printf( &quot;%d&quot;, b+32 );</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     627 </span>            :             }
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :             printf( &quot;&gt;&quot; );</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :           printf( &quot;\n&quot; );</span>
+<span class="lineNum">     631 </span>            :           
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :           printf( &quot;      &quot; );</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :           printf( &quot;ROI:0x(%08x-%01x)&quot;, cdh-&gt;cdhRoiHigh, cdh-&gt;cdhRoiLow );</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhRoiHigh != 0</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :                || cdh-&gt;cdhRoiLow != 0 ) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :             printf( &quot;=&lt;&quot; );</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :             for ( b=0, n=0; b != 5; b++ ) {</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhRoiLow &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 ) printf( &quot;+&quot; );</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :                 printf( &quot;%d&quot;, b );</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     642 </span>            :             }
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             for ( b=0; b != 32; b++ ) {</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :               if ( (cdh-&gt;cdhRoiHigh &amp; (1&lt;&lt;b)) != 0 ) {</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :                 if ( n++ != 0 ) printf( &quot;+&quot; );</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :                 printf( &quot;%d&quot;, b+4 );</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     648 </span>            :             }
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :             printf( &quot;&gt;&quot; );</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :           printf( &quot;\n&quot; );</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     653 </span>            :       }
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     655 </span><span class="lineCov">       1621 :   } else {</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     DBG_VERBOSE</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :       printf( &quot;%d)       Payload \&quot;%s\&quot; already loaded at %p\n&quot;,</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :               lineNmb,</span>
+<span class="lineNum">     659 </span>            :               fileName,
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :               (void*)payload );</span>
+<span class="lineNum">     661 </span>            :   }
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span><span class="lineCov">       1621 :   currEvent-&gt;payload = payload;</span>
+<a name="664"><span class="lineNum">     664 </span><span class="lineCov">       1621 : } /* End of loadPayload */</span></a>
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span>            : void parseEquipment( char * const line ) {
+<span class="lineNum">     667 </span>            :   struct equipmentEventDescriptorStruct *equipment;
+<span class="lineNum">     668 </span>            :   int payloadFound = FALSE;
+<span class="lineNum">     669 </span><span class="lineCov">       3242 :   char *p;</span>
+<span class="lineNum">     670 </span>            :   char *keyword;
+<span class="lineNum">     671 </span>            : 
+<span class="lineNum">     672 </span><span class="lineCov">       1621 :   if ( (equipment =</span>
+<span class="lineNum">     673 </span><span class="lineCov">       1621 :          (struct equipmentEventDescriptorStruct *)malloc( sizeof( *equipment ) )) == NULL ) {</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     675 </span>            :              &quot;%s: filed to malloc for %d bytes (parseEquipment/equipmentEventDescriptorStruct) errno:%d &quot;,
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :              myName,</span>
+<span class="lineNum">     677 </span>            :              (int)sizeof( *equipment ),
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :              errno );</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     perror( &quot;&quot; );</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     681 </span>            :   }
+<span class="lineNum">     682 </span><span class="lineCov">       1621 :   currEvent = equipment;</span>
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineCov">       1621 :   p = line;</span>
+<span class="lineNum">     685 </span><span class="lineCov">       6484 :   while ( (keyword = strtok_r( p, &quot; \t&quot;, &amp;p )) != NULL ) {</span>
+<span class="lineNum">     686 </span><span class="lineCov">       3242 :     DBG_VERBOSE printf( &quot;%d)     Equipment - Keyword:\&quot;%s\&quot;\n&quot;,</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                         lineNmb,</span>
+<span class="lineNum">     688 </span>            :                         keyword );
+<span class="lineNum">     689 </span><span class="lineCov">       3242 :     if ( strcasecmp( &quot;id&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     690 </span>            :       char *idNum;
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineCov">       1621 :       if ( (idNum = strtok_r( p, &quot; \t&quot;, &amp;p )) == NULL ) {</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     694 </span>            :                  &quot;%s: line:%d EQUIPMENT declaration, ID needed&quot;,
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     698 </span>            :       }
+<span class="lineNum">     699 </span><span class="lineCov">       1621 :       if ( sscanf( idNum, &quot;%d&quot;, &amp;currEquipmentId ) != 1 ) {</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     701 </span>            :                  &quot;%s: line:%d EQUIPMENT declaration, numeric ID needed (%s)&quot;,
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :                  lineNmb,</span>
+<span class="lineNum">     704 </span>            :                  idNum );
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     706 </span>            :       }
+<span class="lineNum">     707 </span><span class="lineCov">       1621 :       DBG_VERBOSE printf( &quot;%d)     EQUIPMENT - ID:%d\n&quot;,</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :                           lineNmb,</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                           currEquipmentId );</span>
+<span class="lineNum">     710 </span><span class="lineCov">       3242 :     } else if ( strncasecmp( &quot;pay&quot;, keyword, 3 ) == 0 ) {</span>
+<span class="lineNum">     711 </span>            :       char *fileName;
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span><span class="lineCov">       1621 :       if ( (fileName = strtok_r( p, &quot; \t&quot;, &amp;p )) == NULL ) {</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     715 </span>            :                  &quot;%s line:%d Payload without filename found\n&quot;,
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     719 </span>            :       }
+<span class="lineNum">     720 </span><span class="lineCov">       1621 :       DBG_VERBOSE printf( &quot;%d)     Equipment - Payload:\&quot;%s\&quot;\n&quot;,</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :                           lineNmb,</span>
+<span class="lineNum">     722 </span>            :                           fileName );
+<span class="lineNum">     723 </span><span class="lineCov">       1621 :       if ( payloadFound ) {</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     725 </span>            :                  &quot;%s line:%d Payload with multiple filenames found\n&quot;,
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     729 </span>            :       }
+<span class="lineNum">     730 </span><span class="lineCov">       1621 :       loadPayload( fileName );</span>
+<span class="lineNum">     731 </span>            :       payloadFound = TRUE;
+<span class="lineNum">     732 </span>            :     } else {
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     734 </span>            :                &quot;%s: line:%d Equipment declaration, unknown keyword \&quot;%s\&quot;\n&quot;,
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :                lineNmb,</span>
+<span class="lineNum">     737 </span>            :                keyword );
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     739 </span>            :     }
+<span class="lineNum">     740 </span>            :   }
+<span class="lineNum">     741 </span><span class="lineCov">       1621 :   if ( !payloadFound ) {</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     fprintf( stderr,</span>
+<span class="lineNum">     743 </span>            :              &quot;%s: line:%d Equipment without payload found\n&quot;,
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :              myName,</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :              lineNmb );</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     exit( 1 );</span>
+<span class="lineNum">     747 </span>            :   }
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineCov">       1621 :   equipment-&gt;id = currEquipmentId;</span>
+<span class="lineNum">     750 </span><span class="lineCov">       1621 :   equipment-&gt;next = NULL;</span>
+<span class="lineNum">     751 </span><span class="lineCov">       3242 :   if ( currLdc-&gt;head == NULL ) {</span>
+<span class="lineNum">     752 </span><span class="lineCov">       2095 :     currLdc-&gt;head = currLdc-&gt;tail = equipment;</span>
+<span class="lineNum">     753 </span><span class="lineCov">        474 :   } else {</span>
+<span class="lineNum">     754 </span><span class="lineCov">       1147 :     currLdc-&gt;tail-&gt;next = equipment;</span>
+<span class="lineNum">     755 </span><span class="lineCov">       1147 :     currLdc-&gt;tail = equipment;</span>
+<span class="lineNum">     756 </span>            :   }
+<a name="757"><span class="lineNum">     757 </span><span class="lineCov">       1621 : } /* End of parseEquipment */</span></a>
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span>            : void parseGdc( char * const line ) {
+<span class="lineNum">     760 </span><span class="lineCov">          8 :   char *p;</span>
+<span class="lineNum">     761 </span>            :   char *keyword;
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineCov">          4 :   p = line;</span>
+<span class="lineNum">     764 </span><span class="lineCov">         16 :   while ( (keyword = strtok_r( p, &quot; \t&quot;, &amp;p )) != NULL ) {</span>
+<span class="lineNum">     765 </span><span class="lineCov">          8 :     if ( strcasecmp( &quot;id&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     766 </span>            :       char *idNum;
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :       if ( (idNum = strtok_r( p, &quot; \t&quot;, &amp;p )) == NULL ) {</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     770 </span>            :                  &quot;%s: line:%d GDC declaration, ID needed&quot;,
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     774 </span>            :       }
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       int inCurrGdcId;</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :       if ( sscanf( idNum, &quot;%d&quot;, &amp;inCurrGdcId ) != 1 ) {</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     778 </span>            :                  &quot;%s: line:%d GDC declaration, numeric ID needed (%s)&quot;,
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :                  lineNmb,</span>
+<span class="lineNum">     781 </span>            :                  idNum );
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     783 </span>            :       }
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :       currGdcId = (eventGdcIdType)inCurrGdcId;</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :       DBG_VERBOSE printf( &quot;%d)     GDC - ID:%d\n&quot;,</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :                           lineNmb,</span>
+<span class="lineNum">     787 </span>            :                           currGdcId );
+<span class="lineNum">     788 </span><span class="lineCov">          8 :     } else if ( strcasecmp( &quot;DetectorPattern&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     789 </span>            :       char *detPattern;
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span><span class="lineCov">          4 :       if ( (detPattern = strtok_r( p, &quot; \t&quot;, &amp;p )) == NULL ) {</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     793 </span>            :                  &quot;%s: line:%d GDC declaration, DetectorPattern needed&quot;,
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     797 </span>            :       }
+<span class="lineNum">     798 </span><span class="lineCov">          4 :       if ( sscanf( detPattern, &quot;%u&quot;, &amp;currDetPattern ) != 1 ) {</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     800 </span>            :                  &quot;%s: line:%d GDC declaration, numeric DetectorPattern needed (%s)&quot;,
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :                  lineNmb,</span>
+<span class="lineNum">     803 </span>            :                  detPattern );
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     805 </span>            :       }
+<span class="lineNum">     806 </span><span class="lineCov">          4 :       DBG_VERBOSE printf( &quot;%d)     GDC - DetectorPattern:%u\n&quot;,</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :                           lineNmb,</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :                           currDetPattern );</span>
+<span class="lineNum">     809 </span><span class="lineCov">          8 :     } else if ( strcasecmp( &quot;Timestamp&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     810 </span>            :       char *timestamp;
+<span class="lineNum">     811 </span>            : 
+<span class="lineNum">     812 </span><span class="lineCov">          4 :       if ( (timestamp = strtok_r( p, &quot; \t&quot;, &amp;p )) == NULL ) {</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     814 </span>            :                  &quot;%s: line:%d GDC declaration, Timestamp needed&quot;,
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     818 </span>            :       }
+<span class="lineNum">     819 </span><span class="lineCov">          4 :       if ( sscanf( timestamp, &quot;%u&quot;, &amp;currTimestamp ) != 1 ) {</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     821 </span>            :                  &quot;%s: line:%d GDC declaration, numeric Timestamp needed (%s)&quot;,
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :                  lineNmb,</span>
+<span class="lineNum">     824 </span>            :                  timestamp );
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     826 </span>            :       }
+<span class="lineNum">     827 </span><span class="lineCov">          4 :       DBG_VERBOSE printf( &quot;%d)     GDC - Timestamp:%u\n&quot;,</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                           lineNmb,</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :                           currTimestamp );</span>
+<span class="lineNum">     830 </span>            :     } else {
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     832 </span>            :                &quot;%s: line:%d GDC declaration, unknown keyword \&quot;%s\&quot;\n&quot;,
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :                lineNmb,</span>
+<span class="lineNum">     835 </span>            :                keyword );
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     837 </span>            :     }  
+<span class="lineNum">     838 </span>            :   }
+<a name="839"><span class="lineNum">     839 </span><span class="lineCov">          4 : } /* End of parseGdc */</span></a>
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span>            : void parseLdc( char * const line ) {
+<span class="lineNum">     842 </span><span class="lineCov">        948 :   char *p;</span>
+<span class="lineNum">     843 </span>            :   char *keyword;
+<span class="lineNum">     844 </span>            : 
+<span class="lineNum">     845 </span><span class="lineCov">        474 :   p = line;</span>
+<span class="lineNum">     846 </span><span class="lineCov">       1896 :   while ( (keyword = strtok_r( p, &quot; \t&quot;, &amp;p )) != NULL ) {</span>
+<span class="lineNum">     847 </span><span class="lineCov">        474 :     if ( strcasecmp( &quot;id&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     848 </span>            :       char *idNum;
+<span class="lineNum">     849 </span>            : 
+<span class="lineNum">     850 </span><span class="lineCov">        474 :       if ( (idNum = strtok_r( p, &quot; \t&quot;, &amp;p )) == NULL ) {</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     852 </span>            :                  &quot;%s: line:%d LDC declaration, ID needed&quot;,
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :                  lineNmb );</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     856 </span>            :       }
+<span class="lineNum">     857 </span><span class="lineCov">        474 :       int inCurrLdcId;</span>
+<span class="lineNum">     858 </span><span class="lineCov">        474 :       if ( sscanf( idNum, &quot;%d&quot;, &amp;inCurrLdcId ) != 1 ) {</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">     860 </span>            :                  &quot;%s: line:%d LDC declaration, numeric ID needed (%s)&quot;,
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :                  lineNmb,</span>
+<span class="lineNum">     863 </span>            :                  idNum );
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">     865 </span>            :       }
+<span class="lineNum">     866 </span><span class="lineCov">        474 :       currLdcId = (eventLdcIdType)inCurrLdcId;</span>
+<span class="lineNum">     867 </span><span class="lineCov">        474 :       DBG_VERBOSE printf( &quot;%d)     LDC - ID:%d\n&quot;,</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :                           lineNmb,</span>
+<span class="lineNum">     869 </span>            :                           currLdcId );
+<span class="lineNum">     870 </span><span class="lineCov">        474 :     } else {</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">     872 </span>            :                &quot;%s: line:%d LDC declaration, unknown keyword \&quot;%s\&quot;\n&quot;,
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :                lineNmb,</span>
+<span class="lineNum">     875 </span>            :                keyword );
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">     877 </span>            :     }  
+<span class="lineNum">     878 </span>            :   }
+<a name="879"><span class="lineNum">     879 </span><span class="lineCov">        474 : } /* End of parseLdc */</span></a>
+<span class="lineNum">     880 </span>            : 
+<span class="lineNum">     881 </span>            : void parseRules() {
+<span class="lineNum">     882 </span><span class="lineCov">          2 :   char line[ 1025 ];</span>
+<span class="lineNum">     883 </span>            : 
+<span class="lineNum">     884 </span><span class="lineCov">          1 :   currLdcId = HOST_ID_MIN;</span>
+<span class="lineNum">     885 </span><span class="lineCov">          1 :   currGdcId = HOST_ID_MIN;</span>
+<span class="lineNum">     886 </span><span class="lineCov">          1 :   currDetPattern = 0;</span>
+<span class="lineNum">     887 </span><span class="lineCov">          1 :   currTimestamp = 0;</span>
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span><span class="lineCov">       4202 :   for ( lineNmb = 1; !feof( stdin ); lineNmb++ ) {</span>
+<span class="lineNum">     890 </span><span class="lineCov">       2100 :     getLine( line, sizeof(line) );</span>
+<span class="lineNum">     891 </span><span class="lineCov">       2100 :     if ( strlen(line) != 0 ) {</span>
+<span class="lineNum">     892 </span><span class="lineCov">       2099 :       char *p;</span>
+<span class="lineNum">     893 </span>            :       char *keyword;
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span><span class="lineCov">       2099 :       if ( (keyword = strtok_r( line, &quot; \t&quot;, &amp;p )) != NULL ) {</span>
+<span class="lineNum">     896 </span><span class="lineCov">       2099 :         DBG_VERBOSE printf( &quot;%d)   Keyword:\&quot;%s\&quot;\n&quot;, lineNmb, keyword );</span>
+<span class="lineNum">     897 </span><span class="lineCov">       2099 :         if ( strcasecmp( &quot;gdc&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     898 </span><span class="lineCov">          4 :           if ( workingAs != gdc &amp;&amp; workingAs != unknown ) {</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">     900 </span>            :                      &quot;%s: line:%d GDC found when working in non-GDC mode (e.g. as a LDC)\n&quot;,
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :                      myName, lineNmb );</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">     903 </span>            :           }
+<span class="lineNum">     904 </span><span class="lineCov">          4 :           workingAs = gdc;</span>
+<span class="lineNum">     905 </span><span class="lineCov">          4 :           parseGdc( p );</span>
+<span class="lineNum">     906 </span><span class="lineCov">          4 :           createNewEvent();</span>
+<span class="lineNum">     907 </span><span class="lineCov">          4 :           currLdcId = HOST_ID_MIN;</span>
+<span class="lineNum">     908 </span><span class="lineCov">          4 :           currLdc = NULL;</span>
+<span class="lineNum">     909 </span><span class="lineCov">          4 :           currEquipmentId = 0;</span>
+<span class="lineNum">     910 </span><span class="lineCov">       2099 :         } else if ( strcasecmp( &quot;ldc&quot;, keyword ) == 0 ) {</span>
+<span class="lineNum">     911 </span><span class="lineCov">        474 :           if ( workingAs != gdc &amp;&amp; workingAs != ldc &amp;&amp; workingAs != unknown ) {</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">     913 </span>            :                      &quot;%s: line:%d LDC found when working in non-LDC/GDC mode\n&quot;,
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :                      myName, lineNmb );</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">     916 </span>            :           }
+<span class="lineNum">     917 </span><span class="lineCov">        474 :           if ( workingAs == unknown ) workingAs = ldc;</span>
+<span class="lineNum">     918 </span><span class="lineCov">        474 :           parseLdc( p );</span>
+<span class="lineNum">     919 </span><span class="lineCov">        474 :           if ( workingAs == ldc ) {</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :             createNewEvent();</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :             currEquipmentId = 0;</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :           } else {</span>
+<span class="lineNum">     923 </span><span class="lineCov">        474 :             createNewLdcEvent();</span>
+<span class="lineNum">     924 </span><span class="lineCov">        474 :             handleLdc( currLdcId );</span>
+<span class="lineNum">     925 </span><span class="lineCov">        474 :             currLdcId++;</span>
+<span class="lineNum">     926 </span>            :           }
+<span class="lineNum">     927 </span><span class="lineCov">        474 :           currEvent = NULL;</span>
+<span class="lineNum">     928 </span><span class="lineCov">       2095 :         } else if ( strncasecmp( &quot;equ&quot;, keyword, 3 ) == 0 ) {</span>
+<span class="lineNum">     929 </span><span class="lineCov">       1621 :           if ( workingAs == unknown</span>
+<span class="lineNum">     930 </span><span class="lineCov">       3242 :             || (workingAs == ldc &amp;&amp; currLdc == NULL )</span>
+<span class="lineNum">     931 </span><span class="lineCov">       1621 :             || (workingAs == gdc &amp;&amp; currGdc == NULL ) ) {</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">     933 </span>            :                      &quot;%s: line:%d Unexpected EQUIPMENT declaration (LDC or GDC needed first)\n&quot;,
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :                      myName,</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :                      lineNmb );</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">     937 </span>            :           }
+<span class="lineNum">     938 </span><span class="lineCov">       1621 :           parseEquipment( p );</span>
+<span class="lineNum">     939 </span><span class="lineCov">       1621 :           currEquipmentId++;</span>
+<span class="lineNum">     940 </span>            :         } else {
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :           fprintf( stderr,</span>
+<span class="lineNum">     942 </span>            :                    &quot;%s: line:%d Parse error in \&quot;%s\&quot; unknown keyword\n&quot;,
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :                    myName,</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :                    lineNmb,</span>
+<span class="lineNum">     945 </span>            :                    keyword );
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :           exit( 1 );</span>
+<span class="lineNum">     947 </span>            :         }
+<span class="lineNum">     948 </span>            :       }
+<span class="lineNum">     949 </span><span class="lineCov">       2099 :     }</span>
+<span class="lineNum">     950 </span><span class="lineCov">          1 :   } while ( !feof( stdin ) ) {}</span>
+<span class="lineNum">     951 </span><span class="lineCov">          1 :   lineNmb -= 2;</span>
+<span class="lineNum">     952 </span>            : 
+<span class="lineNum">     953 </span><span class="lineCov">          1 :   DBG_VERBOSE {</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :     printf( &quot;End of parse: %d line%s found\n&quot;,</span>
+<span class="lineNum">     955 </span>            :             lineNmb,
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :             lineNmb != 1 ? &quot;s&quot; : &quot;&quot; );</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :     printf( &quot;Working as %s\n&quot;,</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :             workingAs == gdc ? &quot;GDC&quot; :</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :              workingAs == ldc ? &quot;LDC&quot; :</span>
+<span class="lineNum">     960 </span>            :               &quot;UNKNOWN&quot; );
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :     if ( workingAs == gdc ) {</span>
+<span class="lineNum">     962 </span>            :       struct ldcDescriptorStruct *ldc;
+<span class="lineNum">     963 </span>            : 
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :       printf( &quot;LDCs (%d):&quot;, numOfLdcs );</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :       for ( ldc = ldcsHead; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         printf( &quot; %d&quot;, ldc-&gt;id );</span>
+<span class="lineNum">     967 </span>            :       }
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :       printf( &quot;\n&quot; );</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :     dumpEvents();</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     972 </span>            : 
+<span class="lineNum">     973 </span><span class="lineCov">          1 :   if ( workingAs == ldc ) {</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     assert( ldcsHead == ldcsTail );</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :     assert( ldcsTail == NULL );</span>
+<span class="lineNum">     976 </span>            :   }
+<span class="lineNum">     977 </span>            : 
+<span class="lineNum">     978 </span><span class="lineCov">          1 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">     979 </span>            :     struct ldcDescriptorStruct *ldc;
+<span class="lineNum">     980 </span>            : 
+<span class="lineNum">     981 </span><span class="lineCov">          1 :     assert( ldcsHead != NULL );</span>
+<span class="lineNum">     982 </span><span class="lineCov">          1 :     assert( ldcsTail != NULL );</span>
+<span class="lineNum">     983 </span><span class="lineCov">          1 :     assert( ldcsTail-&gt;next == NULL );</span>
+<span class="lineNum">     984 </span><span class="lineCov">        246 :     for ( ldc = ldcsHead; ldc-&gt;next != NULL; ldc = ldc-&gt;next ) {}</span>
+<span class="lineNum">     985 </span><span class="lineCov">          1 :     assert ( ldc == ldcsTail );</span>
+<span class="lineNum">     986 </span><span class="lineCov">          1 :   }</span>
+<span class="lineNum">     987 </span>            : 
+<span class="lineNum">     988 </span><span class="lineCov">          1 :   if ( workingAs == unknown ) {</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :     DBG_VERBOSE printf( &quot;Empty configuration: nothing to do!\n&quot; );</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :     exit( 0 );</span>
+<span class="lineNum">     991 </span>            :   }
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span><span class="lineCov">          3 :   assert( (eventsHead == NULL &amp;&amp; eventsTail == NULL)</span>
+<span class="lineNum">     994 </span>            :        || (eventsHead != NULL &amp;&amp; eventsTail != NULL) );
+<a name="995"><span class="lineNum">     995 </span><span class="lineCov">          1 : } /* End of parseRules */</span></a>
+<span class="lineNum">     996 </span>            : 
+<span class="lineNum">     997 </span>            : void initEvent( struct eventHeaderStruct * const ev ) {
+<span class="lineNum">     998 </span><span class="lineCov">        956 :   memset( ev, 0, sizeof( *ev ) );</span>
+<span class="lineNum">     999 </span>            : 
+<span class="lineNum">    1000 </span><span class="lineCov">        478 :   ev-&gt;eventMagic = EVENT_MAGIC_NUMBER;</span>
+<span class="lineNum">    1001 </span><span class="lineCov">        478 :   ev-&gt;eventHeadSize = EVENT_HEAD_BASE_SIZE;</span>
+<span class="lineNum">    1002 </span><span class="lineCov">        478 :   ev-&gt;eventVersion = EVENT_CURRENT_VERSION;</span>
+<span class="lineNum">    1003 </span><span class="lineCov">        478 :   ev-&gt;eventRunNb = currRunNb;</span>
+<span class="lineNum">    1004 </span><span class="lineCov">        478 :   ZERO_EVENT_ID( ev-&gt;eventId );</span>
+<span class="lineNum">    1005 </span><span class="lineCov">        478 :   ZERO_TRIGGER_PATTERN( ev-&gt;eventTriggerPattern );</span>
+<span class="lineNum">    1006 </span><span class="lineCov">        478 :   ZERO_DETECTOR_PATTERN( ev-&gt;eventDetectorPattern );</span>
+<span class="lineNum">    1007 </span><span class="lineCov">        478 :   RESET_ATTRIBUTES( ev-&gt;eventTypeAttribute );</span>
+<span class="lineNum">    1008 </span><span class="lineCov">        478 :   if ( workingMode == collider )</span>
+<span class="lineNum">    1009 </span><span class="lineCov">        478 :     SET_SYSTEM_ATTRIBUTE( ev-&gt;eventTypeAttribute, ATTR_ORBIT_BC );</span>
+<span class="lineNum">    1010 </span><span class="lineCov">        478 :   ev-&gt;eventLdcId = VOID_ID;</span>
+<span class="lineNum">    1011 </span><span class="lineCov">        478 :   ev-&gt;eventGdcId = VOID_ID;</span>
+<a name="1012"><span class="lineNum">    1012 </span><span class="lineCov">        478 : } /* End of initEvent */</span></a>
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span>            : int Swap(int x)
+<span class="lineNum">    1015 </span>            : {
+<span class="lineNum">    1016 </span>            :    // Swap the endianess of the integer value 'x'
+<span class="lineNum">    1017 </span>            : 
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :    return (((x &amp; 0x000000ffU) &lt;&lt; 24) | ((x &amp; 0x0000ff00U) &lt;&lt;  8) |</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :            ((x &amp; 0x00ff0000U) &gt;&gt;  8) | ((x &amp; 0xff000000U) &gt;&gt; 24));</span>
+<a name="1020"><span class="lineNum">    1020 </span>            : }</a>
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span>            : void outputEvent( const void * const ev,
+<span class="lineNum">    1023 </span>            :                   const int size ) {
+<span class="lineNum">    1024 </span>            :   int done;
+<span class="lineNum">    1025 </span>            : 
+<span class="lineNum">    1026 </span><span class="lineCov">       7440 :   DBG_VERBOSE {</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     const long32 * const v = (long32 *)ev; </span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :     printf( &quot;Writing %d bytes @ %p (%d)\n&quot;, size, ev, *v );</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1030 </span>            : 
+<span class="lineNum">    1031 </span>            :   // .............................Test endianess..............................
+<span class="lineNum">    1032 </span>            :   int temp = 1;
+<span class="lineNum">    1033 </span>            :   char* ptemp = (char*) &amp;temp;
+<span class="lineNum">    1034 </span>            : 
+<span class="lineNum">    1035 </span><span class="lineCov">       3720 :   if (ptemp[0]!=1) { // Mac platform: ptemp != 1..............................................................................</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :      int  bufSize= size; if (bufSize &gt; (int) sizeof(eventHeaderStruct)) { bufSize = sizeof(eventHeaderStruct); }</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :      char* evTemp = (char*) malloc (bufSize);</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :      memcpy(evTemp, ev, bufSize);</span>
+<span class="lineNum">    1039 </span>            : 
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :      if ((bufSize % sizeof(int)) != 0) {</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :             fprintf( stderr, &quot;%s: size of the input buffer ev is not multiple of 4 (size = %d)\n&quot;, myName, bufSize);</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">    1043 </span>            :           }
+<span class="lineNum">    1044 </span>            :      else {
+<span class="lineNum">    1045 </span>            :             // Invert header to evTemp.....................................................
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :             int* buf = (int*) evTemp; </span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :             for (int i=0; i &lt; (int) (bufSize / sizeof(int)); i++, buf++) {</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :                  int value = Swap(*buf); </span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :                  memcpy(evTemp + (i * sizeof(int)), &amp;value, sizeof(int)); </span>
+<span class="lineNum">    1050 </span>            :             }
+<span class="lineNum">    1051 </span>            : 
+<span class="lineNum">    1052 </span>            :             // Write inverted header to file...............................................
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :             if ((done = fwrite( evTemp, bufSize, 1, outF )) != 1 ) {</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :                  fprintf( stderr, &quot;%s: failed to write inverted header. event size:%d bytes, errno:%d (%s)\n&quot;, myName, size, errno, strerror( errno ) );</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :                  exit( 1 );</span>
+<span class="lineNum">    1056 </span>            :             }
+<span class="lineNum">    1057 </span>            : 
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :             if (size &gt; bufSize) {  // Still theraw-data payload to write (but not inverted, since it is inverted eariler).............</span>
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :                 if ((done = fwrite( (char*)ev + bufSize, size - bufSize, 1, outF )) != 1 ) {</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :                     fprintf( stderr, &quot;%s: failed to write additional event size:%d bytes, errno:%d (%s)\n&quot;, myName, size, errno, strerror( errno ) );</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :                     exit( 1 );</span>
+<span class="lineNum">    1062 </span>            :                }
+<span class="lineNum">    1063 </span>            :             }
+<span class="lineNum">    1064 </span>            :      }
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :      free(evTemp);</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1067 </span>            :   else {             // Intel platform: ptemp == 1............................................................................
+<span class="lineNum">    1068 </span><span class="lineCov">       3720 :      if ((done = fwrite( ev, size, 1, outF )) != 1 ) {</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :           fprintf( stderr, &quot;%s: failed to write event size:%d bytes, errno:%d (%s)\n&quot;, myName, size, errno, strerror( errno ) );</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :           exit( 1 );</span>
+<span class="lineNum">    1071 </span>            :      }
+<span class="lineNum">    1072 </span>            :   }
+<a name="1073"><span class="lineNum">    1073 </span><span class="lineCov">       3720 : } /* End of outputEvent */</span></a>
+<span class="lineNum">    1074 </span>            : 
+<span class="lineNum">    1075 </span>            : void createSorAndEor( const int sor ) {
+<span class="lineNum">    1076 </span><span class="lineCov">          4 :   unsigned char event[ 1000 ];</span>
+<span class="lineNum">    1077 </span>            :   struct eventHeaderStruct *ev;
+<span class="lineNum">    1078 </span><span class="lineCov">          2 :   struct eventHeaderStruct sev;</span>
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span><span class="lineCov">          2 :   assert( workingAs == ldc || workingAs == gdc );</span>
+<span class="lineNum">    1081 </span>            : 
+<span class="lineNum">    1082 </span><span class="lineCov">          4 :   if ( !createSorEor ) return;</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   ev = (struct eventHeaderStruct *)event;</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :   initEvent( ev );</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :   ev-&gt;eventSize = sizeof( event );</span>
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :   ev-&gt;eventType = sor ? START_OF_RUN : END_OF_RUN;</span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :   if ( workingMode == fixedTarget )</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :     LOAD_RAW_EVENT_ID( ev-&gt;eventId, 0, 0, 0 );</span>
+<span class="lineNum">    1089 </span>            :   else
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :     LOAD_EVENT_ID( ev-&gt;eventId, 0, 0, 0 );</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :   SET_SYSTEM_ATTRIBUTE( ev-&gt;eventTypeAttribute, ATTR_P_START );</span>
+<span class="lineNum">    1092 </span>            : 
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :   if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     currLdc = (struct ldcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :     initEvent( &amp;sev );</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :     sev.eventGdcId = currGdcId;</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :     ev-&gt;eventGdcId = currGdcId;</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :     currGdc = (struct gdcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :     currLdc = currGdc-&gt;head;</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :   ev-&gt;eventLdcId = currLdc-&gt;id;</span>
+<span class="lineNum">    1104 </span>            : 
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :   if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :     outputEvent( ev, ev-&gt;eventSize );</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1109 </span>            :     struct ldcDescriptorStruct *ldc;
+<span class="lineNum">    1110 </span>            : 
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :     sev.eventSize = sizeof( sev ) + numOfLdcs * ev-&gt;eventSize;</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :     sev.eventType = sor ? START_OF_RUN : END_OF_RUN ;</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :     COPY_EVENT_ID( ev-&gt;eventId, sev.eventId );</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :     COPY_SYSTEM_ATTRIBUTES( ev-&gt;eventTypeAttribute, sev.eventTypeAttribute );</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :     SET_SYSTEM_ATTRIBUTE( sev.eventTypeAttribute, ATTR_SUPER_EVENT );</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :     outputEvent( &amp;sev, sizeof( sev ) );</span>
+<span class="lineNum">    1117 </span>            : 
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :     ev-&gt;eventGdcId = currGdcId;</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :     for ( ldc = ldcsHead; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :       ev-&gt;eventLdcId = ldc-&gt;id;</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :       outputEvent( ev, ev-&gt;eventSize );</span>
+<span class="lineNum">    1122 </span>            :     }
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1124 </span>            : 
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :   ADD_EVENT_ID( ev-&gt;eventId, oneEventDelta );</span>
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :   ev-&gt;eventSize = ev-&gt;eventSize / 2;</span>
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :   ev-&gt;eventType = sor ? START_OF_RUN_FILES : END_OF_RUN_FILES;</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :   CLEAR_SYSTEM_ATTRIBUTE( ev-&gt;eventTypeAttribute, ATTR_P_START );</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :   if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :     outputEvent( ev, ev-&gt;eventSize );</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1133 </span>            :     struct ldcDescriptorStruct *ldc;
+<span class="lineNum">    1134 </span>            : 
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     sev.eventSize = ev-&gt;eventSize;</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :     sev.eventType = sor ? START_OF_RUN_FILES : END_OF_RUN_FILES;</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :     COPY_EVENT_ID( ev-&gt;eventId, sev.eventId );</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     COPY_SYSTEM_ATTRIBUTES( ev-&gt;eventTypeAttribute, sev.eventTypeAttribute );</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     CLEAR_SYSTEM_ATTRIBUTE( sev.eventTypeAttribute, ATTR_SUPER_EVENT );</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     outputEvent( &amp;sev, sizeof( sev ) );</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     outputEvent( ev, ev-&gt;eventSize - sizeof( sev ) );</span>
+<span class="lineNum">    1142 </span>            : 
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :     sev.eventSize = sizeof( sev ) + ev-&gt;eventSize;</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :     sev.eventType = sor ? START_OF_RUN_FILES : END_OF_RUN_FILES;</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :     COPY_EVENT_ID( ev-&gt;eventId, sev.eventId );</span>
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :     COPY_SYSTEM_ATTRIBUTES( ev-&gt;eventTypeAttribute, sev.eventTypeAttribute );</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :     SET_SYSTEM_ATTRIBUTE( sev.eventTypeAttribute, ATTR_SUPER_EVENT );</span>
+<span class="lineNum">    1148 </span>            : 
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :     ev-&gt;eventGdcId = currGdcId;</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :     for ( ldc = ldcsHead; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :       outputEvent( &amp;sev, sizeof( sev ) );</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :       ev-&gt;eventLdcId = ldc-&gt;id;</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :       outputEvent( ev, ev-&gt;eventSize );</span>
+<span class="lineNum">    1154 </span>            :     }
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1156 </span>            : 
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :   ADD_EVENT_ID( ev-&gt;eventId, oneEventDelta );</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :   ev-&gt;eventSize = sizeof( *ev );</span>
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :   ev-&gt;eventType = sor ? START_OF_RUN : END_OF_RUN;</span>
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :   SET_SYSTEM_ATTRIBUTE( ev-&gt;eventTypeAttribute, ATTR_P_END );</span>
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :   if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :     outputEvent( ev, ev-&gt;eventSize );</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1165 </span>            :     struct ldcDescriptorStruct *ldc;
+<span class="lineNum">    1166 </span>            : 
+<span class="lineNum">    1167 </span><span class="lineNoCov">          0 :     sev.eventSize = sizeof( sev ) + numOfLdcs * ev-&gt;eventSize;</span>
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :     sev.eventType = sor ? START_OF_RUN : END_OF_RUN;</span>
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :     COPY_EVENT_ID( ev-&gt;eventId, sev.eventId );</span>
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :     COPY_SYSTEM_ATTRIBUTES( ev-&gt;eventTypeAttribute, sev.eventTypeAttribute );</span>
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :     SET_SYSTEM_ATTRIBUTE( sev.eventTypeAttribute, ATTR_SUPER_EVENT );</span>
+<span class="lineNum">    1172 </span>            : 
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :     outputEvent( &amp;sev, sizeof( sev ) );</span>
+<span class="lineNum">    1174 </span>            : 
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :     for ( ldc = ldcsHead; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :       ev-&gt;eventLdcId = ldc-&gt;id;</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :       outputEvent( ev, ev-&gt;eventSize );</span>
+<span class="lineNum">    1178 </span>            :     }
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :   }</span>
+<a name="1180"><span class="lineNum">    1180 </span><span class="lineCov">          2 : } /* End of createSorEor */</span></a>
+<span class="lineNum">    1181 </span>            : 
+<span class="lineNum">    1182 </span>            : void createSor() {
+<span class="lineNum">    1183 </span><span class="lineCov">          2 :   createSorAndEor( TRUE );</span>
+<a name="1184"><span class="lineNum">    1184 </span><span class="lineCov">          1 : } /* End of createSor */</span></a>
+<span class="lineNum">    1185 </span>            : 
+<span class="lineNum">    1186 </span>            : void createEor() {
+<span class="lineNum">    1187 </span><span class="lineCov">          2 :   createSorAndEor( FALSE );</span>
+<a name="1188"><span class="lineNum">    1188 </span><span class="lineCov">          1 : } /* End of createEor */</span></a>
+<span class="lineNum">    1189 </span>            : 
+<span class="lineNum">    1190 </span>            : void loadCdh( struct commonDataHeaderStruct * const cdh,
+<span class="lineNum">    1191 </span>            :                      eventIdType            * const eventId,
+<span class="lineNum">    1192 </span>            :                      equipmentIdType id ) {
+<span class="lineNum">    1193 </span><span class="lineCov">       4863 :   if ( !handleCDH ) return;</span>
+<span class="lineNum">    1194 </span>            : 
+<span class="lineNum">    1195 </span>            :   // CTP raw-data does not contain CDH
+<span class="lineNum">    1196 </span><span class="lineCov">       1621 :   if ( id == 4352) return;</span>
+<span class="lineNum">    1197 </span>            : 
+<span class="lineNum">    1198 </span><span class="lineCov">       1617 :   if ( gotAliceTrigger ) {</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :     cdh-&gt;cdhEventId1 = EVENT_ID_GET_BUNCH_CROSSING( *eventId );</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :     cdh-&gt;cdhEventId2 = EVENT_ID_GET_ORBIT( *eventId );</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">    1202 </span><span class="lineCov">       1617 :     cdh-&gt;cdhEventId1 = 0;</span>
+<span class="lineNum">    1203 </span><span class="lineCov">       1617 :     cdh-&gt;cdhEventId2 = EVENT_ID_GET_NB_IN_RUN( *eventId );</span>
+<span class="lineNum">    1204 </span>            :   }
+<span class="lineNum">    1205 </span><span class="lineCov">       1617 :   cdh-&gt;cdhMiniEventId = cdh-&gt;cdhEventId1;</span>
+<span class="lineNum">    1206 </span><span class="lineCov">       3238 : }</span>
+<span class="lineNum">    1207 </span>            : void decodeCDH( struct ldcEventDescriptorStruct       * const ldc,
+<span class="lineNum">    1208 </span>            :                 const struct payloadDescriptorStruct  * const payloadDesc,
+<a name="1209"><span class="lineNum">    1209 </span>            :                 equipmentIdType id );</a>
+<span class="lineNum">    1210 </span>            : 
+<span class="lineNum">    1211 </span>            : void createEvent( void ) {
+<span class="lineNum">    1212 </span><span class="lineCov">          8 :   assert( workingAs == ldc || workingAs == gdc );</span>
+<span class="lineNum">    1213 </span>            : 
+<span class="lineNum">    1214 </span>            :   /* Step 1: load all buffers (if needed) and compose the GDC/LDC headers */
+<span class="lineNum">    1215 </span><span class="lineCov">          4 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1216 </span>            :     struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">    1217 </span>            : 
+<span class="lineNum">    1218 </span><span class="lineCov">        956 :     for( ldc = currGdc-&gt;head; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1219 </span><span class="lineCov">        474 :       COPY_EVENT_ID( currEventId, ldc-&gt;header.eventId );</span>
+<span class="lineNum">    1220 </span>            :     }
+<span class="lineNum">    1221 </span><span class="lineCov">          4 :     COPY_EVENT_ID( currEventId, currGdc-&gt;header.eventId );</span>
+<span class="lineNum">    1222 </span>            : 
+<span class="lineNum">    1223 </span><span class="lineCov">        956 :     for( ldc = currGdc-&gt;head; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1224 </span>            :       struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1225 </span>            :       int n;
+<span class="lineNum">    1226 </span>            : 
+<span class="lineNum">    1227 </span><span class="lineCov">       4190 :       for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1228 </span><span class="lineCov">       1621 :         if ( !bufferData ) {</span>
+<span class="lineNum">    1229 </span><span class="lineCov">       1621 :           loadBuffer( eq-&gt;payload );</span>
+<span class="lineNum">    1230 </span><span class="lineCov">       1621 :           decodeCDH( ldc, eq-&gt;payload, eq-&gt;id );</span>
+<span class="lineNum">    1231 </span><span class="lineCov">       1621 :         }</span>
+<span class="lineNum">    1232 </span><span class="lineCov">       3242 :         loadCdh( (struct commonDataHeaderStruct*)eq-&gt;payload-&gt;data,</span>
+<span class="lineNum">    1233 </span>            :                  &amp;currEventId,
+<span class="lineNum">    1234 </span><span class="lineCov">       1621 :                  eq-&gt;id);</span>
+<span class="lineNum">    1235 </span>            :       }
+<span class="lineNum">    1236 </span>            : 
+<span class="lineNum">    1237 </span><span class="lineCov">        474 :       if ( !currGdc-&gt;loaded ) {</span>
+<span class="lineNum">    1238 </span><span class="lineCov">         40 :         for ( n = 0; n != EVENT_TRIGGER_PATTERN_WORDS; n++ )</span>
+<span class="lineNum">    1239 </span><span class="lineCov">         16 :           currGdc-&gt;header.eventTriggerPattern[n] |= ldc-&gt;header.eventTriggerPattern[n];</span>
+<span class="lineNum">    1240 </span><span class="lineCov">         16 :         for ( n = 0; n != EVENT_DETECTOR_PATTERN_WORDS; n++ )</span>
+<span class="lineNum">    1241 </span><span class="lineCov">          4 :           currGdc-&gt;header.eventDetectorPattern[n] |= ldc-&gt;header.eventDetectorPattern[n];</span>
+<span class="lineNum">    1242 </span><span class="lineCov">         32 :         for ( n = 0; n != ALL_ATTRIBUTE_WORDS; n++ )</span>
+<span class="lineNum">    1243 </span><span class="lineCov">         12 :           currGdc-&gt;header.eventTypeAttribute[n] |= ldc-&gt;header.eventTypeAttribute[n];</span>
+<span class="lineNum">    1244 </span><span class="lineCov">          4 :         currGdc-&gt;loaded = TRUE;</span>
+<span class="lineNum">    1245 </span><span class="lineCov">          4 :       }</span>
+<span class="lineNum">    1246 </span>            :     }
+<span class="lineNum">    1247 </span><span class="lineCov">          4 :     cdhRef = NULL;</span>
+<span class="lineNum">    1248 </span><span class="lineCov">          4 :   } else if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1249 </span>            :     struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1250 </span>            : 
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :     COPY_EVENT_ID( currEventId, currLdc-&gt;header.eventId );</span>
+<span class="lineNum">    1252 </span>            : 
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :     for ( eq = currLdc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :       if ( !bufferData ) {</span>
+<span class="lineNum">    1255 </span><span class="lineNoCov">          0 :         loadBuffer( eq-&gt;payload );</span>
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :         decodeCDH( currLdc, eq-&gt;payload, eq-&gt;id );</span>
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 :       loadCdh( (struct commonDataHeaderStruct*)eq-&gt;payload-&gt;data,</span>
+<span class="lineNum">    1259 </span>            :                &amp;currEventId,
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :                eq-&gt;id);</span>
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :       currLdc-&gt;loaded = TRUE;</span>
+<span class="lineNum">    1262 </span>            :     }
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :     cdhRef = NULL;</span>
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1265 </span><span class="lineCov">          4 :   ADD_EVENT_ID( currEventId, oneEventDelta );</span>
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span>            :   /* Step 2: output the event */
+<span class="lineNum">    1268 </span><span class="lineCov">          4 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1269 </span>            :     struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">    1270 </span>            : 
+<span class="lineNum">    1271 </span><span class="lineCov">          4 :     outputEvent( &amp;currGdc-&gt;header, sizeof( currGdc-&gt;header ) );</span>
+<span class="lineNum">    1272 </span>            : 
+<span class="lineNum">    1273 </span><span class="lineCov">        956 :     for( ldc = currGdc-&gt;head; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1274 </span>            :       struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1275 </span>            : 
+<span class="lineNum">    1276 </span><span class="lineCov">        474 :       outputEvent( &amp;ldc-&gt;header, sizeof( ldc-&gt;header ) );</span>
+<span class="lineNum">    1277 </span>            : 
+<span class="lineNum">    1278 </span><span class="lineCov">       4190 :       for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1279 </span><span class="lineCov">       1621 :         outputEvent( &amp;eq-&gt;header, sizeof( eq-&gt;header ) );</span>
+<span class="lineNum">    1280 </span><span class="lineCov">       1621 :         outputEvent( eq-&gt;payload-&gt;data, eq-&gt;payload-&gt;size );</span>
+<span class="lineNum">    1281 </span><span class="lineCov">       3242 :         if ( !bufferData ) unloadBuffer( eq-&gt;payload );</span>
+<span class="lineNum">    1282 </span>            :       }
+<span class="lineNum">    1283 </span>            :     }
+<span class="lineNum">    1284 </span><span class="lineCov">          4 :     if ( (currGdc = currGdc-&gt;next) == NULL )</span>
+<span class="lineNum">    1285 </span><span class="lineCov">          1 :       currGdc = (struct gdcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1286 </span><span class="lineCov">          4 :   } else if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1287 </span>            :     struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1288 </span>            : 
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :     outputEvent( &amp;currLdc-&gt;header, sizeof( currLdc-&gt;header ) );</span>
+<span class="lineNum">    1290 </span>            : 
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :     for ( eq = currLdc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :       outputEvent( &amp;eq-&gt;header, sizeof( eq-&gt;header ) );</span>
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :       outputEvent( eq-&gt;payload-&gt;data, eq-&gt;payload-&gt;size );</span>
+<span class="lineNum">    1294 </span><span class="lineNoCov">          0 :       if ( !bufferData ) unloadBuffer( eq-&gt;payload );</span>
+<span class="lineNum">    1295 </span>            :     }
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :     if ( (currLdc = currLdc-&gt;next) == NULL )</span>
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :       currLdc = (struct ldcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :   }</span>
+<a name="1299"><span class="lineNum">    1299 </span><span class="lineCov">          4 : } /* End of createEvent */</span></a>
+<span class="lineNum">    1300 </span>            : 
+<span class="lineNum">    1301 </span>            : void createEvents() {
+<span class="lineNum">    1302 </span>            :   int eventNum = 0;
+<span class="lineNum">    1303 </span>            : 
+<span class="lineNum">    1304 </span><span class="lineCov">          2 :   currGdc = (struct gdcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1305 </span><span class="lineCov">          1 :   currLdc = (struct ldcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1306 </span><span class="lineCov">          1 :   currEvent = NULL;</span>
+<span class="lineNum">    1307 </span>            : 
+<span class="lineNum">    1308 </span><span class="lineCov">          1 :   createSor();</span>
+<span class="lineNum">    1309 </span><span class="lineCov">         10 :   for ( eventNum = 0;</span>
+<span class="lineNum">    1310 </span><span class="lineCov">          5 :         eventNum != numOfEvents &amp;&amp; numOfEvents != 0;</span>
+<span class="lineNum">    1311 </span><span class="lineCov">          4 :         eventNum++ ) {</span>
+<span class="lineNum">    1312 </span><span class="lineCov">          4 :     createEvent();</span>
+<span class="lineNum">    1313 </span>            :   }
+<span class="lineNum">    1314 </span><span class="lineCov">          1 :   createEor();</span>
+<a name="1315"><span class="lineNum">    1315 </span><span class="lineCov">          1 : } /* End of createEvents */</span></a>
+<span class="lineNum">    1316 </span>            : 
+<span class="lineNum">    1317 </span>            : int usage() {
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :   fprintf( stderr,</span>
+<span class="lineNum">    1319 </span>            :            &quot;Usage: %s [-?][-d][-i definitionFile][-o outputFile][-# numOfEvents][-s][-F|-C]\n\
+<span class="lineNum">    1320 </span>            :    -?                  This text\n\
+<span class="lineNum">    1321 </span>            :    -v                  Print version ID and exit\n\
+<span class="lineNum">    1322 </span>            :    -d                  Enable debug (repeat for more verbosity)\n\
+<span class="lineNum">    1323 </span>            :    -i definitionFile   File with the description of the events to create (default: stdin)\n\
+<span class="lineNum">    1324 </span>            :    -o outputFile       File used to store events (default: stdout)\n\
+<span class="lineNum">    1325 </span>            :    -# numOfEvents      Number of events to generate (default: 1 event)\n\
+<span class="lineNum">    1326 </span>            :    -s                  Do not generate SOR/EOR files (valid only for GDCs)\n\
+<span class="lineNum">    1327 </span>            :    -F/-C               Working in Fixed Target (F) or Collider (C) mode\n\
+<span class="lineNum">    1328 </span>            :    -c                  Handles CDH\n\
+<span class="lineNum">    1329 </span>            :    -D                  Direct disc access (no buffering)\n&quot;,
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :            myName );</span>
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :   return 1;</span>
+<a name="1332"><span class="lineNum">    1332 </span>            : } /* End of usage */</a>
+<span class="lineNum">    1333 </span>            : 
+<span class="lineNum">    1334 </span>            : void parseArgs( int argc, char **argv ) {
+<span class="lineNum">    1335 </span>            :   int arg = 1;
+<span class="lineNum">    1336 </span>            :   int inFileName = -1;
+<span class="lineNum">    1337 </span>            :   int outFileName = -1;
+<span class="lineNum">    1338 </span>            : 
+<span class="lineNum">    1339 </span><span class="lineCov">          2 :   myName = argv[0] ;</span>
+<span class="lineNum">    1340 </span><span class="lineCov">         16 :   while ( arg &lt; argc ) {</span>
+<span class="lineNum">    1341 </span><span class="lineCov">          7 :     if ( strcmp( &quot;-?&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :       usage();</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :       exit( 0 );</span>
+<span class="lineNum">    1344 </span>            :     }
+<span class="lineNum">    1345 </span><span class="lineCov">          7 :     if ( strcmp( &quot;-i&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :       if ( ++arg == argc ) exit( usage() );</span>
+<span class="lineNum">    1347 </span>            :       inFileName = arg;
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :       if ( freopen( argv[arg], &quot;r&quot;, stdin ) == NULL ){</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">    1350 </span>            :                  &quot;%s: failed to open input definition \&quot;%s\&quot; errno:%d &quot;,
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :                  myName, argv[arg], errno );</span>
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :         perror( &quot;&quot; );</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">    1354 </span>            :       }
+<span class="lineNum">    1355 </span><span class="lineCov">          7 :     } else if ( strcmp( &quot;-v&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1356 </span><span class="lineNoCov">          0 :       printf( &quot;%s\n&quot;, fileHandlerIdent );</span>
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :       exit( 0 );</span>
+<span class="lineNum">    1358 </span><span class="lineCov">          7 :     } else if ( strcmp( &quot;-o&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1359 </span><span class="lineCov">          1 :       if ( ++arg == argc ) exit( usage() );</span>
+<span class="lineNum">    1360 </span>            :       outFileName = arg;
+<span class="lineNum">    1361 </span><span class="lineCov">          7 :     } else if ( strcmp( &quot;-#&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1362 </span><span class="lineCov">          1 :       int n;</span>
+<span class="lineNum">    1363 </span>            : 
+<span class="lineNum">    1364 </span><span class="lineCov">          1 :       if ( ++arg == argc ) exit( usage() );</span>
+<span class="lineNum">    1365 </span><span class="lineCov">          1 :       if ( sscanf( argv[ arg ], &quot;%d&quot;, &amp;n ) != 1 ) exit( usage() );</span>
+<span class="lineNum">    1366 </span><span class="lineCov">          1 :       if ( n &lt; 0 ) exit( usage() );</span>
+<span class="lineNum">    1367 </span><span class="lineCov">          1 :       numOfEvents = n;</span>
+<span class="lineNum">    1368 </span><span class="lineCov">          6 :     } else if ( strcmp( &quot;-s&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1369 </span><span class="lineCov">          1 :       createSorEor = FALSE;</span>
+<span class="lineNum">    1370 </span><span class="lineCov">          5 :     } else if ( strcmp( &quot;-F&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :       workingMode = fixedTarget;</span>
+<span class="lineNum">    1372 </span><span class="lineCov">          4 :     } else if ( strcmp( &quot;-C&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1373 </span><span class="lineCov">          1 :       workingMode = collider;</span>
+<span class="lineNum">    1374 </span><span class="lineCov">          4 :     } else if ( strcmp( &quot;-d&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :       debug++;</span>
+<span class="lineNum">    1376 </span><span class="lineCov">          3 :     } else if ( strcmp( &quot;-c&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1377 </span><span class="lineCov">          1 :       handleCDH = TRUE;</span>
+<span class="lineNum">    1378 </span><span class="lineCov">          3 :     } else if ( strcmp( &quot;-D&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1379 </span><span class="lineCov">          1 :       bufferData = FALSE;</span>
+<span class="lineNum">    1380 </span><span class="lineCov">          2 :     } else if ( strcmp( &quot;-run&quot;, argv[ arg ] ) == 0 ) {</span>
+<span class="lineNum">    1381 </span><span class="lineCov">          1 :       int runnumber;</span>
+<span class="lineNum">    1382 </span><span class="lineCov">          1 :       if ( ++arg == argc ) exit( usage() );</span>
+<span class="lineNum">    1383 </span><span class="lineCov">          1 :       if ( sscanf( argv[ arg ], &quot;%d&quot;, &amp;runnumber ) != 1 ) exit( usage() );</span>
+<span class="lineNum">    1384 </span><span class="lineCov">          1 :       if ( runnumber &lt; 0 ) exit( usage() );</span>
+<span class="lineNum">    1385 </span><span class="lineCov">          1 :       currRunNb = runnumber;</span>
+<span class="lineNum">    1386 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :       fprintf( stderr, &quot;%s: Unknown switch \&quot;%s\&quot;\n&quot;, myName, argv[argc] );</span>
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :       exit( usage() );</span>
+<span class="lineNum">    1389 </span>            :     }
+<span class="lineNum">    1390 </span><span class="lineCov">          7 :     arg++;</span>
+<span class="lineNum">    1391 </span>            :   }
+<span class="lineNum">    1392 </span>            : 
+<span class="lineNum">    1393 </span><span class="lineCov">          1 :   if ( workingMode == fixedTarget )</span>
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :     LOAD_RAW_EVENT_ID( oneEventDelta, 1, 0, 1 );</span>
+<span class="lineNum">    1395 </span>            :   else
+<span class="lineNum">    1396 </span><span class="lineCov">          1 :     LOAD_EVENT_ID( oneEventDelta, 0, 0, 1 );</span>
+<span class="lineNum">    1397 </span><span class="lineCov">          1 :   ZERO_EVENT_ID( currEventId );</span>
+<span class="lineNum">    1398 </span>            : 
+<span class="lineNum">    1399 </span><span class="lineCov">          1 :   DBG_VERBOSE {</span>
+<span class="lineNum">    1400 </span><span class="lineNoCov">          0 :     printf( &quot;Configuration:\n&quot; );</span>
+<span class="lineNum">    1401 </span><span class="lineNoCov">          0 :     printf( &quot;  Debug level: %d\n&quot;, debug );</span>
+<span class="lineNum">    1402 </span><span class="lineNoCov">          0 :     printf( &quot;  Configuration: %s\n&quot;,</span>
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :             inFileName == -1 ? &quot;stdin&quot; : argv[ inFileName ] );</span>
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :     printf( &quot;  Output: %s\n&quot;,</span>
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :             outFileName == -1 ? &quot;stdout&quot; : argv[ outFileName ] );</span>
+<span class="lineNum">    1406 </span><span class="lineNoCov">          0 :     printf( &quot;  Working mode: %s\n&quot;,</span>
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 :             workingMode == fixedTarget ? &quot;fixed target&quot; : &quot;collider&quot; );</span>
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :     printf( &quot;  Number of events: %d\n&quot;, numOfEvents );</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :     printf( &quot;  %s SOR/EOR files\n&quot;,</span>
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 :             createSorEor ? &quot;Create&quot; : &quot;Do not create&quot; );</span>
+<span class="lineNum">    1411 </span><span class="lineNoCov">          0 :     printf( &quot;  CDH handling: %s\n&quot;,</span>
+<span class="lineNum">    1412 </span><span class="lineNoCov">          0 :             handleCDH ? &quot;enabled&quot; : &quot;disabled&quot; );</span>
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :     printf( &quot;  data buffering: %s\n&quot;,</span>
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :             bufferData ? &quot;enabled&quot; : &quot;DISABLED&quot; );</span>
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1416 </span>            : 
+<span class="lineNum">    1417 </span><span class="lineCov">          1 :   if ( outFileName == -1 ) {</span>
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :     DBG_BASE</span>
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :       printf( &quot;No more trace information from this point...\n&quot; );</span>
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :     debug = 0;</span>
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 :     outF = stdout;</span>
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">    1423 </span><span class="lineCov">          1 :     if ( ( outF = fopen( argv[ outFileName ], &quot;w&quot; ) ) == NULL ) {</span>
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">    1425 </span>            :                &quot;%s: failed to open output file \&quot;%s\&quot; for writing, errno:%d (%s)\n&quot;,
+<span class="lineNum">    1426 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">    1427 </span><span class="lineNoCov">          0 :                argv[ outFileName ],</span>
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :                errno,</span>
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :                strerror( errno ) );</span>
+<span class="lineNum">    1430 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">    1431 </span>            :     }
+<span class="lineNum">    1432 </span><span class="lineCov">          1 :     DBG_DETAILED</span>
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 :       printf( &quot;Output file \&quot;%s\&quot; opened OK for writing\n&quot;,</span>
+<span class="lineNum">    1434 </span><span class="lineNoCov">          0 :               argv[ outFileName ] );</span>
+<a name="1435"><span class="lineNum">    1435 </span>            :   }</a>
+<span class="lineNum">    1436 </span><span class="lineCov">          1 : } /* End of parseArgs */</span>
+<span class="lineNum">    1437 </span>            : void initEquipment( struct equipmentHeaderStruct * const eq ) {
+<span class="lineNum">    1438 </span><span class="lineCov">       3242 :   memset( eq, 0, sizeof( *eq ) );</span>
+<span class="lineNum">    1439 </span><span class="lineCov">       1621 :   RESET_ATTRIBUTES( eq-&gt;equipmentTypeAttribute );</span>
+<span class="lineNum">    1440 </span><span class="lineCov">       1621 :   eq-&gt;equipmentBasicElementSize = 4;</span>
+<a name="1441"><span class="lineNum">    1441 </span><span class="lineCov">       1621 : } /* End of initEquipment */</span></a>
+<span class="lineNum">    1442 </span>            : 
+<span class="lineNum">    1443 </span>            : void decodeCDH(       struct ldcEventDescriptorStruct * const ldc,
+<span class="lineNum">    1444 </span>            :                 const struct payloadDescriptorStruct  * const payloadDesc,
+<span class="lineNum">    1445 </span>            :                       equipmentIdType id ) {
+<span class="lineNum">    1446 </span><span class="lineCov">       9726 :   if ( handleCDH &amp;&amp; </span>
+<span class="lineNum">    1447 </span><span class="lineCov">       3242 :        id != 4352 ) {</span>
+<span class="lineNum">    1448 </span>            :     struct commonDataHeaderStruct *cdh;
+<span class="lineNum">    1449 </span>            :     static int softwareTriggerIndicator = FALSE;
+<span class="lineNum">    1450 </span>            :     int attr;
+<span class="lineNum">    1451 </span>            :     int trig;
+<span class="lineNum">    1452 </span>            : 
+<span class="lineNum">    1453 </span><span class="lineCov">       3234 :     if ( payloadDesc-&gt;size &lt; CDH_SIZE ) {</span>
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :       fprintf( stderr,</span>
+<span class="lineNum">    1455 </span>            :                &quot;%s: payload too small got:%d CDH:%d\n&quot;,
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :                myName,</span>
+<span class="lineNum">    1457 </span>            :                payloadDesc-&gt;size,
+<span class="lineNum">    1458 </span>            :                CDH_SIZE );
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 :       exit( 1 );</span>
+<span class="lineNum">    1460 </span>            :     }
+<span class="lineNum">    1461 </span><span class="lineCov">       3234 :     if ( (cdh = (struct commonDataHeaderStruct *)payloadDesc-&gt;data) != NULL ) {</span>
+<span class="lineNum">    1462 </span><span class="lineCov">       1617 :       if ( cdh-&gt;cdhVersion != CDH_VERSION ) {</span>
+<span class="lineNum">    1463 </span><span class="lineNoCov">          0 :         fprintf( stderr,</span>
+<span class="lineNum">    1464 </span>            :                  &quot;%s: CDH version mismatch expected:%d got:%d\n&quot;,
+<span class="lineNum">    1465 </span><span class="lineNoCov">          0 :                  myName,</span>
+<span class="lineNum">    1466 </span>            :                  CDH_VERSION,
+<span class="lineNum">    1467 </span>            :                  cdh-&gt;cdhVersion );
+<span class="lineNum">    1468 </span><span class="lineNoCov">          0 :         exit( 1 );</span>
+<span class="lineNum">    1469 </span>            :       }
+<span class="lineNum">    1470 </span><span class="lineCov">       1617 :       if ( cdhRef == NULL ) {</span>
+<span class="lineNum">    1471 </span><span class="lineCov">          4 :         cdhRef = cdh;</span>
+<span class="lineNum">    1472 </span>            : #define CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK (1&lt;&lt;CDH_TRIGGER_INFORMATION_UNAVAILABLE_BIT)
+<span class="lineNum">    1473 </span><span class="lineCov">          4 :         gotAliceTrigger = (cdhRef-&gt;cdhStatusErrorBits &amp; CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK) == 0;</span>
+<span class="lineNum">    1474 </span><span class="lineCov">          4 :         if ( gotAliceTrigger &amp;&amp; workingMode == fixedTarget ) {</span>
+<span class="lineNum">    1475 </span><span class="lineNoCov">          0 :           fprintf( stderr,</span>
+<span class="lineNum">    1476 </span>            :                    &quot;%s: ALICE trigger and fixed target mode are not compatible.\n\
+<span class="lineNum">    1477 </span>            : Either work in Collider mode or set the trigger unavailable status bit in the CDH.\n&quot;,
+<span class="lineNum">    1478 </span><span class="lineNoCov">          0 :                    myName );</span>
+<span class="lineNum">    1479 </span><span class="lineNoCov">          0 :           exit( 1 );</span>
+<span class="lineNum">    1480 </span>            :         }
+<span class="lineNum">    1481 </span><span class="lineCov">          4 :         if ( gotAliceTrigger ) {</span>
+<span class="lineNum">    1482 </span><span class="lineNoCov">          0 :           if ( (cdh-&gt;cdhL1TriggerMessage &amp; 0x40) != 0 ) {</span>
+<span class="lineNum">    1483 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">    1484 </span>            :                      &quot;%s: CDH is a calibration trigger (unsupported) L1TriggerMessage:0x%x\n&quot;,
+<span class="lineNum">    1485 </span><span class="lineNoCov">          0 :                      myName, cdh-&gt;cdhL1TriggerMessage );</span>
+<span class="lineNum">    1486 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">    1487 </span>            :           }
+<span class="lineNum">    1488 </span><span class="lineNoCov">          0 :           if ( (cdh-&gt;cdhL1TriggerMessage &amp; 0x01) != 0 ) {</span>
+<span class="lineNum">    1489 </span><span class="lineNoCov">          0 :             softwareTriggerIndicator = TRUE;</span>
+<span class="lineNum">    1490 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">    1491 </span><span class="lineNoCov">          0 :           if ( softwareTriggerIndicator ) {</span>
+<span class="lineNum">    1492 </span><span class="lineNoCov">          0 :             switch ((cdh-&gt;cdhL1TriggerMessage &gt;&gt; 2) &amp; 0xF) {</span>
+<span class="lineNum">    1493 </span>            :             case 0xC:
+<span class="lineNum">    1494 </span>            :             case 0xB:
+<span class="lineNum">    1495 </span>            :             case 0xA:
+<span class="lineNum">    1496 </span>            :             case 0x9:
+<span class="lineNum">    1497 </span>            :               break;
+<span class="lineNum">    1498 </span>            :             case 0xD:
+<span class="lineNum">    1499 </span>            :               /* L1SwC bit = on, Clt bit = off, RoC[4..1] = 0xD --&gt; SYNC */ 
+<span class="lineNum">    1500 </span>            :             case 0xF:
+<span class="lineNum">    1501 </span>            :               /* L1SwC bit = on, Clt bit = off, RoC[4..1] = 0xF --&gt; END_OF_DATA */ 
+<span class="lineNum">    1502 </span>            :             case 0xE:
+<span class="lineNum">    1503 </span>            :               /* L1SwC bit = on, Clt bit = off, RoC[4..1] = 0xE0 --&gt; START_OF_DATA */
+<span class="lineNum">    1504 </span>            :             case 0x8:
+<span class="lineNum">    1505 </span>            :               /*  L1SwC bit = on, Clt bit = off, RoC[4] = 1, but not 0xE or 0xF
+<span class="lineNum">    1506 </span>            :                   --&gt; SYSTEM_SOFTWARE_TRIGGER_EVENT */
+<span class="lineNum">    1507 </span>            :             default:
+<span class="lineNum">    1508 </span>            :               /*  L1SwC bit = on, Clt bit = off, RoC[4] = 0
+<span class="lineNum">    1509 </span>            :                   --&gt; DETECTOR_SOFTWARE_TRIGGER_EVENT */
+<span class="lineNum">    1510 </span><span class="lineNoCov">          0 :               fprintf( stderr,</span>
+<span class="lineNum">    1511 </span>            :                        &quot;%s: CDH trigger SOD/EOD/SST/DST/SYNC (unsupported) \
+<span class="lineNum">    1512 </span>            : L1TriggerMessage:0x%x ALICETrigger:%s\n&quot;,
+<span class="lineNum">    1513 </span><span class="lineNoCov">          0 :                        myName,</span>
+<span class="lineNum">    1514 </span>            :                        cdh-&gt;cdhL1TriggerMessage,
+<span class="lineNum">    1515 </span><span class="lineNoCov">          0 :                        gotAliceTrigger ? &quot;yes&quot; : &quot;no&quot; );</span>
+<span class="lineNum">    1516 </span><span class="lineNoCov">          0 :               exit( 1 );</span>
+<span class="lineNum">    1517 </span>            :             }
+<span class="lineNum">    1518 </span>            :           }
+<span class="lineNum">    1519 </span>            :         }
+<span class="lineNum">    1520 </span>            :       } else {
+<span class="lineNum">    1521 </span><span class="lineCov">       3226 :         if ( (cdh-&gt;cdhStatusErrorBits &amp; CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK) !=</span>
+<span class="lineNum">    1522 </span><span class="lineCov">       1613 :              (cdhRef-&gt;cdhStatusErrorBits &amp; CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK) ) {</span>
+<span class="lineNum">    1523 </span><span class="lineNoCov">          0 :           fprintf( stderr,</span>
+<span class="lineNum">    1524 </span>            :                    &quot;%s: CDH coherency check failed. \
+<span class="lineNum">    1525 </span>            : Trigger information reference:%savailable current:%savailable\n&quot;,
+<span class="lineNum">    1526 </span><span class="lineNoCov">          0 :                    myName,</span>
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :                    (cdhRef-&gt;cdhStatusErrorBits &amp; CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK) == 0 ? &quot;UN&quot; : &quot;&quot;,</span>
+<span class="lineNum">    1528 </span><span class="lineNoCov">          0 :                    (cdh-&gt;cdhStatusErrorBits &amp; CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK) == 0 ? &quot;UN&quot; : &quot;&quot; );</span>
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 :           exit( 1 );</span>
+<span class="lineNum">    1530 </span>            :         }
+<span class="lineNum">    1531 </span><span class="lineCov">       1613 :         if ( gotAliceTrigger ) {</span>
+<span class="lineNum">    1532 </span><span class="lineNoCov">          0 :           if ( cdhRef-&gt;cdhL1TriggerMessage != cdh-&gt;cdhL1TriggerMessage ) {</span>
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">    1534 </span>            :                      &quot;%s: CDH coherency check failed. \
+<span class="lineNum">    1535 </span>            : L1 trigger message reference:0x%x current:0x%x\n&quot;,
+<span class="lineNum">    1536 </span><span class="lineNoCov">          0 :                      myName,</span>
+<span class="lineNum">    1537 </span>            :                      cdhRef-&gt;cdhL1TriggerMessage,
+<span class="lineNum">    1538 </span>            :                      cdh-&gt;cdhL1TriggerMessage );
+<span class="lineNum">    1539 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">    1540 </span>            :           }
+<span class="lineNum">    1541 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhParticipatingSubDetectors != cdhRef-&gt;cdhParticipatingSubDetectors ) {</span>
+<span class="lineNum">    1542 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">    1543 </span>            :                      &quot;%s: CDH coherency check failed. \
+<span class="lineNum">    1544 </span>            : ParticipatingSubDetectors reference:0x%x current:0x%x\n&quot;,
+<span class="lineNum">    1545 </span><span class="lineNoCov">          0 :                      myName,</span>
+<span class="lineNum">    1546 </span>            :                      cdhRef-&gt;cdhParticipatingSubDetectors,
+<span class="lineNum">    1547 </span>            :                      cdh-&gt;cdhParticipatingSubDetectors );
+<span class="lineNum">    1548 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">    1549 </span>            :           }
+<span class="lineNum">    1550 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhTriggerClassesLow  != cdhRef-&gt;cdhTriggerClassesLow</span>
+<span class="lineNum">    1551 </span><span class="lineNoCov">          0 :                || cdh-&gt;cdhTriggerClassesHigh != cdhRef-&gt;cdhTriggerClassesHigh ) {</span>
+<span class="lineNum">    1552 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">    1553 </span>            :                      &quot;%s: CDH coherency check failed. \
+<span class="lineNum">    1554 </span>            : TriggerClassesHigh/Low reference:0x%x-%x current:0x%x-%x\n&quot;,
+<span class="lineNum">    1555 </span><span class="lineNoCov">          0 :                      myName,</span>
+<span class="lineNum">    1556 </span><span class="lineNoCov">          0 :                      cdhRef-&gt;cdhTriggerClassesHigh, cdhRef-&gt;cdhTriggerClassesLow,</span>
+<span class="lineNum">    1557 </span><span class="lineNoCov">          0 :                      cdh   -&gt;cdhTriggerClassesHigh, cdh   -&gt;cdhTriggerClassesLow  );</span>
+<span class="lineNum">    1558 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">    1559 </span>            :           }
+<span class="lineNum">    1560 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhBlockLength != 0xffffffff ) {</span>
+<span class="lineNum">    1561 </span><span class="lineNoCov">          0 :             if ( (unsigned)payloadDesc-&gt;size !=  cdh-&gt;cdhBlockLength ) {</span>
+<span class="lineNum">    1562 </span><span class="lineNoCov">          0 :               fprintf( stderr,</span>
+<span class="lineNum">    1563 </span>            :                        &quot;%s: CDH coherency check failed. \
+<span class="lineNum">    1564 </span>            : Payload size:%d (0x%08x) CDH block length:%d (0x%08x)\n&quot;,
+<span class="lineNum">    1565 </span><span class="lineNoCov">          0 :                        myName,</span>
+<span class="lineNum">    1566 </span>            :                        payloadDesc-&gt;size, payloadDesc-&gt;size,
+<span class="lineNum">    1567 </span>            :                        cdh-&gt;cdhBlockLength, cdh-&gt;cdhBlockLength );
+<span class="lineNum">    1568 </span><span class="lineNoCov">          0 :               exit( 1 );</span>
+<span class="lineNum">    1569 </span>            :             }
+<span class="lineNum">    1570 </span>            :           }
+<span class="lineNum">    1571 </span><span class="lineNoCov">          0 :           if ( cdh-&gt;cdhRoiLow  != cdhRef-&gt;cdhRoiLow</span>
+<span class="lineNum">    1572 </span><span class="lineNoCov">          0 :                || cdh-&gt;cdhRoiHigh != cdhRef-&gt;cdhRoiHigh ) {</span>
+<span class="lineNum">    1573 </span><span class="lineNoCov">          0 :             fprintf( stderr,</span>
+<span class="lineNum">    1574 </span>            :                      &quot;%s: CDH coherency check failed. \
+<span class="lineNum">    1575 </span>            : RoiHigh/Low reference:0x%x-%x current:0x%x-%x\n&quot;,
+<span class="lineNum">    1576 </span><span class="lineNoCov">          0 :                      myName,</span>
+<span class="lineNum">    1577 </span><span class="lineNoCov">          0 :                      cdhRef-&gt;cdhRoiHigh, cdhRef-&gt;cdhRoiLow,</span>
+<span class="lineNum">    1578 </span><span class="lineNoCov">          0 :                      cdh   -&gt;cdhRoiHigh, cdh   -&gt;cdhRoiLow  );</span>
+<span class="lineNum">    1579 </span><span class="lineNoCov">          0 :             exit( 1 );</span>
+<span class="lineNum">    1580 </span>            :           }
+<span class="lineNum">    1581 </span>            :         }
+<span class="lineNum">    1582 </span><span class="lineCov">       3226 :         if ( cdh-&gt;cdhMBZ0 != 0</span>
+<span class="lineNum">    1583 </span><span class="lineCov">       3226 :              || cdh-&gt;cdhMBZ1 != 0</span>
+<span class="lineNum">    1584 </span><span class="lineCov">       3226 :              || cdh-&gt;cdhMBZ4 != 0 ) {</span>
+<span class="lineNum">    1585 </span><span class="lineNoCov">          0 :           fprintf( stderr,</span>
+<span class="lineNum">    1586 </span>            :                    &quot;%s: CDH check failed. MBZ0:0x%x MBZ1:0x%x MBZ4:0x%x\n&quot;,
+<span class="lineNum">    1587 </span><span class="lineNoCov">          0 :                    myName,</span>
+<span class="lineNum">    1588 </span><span class="lineNoCov">          0 :                    cdh-&gt;cdhMBZ0, cdh-&gt;cdhMBZ1, cdh-&gt;cdhMBZ4 );</span>
+<span class="lineNum">    1589 </span><span class="lineNoCov">          0 :           exit( 1 );</span>
+<span class="lineNum">    1590 </span>            :         }
+<span class="lineNum">    1591 </span>            :       }
+<span class="lineNum">    1592 </span><span class="lineCov">      29106 :       for ( attr = 0; attr != 8; attr++ ) {</span>
+<span class="lineNum">    1593 </span><span class="lineCov">      12936 :         if ( (cdh-&gt;cdhBlockAttributes &amp; (1&lt;&lt;attr)) != 0 ) {</span>
+<span class="lineNum">    1594 </span><span class="lineCov">       4148 :           SET_USER_ATTRIBUTE( ldc-&gt;header.eventTypeAttribute, attr );</span>
+<span class="lineNum">    1595 </span><span class="lineCov">       2074 :         }</span>
+<span class="lineNum">    1596 </span>            :       }
+<span class="lineNum">    1597 </span><span class="lineCov">     106722 :       for ( trig = 0; trig != 32; trig++ ) {</span>
+<span class="lineNum">    1598 </span><span class="lineCov">      51744 :         if ( (cdh-&gt;cdhTriggerClassesLow &amp; (1&lt;&lt;trig)) != 0 ) {</span>
+<span class="lineNum">    1599 </span><span class="lineCov">      27474 :           SET_TRIGGER_IN_PATTERN( ldc-&gt;header.eventTriggerPattern,</span>
+<span class="lineNum">    1600 </span>            :                                   trig );
+<span class="lineNum">    1601 </span><span class="lineCov">      13737 :         }</span>
+<span class="lineNum">    1602 </span>            :       }
+<span class="lineNum">    1603 </span><span class="lineCov">      61446 :       for ( trig = 0; trig != 18; trig++ ) {</span>
+<span class="lineNum">    1604 </span><span class="lineCov">      29106 :         if ( (cdh-&gt;cdhTriggerClassesMiddleLow &amp; (1&lt;&lt;trig)) != 0 ) {</span>
+<span class="lineNum">    1605 </span><span class="lineNoCov">          0 :           SET_TRIGGER_IN_PATTERN( ldc-&gt;header.eventTriggerPattern,</span>
+<span class="lineNum">    1606 </span>            :                                   32+trig );
+<span class="lineNum">    1607 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1608 </span>            :       }
+<span class="lineNum">    1609 </span><span class="lineCov">     106722 :       for ( trig = 0; trig != 32; trig++ ) {</span>
+<span class="lineNum">    1610 </span><span class="lineCov">      51744 :         if ( (cdh-&gt;cdhTriggerClassesMiddleHigh &amp; (1&lt;&lt;trig)) != 0 ) {</span>
+<span class="lineNum">    1611 </span><span class="lineNoCov">          0 :           SET_TRIGGER_IN_PATTERN( ldc-&gt;header.eventTriggerPattern,</span>
+<span class="lineNum">    1612 </span>            :                                   18+32+trig );
+<span class="lineNum">    1613 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1614 </span>            :       }
+<span class="lineNum">    1615 </span><span class="lineCov">      61446 :       for ( trig = 0; trig != 18; trig++ ) {</span>
+<span class="lineNum">    1616 </span><span class="lineCov">      29106 :         if ( (cdh-&gt;cdhTriggerClassesHigh &amp; (1&lt;&lt;trig)) != 0 ) {</span>
+<span class="lineNum">    1617 </span><span class="lineNoCov">          0 :           SET_TRIGGER_IN_PATTERN( ldc-&gt;header.eventTriggerPattern,</span>
+<span class="lineNum">    1618 </span>            :                                   32+18+32+trig );
+<span class="lineNum">    1619 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1620 </span>            :       }
+<span class="lineNum">    1621 </span><span class="lineCov">       1617 :       if ( gotAliceTrigger )</span>
+<span class="lineNum">    1622 </span><span class="lineNoCov">          0 :         VALIDATE_TRIGGER_PATTERN( ldc-&gt;header.eventTriggerPattern );</span>
+<span class="lineNum">    1623 </span>            :     }
+<span class="lineNum">    1624 </span><span class="lineCov">       3234 :   }</span>
+<a name="1625"><span class="lineNum">    1625 </span><span class="lineCov">       3242 : } /* End of decodeCDH */</span></a>
+<span class="lineNum">    1626 </span>            : 
+<span class="lineNum">    1627 </span>            : void initEvents() {
+<span class="lineNum">    1628 </span><span class="lineCov">          2 :   assert( workingAs == ldc || workingAs == gdc );</span>
+<span class="lineNum">    1629 </span>            : 
+<span class="lineNum">    1630 </span><span class="lineCov">          1 :   if ( workingAs == gdc ) {</span>
+<span class="lineNum">    1631 </span>            :     struct gdcEventDescriptorStruct *gdc;
+<span class="lineNum">    1632 </span>            : 
+<span class="lineNum">    1633 </span><span class="lineCov">         10 :     for ( gdc = (struct gdcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1634 </span><span class="lineCov">          5 :           gdc != NULL;</span>
+<span class="lineNum">    1635 </span><span class="lineCov">          4 :           gdc = gdc-&gt;next ) {</span>
+<span class="lineNum">    1636 </span>            :       struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">    1637 </span>            : 
+<span class="lineNum">    1638 </span><span class="lineCov">          4 :       initEvent( &amp;gdc-&gt;header );</span>
+<span class="lineNum">    1639 </span><span class="lineCov">          4 :       gdc-&gt;header.eventSize = gdc-&gt;header.eventHeadSize;</span>
+<span class="lineNum">    1640 </span><span class="lineCov">          4 :       gdc-&gt;header.eventType = PHYSICS_EVENT;</span>
+<span class="lineNum">    1641 </span><span class="lineCov">          4 :       SET_SYSTEM_ATTRIBUTE( gdc-&gt;header.eventTypeAttribute, ATTR_SUPER_EVENT );</span>
+<span class="lineNum">    1642 </span><span class="lineCov">          4 :       gdc-&gt;header.eventGdcId = currGdcId;</span>
+<span class="lineNum">    1643 </span><span class="lineCov">          4 :       COPY_DETECTOR_PATTERN(&amp;gdc-&gt;detPattern, gdc-&gt;header.eventDetectorPattern);</span>
+<span class="lineNum">    1644 </span><span class="lineCov">          4 :       gdc-&gt;header.eventTimestamp = gdc-&gt;timestamp;</span>
+<span class="lineNum">    1645 </span><span class="lineCov">        956 :       for ( ldc = gdc-&gt;head; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1646 </span>            :         struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1647 </span>            : 
+<span class="lineNum">    1648 </span><span class="lineCov">        474 :         initEvent( &amp;ldc-&gt;header );</span>
+<span class="lineNum">    1649 </span><span class="lineCov">        474 :         ldc-&gt;header.eventSize = ldc-&gt;header.eventHeadSize;</span>
+<span class="lineNum">    1650 </span><span class="lineCov">        474 :         ldc-&gt;header.eventType = PHYSICS_EVENT;</span>
+<span class="lineNum">    1651 </span><span class="lineCov">        474 :         ldc-&gt;header.eventGdcId = currGdcId;</span>
+<span class="lineNum">    1652 </span><span class="lineCov">        474 :         COPY_DETECTOR_PATTERN(&amp;ldc-&gt;detPattern, ldc-&gt;header.eventDetectorPattern);</span>
+<span class="lineNum">    1653 </span><span class="lineCov">        474 :         ldc-&gt;header.eventTimestamp = ldc-&gt;timestamp;</span>
+<span class="lineNum">    1654 </span><span class="lineCov">        474 :         ldc-&gt;header.eventLdcId = ldc-&gt;id;</span>
+<span class="lineNum">    1655 </span><span class="lineCov">       4190 :         for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1656 </span><span class="lineCov">       1621 :           initEquipment( &amp;eq-&gt;header );</span>
+<span class="lineNum">    1657 </span><span class="lineCov">       1621 :           eq-&gt;header.equipmentId = eq-&gt;id;</span>
+<span class="lineNum">    1658 </span><span class="lineCov">       1621 :           if ( workingMode == collider )</span>
+<span class="lineNum">    1659 </span><span class="lineCov">       1621 :             SET_SYSTEM_ATTRIBUTE( eq-&gt;header.equipmentTypeAttribute,</span>
+<span class="lineNum">    1660 </span>            :                                   ATTR_ORBIT_BC );
+<span class="lineNum">    1661 </span><span class="lineCov">       1621 :           eq-&gt;header.equipmentSize = eq-&gt;payload-&gt;size + sizeof( eq-&gt;header );</span>
+<span class="lineNum">    1662 </span><span class="lineCov">       1621 :           ldc-&gt;header.eventSize += eq-&gt;header.equipmentSize;</span>
+<span class="lineNum">    1663 </span><span class="lineCov">       1621 :           decodeCDH( ldc, eq-&gt;payload, eq-&gt;id );</span>
+<span class="lineNum">    1664 </span><span class="lineCov">       1621 :           OR_ALL_ATTRIBUTES( eq-&gt;header.equipmentTypeAttribute,</span>
+<span class="lineNum">    1665 </span>            :                              ldc-&gt;header.eventTypeAttribute );
+<span class="lineNum">    1666 </span><span class="lineCov">       1621 :           OR_ALL_ATTRIBUTES( eq-&gt;header.equipmentTypeAttribute,</span>
+<span class="lineNum">    1667 </span>            :                              gdc-&gt;header.eventTypeAttribute );
+<span class="lineNum">    1668 </span>            :         }
+<span class="lineNum">    1669 </span><span class="lineCov">        474 :         gdc-&gt;header.eventSize += ldc-&gt;header.eventSize;</span>
+<span class="lineNum">    1670 </span>            :       }
+<span class="lineNum">    1671 </span><span class="lineCov">          4 :       cdhRef = NULL;</span>
+<span class="lineNum">    1672 </span>            :     }
+<span class="lineNum">    1673 </span>            : 
+<span class="lineNum">    1674 </span><span class="lineCov">          1 :     DBG_VERBOSE {</span>
+<span class="lineNum">    1675 </span><span class="lineNoCov">          0 :       printf( &quot;Headers:\n&quot; );</span>
+<span class="lineNum">    1676 </span><span class="lineNoCov">          0 :       for ( gdc = (struct gdcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1677 </span><span class="lineNoCov">          0 :             gdc != NULL;</span>
+<span class="lineNum">    1678 </span><span class="lineNoCov">          0 :             gdc = gdc-&gt;next ) {</span>
+<span class="lineNum">    1679 </span>            :         struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">    1680 </span>            :         
+<span class="lineNum">    1681 </span><span class="lineNoCov">          0 :         printf( &quot;   GDC:%d size:%d vers:%08x\n&quot;,</span>
+<span class="lineNum">    1682 </span><span class="lineNoCov">          0 :                 currGdcId,</span>
+<span class="lineNum">    1683 </span><span class="lineNoCov">          0 :                 gdc-&gt;header.eventSize,</span>
+<span class="lineNum">    1684 </span><span class="lineNoCov">          0 :                 gdc-&gt;header.eventVersion);</span>
+<span class="lineNum">    1685 </span><span class="lineNoCov">          0 :         for ( ldc = gdc-&gt;head; ldc != NULL; ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1686 </span>            :           struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1687 </span>            : 
+<span class="lineNum">    1688 </span><span class="lineNoCov">          0 :           printf( &quot;      LDC:%d size:%d vers:%08x\n&quot;,</span>
+<span class="lineNum">    1689 </span><span class="lineNoCov">          0 :                   ldc-&gt;id,</span>
+<span class="lineNum">    1690 </span><span class="lineNoCov">          0 :                   ldc-&gt;header.eventSize,</span>
+<span class="lineNum">    1691 </span><span class="lineNoCov">          0 :                   ldc-&gt;header.eventVersion );</span>
+<span class="lineNum">    1692 </span><span class="lineNoCov">          0 :           for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1693 </span><span class="lineNoCov">          0 :             printf( &quot;         EQ:%d size:%d %spayload:%d\n&quot;,</span>
+<span class="lineNum">    1694 </span><span class="lineNoCov">          0 :                     eq-&gt;id,</span>
+<span class="lineNum">    1695 </span><span class="lineNoCov">          0 :                     eq-&gt;header.equipmentSize,</span>
+<span class="lineNum">    1696 </span><span class="lineNoCov">          0 :                     eq-&gt;header.equipmentSize - sizeof( struct equipmentHeaderStruct ) == (unsigned)eq-&gt;payload-&gt;size ? &quot;&quot; : &quot;-ERROR&quot;,</span>
+<span class="lineNum">    1697 </span>            :                     eq-&gt;payload-&gt;size );
+<span class="lineNum">    1698 </span>            :           }
+<span class="lineNum">    1699 </span>            :         }
+<span class="lineNum">    1700 </span>            :       }
+<span class="lineNum">    1701 </span>            :     }
+<span class="lineNum">    1702 </span><span class="lineCov">          1 :   } else if ( workingAs == ldc ) {</span>
+<span class="lineNum">    1703 </span>            :     struct ldcEventDescriptorStruct *ldc;
+<span class="lineNum">    1704 </span>            : 
+<span class="lineNum">    1705 </span><span class="lineNoCov">          0 :     for ( ldc = (struct ldcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1706 </span><span class="lineNoCov">          0 :           ldc != NULL;</span>
+<span class="lineNum">    1707 </span><span class="lineNoCov">          0 :           ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1708 </span>            :       struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1709 </span>            : 
+<span class="lineNum">    1710 </span><span class="lineNoCov">          0 :       initEvent( &amp;ldc-&gt;header );</span>
+<span class="lineNum">    1711 </span><span class="lineNoCov">          0 :       ldc-&gt;header.eventSize = ldc-&gt;header.eventHeadSize;</span>
+<span class="lineNum">    1712 </span><span class="lineNoCov">          0 :       ldc-&gt;header.eventType = PHYSICS_EVENT;</span>
+<span class="lineNum">    1713 </span><span class="lineNoCov">          0 :       ldc-&gt;header.eventGdcId = VOID_ID;</span>
+<span class="lineNum">    1714 </span><span class="lineNoCov">          0 :       ldc-&gt;header.eventLdcId = ldc-&gt;id;</span>
+<span class="lineNum">    1715 </span><span class="lineNoCov">          0 :       for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1716 </span><span class="lineNoCov">          0 :         initEquipment( &amp;eq-&gt;header );</span>
+<span class="lineNum">    1717 </span><span class="lineNoCov">          0 :         eq-&gt;header.equipmentId = eq-&gt;id;</span>
+<span class="lineNum">    1718 </span><span class="lineNoCov">          0 :         if ( workingMode == collider )</span>
+<span class="lineNum">    1719 </span><span class="lineNoCov">          0 :           SET_SYSTEM_ATTRIBUTE( eq-&gt;header.equipmentTypeAttribute,</span>
+<span class="lineNum">    1720 </span>            :                                 ATTR_ORBIT_BC );
+<span class="lineNum">    1721 </span><span class="lineNoCov">          0 :         eq-&gt;header.equipmentSize = eq-&gt;payload-&gt;size + sizeof( eq-&gt;header );</span>
+<span class="lineNum">    1722 </span><span class="lineNoCov">          0 :         ldc-&gt;header.eventSize += eq-&gt;header.equipmentSize;</span>
+<span class="lineNum">    1723 </span><span class="lineNoCov">          0 :         decodeCDH( ldc, eq-&gt;payload, eq-&gt;id );</span>
+<span class="lineNum">    1724 </span><span class="lineNoCov">          0 :         OR_ALL_ATTRIBUTES( eq-&gt;header.equipmentTypeAttribute,</span>
+<span class="lineNum">    1725 </span>            :                            ldc-&gt;header.eventTypeAttribute );
+<span class="lineNum">    1726 </span>            :       }
+<span class="lineNum">    1727 </span><span class="lineNoCov">          0 :       cdhRef = NULL;</span>
+<span class="lineNum">    1728 </span>            :     }
+<span class="lineNum">    1729 </span><span class="lineNoCov">          0 :     DBG_VERBOSE {</span>
+<span class="lineNum">    1730 </span><span class="lineNoCov">          0 :       printf( &quot;Headers:\n&quot; );</span>
+<span class="lineNum">    1731 </span><span class="lineNoCov">          0 :       for ( ldc = (struct ldcEventDescriptorStruct *)eventsHead;</span>
+<span class="lineNum">    1732 </span><span class="lineNoCov">          0 :             ldc != NULL;</span>
+<span class="lineNum">    1733 </span><span class="lineNoCov">          0 :             ldc = ldc-&gt;next ) {</span>
+<span class="lineNum">    1734 </span>            :         struct equipmentEventDescriptorStruct *eq;
+<span class="lineNum">    1735 </span>            : 
+<span class="lineNum">    1736 </span><span class="lineNoCov">          0 :         printf( &quot;      LDC:%d size:%d vers:%08x\n&quot;,</span>
+<span class="lineNum">    1737 </span><span class="lineNoCov">          0 :                 ldc-&gt;id,</span>
+<span class="lineNum">    1738 </span><span class="lineNoCov">          0 :                 ldc-&gt;header.eventSize,</span>
+<span class="lineNum">    1739 </span><span class="lineNoCov">          0 :                 ldc-&gt;header.eventVersion );</span>
+<span class="lineNum">    1740 </span><span class="lineNoCov">          0 :         for ( eq = ldc-&gt;head; eq != NULL; eq = eq-&gt;next ) {</span>
+<span class="lineNum">    1741 </span><span class="lineNoCov">          0 :           printf( &quot;         EQ:%d size:%d %spayload:%d\n&quot;,</span>
+<span class="lineNum">    1742 </span><span class="lineNoCov">          0 :                   eq-&gt;id,</span>
+<span class="lineNum">    1743 </span><span class="lineNoCov">          0 :                   eq-&gt;header.equipmentSize,</span>
+<span class="lineNum">    1744 </span><span class="lineNoCov">          0 :                   eq-&gt;header.equipmentSize - sizeof( struct equipmentHeaderStruct ) == (unsigned)eq-&gt;payload-&gt;size ? &quot;&quot; : &quot;-ERROR&quot;,</span>
+<span class="lineNum">    1745 </span>            :                   eq-&gt;payload-&gt;size );
+<span class="lineNum">    1746 </span>            :         }
+<span class="lineNum">    1747 </span>            :       }
+<span class="lineNum">    1748 </span>            :     }
+<span class="lineNum">    1749 </span><span class="lineNoCov">          0 :   }</span>
+<a name="1750"><span class="lineNum">    1750 </span><span class="lineCov">          1 : } /* End of initEvents */</span></a>
+<span class="lineNum">    1751 </span>            : 
+<span class="lineNum">    1752 </span>            : void initVars() {
+<span class="lineNum">    1753 </span><span class="lineCov">          2 :   debug = 0;</span>
+<span class="lineNum">    1754 </span><span class="lineCov">          1 :   workingAs = unknown;</span>
+<span class="lineNum">    1755 </span><span class="lineCov">          1 :   workingMode = fixedTarget;</span>
+<span class="lineNum">    1756 </span><span class="lineCov">          1 :   ldcsHead = ldcsTail = NULL;</span>
+<span class="lineNum">    1757 </span><span class="lineCov">          1 :   eventsHead = eventsTail = NULL;</span>
+<span class="lineNum">    1758 </span><span class="lineCov">          1 :   currGdc = NULL;</span>
+<span class="lineNum">    1759 </span><span class="lineCov">          1 :   currLdc = NULL;</span>
+<span class="lineNum">    1760 </span><span class="lineCov">          1 :   currEvent = NULL;</span>
+<span class="lineNum">    1761 </span><span class="lineCov">          1 :   payloadsHead = payloadsTail = NULL;</span>
+<span class="lineNum">    1762 </span><span class="lineCov">          1 :   currRunNb = -1;</span>
+<span class="lineNum">    1763 </span><span class="lineCov">          1 :   numOfLdcs = 0;</span>
+<span class="lineNum">    1764 </span><span class="lineCov">          1 :   numOfEvents = 1;</span>
+<span class="lineNum">    1765 </span><span class="lineCov">          1 :   createSorEor = TRUE;</span>
+<span class="lineNum">    1766 </span><span class="lineCov">          1 :   handleCDH = FALSE;</span>
+<span class="lineNum">    1767 </span><span class="lineCov">          1 :   gotAliceTrigger = TRUE;</span>
+<span class="lineNum">    1768 </span><span class="lineCov">          1 :   bufferData=TRUE;</span>
+<a name="1769"><span class="lineNum">    1769 </span><span class="lineCov">          1 : } /* End of initVars */</span></a>
+<span class="lineNum">    1770 </span>            : 
+<span class="lineNum">    1771 </span>            : int main( int argc, char **argv ) {
+<span class="lineNum">    1772 </span><span class="lineCov">          2 :   initVars();</span>
+<span class="lineNum">    1773 </span><span class="lineCov">          1 :   parseArgs( argc, argv );</span>
+<span class="lineNum">    1774 </span><span class="lineCov">          1 :   parseRules();</span>
+<span class="lineNum">    1775 </span><span class="lineCov">          1 :   initEvents();</span>
+<span class="lineNum">    1776 </span><span class="lineCov">          1 :   createEvents();</span>
+<span class="lineNum">    1777 </span><span class="lineCov">          1 :   return 0;</span>
+<span class="lineNum">    1778 </span>            : } /* End of main */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

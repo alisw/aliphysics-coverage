@@ -1,0 +1,872 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - ITS/ITSbase/AliITStrackV2.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ITS/ITSbase</a> - AliITStrackV2.cxx<span style="font-size: 80%;"> (source / <a href="AliITStrackV2.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">209</td>
+            <td class="headerCovTableEntry">436</td>
+            <td class="headerCovTableEntryLo">47.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : ///////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      19 </span>            : //                Implementation of the ITS track class
+<span class="lineNum">      20 </span>            : //
+<span class="lineNum">      21 </span>            : //          Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
+<span class="lineNum">      22 </span>            : //     dEdx analysis by: Boris Batyunya, JINR, Boris.Batiounia@cern.ch
+<span class="lineNum">      23 </span>            : ///////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      24 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;AliCluster.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliESDVertex.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliITSReconstructor.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliITStrackV2.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliTracker.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliPID.h&quot;
+<span class="lineNum">      33 </span>            : 
+<a name="34"><span class="lineNum">      34 </span>            : const Int_t AliITStrackV2::fgkWARN = 5;</a>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineCov">        118 : ClassImp(AliITStrackV2)</span>
+<span class="lineNum">      37 </span>            : 
+<a name="38"><span class="lineNum">      38 </span>            : </a>
+<span class="lineNum">      39 </span>            : //____________________________________________________________________________
+<span class="lineNum">      40 </span><span class="lineCov">       3082 : AliITStrackV2::AliITStrackV2() : AliKalmanTrack(),</span>
+<span class="lineNum">      41 </span><span class="lineCov">       3082 :   fCheckInvariant(kTRUE),</span>
+<span class="lineNum">      42 </span><span class="lineCov">       3082 :   fdEdx(0),</span>
+<span class="lineNum">      43 </span><span class="lineCov">       3082 :   fESDtrack(0)</span>
+<span class="lineNum">      44 </span><span class="lineCov">       9246 : {</span>
+<span class="lineNum">      45 </span><span class="lineCov">      80132 :   for(Int_t i=0; i&lt;2*AliITSgeomTGeo::kNLayers; i++) {fIndex[i]=-1; fModule[i]=-1;}</span>
+<span class="lineNum">      46 </span><span class="lineCov">      43148 :   for(Int_t i=0; i&lt;AliITSgeomTGeo::kNLayers; i++) {fSharedWeight[i]=0;}</span>
+<span class="lineNum">      47 </span><span class="lineCov">      30820 :   for(Int_t i=0; i&lt;4; i++) fdEdxSample[i]=0;</span>
+<span class="lineNum">      48 </span><span class="lineCov">       3082 : }</span>
+<span class="lineNum">      49 </span>            : 
+<a name="50"><span class="lineNum">      50 </span>            : </a>
+<span class="lineNum">      51 </span>            : //____________________________________________________________________________
+<span class="lineNum">      52 </span>            : AliITStrackV2::AliITStrackV2(AliESDtrack&amp; t,Bool_t c):
+<span class="lineNum">      53 </span><span class="lineCov">        436 :   AliKalmanTrack(),</span>
+<span class="lineNum">      54 </span><span class="lineCov">        436 :   fCheckInvariant(kTRUE),</span>
+<span class="lineNum">      55 </span><span class="lineCov">        872 :   fdEdx(t.GetITSsignal()),</span>
+<span class="lineNum">      56 </span><span class="lineCov">        436 :   fESDtrack(&amp;t)</span>
+<span class="lineNum">      57 </span><span class="lineCov">        872 : {</span>
+<span class="lineNum">      58 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">      59 </span>            :   // Conversion ESD track -&gt; ITS track.
+<span class="lineNum">      60 </span>            :   // If c==kTRUE, create the ITS track out of the constrained params.
+<span class="lineNum">      61 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">      62 </span><span class="lineCov">        436 :   const AliExternalTrackParam *par=&amp;t;</span>
+<span class="lineNum">      63 </span><span class="lineCov">        436 :   if (c) {</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     par=t.GetConstrainedParam();</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     if (!par) AliError(&quot;AliITStrackV2: conversion failed !\n&quot;);</span>
+<span class="lineNum">      66 </span>            :   }
+<span class="lineNum">      67 </span><span class="lineCov">       1744 :   Set(par-&gt;GetX(),par-&gt;GetAlpha(),par-&gt;GetParameter(),par-&gt;GetCovariance());</span>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineCov">        436 :   SetLabel(t.GetITSLabel());</span>
+<span class="lineNum">      70 </span><span class="lineCov">        872 :   SetMass(t.GetMassForTracking());</span>
+<span class="lineNum">      71 </span><span class="lineCov">        872 :   SetNumberOfClusters(t.GetITSclusters(fIndex));</span>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineCov">        872 :   if (t.GetStatus()&amp;AliESDtrack::kTIME) {</span>
+<span class="lineNum">      74 </span><span class="lineCov">        126 :     StartTimeIntegral();</span>
+<span class="lineNum">      75 </span><span class="lineCov">        126 :     Double_t times[AliPID::kSPECIESC]; </span>
+<span class="lineNum">      76 </span><span class="lineCov">        126 :     t.GetIntegratedTimes(times,AliPID::kSPECIESC); </span>
+<span class="lineNum">      77 </span><span class="lineCov">        126 :     SetIntegratedTimes(times);</span>
+<span class="lineNum">      78 </span><span class="lineCov">        252 :     SetIntegratedLength(t.GetIntegratedLength());</span>
+<span class="lineNum">      79 </span><span class="lineCov">        126 :   }</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">       6104 :   for(Int_t i=0; i&lt;AliITSgeomTGeo::kNLayers; i++) {fSharedWeight[i]=0;}</span>
+<span class="lineNum">      82 </span><span class="lineCov">       4360 :   for(Int_t i=0; i&lt;4; i++) fdEdxSample[i]=0;</span>
+<span class="lineNum">      83 </span><span class="lineCov">        436 : }</span>
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<span class="lineNum">      85 </span>            : //____________________________________________________________________________
+<span class="lineNum">      86 </span>            : void AliITStrackV2::ResetClusters() {
+<span class="lineNum">      87 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">      88 </span>            :   // Reset the array of attached clusters.
+<span class="lineNum">      89 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">      90 </span><span class="lineCov">      53190 :   for (Int_t i=0; i&lt;2*AliITSgeomTGeo::kNLayers; i++) fIndex[i]=-1;</span>
+<span class="lineNum">      91 </span><span class="lineCov">      27580 :   for (Int_t i=0; i&lt;AliITSgeomTGeo::kNLayers; i++) {fSharedWeight[i]=0;}</span>
+<span class="lineNum">      92 </span><span class="lineCov">       1970 :   SetChi2(0.); </span>
+<span class="lineNum">      93 </span><span class="lineCov">       1970 :   SetNumberOfClusters(0);</span>
+<span class="lineNum">      94 </span><span class="lineCov">       1970 : } </span>
+<a name="95"><span class="lineNum">      95 </span>            : </a>
+<span class="lineNum">      96 </span>            : //____________________________________________________________________________
+<span class="lineNum">      97 </span>            : void AliITStrackV2::UpdateESDtrack(ULong_t flags) const {
+<span class="lineNum">      98 </span>            :   // Update track params
+<span class="lineNum">      99 </span><span class="lineCov">       1112 :   fESDtrack-&gt;UpdateTrackParams(this,flags);</span>
+<span class="lineNum">     100 </span>            :   //
+<span class="lineNum">     101 </span>            :   // set correctly the global label
+<span class="lineNum">     102 </span><span class="lineCov">        556 :   if (fESDtrack-&gt;IsOn(AliESDtrack::kTPCin)) { </span>
+<span class="lineNum">     103 </span>            :     // for global track the GetLabel should be negative if
+<span class="lineNum">     104 </span>            :     // 1) GetTPCLabel&lt;0
+<span class="lineNum">     105 </span>            :     // 2) this-&gt;GetLabel()&lt;0
+<span class="lineNum">     106 </span>            :     // 3) GetTPCLabel() != this-&gt;GetLabel()
+<span class="lineNum">     107 </span><span class="lineCov">        524 :     int label = fESDtrack-&gt;GetTPCLabel();</span>
+<span class="lineNum">     108 </span><span class="lineCov">        524 :     int itsLabel = GetLabel();</span>
+<span class="lineNum">     109 </span><span class="lineCov">       1315 :     if (label&lt;0 || itsLabel&lt;0 || itsLabel!=label) label = -TMath::Abs(label);</span>
+<span class="lineNum">     110 </span><span class="lineCov">        524 :     fESDtrack-&gt;SetLabel(label);</span>
+<span class="lineNum">     111 </span><span class="lineCov">        524 :   }</span>
+<span class="lineNum">     112 </span>            :   //
+<span class="lineNum">     113 </span>            :   // copy the module indices
+<span class="lineNum">     114 </span>            :   Int_t i;
+<span class="lineNum">     115 </span><span class="lineCov">      14456 :   for(i=0;i&lt;2*AliITSgeomTGeo::kNLayers;i++) {</span>
+<span class="lineNum">     116 </span>            :     //   printf(&quot;     %d\n&quot;,GetModuleIndex(i));
+<span class="lineNum">     117 </span><span class="lineCov">       6672 :     fESDtrack-&gt;SetITSModuleIndex(i,GetModuleIndex(i));</span>
+<span class="lineNum">     118 </span>            :   }
+<span class="lineNum">     119 </span>            :   // copy the map of shared clusters
+<span class="lineNum">     120 </span><span class="lineCov">        556 :   if(flags==AliESDtrack::kITSin) {</span>
+<span class="lineNum">     121 </span>            :     UChar_t itsSharedMap=0;
+<span class="lineNum">     122 </span><span class="lineCov">       5124 :     for(i=0;i&lt;AliITSgeomTGeo::kNLayers;i++) {</span>
+<span class="lineNum">     123 </span><span class="lineCov">       2224 :       if(fSharedWeight[i]&gt;0) SETBIT(itsSharedMap,i);</span>
+<span class="lineNum">     124 </span>            :       
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span><span class="lineCov">        366 :     fESDtrack-&gt;SetITSSharedMap(itsSharedMap);</span>
+<span class="lineNum">     127 </span><span class="lineCov">        366 :   }</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            :   // copy the 4 dedx samples
+<span class="lineNum">     130 </span><span class="lineCov">        556 :   Double_t sdedx[4]={0.,0.,0.,0.};</span>
+<span class="lineNum">     131 </span><span class="lineCov">       5560 :   for(i=0; i&lt;4; i++) sdedx[i]=fdEdxSample[i];</span>
+<span class="lineNum">     132 </span><span class="lineCov">        556 :   fESDtrack-&gt;SetITSdEdxSamples(sdedx);</span>
+<span class="lineNum">     133 </span><span class="lineCov">        556 : }</span>
+<a name="134"><span class="lineNum">     134 </span>            : </a>
+<span class="lineNum">     135 </span>            : //____________________________________________________________________________
+<span class="lineNum">     136 </span>            : AliITStrackV2::AliITStrackV2(const AliITStrackV2&amp; t) : 
+<span class="lineNum">     137 </span><span class="lineCov">      15840 :   AliKalmanTrack(t),</span>
+<span class="lineNum">     138 </span><span class="lineCov">      15840 :   fCheckInvariant(t.fCheckInvariant),</span>
+<span class="lineNum">     139 </span><span class="lineCov">      15840 :   fdEdx(t.fdEdx),</span>
+<span class="lineNum">     140 </span><span class="lineCov">      15840 :   fESDtrack(t.fESDtrack) </span>
+<span class="lineNum">     141 </span><span class="lineCov">      48548 : {</span>
+<span class="lineNum">     142 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     143 </span>            :   //Copy constructor
+<span class="lineNum">     144 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     145 </span>            :   Int_t i;
+<span class="lineNum">     146 </span><span class="lineCov">     158400 :   for (i=0; i&lt;4; i++) fdEdxSample[i]=t.fdEdxSample[i];</span>
+<span class="lineNum">     147 </span><span class="lineCov">     411840 :   for (i=0; i&lt;2*AliITSgeomTGeo::GetNLayers(); i++) {</span>
+<span class="lineNum">     148 </span><span class="lineCov">     190080 :     fIndex[i]=t.fIndex[i];</span>
+<span class="lineNum">     149 </span><span class="lineCov">     190080 :     fModule[i]=t.fModule[i];</span>
+<span class="lineNum">     150 </span>            :   }
+<span class="lineNum">     151 </span><span class="lineCov">     221760 :   for (i=0; i&lt;AliITSgeomTGeo::kNLayers; i++) {fSharedWeight[i]=t.fSharedWeight[i];}</span>
+<span class="lineNum">     152 </span><span class="lineCov">      16354 : }</span>
+<a name="153"><span class="lineNum">     153 </span>            : </a>
+<span class="lineNum">     154 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     155 </span>            : Int_t AliITStrackV2::Compare(const TObject *o) const {
+<span class="lineNum">     156 </span>            :   //-----------------------------------------------------------------
+<span class="lineNum">     157 </span>            :   // This function compares tracks according to the their curvature
+<span class="lineNum">     158 </span>            :   //-----------------------------------------------------------------
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   AliITStrackV2 *t=(AliITStrackV2*)o;</span>
+<span class="lineNum">     160 </span>            :   //Double_t co=OneOverPt();
+<span class="lineNum">     161 </span>            :   //Double_t c =OneOverPt();
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   Double_t co=t-&gt;GetSigmaY2()*t-&gt;GetSigmaZ2();</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   Double_t c =GetSigmaY2()*GetSigmaZ2();</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   if (c&gt;co) return 1;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   else if (c&lt;co) return -1;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     168 </span>            : 
+<a name="169"><span class="lineNum">     169 </span>            : //____________________________________________________________________________</a>
+<span class="lineNum">     170 </span>            : Bool_t 
+<span class="lineNum">     171 </span>            : AliITStrackV2::PropagateToVertex(const AliESDVertex *v,Double_t d,Double_t x0) 
+<span class="lineNum">     172 </span>            : {
+<span class="lineNum">     173 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     174 </span>            :   //This function propagates a track to the minimal distance from the origin
+<span class="lineNum">     175 </span>            :   //------------------------------------------------------------------  
+<span class="lineNum">     176 </span>            :   //  Double_t bz=GetBz(); // RS: in the ITS constant field can be used
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   Double_t bz=AliTrackerBase::GetBz();</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   if (PropagateToDCA(v,bz,kVeryBig)) {</span>
+<span class="lineNum">     179 </span>            :     Double_t xOverX0,xTimesRho; 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     xOverX0 = d; xTimesRho = d*x0;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     if (CorrectForMeanMaterial(xOverX0,xTimesRho,kTRUE)) return kTRUE;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     185 </span>            : 
+<a name="186"><span class="lineNum">     186 </span>            : //____________________________________________________________________________</a>
+<span class="lineNum">     187 </span>            : Bool_t AliITStrackV2::
+<span class="lineNum">     188 </span>            : GetGlobalXYZat(Double_t xloc, Double_t &amp;x, Double_t &amp;y, Double_t &amp;z) const {
+<span class="lineNum">     189 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     190 </span>            :   //This function returns a track position in the global system
+<span class="lineNum">     191 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   Double_t r[3];</span>
+<span class="lineNum">     193 </span>            :   //  Bool_t rc=GetXYZAt(xloc, GetBz(), r);
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   Bool_t rc=GetXYZAt(xloc, AliTrackerBase::GetBz(), r);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   x=r[0]; y=r[1]; z=r[2]; </span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   return rc;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 : }</span>
+<a name="198"><span class="lineNum">     198 </span>            : </a>
+<span class="lineNum">     199 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     200 </span>            : Double_t AliITStrackV2::GetPredictedChi2(const AliCluster *c) const {
+<span class="lineNum">     201 </span>            :   //-----------------------------------------------------------------
+<span class="lineNum">     202 </span>            :   // This function calculates a predicted chi2 increment.
+<span class="lineNum">     203 </span>            :   //-----------------------------------------------------------------
+<span class="lineNum">     204 </span><span class="lineCov">         40 :   Double_t p[2]={c-&gt;GetY(), c-&gt;GetZ()};</span>
+<span class="lineNum">     205 </span><span class="lineCov">         20 :   Double_t cov[3]={c-&gt;GetSigmaY2(), 0., c-&gt;GetSigmaZ2()};</span>
+<span class="lineNum">     206 </span><span class="lineCov">         40 :   return AliExternalTrackParam::GetPredictedChi2(p,cov);</span>
+<span class="lineNum">     207 </span><span class="lineCov">         20 : }</span>
+<a name="208"><span class="lineNum">     208 </span>            : </a>
+<span class="lineNum">     209 </span>            : //____________________________________________________________________________
+<span class="lineNum">     210 </span>            : Bool_t AliITStrackV2::PropagateTo(Double_t xk, Double_t d, Double_t x0) {
+<span class="lineNum">     211 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     212 </span>            :   //This function propagates a track
+<span class="lineNum">     213 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     214 </span>            :   const double kXThresh = 50.;
+<span class="lineNum">     215 </span><span class="lineCov">      38722 :   Double_t oldX=GetX(), oldY=GetY(), oldZ=GetZ();</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">      19361 :   if (oldX&gt;kXThresh || xk&gt;kXThresh) {</span>
+<span class="lineNum">     218 </span><span class="lineCov">        286 :     Double_t b[3]; GetBxByBz(b);</span>
+<span class="lineNum">     219 </span><span class="lineCov">        286 :     if (!AliExternalTrackParam::PropagateToBxByBz(xk,b)) return kFALSE;</span>
+<span class="lineNum">     220 </span><span class="lineCov">        572 :   }</span>
+<span class="lineNum">     221 </span>            :   else {
+<span class="lineNum">     222 </span><span class="lineCov">      19075 :     Double_t bz=AliTrackerBase::GetBz();</span>
+<span class="lineNum">     223 </span><span class="lineCov">      19076 :     if (!AliExternalTrackParam::PropagateTo(xk,bz)) return kFALSE; //RS revert fast propagation</span>
+<span class="lineNum">     224 </span><span class="lineCov">      19074 :   }</span>
+<span class="lineNum">     225 </span>            :   Double_t xOverX0,xTimesRho; 
+<span class="lineNum">     226 </span><span class="lineCov">      19360 :   xOverX0 = d; xTimesRho = d*x0;</span>
+<span class="lineNum">     227 </span>            :   
+<span class="lineNum">     228 </span><span class="lineCov">      19360 :   if (!CorrectForMeanMaterial(xOverX0,xTimesRho,kTRUE)) return kFALSE;</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">      19360 :   Double_t x=GetX(), y=GetY(), z=GetZ();</span>
+<span class="lineNum">     231 </span><span class="lineCov">      19562 :   if (IsStartedTimeIntegral() &amp;&amp; x&gt;oldX) {</span>
+<span class="lineNum">     232 </span><span class="lineCov">        126 :     Double_t l2 = (x-oldX)*(x-oldX) + (y-oldY)*(y-oldY) + (z-oldZ)*(z-oldZ);</span>
+<span class="lineNum">     233 </span><span class="lineCov">        126 :     AddTimeStep(TMath::Sqrt(l2));</span>
+<span class="lineNum">     234 </span><span class="lineCov">        126 :   }</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :   return kTRUE;
+<span class="lineNum">     237 </span><span class="lineCov">      19361 : }</span>
+<a name="238"><span class="lineNum">     238 </span>            : </a>
+<span class="lineNum">     239 </span>            : //____________________________________________________________________________
+<span class="lineNum">     240 </span>            : Bool_t AliITStrackV2::PropagateToTGeo(Double_t xToGo, Int_t nstep, Double_t &amp;xOverX0, Double_t &amp;xTimesRho, Bool_t addTime) {
+<span class="lineNum">     241 </span>            :   //-------------------------------------------------------------------
+<span class="lineNum">     242 </span>            :   //  Propagates the track to a reference plane x=xToGo in n steps.
+<span class="lineNum">     243 </span>            :   //  These n steps are only used to take into account the curvature.
+<span class="lineNum">     244 </span>            :   //  The material is calculated with TGeo. (L.Gaudichet)
+<span class="lineNum">     245 </span>            :   //-------------------------------------------------------------------
+<span class="lineNum">     246 </span>            :   
+<span class="lineNum">     247 </span><span class="lineCov">       3509 :   Double_t startx = GetX(), starty = GetY(), startz = GetZ();</span>
+<span class="lineNum">     248 </span><span class="lineCov">       3509 :   Double_t sign = (startx&lt;xToGo) ? -1.:1.;</span>
+<span class="lineNum">     249 </span><span class="lineCov">       3509 :   Double_t step = (xToGo-startx)/TMath::Abs(nstep);</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineCov">       3509 :   Double_t start[3], end[3], mparam[7];</span>
+<span class="lineNum">     252 </span>            :   //Double_t bz = GetBz();
+<span class="lineNum">     253 </span><span class="lineCov">       3509 :   Double_t b[3]; GetBxByBz(b);</span>
+<span class="lineNum">     254 </span><span class="lineCov">       3509 :   Double_t bz = b[2];</span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :   Double_t x = startx;
+<span class="lineNum">     257 </span>            :   
+<span class="lineNum">     258 </span><span class="lineCov">      19909 :   for (Int_t i=0; i&lt;nstep; i++) {</span>
+<span class="lineNum">     259 </span>            :     
+<span class="lineNum">     260 </span><span class="lineCov">       4694 :     GetXYZ(start);   //starting global position</span>
+<span class="lineNum">     261 </span><span class="lineCov">       4694 :     x += step;</span>
+<span class="lineNum">     262 </span>            :     //    if (!GetXYZAt(x, bz, end)) return kFALSE;
+<span class="lineNum">     263 </span>            :     //if (!AliExternalTrackParam::PropagateTo(x, bz)) return kFALSE;
+<span class="lineNum">     264 </span><span class="lineCov">       4696 :     if (!AliExternalTrackParam::PropagateToBxByBz(x, b)) return kFALSE;</span>
+<span class="lineNum">     265 </span><span class="lineCov">       4692 :     GetXYZ(end);</span>
+<span class="lineNum">     266 </span><span class="lineCov">       4692 :     AliTracker::MeanMaterialBudget(start, end, mparam);</span>
+<span class="lineNum">     267 </span><span class="lineCov">       4692 :     xTimesRho = sign*mparam[4]*mparam[0];</span>
+<span class="lineNum">     268 </span><span class="lineCov">       4692 :     xOverX0   = mparam[1];</span>
+<span class="lineNum">     269 </span><span class="lineCov">       4692 :     if (mparam[1]&lt;900000) {</span>
+<span class="lineNum">     270 </span><span class="lineCov">       4692 :       if (!AliExternalTrackParam::CorrectForMeanMaterial(xOverX0,</span>
+<span class="lineNum">     271 </span><span class="lineCov">       4692 :                            xTimesRho,GetMass())) return kFALSE;</span>
+<span class="lineNum">     272 </span>            :     } else { // this happens when MeanMaterialBudget cannot cross a boundary
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     274 </span>            :     }
+<span class="lineNum">     275 </span>            :   }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineCov">       9317 :   if (addTime &amp;&amp; IsStartedTimeIntegral() &amp;&amp; GetX()&gt;startx) {</span>
+<span class="lineNum">     278 </span><span class="lineCov">       2120 :     Double_t l2 = ( (GetX()-startx)*(GetX()-startx) +</span>
+<span class="lineNum">     279 </span><span class="lineCov">       2120 :                     (GetY()-starty)*(GetY()-starty) +</span>
+<span class="lineNum">     280 </span><span class="lineCov">       1060 :                     (GetZ()-startz)*(GetZ()-startz) );</span>
+<span class="lineNum">     281 </span><span class="lineCov">       1060 :     AddTimeStep(TMath::Sqrt(l2));</span>
+<span class="lineNum">     282 </span><span class="lineCov">       1060 :   }</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">       3507 :   return kTRUE;</span>
+<span class="lineNum">     285 </span><span class="lineCov">       3509 : }</span>
+<a name="286"><span class="lineNum">     286 </span>            : </a>
+<span class="lineNum">     287 </span>            : //____________________________________________________________________________
+<span class="lineNum">     288 </span>            : Bool_t AliITStrackV2::Update(const AliCluster* c, Double_t chi2, Int_t index) 
+<span class="lineNum">     289 </span>            : {
+<span class="lineNum">     290 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     291 </span>            :   //This function updates track parameters
+<span class="lineNum">     292 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     293 </span><span class="lineCov">      23736 :   Double_t p[2]={c-&gt;GetY(), c-&gt;GetZ()};</span>
+<span class="lineNum">     294 </span><span class="lineCov">      11868 :   Double_t cov[3]={c-&gt;GetSigmaY2(), c-&gt;GetSigmaYZ(), c-&gt;GetSigmaZ2()};</span>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">      11868 :   if (!AliExternalTrackParam::Update(p,cov)) return kFALSE;</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineCov">      11868 :   Int_t n=GetNumberOfClusters();</span>
+<span class="lineNum">     299 </span><span class="lineCov">      11868 :   if (!Invariant()) {</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     if (n&gt;fgkWARN) AliDebug(1,&quot;Wrong invariant !&quot;);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     302 </span>            :   }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineCov">      11868 :   if (chi2&lt;0) return kTRUE;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :   // fill residuals for ITS+TPC tracks 
+<span class="lineNum">     307 </span><span class="lineCov">      11868 :   if (fESDtrack) {</span>
+<span class="lineNum">     308 </span><span class="lineCov">      11668 :     if (fESDtrack-&gt;GetStatus()&amp;AliESDtrack::kTPCin) {</span>
+<span class="lineNum">     309 </span><span class="lineCov">      11492 :       AliTracker::FillResiduals(this,p,cov,c-&gt;GetVolumeId());</span>
+<span class="lineNum">     310 </span><span class="lineCov">      11492 :     }</span>
+<span class="lineNum">     311 </span>            :   }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineCov">      11868 :   fIndex[n]=index;</span>
+<span class="lineNum">     314 </span><span class="lineCov">      11868 :   SetNumberOfClusters(n+1);</span>
+<span class="lineNum">     315 </span><span class="lineCov">      11868 :   SetChi2(GetChi2()+chi2);</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineCov">      11868 :   return kTRUE;</span>
+<a name="318"><span class="lineNum">     318 </span><span class="lineCov">      11868 : }</span></a>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : Bool_t AliITStrackV2::Invariant() const {
+<span class="lineNum">     321 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     322 </span>            :   // This function is for debugging purpose only
+<span class="lineNum">     323 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     324 </span><span class="lineCov">     216914 :   if(!fCheckInvariant) return kTRUE;</span>
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineCov">     107611 :   Int_t n=GetNumberOfClusters();</span>
+<span class="lineNum">     327 </span><span class="lineCov">     107617 :   static Float_t bz = GetBz();</span>
+<span class="lineNum">     328 </span>            :   // take into account the misalignment error
+<span class="lineNum">     329 </span>            :   Float_t maxMisalErrY2=0,maxMisalErrZ2=0;
+<span class="lineNum">     330 </span>            :   //RS
+<span class="lineNum">     331 </span><span class="lineCov">     107611 :   const AliITSRecoParam* recopar = AliITSReconstructor::GetRecoParam();</span>
+<span class="lineNum">     332 </span><span class="lineCov">     107611 :   if (!recopar) recopar = AliITSRecoParam::GetHighFluxParam();</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineCov">    1506554 :   for (Int_t lay=0; lay&lt;AliITSgeomTGeo::kNLayers; lay++) {</span>
+<span class="lineNum">     335 </span><span class="lineCov">     645666 :     maxMisalErrY2 = TMath::Max(maxMisalErrY2,recopar-&gt;GetClusterMisalErrorY(lay,bz));</span>
+<span class="lineNum">     336 </span><span class="lineCov">     645666 :     maxMisalErrZ2 = TMath::Max(maxMisalErrZ2,recopar-&gt;GetClusterMisalErrorZ(lay,bz));</span>
+<span class="lineNum">     337 </span>            :   }
+<span class="lineNum">     338 </span><span class="lineCov">     107611 :   maxMisalErrY2 *= maxMisalErrY2;</span>
+<span class="lineNum">     339 </span><span class="lineCov">     107611 :   maxMisalErrZ2 *= maxMisalErrZ2;</span>
+<span class="lineNum">     340 </span>            :   // this is because when we reset before refitting, we multiply the
+<span class="lineNum">     341 </span>            :   // matrix by 10
+<span class="lineNum">     342 </span><span class="lineCov">     107611 :   maxMisalErrY2 *= 10.; </span>
+<span class="lineNum">     343 </span><span class="lineCov">     107611 :   maxMisalErrZ2 *= 10.;</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">     107611 :   Double_t sP2=GetParameter()[2];</span>
+<span class="lineNum">     346 </span><span class="lineCov">     107611 :   if (TMath::Abs(sP2) &gt;= kAlmost1){</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     if (n&gt;fgkWARN) AliDebug(1,Form(&quot;fP2=%f\n&quot;,sP2));</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     349 </span>            :   }
+<span class="lineNum">     350 </span><span class="lineCov">     107611 :   Double_t sC00=GetCovariance()[0];</span>
+<span class="lineNum">     351 </span><span class="lineCov">     215222 :   if (sC00&lt;=0 || sC00&gt;(9.+maxMisalErrY2)) {</span>
+<span class="lineNum">     352 </span><span class="lineCov">         10 :     if (n&gt;fgkWARN) AliDebug(1,Form(&quot;fC00=%f\n&quot;,sC00)); </span>
+<span class="lineNum">     353 </span><span class="lineCov">         10 :      return kFALSE;</span>
+<span class="lineNum">     354 </span>            :   }
+<span class="lineNum">     355 </span><span class="lineCov">     107601 :   Double_t sC11=GetCovariance()[2];</span>
+<span class="lineNum">     356 </span><span class="lineCov">     215202 :   if (sC11&lt;=0 || sC11&gt;(9.+maxMisalErrZ2)) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     if (n&gt;fgkWARN) AliDebug(1,Form(&quot;fC11=%f\n&quot;,sC11)); </span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     359 </span>            :   }
+<span class="lineNum">     360 </span><span class="lineCov">     107601 :   Double_t sC22=GetCovariance()[5];</span>
+<span class="lineNum">     361 </span><span class="lineCov">     107601 :   if (sC22&lt;=0 || sC22&gt;1.) {</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     if (n&gt;fgkWARN) AliDebug(1,Form(&quot;fC22=%f\n&quot;,sC22)); </span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     364 </span>            :   }
+<span class="lineNum">     365 </span><span class="lineCov">     107601 :   Double_t sC33=GetCovariance()[9];</span>
+<span class="lineNum">     366 </span><span class="lineCov">     107601 :   if (sC33&lt;=0 || sC33&gt;1.) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     if (n&gt;fgkWARN) AliDebug(1,Form(&quot;fC33=%f\n&quot;,sC33)); </span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     369 </span>            :   }
+<span class="lineNum">     370 </span><span class="lineCov">     107601 :   Double_t sC44=GetCovariance()[14];</span>
+<span class="lineNum">     371 </span><span class="lineCov">     107601 :   if (sC44&lt;=0 /*|| sC44&gt;6e-5*/) {</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     if (n&gt;fgkWARN) AliDebug(1,Form(&quot;fC44=%f\n&quot;,sC44));</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :      return kFALSE;</span>
+<span class="lineNum">     374 </span>            :   }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">     107601 :   return kTRUE;</span>
+<span class="lineNum">     377 </span><span class="lineCov">     108175 : }</span>
+<a name="378"><span class="lineNum">     378 </span>            : </a>
+<span class="lineNum">     379 </span>            : //____________________________________________________________________________
+<span class="lineNum">     380 </span>            : Bool_t AliITStrackV2::Propagate(Double_t alp,Double_t xk) {
+<span class="lineNum">     381 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     382 </span>            :   //This function propagates a track
+<span class="lineNum">     383 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     384 </span>            :   //Double_t bz=GetBz();
+<span class="lineNum">     385 </span>            :   //if (!AliExternalTrackParam::Propagate(alp,xk,bz)) return kFALSE;
+<span class="lineNum">     386 </span><span class="lineCov">     192626 :   Double_t b[3]; GetBxByBz(b);</span>
+<span class="lineNum">     387 </span><span class="lineCov">      96319 :   if (!AliExternalTrackParam::PropagateBxByBz(alp,xk,b)) return kFALSE;</span>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineCov">      96307 :   if (!Invariant()) {</span>
+<span class="lineNum">     390 </span><span class="lineCov">         10 :     Int_t n=GetNumberOfClusters();</span>
+<span class="lineNum">     391 </span><span class="lineCov">         10 :     if (n&gt;fgkWARN) AliDebug(1,&quot;Wrong invariant !&quot;);</span>
+<span class="lineNum">     392 </span>            :     return kFALSE;
+<span class="lineNum">     393 </span>            :   }
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">      96297 :   return kTRUE;</span>
+<a name="396"><span class="lineNum">     396 </span><span class="lineCov">      96313 : }</span></a>
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span>            : Bool_t AliITStrackV2::MeanBudgetToPrimVertex(Double_t xyz[3], Double_t step, Double_t &amp;d) const {
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :   //-------------------------------------------------------------------
+<span class="lineNum">     401 </span>            :   //  Get the mean material budget between the actual point and the
+<span class="lineNum">     402 </span>            :   //  primary vertex. (L.Gaudichet)
+<span class="lineNum">     403 </span>            :   //-------------------------------------------------------------------
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   Double_t cs=TMath::Cos(GetAlpha()), sn=TMath::Sin(GetAlpha());</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   Double_t vertexX = xyz[0]*cs + xyz[1]*sn;</span>
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   Int_t nstep = Int_t((GetX()-vertexX)/step);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   if (nstep&lt;1) nstep = 1;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   step = (GetX()-vertexX)/nstep;</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            :   //  Double_t mparam[7], densMean=0, radLength=0, length=0;
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :   Double_t mparam[7];</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   Double_t p1[3], p2[3], x = GetX(), bz = GetBz();</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   GetXYZ(p1);</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   d=0.;</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nstep; i++) {</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     x  += step;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     if (!GetXYZAt(x, bz, p2)) return kFALSE;</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     AliTracker::MeanMaterialBudget(p1, p2, mparam);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     if (mparam[1]&gt;900000) return kFALSE;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     d  += mparam[1];</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     p1[0] = p2[0];</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     p1[1] = p2[1];</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     p1[2] = p2[2];</span>
+<span class="lineNum">     429 </span>            :   }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="432"><span class="lineNum">     432 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : Bool_t AliITStrackV2::Improve(Double_t x0,Double_t xyz[3],Double_t ers[3]) {
+<span class="lineNum">     435 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     436 </span>            :   //This function improves angular track parameters
+<span class="lineNum">     437 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     438 </span>            :   //Store the initail track parameters
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :   Double_t x = GetX();</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :   Double_t alpha = GetAlpha();</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   Double_t par[] = {GetY(),GetZ(),GetSnp(),GetTgl(),GetSigned1Pt()};</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   Double_t cov[] = {</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     GetSigmaY2(),</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     GetSigmaZY(),</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     GetSigmaZ2(),</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     GetSigmaSnpY(),</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     GetSigmaSnpZ(),</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     GetSigmaSnp2(),</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     GetSigmaTglY(),</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     GetSigmaTglZ(),</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     GetSigmaTglSnp(),</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     GetSigmaTgl2(),</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     GetSigma1PtY(),</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     GetSigma1PtZ(),</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     GetSigma1PtSnp(),</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     GetSigma1PtTgl(),</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     GetSigma1Pt2()</span>
+<span class="lineNum">     459 </span>            :   }; 
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   Double_t cs=TMath::Cos(GetAlpha()), sn=TMath::Sin(GetAlpha());</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   Double_t xv = xyz[0]*cs + xyz[1]*sn; // vertex</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   Double_t yv =-xyz[0]*sn + xyz[1]*cs; // in the</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   Double_t zv = xyz[2];                // local frame</span>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   Double_t dx = x - xv, dy = par[0] - yv, dz = par[1] - zv;</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   Double_t r2=dx*dx + dy*dy;</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   Double_t p2=(1.+ GetTgl()*GetTgl())/(GetSigned1Pt()*GetSigned1Pt());</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   if (GetMass()&lt;0) p2 *= 4; // q=2</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   Double_t beta2=p2/(p2 + GetMass()*GetMass());</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   x0*=TMath::Sqrt((1.+ GetTgl()*GetTgl())/(1.- GetSnp()*GetSnp()));</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :   Double_t theta2=14.1*14.1/(beta2*p2*1e6)*x0;</span>
+<span class="lineNum">     474 </span>            :   //Double_t theta2=1.0259e-6*14*14/28/(beta2*p2)*x0*9.36*2.33;
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :   Double_t bz=GetBz();</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :   Double_t cnv=bz*kB2C;</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   Double_t curv=GetC(bz);</span>
+<span class="lineNum">     479 </span>            :   {
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     Double_t dummy = 4/r2 - curv*curv;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     if (dummy &lt; 0) return kFALSE;</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     Double_t parp = 0.5*(curv*dx + dy*TMath::Sqrt(dummy));</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     Double_t sigma2p = theta2*(1.-GetSnp())*(1.+GetSnp())*(1. + GetTgl()*GetTgl());</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     Double_t ovSqr2 = 1./TMath::Sqrt(r2);</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     Double_t tfact = ovSqr2*(1.-dy*ovSqr2)*(1.+dy*ovSqr2);</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     sigma2p += cov[0]*tfact*tfact;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     sigma2p += ers[1]*ers[1]/r2;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     sigma2p += 0.25*cov[14]*cnv*cnv*dx*dx;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     Double_t eps2p=sigma2p/(cov[5] + sigma2p);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     par[0] += cov[3]/(cov[5] + sigma2p)*(parp - GetSnp());</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     par[2]  = eps2p*GetSnp() + (1 - eps2p)*parp;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     cov[5] *= eps2p;</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     cov[3] *= eps2p;</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     495 </span>            :   {
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     Double_t parl=0.5*curv*dz/TMath::ASin(0.5*curv*TMath::Sqrt(r2));</span>
+<span class="lineNum">     497 </span>            :     Double_t sigma2l=theta2;
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     sigma2l += cov[2]/r2 + cov[0]*dy*dy*dz*dz/(r2*r2*r2);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     sigma2l += ers[2]*ers[2]/r2;</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     Double_t eps2l = sigma2l/(cov[9] + sigma2l);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     par[1] += cov[7 ]/(cov[9] + sigma2l)*(parl - par[3]);</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     par[4] += cov[13]/(cov[9] + sigma2l)*(parl - par[3]);</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     par[3]  = eps2l*par[3] + (1-eps2l)*parl;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     cov[9] *= eps2l; </span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     cov[13]*= eps2l; </span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     cov[7] *= eps2l; </span>
+<span class="lineNum">     507 </span>            :   }
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   Set(x,alpha,par,cov);</span>
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   if (!Invariant()) return kFALSE;</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="514"><span class="lineNum">     514 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span>            : void AliITStrackV2::CookdEdx(Double_t /*low*/, Double_t /*up*/) {
+<span class="lineNum">     517 </span>            :   //-----------------------------------------------------------------
+<span class="lineNum">     518 </span>            :   // This function calculates dE/dX within the &quot;low&quot; and &quot;up&quot; cuts.
+<span class="lineNum">     519 </span>            :   // Origin: Boris Batyunya, JINR, Boris.Batiounia@cern.ch 
+<span class="lineNum">     520 </span>            :   // Updated: F. Prino 8-June-2009
+<span class="lineNum">     521 </span>            :   //-----------------------------------------------------------------
+<span class="lineNum">     522 </span>            :   // The cluster order is: SDD-1, SDD-2, SSD-1, SSD-2
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            :   Int_t nc=0;
+<span class="lineNum">     525 </span><span class="lineCov">       4072 :   Float_t dedx[4];</span>
+<span class="lineNum">     526 </span><span class="lineCov">      20360 :   for (Int_t il=0; il&lt;4; il++) { // count good (&gt;0) dE/dx values</span>
+<span class="lineNum">     527 </span><span class="lineCov">       8144 :     if(fdEdxSample[il]&gt;0.){</span>
+<span class="lineNum">     528 </span><span class="lineCov">       7640 :       dedx[nc]= fdEdxSample[il];</span>
+<span class="lineNum">     529 </span><span class="lineCov">       7640 :       nc++;</span>
+<span class="lineNum">     530 </span><span class="lineCov">       7640 :     }</span>
+<span class="lineNum">     531 </span>            :   }
+<span class="lineNum">     532 </span><span class="lineCov">       2036 :   if(nc&lt;1){</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     SetdEdx(0.);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     535 </span>            :   }
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            :   Int_t swap; // sort in ascending order
+<span class="lineNum">     538 </span><span class="lineCov">       2036 :   do {</span>
+<span class="lineNum">     539 </span>            :     swap=0;
+<span class="lineNum">     540 </span><span class="lineCov">      39222 :     for (Int_t i=0; i&lt;nc-1; i++) {</span>
+<span class="lineNum">     541 </span><span class="lineCov">      14458 :       if (dedx[i]&lt;=dedx[i+1]) continue;</span>
+<span class="lineNum">     542 </span>            :       Float_t tmp=dedx[i];
+<span class="lineNum">     543 </span><span class="lineCov">       5061 :       dedx[i]=dedx[i+1]; </span>
+<span class="lineNum">     544 </span><span class="lineCov">       5061 :       dedx[i+1]=tmp;</span>
+<span class="lineNum">     545 </span><span class="lineCov">       5061 :       swap++;</span>
+<span class="lineNum">     546 </span><span class="lineCov">       5061 :     }</span>
+<span class="lineNum">     547 </span><span class="lineCov">       5153 :   } while (swap);</span>
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            :   Double_t sumamp=0,sumweight=0;
+<span class="lineNum">     551 </span><span class="lineCov">       2036 :   Double_t weight[4]={1.,1.,0.,0.};</span>
+<span class="lineNum">     552 </span><span class="lineCov">       2508 :   if(nc==3) weight[1]=0.5;</span>
+<span class="lineNum">     553 </span><span class="lineCov">       1580 :   else if(nc&lt;3) weight[1]=0.;</span>
+<span class="lineNum">     554 </span><span class="lineCov">      19352 :   for (Int_t i=0; i&lt;nc; i++) {</span>
+<span class="lineNum">     555 </span><span class="lineCov">       7640 :     sumamp+= dedx[i]*weight[i];</span>
+<span class="lineNum">     556 </span><span class="lineCov">       7640 :     sumweight+=weight[i];</span>
+<span class="lineNum">     557 </span>            :   }
+<span class="lineNum">     558 </span><span class="lineCov">       2036 :   SetdEdx(sumamp/sumweight);</span>
+<span class="lineNum">     559 </span><span class="lineCov">       4072 : }</span>
+<span class="lineNum">     560 </span>            : 
+<a name="561"><span class="lineNum">     561 </span>            : //____________________________________________________________________________</a>
+<span class="lineNum">     562 </span>            : Bool_t AliITStrackV2::
+<span class="lineNum">     563 </span>            : GetPhiZat(Double_t r, Double_t &amp;phi, Double_t &amp;z) const {
+<span class="lineNum">     564 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     565 </span>            :   // This function returns the global cylindrical (phi,z) of the track 
+<span class="lineNum">     566 </span>            :   // position estimated at the radius r. 
+<span class="lineNum">     567 </span>            :   // The track curvature is neglected.
+<span class="lineNum">     568 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     569 </span><span class="lineCov">      27672 :   Double_t d=GetD(0.,0.);</span>
+<span class="lineNum">     570 </span><span class="lineCov">      13836 :   if (TMath::Abs(d) &gt; r) {</span>
+<span class="lineNum">     571 </span><span class="lineCov">         12 :     if (r&gt;1e-1) return kFALSE;</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     r = TMath::Abs(d);</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineCov">      13830 :   Double_t rcurr=TMath::Sqrt(GetX()*GetX() + GetY()*GetY());</span>
+<span class="lineNum">     576 </span><span class="lineCov">      13830 :   if (TMath::Abs(d) &gt; rcurr) return kFALSE;</span>
+<span class="lineNum">     577 </span><span class="lineCov">      13830 :   Double_t globXYZcurr[3]; GetXYZ(globXYZcurr); </span>
+<span class="lineNum">     578 </span><span class="lineCov">      13830 :   Double_t phicurr=TMath::ATan2(globXYZcurr[1],globXYZcurr[0]);</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineCov">      27660 :   if (GetX()&gt;=0.) {</span>
+<span class="lineNum">     581 </span><span class="lineCov">      27660 :     phi=phicurr+TMath::ASin(d/r)-TMath::ASin(d/rcurr);</span>
+<span class="lineNum">     582 </span><span class="lineCov">      13830 :   } else {</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     phi=phicurr+TMath::ASin(d/r)+TMath::ASin(d/rcurr)-TMath::Pi();</span>
+<span class="lineNum">     584 </span>            :   }
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span>            :   // return a phi in [0,2pi[ 
+<span class="lineNum">     587 </span><span class="lineCov">      17308 :   if (phi&lt;0.) phi+=2.*TMath::Pi();</span>
+<span class="lineNum">     588 </span><span class="lineCov">      10352 :   else if (phi&gt;=2.*TMath::Pi()) phi-=2.*TMath::Pi();</span>
+<span class="lineNum">     589 </span><span class="lineCov">      13830 :   z=GetZ()+GetTgl()*(TMath::Sqrt((r-d)*(r+d))-TMath::Sqrt((rcurr-d)*(rcurr+d)));</span>
+<span class="lineNum">     590 </span>            :   return kTRUE;
+<span class="lineNum">     591 </span><span class="lineCov">      27666 : }</span>
+<a name="592"><span class="lineNum">     592 </span>            : //____________________________________________________________________________</a>
+<span class="lineNum">     593 </span>            : Bool_t AliITStrackV2::
+<span class="lineNum">     594 </span>            : GetLocalXat(Double_t r,Double_t &amp;xloc) const {
+<span class="lineNum">     595 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     596 </span>            :   // This function returns the local x of the track 
+<span class="lineNum">     597 </span>            :   // position estimated at the radius r. 
+<span class="lineNum">     598 </span>            :   // The track curvature is neglected.
+<span class="lineNum">     599 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     600 </span><span class="lineCov">      68714 :   Double_t d=GetD(0.,0.);</span>
+<span class="lineNum">     601 </span><span class="lineCov">      34357 :   if (TMath::Abs(d) &gt; r) { </span>
+<span class="lineNum">     602 </span><span class="lineCov">         22 :     if (r&gt;1e-1) return kFALSE; </span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :     r = TMath::Abs(d); </span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span><span class="lineCov">      34346 :   Double_t rcurr=TMath::Sqrt(GetX()*GetX() + GetY()*GetY());</span>
+<span class="lineNum">     607 </span><span class="lineCov">      34346 :   Double_t globXYZcurr[3]; GetXYZ(globXYZcurr); </span>
+<span class="lineNum">     608 </span><span class="lineCov">      34346 :   Double_t phicurr=TMath::ATan2(globXYZcurr[1],globXYZcurr[0]);</span>
+<span class="lineNum">     609 </span>            :   Double_t phi;
+<span class="lineNum">     610 </span><span class="lineCov">      68692 :   if (GetX()&gt;=0.) {</span>
+<span class="lineNum">     611 </span><span class="lineCov">      68692 :     phi=phicurr+TMath::ASin(d/r)-TMath::ASin(d/rcurr);</span>
+<span class="lineNum">     612 </span><span class="lineCov">      34346 :   } else {</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     phi=phicurr+TMath::ASin(d/r)+TMath::ASin(d/rcurr)-TMath::Pi();</span>
+<span class="lineNum">     614 </span>            :   }
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineCov">      68692 :   xloc=r*(TMath::Cos(phi)*TMath::Cos(GetAlpha())</span>
+<span class="lineNum">     617 </span><span class="lineCov">      34346 :          +TMath::Sin(phi)*TMath::Sin(GetAlpha())); </span>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span>            :   return kTRUE;
+<span class="lineNum">     620 </span><span class="lineCov">      68703 : }</span>
+<a name="621"><span class="lineNum">     621 </span>            : </a>
+<span class="lineNum">     622 </span>            : //____________________________________________________________________________
+<span class="lineNum">     623 </span>            : Bool_t AliITStrackV2::ImproveKalman(Double_t xyz[3],Double_t ers[3], const Double_t* xlMS, const Double_t* x2X0MS, Int_t nMS)
+<span class="lineNum">     624 </span>            : {
+<span class="lineNum">     625 </span>            :   // Substitute the state of the track (p_{k|k},C_{k|k}) at the k-th measumerent by its
+<span class="lineNum">     626 </span>            :   // smoothed value from the k-th measurement + measurement at the vertex.
+<span class="lineNum">     627 </span>            :   // Account for the MS on nMS layers at x-postions xlMS with x/x0 = x2X0MS
+<span class="lineNum">     628 </span>            :   // p_{k|kv} = p_{k|k} + C_{k|k}*D^Tr_{k+1} B^{-1}_{k+1} ( vtx - D_{k+1}*p_{k|k})
+<span class="lineNum">     629 </span>            :   // C_{k|kv} = C_{k|k}*( I - D^Tr_{k+1} B^{-1}_{k+1} D_{k+1} C^Tr_{k|k})
+<span class="lineNum">     630 </span>            :   // 
+<span class="lineNum">     631 </span>            :   // where D_{k} = H_{k} F_{k} with H being the matrix converting the tracks parameters
+<span class="lineNum">     632 </span>            :   // to measurements m_{k} = H_{k} p_{k} and F_{k} the matrix propagating the track between the
+<span class="lineNum">     633 </span>            :   // the point k-1 and k:  p_{k|k-1} = F_{k} p_{k-1|k-1}
+<span class="lineNum">     634 </span>            :   //
+<span class="lineNum">     635 </span>            :   // B_{k+1} = V_{k+1} + H_{k+1} C_{k+1|k} H^Tr_{k+1} with V_{k+1} being the error of the measurment
+<span class="lineNum">     636 </span>            :   // at point k+1 (i.e. vertex), and C_{k+1|k} - error matrix extrapolated from k-th measurement to
+<span class="lineNum">     637 </span>            :   // k+1 (vtx) and accounting for the MS inbetween
+<span class="lineNum">     638 </span>            :   //
+<span class="lineNum">     639 </span>            :   // H = {{1,0,0,0,0},{0,1,0,0,0}}
+<span class="lineNum">     640 </span>            :   //
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :   double covc[15], *cori = (double*) GetCovariance(),par[5] = {GetY(),GetZ(),GetSnp(),GetTgl(),GetSigned1Pt()},</span>
+<span class="lineNum">     642 </span>            :     &amp;c00=cori[0],
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :     &amp;c01=cori[1],&amp;c11=cori[2],</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     &amp;c02=cori[3],&amp;c12=cori[4],&amp;c22=cori[5],</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     &amp;c03=cori[6],&amp;c13=cori[7],&amp;c23=cori[8],&amp;c33=cori[9],</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     &amp;c04=cori[10],&amp;c14=cori[11],&amp;c24=cori[12],&amp;c34=cori[13],&amp;c44=cori[14],</span>
+<span class="lineNum">     647 </span>            :     // for smoothed cov matrix 
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     &amp;cov00=covc[0],</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :     &amp;cov01=covc[1],&amp;cov11=covc[2],</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     &amp;cov02=covc[3],&amp;cov12=covc[4],&amp;cov22=covc[5],</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     &amp;cov03=covc[6],&amp;cov13=covc[7],&amp;cov23=covc[8],&amp;cov33=covc[9],</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :     &amp;cov04=covc[10],&amp;cov14=covc[11],&amp;cov24=covc[12],&amp;cov34=covc[13],&amp;cov44=covc[14];</span>
+<span class="lineNum">     653 </span>            :   //
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   double x = GetX(), alpha = GetAlpha();</span>
+<span class="lineNum">     655 </span>            :   // vertex in the track frame
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :   double cs=TMath::Cos(alpha), sn=TMath::Sin(alpha);</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :   double xv = xyz[0]*cs + xyz[1]*sn, yv =-xyz[0]*sn + xyz[1]*cs, zv = xyz[2];</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :   double dx = xv - GetX();</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :   if (TMath::Abs(dx)&lt;=kAlmost0)  return kTRUE;</span>
+<span class="lineNum">     660 </span>            :   //
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :   double cnv=GetBz()*kB2C, x2r=cnv*par[4]*dx, f1=par[2], f2=f1+x2r;</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   if (TMath::Abs(f1) &gt;= kAlmost1 || TMath::Abs(f2) &gt;= kAlmost1) {</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Fail: %+e %+e&quot;,f1,f2));</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     665 </span>            :   }
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   double r1=TMath::Sqrt((1.-f1)*(1.+f1)), r2=TMath::Sqrt((1.-f2)*(1.+f2)), dx2r=dx/(r1+r2);</span>
+<span class="lineNum">     667 </span>            :   // elements of matrix F_{k+1} (1s on diagonal)
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :   double f02 = 2*dx2r, f04 = cnv*dx*dx2r, f13/*, f24 = cnv*dx*/;</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   if (TMath::Abs(x2r)&lt;0.05) f13 = dx*r2+f2*(f1+f2)*dx2r; // see AliExternalTrackParam::PropagateTo</span>
+<span class="lineNum">     670 </span>            :   else {
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :     double dy2dx = (f1+f2)/(r1+r2);</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     f13 = 2*TMath::ASin(0.5*TMath::Sqrt(1+dy2dx*dy2dx)*x2r)/(cnv*par[4]);</span>
+<span class="lineNum">     673 </span>            :   }  
+<span class="lineNum">     674 </span>            :   // elements of matrix D_{k+1} = H_{k+1} * F_{k+1}
+<span class="lineNum">     675 </span>            :   // double d00 = 1., d11 = 1.;
+<span class="lineNum">     676 </span>            :   double &amp;d02 = f02,  &amp;d04 = f04, &amp;d13 = f13;
+<span class="lineNum">     677 </span>            :   //
+<span class="lineNum">     678 </span>            :   // elements of matrix DC = D_{k+1}*C_{kk}^T
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :   double dc00 = c00+c02*d02+c04*d04,   dc10 = c01+c03*d13;</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   double dc01 = c01+c12*d02+c14*d04,   dc11 = c11+c13*d13;</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :   double dc02 = c02+c22*d02+c24*d04,   dc12 = c12+c23*d13;</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :   double dc03 = c03+c23*d02+c34*d04,   dc13 = c13+c33*d13;</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :   double dc04 = c04+c24*d02+c44*d04,   dc14 = c14+c34*d13;</span>
+<span class="lineNum">     684 </span>            :   //
+<span class="lineNum">     685 </span>            :   // difference between the vertex and the the track extrapolated to vertex
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :   yv -= par[0] + par[2]*d02 + par[4]*d04;</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   zv -= par[1] + par[3]*d13;</span>
+<span class="lineNum">     688 </span>            :   //
+<span class="lineNum">     689 </span>            :   // y,z part of the cov.matrix extrapolated to vtx (w/o MS contribution)
+<span class="lineNum">     690 </span>            :   // C_{k+1,k} = H F_{k+1} C_{k,k} F^Tr_{k+1} H^Tr = D C D^Tr
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   double cv00 = dc00+dc02*d02+dc04*d04, cv01 = dc01+dc03*d13, cv11 = dc11+dc13*d13;</span>
+<span class="lineNum">     692 </span>            :   //
+<span class="lineNum">     693 </span>            :   // add MS contribution layer by layer
+<span class="lineNum">     694 </span>            :   double xCurr = x;
+<span class="lineNum">     695 </span>            :   double p2Curr = par[2];
+<span class="lineNum">     696 </span>            :   //
+<span class="lineNum">     697 </span>            :   // precalculated factors of MS contribution matrix:
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :   double ms22t = (1. + par[3]*par[3]);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :   double ms33t = ms22t*ms22t;</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   double p34 = par[3]*par[4];</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :   double ms34t = p34*ms22t;</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :   double ms44t = p34*p34;</span>
+<span class="lineNum">     703 </span>            :   //
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :   double p2=(1.+ par[3]*par[3])/(par[4]*par[4]);</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :   if (GetMass()&lt;0) p2 *= 4; // q=2</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   double beta2 = p2/(p2+GetMass()*GetMass());</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :   double theta2t = 14.1*14.1/(beta2*p2*1e6) * (1. + par[3]*par[3]);</span>
+<span class="lineNum">     708 </span>            :   //
+<span class="lineNum">     709 </span>            :   // account for the MS in the layers between the last measurement and the vertex
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :   for (int il=0;il&lt;nMS;il++) {</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     double dfx = xlMS[il] - xCurr;</span>
+<span class="lineNum">     712 </span>            :     xCurr = xlMS[il];
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     p2Curr += dfx*cnv*par[4];   // p2 at the scattering layer</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     double dxL=xv - xCurr;    // distance from scatering layer to vtx</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     double x2rL=cnv*par[4]*dxL, f1L=p2Curr, f2L=f1L+x2rL;</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     if (TMath::Abs(f1L) &gt;= kAlmost1 || TMath::Abs(f2L) &gt;= kAlmost1) {</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :       AliInfo(Form(&quot;FailMS at step %d of %d: dfx:%e dxL:%e %e %e&quot;,il,nMS,dfx,dxL,f1L,f2L));</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     719 </span>            :     }
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     double r1L=TMath::Sqrt((1.-f1L)*(1.+f1L)), r2L=TMath::Sqrt((1.-f2L)*(1.+f2L)), dx2rL=dxL/(r1L+r2L);</span>
+<span class="lineNum">     721 </span>            :     // elements of matrix for propagation from scatering layer to vertex
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :     double f02L = 2*dx2rL, f04L = cnv*dxL*dx2rL, f13L/*, f24L = cnv*dxL*/;</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :     if (TMath::Abs(x2rL)&lt;0.05) f13L = dxL*r2L+f2L*(f1L+f2L)*dx2rL; // see AliExternalTrackParam::PropagateTo</span>
+<span class="lineNum">     724 </span>            :     else {
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :       double dy2dxL = (f1L+f2L)/(r1L+r2L);</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :       f13L = 2*TMath::ASin(0.5*TMath::Sqrt(1+dy2dxL*dy2dxL)*x2rL)/(cnv*par[4]);</span>
+<span class="lineNum">     727 </span>            :     }
+<span class="lineNum">     728 </span>            :     // MS contribution matrix:
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     double theta2 = theta2t*TMath::Abs(x2X0MS[il]);</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :     double ms22 = theta2*(1.-p2Curr)*(1.+p2Curr)*ms22t;</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     double ms33 = theta2*ms33t;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     double ms34 = theta2*ms34t;</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     double ms44 = theta2*ms44t;</span>
+<span class="lineNum">     734 </span>            :     //
+<span class="lineNum">     735 </span>            :     // add  H F MS F^Tr H^Tr to cv
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     cv00 += f02L*f02L*ms22 + f04L*f04L*ms44;</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     cv01 += f04L*f13L*ms34;</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     cv11 += f13L*f13L*ms33;</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     740 </span>            :   //
+<span class="lineNum">     741 </span>            :   // inverse of matrix B
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :   double b11 = ers[1]*ers[1] + cv00;</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :   double b00 = ers[2]*ers[2] + cv11;</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :   double det = b11*b00 - cv01*cv01;</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :   if (TMath::Abs(det)&lt;kAlmost0) {</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Fail on det %e: %e %e %e&quot;,det,cv00,cv11,cv01));</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     748 </span>            :   }
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :   det = 1./det;</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :   b00 *= det; b11 *= det; </span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :   double b01 = -cv01*det;</span>
+<span class="lineNum">     752 </span>            :   //
+<span class="lineNum">     753 </span>            :   // elements of matrix DC^Tr * B^-1
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :   double dcb00 = b00*dc00+b01*dc10, dcb01 = b01*dc00+b11*dc10;</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :   double dcb10 = b00*dc01+b01*dc11, dcb11 = b01*dc01+b11*dc11;</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :   double dcb20 = b00*dc02+b01*dc12, dcb21 = b01*dc02+b11*dc12;</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   double dcb30 = b00*dc03+b01*dc13, dcb31 = b01*dc03+b11*dc13;</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   double dcb40 = b00*dc04+b01*dc14, dcb41 = b01*dc04+b11*dc14;</span>
+<span class="lineNum">     759 </span>            :   //
+<span class="lineNum">     760 </span>            :   // p_{k|k+1} = p_{k|k} +  C_{k|k}*D^Tr_{k+1} B^{-1}_{k+1} ( vtx - D_{k+1}*p_{k|k})
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :   par[0] += dcb00*yv + dcb01*zv;</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :   par[1] += dcb10*yv + dcb11*zv;</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :   par[2] += dcb20*yv + dcb21*zv;</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :   par[3] += dcb30*yv + dcb31*zv;</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :   par[4] += dcb40*yv + dcb41*zv;</span>
+<span class="lineNum">     766 </span>            :   //
+<span class="lineNum">     767 </span>            :   // C_{k|kv} = C_{k|k} - C_{k|k} D^Tr_{k+1} B^{-1}_{k+1} D_{k+1} C^Tr_{k|k})
+<span class="lineNum">     768 </span>            :   //
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :   cov00 = c00 - (dc00*dcb00 + dc10*dcb01);</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :   cov01 = c01 - (dc01*dcb00 + dc11*dcb01);</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :   cov02 = c02 - (dc02*dcb00 + dc12*dcb01);</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :   cov03 = c03 - (dc03*dcb00 + dc13*dcb01);</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   cov04 = c04 - (dc04*dcb00 + dc14*dcb01);</span>
+<span class="lineNum">     774 </span>            :   //
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :   cov11 = c11 - (dc01*dcb10 + dc11*dcb11);</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :   cov12 = c12 - (dc02*dcb10 + dc12*dcb11);</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :   cov13 = c13 - (dc03*dcb10 + dc13*dcb11);</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :   cov14 = c14 - (dc04*dcb10 + dc14*dcb11);</span>
+<span class="lineNum">     779 </span>            :   //
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :   cov22 = c22 - (dc02*dcb20 + dc12*dcb21);</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :   cov23 = c23 - (dc03*dcb20 + dc13*dcb21);</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :   cov24 = c24 - (dc04*dcb20 + dc14*dcb21);</span>
+<span class="lineNum">     783 </span>            :   //
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :   cov33 = c33 - (dc03*dcb30 + dc13*dcb31);</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :   cov34 = c34 - (dc04*dcb30 + dc14*dcb31);</span>
+<span class="lineNum">     786 </span>            :   //
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   cov44 = c44 - (dc04*dcb40 + dc14*dcb41);</span>
+<span class="lineNum">     788 </span>            :   //
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :   Set(x,alpha,par,covc);</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :   if (!Invariant()) {</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Fail on Invariant, X=%e&quot;,GetX()));</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     793 </span>            :   }
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     795 </span>            :   //
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

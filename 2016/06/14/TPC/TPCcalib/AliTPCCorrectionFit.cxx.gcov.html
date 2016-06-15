@@ -1,0 +1,1537 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCcalib/AliTPCCorrectionFit.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCcalib</a> - AliTPCCorrectionFit.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCCorrectionFit.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">747</td>
+            <td class="headerCovTableEntryLo">0.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">6.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : /*
+<span class="lineNum">      19 </span>            :   Responsible: marian.ivanov@cern.ch 
+<span class="lineNum">      20 </span>            :   Tools for fitting of the space point distortion parameters.
+<span class="lineNum">      21 </span>            :   Functionality  
+<span class="lineNum">      22 </span>            :   
+<span class="lineNum">      23 </span>            :  
+<span class="lineNum">      24 </span>            : 1. Creation of the distortion maps from the residual histograms
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : 2. Making fit trees
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : 3. Space point distortion not directly observable. Instead a derived variables
+<span class="lineNum">      29 </span>            :    like DCA at vertex, local y distortion in the TPC-*TOF,TRD,ITS) matching
+<span class="lineNum">      30 </span>            :    in all 5 tracking parameters are obsereved.
+<span class="lineNum">      31 </span>            :    In the AliTPCcorrection fir code we calculate the derivative of given variables
+<span class="lineNum">      32 </span>            :    dO_{i}/dp_{i}
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : 4. Global fit - later
+<span class="lineNum">      35 </span>            :    d0 = sum{ki*dO_{i}/dp_{i}}  - linear fitting of the amplitudes ki
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            :  Some functions, for the moment function present in the AliTPCPreprocesorOffline, some will be 
+<span class="lineNum">      38 </span>            :  extracted from the old macros 
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : */
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #include &quot;Riostream.h&quot;
+<span class="lineNum">      44 </span>            : #include &lt;fstream&gt;
+<span class="lineNum">      45 </span>            : #include &quot;TMap.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;TGraphErrors.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;AliExternalTrackParam.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;TFile.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;TGraph.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;TMultiGraph.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;TCanvas.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;THnSparse.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;THnBase.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;TProfile.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;TROOT.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;TLegend.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;TPad.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;TH2D.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;TH3D.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;AliTPCROC.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;AliTPCCalROC.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;AliESDfriend.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;AliTPCcalibTime.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;AliSplineFit.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;AliCDBMetaData.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;AliCDBId.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;AliCDBStorage.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;AliTPCcalibBase.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;AliTPCcalibDB.h&quot;
+<span class="lineNum">      71 </span>            : #include &quot;AliTPCcalibDButil.h&quot;
+<span class="lineNum">      72 </span>            : #include &quot;AliRelAlignerKalman.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;AliTPCParamSR.h&quot;
+<span class="lineNum">      74 </span>            : #include &quot;AliTPCcalibTimeGain.h&quot;
+<span class="lineNum">      75 </span>            : #include &quot;AliTPCcalibGainMult.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;AliSplineFit.h&quot;
+<span class="lineNum">      77 </span>            : #include &quot;AliTPCComposedCorrection.h&quot;
+<span class="lineNum">      78 </span>            : #include &quot;AliTPCExBTwist.h&quot;
+<span class="lineNum">      79 </span>            : #include &quot;AliTPCCalibGlobalMisalignment.h&quot;
+<span class="lineNum">      80 </span>            : #include &quot;TStatToolkit.h&quot;
+<span class="lineNum">      81 </span>            : #include &quot;TChain.h&quot;
+<span class="lineNum">      82 </span>            : #include &quot;TCut.h&quot;
+<span class="lineNum">      83 </span>            : #include &quot;AliTrackerBase.h&quot;
+<span class="lineNum">      84 </span>            : #include &quot;AliTPCCorrectionFit.h&quot;
+<span class="lineNum">      85 </span>            : #include &quot;AliTPCLaserTrack.h&quot;
+<span class="lineNum">      86 </span>            : #include &quot;TDatabasePDG.h&quot;
+<span class="lineNum">      87 </span>            : #include &quot;AliTPCcalibAlign.h&quot;
+<span class="lineNum">      88 </span>            : #include &quot;AliLog.h&quot;
+<a name="89"><span class="lineNum">      89 </span>            : #include &quot;AliRieman.h&quot;</a>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">          6 : ClassImp(AliTPCCorrectionFit)</span>
+<span class="lineNum">      92 </span>            : 
+<a name="93"><span class="lineNum">      93 </span>            : Double_t  AliTPCCorrectionFit::fgMaxChi2HelixAt=1;</a>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : AliTPCCorrectionFit::AliTPCCorrectionFit():
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   TNamed(&quot;TPCCorrectionFit&quot;,&quot;TPCCorrectionFit&quot;)</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      98 </span>            :   //
+<span class="lineNum">      99 </span>            :   // default constructor
+<span class="lineNum">     100 </span>            :   //
+<a name="101"><span class="lineNum">     101 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 : AliTPCCorrectionFit::~AliTPCCorrectionFit() {</span>
+<span class="lineNum">     104 </span>            :   //
+<span class="lineNum">     105 </span>            :   // Destructor
+<span class="lineNum">     106 </span>            :   //
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : /*
+<span class="lineNum">     110 </span>            : Double_t AliTPCCorrectionFit::EvalAt(Double_t phi, Double_t refX, Double_t evalX, Double_t theta, Int_t corr, Int_t ptype, Float_t wt, Float_t t1, Float_t t2){
+<span class="lineNum">     111 </span>            :   //
+<span class="lineNum">     112 </span>            :   // Evaluation distortion at point using the linear approximation
+<span class="lineNum">     113 </span>            :   //
+<span class="lineNum">     114 </span>            :   //  refX  -  reference X where phi and snp is calculated
+<span class="lineNum">     115 </span>            :   //  evalX  - ref X where the distortion is evaluated
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :   if (wt&lt;50){
+<span class="lineNum">     118 </span>            :     AliTPCCorrection* pcorr = AliTPCCorrection::GetVisualCorrection(corr);      
+<span class="lineNum">     119 </span>            :     pcorr-&gt;SetOmegaTauT1T2(wt,t1,t2);
+<span class="lineNum">     120 </span>            :   }
+<span class="lineNum">     121 </span>            :   Double_t sector = 9*phi/TMath::Pi();
+<span class="lineNum">     122 </span>            :   if (sector&lt;0) sector+=18;
+<span class="lineNum">     123 </span>            :   Double_t y85=AliTPCCorrection::GetCorrSector(sector,85,theta,1,corr);
+<span class="lineNum">     124 </span>            :   Double_t y245=AliTPCCorrection::GetCorrSector(sector,245,theta,1,corr);
+<span class="lineNum">     125 </span>            :   if (ptype==0) return y85+(y245-y85)*(evalX-85.)/(245.-85.);
+<span class="lineNum">     126 </span>            :   if (ptype==2) return (y245-y85)/(245.-85.);
+<span class="lineNum">     127 </span>            :   return 0;
+<span class="lineNum">     128 </span>            : }
+<span class="lineNum">     129 </span>            : */
+<span class="lineNum">     130 </span>            : 
+<a name="131"><span class="lineNum">     131 </span>            : </a>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            : Double_t AliTPCCorrectionFit::EvalAtPar(Double_t phi0, Double_t snp, Double_t refX, Double_t evalX, Double_t theta, Int_t corr, Int_t ptype, Int_t nsteps,Float_t wt, Float_t t1, Float_t t2, Bool_t *pstatus){
+<span class="lineNum">     134 </span>            :   //
+<span class="lineNum">     135 </span>            :   // Fit the distortion along the line with the parabolic model
+<span class="lineNum">     136 </span>            :   // We assume that the track are primaries  - where the vertex is at (0,0,0)
+<span class="lineNum">     137 </span>            :   //
+<span class="lineNum">     138 </span>            :   // Parameters:
+<span class="lineNum">     139 </span>            :   //  phi0  -  phi at the entrance of the TPC
+<span class="lineNum">     140 </span>            :   //  snp   -  local inclination angle at the entrance of the TPC
+<span class="lineNum">     141 </span>            :   //  refX  -  reference X where phi and snp is calculated
+<span class="lineNum">     142 </span>            :   //  evalX  - ref X where the distortion is evaluated
+<span class="lineNum">     143 </span>            :   //  theta -  inclination angle
+<span class="lineNum">     144 </span>            :   //  corr  -  internal number of the correction and distortion 
+<span class="lineNum">     145 </span>            :   //  ptype -  0 - local y distortion
+<span class="lineNum">     146 </span>            :   //           //1 - local z distortion
+<span class="lineNum">     147 </span>            :   //           2 - local derivative distortion
+<span class="lineNum">     148 </span>            :   //           //3
+<span class="lineNum">     149 </span>            :   //           4 - distortion in the curvature
+<span class="lineNum">     150 </span>            :   //  nsteps - number of fit points
+<span class="lineNum">     151 </span>            :   //
+<span class="lineNum">     152 </span>            :   // return value -  distortion at point evalX with type ptype
+<span class="lineNum">     153 </span>            :   //
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   static TLinearFitter fitter(3,&quot;pol2&quot;); </span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   fitter.ClearPoints();</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   if (nsteps&lt;3) nsteps=3;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   AliTPCCorrection* pcorr = AliTPCCorrection::GetVisualCorrection(corr);        </span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   if (pcorr==0) return 0;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   if (wt&lt;50){</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (pcorr) pcorr-&gt;SetOmegaTauT1T2(wt,t1,t2);</span>
+<span class="lineNum">     161 </span>            :   }
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   Double_t deltaX=(245-85)/(nsteps);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   Double_t curv=2.*snp/refX;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   Double_t dPhi0=TMath::ASin(snp);</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   for (Int_t istep=0; istep&lt;(nsteps+1); istep++){</span>
+<span class="lineNum">     167 </span>            :     //
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     Double_t localX =85.+deltaX*istep;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     Double_t dPhi =TMath::ASin(0.5*localX*curv)-dPhi0;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     Double_t localPhi=phi0+dPhi;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     Double_t sector = 9*localPhi/TMath::Pi();</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     if (sector&lt;0) sector+=18;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     if (sector&gt;18) sector-=18;</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     Double_t dy=AliTPCCorrection::GetCorrSector(sector,localX,theta,1,corr);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     Double_t dlocalX=AliTPCCorrection::GetCorrSector(sector,localX,theta,0,corr);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     Double_t x[1]={localX-dlocalX};</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     fitter.AddPoint(x,dy);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   fitter.Eval();</span>
+<span class="lineNum">     180 </span>            :   Double_t par[3];
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   par[0]=fitter.GetParameter(0);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   par[1]=fitter.GetParameter(1);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   par[2]=fitter.GetParameter(2);</span>
+<span class="lineNum">     184 </span>            :   
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   Double_t schi2= TMath::Sqrt(fitter.GetChisquare()/nsteps);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   if (schi2&gt; fgMaxChi2HelixAt){</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     ::Error(&quot;AliTPCCorrectionFit::EvalAtHelix&quot;,TString::Format(&quot;%s\tbad chi2:\t%2.2f&quot;,pcorr-&gt;GetName(),schi2).Data());</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     if (pstatus) (*pstatus)=kFALSE;    </span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     190 </span>            :   }
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   if (pstatus) (*pstatus)=kTRUE;</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   if (ptype==0) return par[0]+par[1]*evalX+par[2]*evalX*evalX;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   if (ptype==2) return par[1]+2*par[2]*evalX;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   if (ptype==4) return par[2];</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   if (ptype==5) return schi2;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 : }</span>
+<a name="198"><span class="lineNum">     198 </span>            : </a>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : Double_t AliTPCCorrectionFit::EvalAtHelix(Double_t phi0, Double_t snp, Double_t refX, Double_t evalX, Double_t theta, Int_t corr, Int_t ptype, Int_t nsteps, Float_t wt, Float_t t1, Float_t t2, Bool_t *pstatus){
+<span class="lineNum">     201 </span>            :   //
+<span class="lineNum">     202 </span>            :   // Fit the distortion along the line with the helix model
+<span class="lineNum">     203 </span>            :   // FIXME - original trajectory to be changed - AliHelix to be used
+<span class="lineNum">     204 </span>            :   // We assume that the track are primaries  - where the vertex is at (0,0,0)
+<span class="lineNum">     205 </span>            :   //
+<span class="lineNum">     206 </span>            :   // This procedure should emulate distortions as calibrated in the AliTPCcalibTime class
+<span class="lineNum">     207 </span>            :   //     a.) AliTPCcalibTime::FillResHistoTPCTOF                     -  residuals, phi0 and snp  evaluated at reference refX  TOF clusters (refX=evalX)
+<span class="lineNum">     208 </span>            :   //     b.) AliTPCcalibTime::FillResHistoTPCTRD                     -  residuals, phi0 and snp  evaluated at reference refX  TPCout radius (refX=evalX)
+<span class="lineNum">     209 </span>            :   //     c.) AliTPCcalibTime::FillResHistoTPCITS                     -  residuals, phi0 and snp  evaluated at reference refX  TPCin radius (refX=evalX)
+<span class="lineNum">     210 </span>            :   //     d.) AliTPCcalibTime::FillResHistoTPC  (vertex)              -  phi0 and snp  evaluated at reference refX  TPCin radius, residuals at vertex (refX!=evalX)
+<span class="lineNum">     211 </span>            :   //         *         
+<span class="lineNum">     212 </span>            :   // Parameters:
+<span class="lineNum">     213 </span>            :   //  phi0  -  phi at the entrance of the TPC
+<span class="lineNum">     214 </span>            :   //  snp   -  local inclination angle at the entrance of the TPC
+<span class="lineNum">     215 </span>            :   //  refX  -  reference X where phi and snp is calculated
+<span class="lineNum">     216 </span>            :   //  evalX  - ref X where the distortion is evaluated
+<span class="lineNum">     217 </span>            :   //  theta -  inclination angle
+<span class="lineNum">     218 </span>            :   //  corr  -  internal number of the correction and distortion 
+<span class="lineNum">     219 </span>            :   //  ptype -  0 - local y distortion
+<span class="lineNum">     220 </span>            :   //           //1 - local z distortion
+<span class="lineNum">     221 </span>            :   //           2 - local derivative distortion
+<span class="lineNum">     222 </span>            :   //           //3
+<span class="lineNum">     223 </span>            :   //           4 - distortion in the curvature
+<span class="lineNum">     224 </span>            :   //  nsteps - number of fit points
+<span class="lineNum">     225 </span>            :   //
+<span class="lineNum">     226 </span>            :   // return value -  distortion at point refX with type ptype
+<span class="lineNum">     227 </span>            :   //
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   static TLinearFitter fitter(3,&quot;pol2&quot;); </span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   fitter.ClearPoints();</span>
+<span class="lineNum">     230 </span>            :   //
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   if (nsteps&lt;4) nsteps=4;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   Double_t deltaX=(245-85)/(nsteps);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   AliRieman rieman(nsteps);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   if (wt&lt;50){</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     AliTPCCorrection* pcorr = AliTPCCorrection::GetVisualCorrection(corr);          </span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     if (pcorr) pcorr-&gt;SetOmegaTauT1T2(wt,t1,t2);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   Double_t curv=2.*snp/refX;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   Double_t dPhi0=TMath::ASin(snp);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   for (Int_t istep=0; istep&lt;(nsteps+1); istep++){</span>
+<span class="lineNum">     241 </span>            :     //
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     Double_t localX =85.+deltaX*istep;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     Double_t dPhi =TMath::ASin(0.5*localX*curv)-dPhi0;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     Double_t localPhi=phi0+dPhi;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     Double_t sector = 9*localPhi/TMath::Pi();</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if (sector&lt;0) sector+=18;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     if (sector&gt;18) sector-=18;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     Double_t dy=AliTPCCorrection::GetCorrSector(sector,localX,theta,1,corr);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     Double_t dlocalX=AliTPCCorrection::GetCorrSector(sector,localX,theta,0,corr);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     Double_t x[1]={localX-dlocalX};</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     Double_t z=theta*x[0];</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     rieman.AddPoint(x[0],dy,z,0.1,0.1);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     fitter.AddPoint(x,dy);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   fitter.Eval();</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :   rieman.Update();</span>
+<span class="lineNum">     257 </span>            :   //
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   Double_t schi2= TMath::Sqrt(fitter.GetChisquare()/nsteps);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   if (schi2&gt;fgMaxChi2HelixAt){</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     ::Error(&quot;AliTPCCorrectionFit::EvalAtHelix&quot;,TString::Format(&quot;Bad chi2\t%2.2f&quot;,schi2).Data());</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     if (pstatus) (*pstatus)=kFALSE;    </span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     263 </span>            :   }
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   if (pstatus) (*pstatus)=kTRUE;    </span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   if (ptype==0) return rieman.GetYat(evalX);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   if (ptype==2) return rieman.GetDYat(evalX);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   if (ptype==4) return rieman.GetC();</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : 
+<a name="272"><span class="lineNum">     272 </span>            : </a>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            : void AliTPCCorrectionFit::CreateAlignMaps(Double_t bz, Int_t run){
+<span class="lineNum">     275 </span>            :   //
+<span class="lineNum">     276 </span>            :   // Create cluster distortion map
+<span class="lineNum">     277 </span>            :   //
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   TFile *falign = TFile::Open(&quot;CalibObjects.root&quot;);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   TObjArray * arrayAlign = (TObjArray *)falign-&gt;Get(&quot;TPCAlign&quot;);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   if (!arrayAlign) {</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     AliWarningGeneral(&quot;AliTPCCorrectionFit::CreateAlignMaps&quot;,&quot;Alignment was not included in the calibration task&quot;);</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     283 </span>            :   }
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   AliTPCcalibAlign * align =  (AliTPCcalibAlign *)arrayAlign-&gt;FindObject(&quot;alignTPC&quot;);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   if (!align) {</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :       AliWarningGeneral(&quot;AliTPCCorrectionFit::CreateAlignMaps&quot;,&quot;Alignment was not included in the calibration task&quot;);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     288 </span>            :   }
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   TTreeSRedirector * pcstream = new TTreeSRedirector(&quot;TPCAlign.root&quot;);</span>
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   THnBase * hdY = (THnBase*)align-&gt;GetClusterDelta(0);</span>
+<span class="lineNum">     292 </span>            :   //THnBase * hdZ = (THnBase*)align-&gt;GetClusterDelta(1);
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   AliTPCCorrectionFit::MakeClusterDistortionMap(hdY,pcstream,0, bz);</span>
+<span class="lineNum">     294 </span>            :   //  AliTPCCorrectionFit::MakeClusterDistortionMap(hdZ,pcstream,1, bz);
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :   const char * hname[5]={&quot;dy&quot;,&quot;dz&quot;,&quot;dsnp&quot;,&quot;dtheta&quot;,&quot;d1pt&quot;};</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :   for (Int_t ihis=0; ihis&lt;4; ihis++){</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     THnSparse * hisAlign =align-&gt;GetTrackletDelta(ihis);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     AliTPCCorrectionFit::MakeDistortionMapSector(hisAlign, pcstream, hname[ihis], run, ihis,bz);</span>
+<span class="lineNum">     300 </span>            :   }
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :   delete pcstream;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   delete falign;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            : 
+<a name="307"><span class="lineNum">     307 </span>            : </a>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            : void  AliTPCCorrectionFit::MakeClusterDistortionMap(THnBase * hisInput,TTreeSRedirector *pcstream , Int_t ptype, Int_t dtype){
+<span class="lineNum">     310 </span>            :   //
+<span class="lineNum">     311 </span>            :   // Make cluster residual map from the n-dimensional histogram
+<span class="lineNum">     312 </span>            :   // hisInput supposed to have given format:
+<span class="lineNum">     313 </span>            :   //     4 Dim:
+<span class="lineNum">     314 </span>            :   //      delta, 
+<span class="lineNum">     315 </span>            :   //      sector 
+<span class="lineNum">     316 </span>            :   //      localX
+<span class="lineNum">     317 </span>            :   //      kZ
+<span class="lineNum">     318 </span>            :   // Vertex position assumed to be at (0,0,0)          
+<span class="lineNum">     319 </span>            :   //
+<span class="lineNum">     320 </span>            :   //TTreeSRedirector *pcstream=new TTreeSRedirector(sname);
+<span class="lineNum">     321 </span>            :   //
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   Int_t nbins1=hisInput-&gt;GetAxis(1)-&gt;GetNbins();</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   Int_t nbins2=hisInput-&gt;GetAxis(2)-&gt;GetNbins();</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   Int_t nbins3=hisInput-&gt;GetAxis(3)-&gt;GetNbins();</span>
+<span class="lineNum">     325 </span>            :   TF1 *fgaus=0;
+<span class="lineNum">     326 </span>            :   TH3F * hisResMap3D = 
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     new TH3F(&quot;his3D&quot;,&quot;his3D&quot;,</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :              nbins1,hisInput-&gt;GetAxis(1)-&gt;GetXmin(), hisInput-&gt;GetAxis(1)-&gt;GetXmax(),</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :              nbins2,hisInput-&gt;GetAxis(2)-&gt;GetXmin(), hisInput-&gt;GetAxis(2)-&gt;GetXmax(),</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :              nbins3,hisInput-&gt;GetAxis(3)-&gt;GetXmin(), hisInput-&gt;GetAxis(3)-&gt;GetXmax());</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   hisResMap3D-&gt;GetXaxis()-&gt;SetTitle(&quot;sector&quot;);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   hisResMap3D-&gt;GetYaxis()-&gt;SetTitle(&quot;localX&quot;);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   hisResMap3D-&gt;GetZaxis()-&gt;SetTitle(&quot;kZ&quot;);</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   TH2F * hisResMap2D[4] ={0,0,0,0};</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;4; i++){</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     hisResMap2D[i]=</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :       new TH2F(Form(&quot;his2D_0%d&quot;,i),Form(&quot;his2D_0%d&quot;,i),</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                nbins1,hisInput-&gt;GetAxis(1)-&gt;GetXmin(), hisInput-&gt;GetAxis(1)-&gt;GetXmax(),</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                nbins2,hisInput-&gt;GetAxis(2)-&gt;GetXmin(), hisInput-&gt;GetAxis(2)-&gt;GetXmax());</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     hisResMap2D[i]-&gt;GetXaxis()-&gt;SetTitle(&quot;sector&quot;);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     hisResMap2D[i]-&gt;GetYaxis()-&gt;SetTitle(&quot;localX&quot;);</span>
+<span class="lineNum">     343 </span>            :   }
+<span class="lineNum">     344 </span>            :   //
+<span class="lineNum">     345 </span>            :   //
+<span class="lineNum">     346 </span>            :   //
+<span class="lineNum">     347 </span>            :   TF1 * f1= 0;
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :   Int_t axis0[4]={0,1,2,3};</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   Int_t axis1[4]={0,1,2,3};</span>
+<span class="lineNum">     350 </span>            :   Int_t counter=0;
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   for (Int_t ibin1=1; ibin1&lt;nbins1; ibin1+=1){</span>
+<span class="lineNum">     352 </span>            :     // phi- sector  range
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     hisInput-&gt;GetAxis(1)-&gt;SetRange(ibin1-1,ibin1+1);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     THnBase *his1=(THnBase *)hisInput-&gt;ProjectionND(4,axis0); </span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     Double_t sector=hisInput-&gt;GetAxis(1)-&gt;GetBinCenter(ibin1);</span>
+<span class="lineNum">     356 </span>            :     //
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     for (Int_t ibin2=1; ibin2&lt;nbins2; ibin2+=1){</span>
+<span class="lineNum">     358 </span>            :       // local x range
+<span class="lineNum">     359 </span>            :       // kz fits
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       his1-&gt;GetAxis(2)-&gt;SetRange(ibin2-1,ibin2+1);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :       THnBase *his2=(THnBase *)his1-&gt;ProjectionND(4,axis1); </span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :       Double_t localX=hisInput-&gt;GetAxis(2)-&gt;GetBinCenter(ibin2);</span>
+<span class="lineNum">     363 </span>            :       //      
+<span class="lineNum">     364 </span>            :       //A side
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       his2-&gt;GetAxis(3)-&gt;SetRangeUser(0.01,0.3);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :       TH1 * hisA = his2-&gt;Projection(0);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :       Double_t meanA= hisA-&gt;GetMean();</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :       Double_t rmsA= hisA-&gt;GetRMS();</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :       Double_t entriesA= hisA-&gt;GetEntries();</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :       delete hisA;</span>
+<span class="lineNum">     371 </span>            :       //C side
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :       his2-&gt;GetAxis(3)-&gt;SetRangeUser(0.01,0.3);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :       TH1 * hisC = his2-&gt;Projection(0);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :       Double_t meanC= hisC-&gt;GetMean();</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :       Double_t rmsC= hisC-&gt;GetRMS();</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :       Double_t entriesC= hisC-&gt;GetEntries();</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :       delete hisC;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :       his2-&gt;GetAxis(3)-&gt;SetRangeUser(-1.2,1.2);      </span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :       TH2 * hisAC       = his2-&gt;Projection(0,3);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :       TProfile *profAC  = hisAC-&gt;ProfileX(); </span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :       delete hisAC;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :       profAC-&gt;Fit(&quot;pol1&quot;,&quot;QNR&quot;,&quot;QNR&quot;,0.05,1);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :       if (!f1) f1=(TF1*)gROOT-&gt;FindObject(&quot;pol1&quot;);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       Double_t offsetA=f1-&gt;GetParameter(0);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :       Double_t slopeA=f1-&gt;GetParameter(1);</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :       Double_t offsetAE=f1-&gt;GetParError(0);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       Double_t slopeAE=f1-&gt;GetParError(1); </span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :       Double_t chi2A=f1-&gt;GetChisquare()/f1-&gt;GetNumberFreeParameters();</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :       profAC-&gt;Fit(&quot;pol1&quot;,&quot;QNR&quot;,&quot;QNR&quot;,-1.1,-0.1);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :       f1=(TF1*)gROOT-&gt;FindObject(&quot;pol1&quot;);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :       Double_t offsetC=f1-&gt;GetParameter(0);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :       Double_t slopeC=f1-&gt;GetParameter(1); </span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :       Double_t offsetCE=f1-&gt;GetParError(0);</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :       Double_t slopeCE=f1-&gt;GetParError(1); </span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :       Double_t chi2C=f1-&gt;GetChisquare()/f1-&gt;GetNumberFreeParameters();</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :       if (counter%50==0) printf(&quot;%f\t%f\t%f\t%f\t%f\t%f\t%f\n&quot;, sector,localX, entriesA+entriesC, slopeA,slopeC, chi2A, chi2C);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :       counter++;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;deltaFit&quot;&lt;&lt;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         &quot;sector=&quot;&lt;&lt;sector&lt;&lt;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         &quot;localX=&quot;&lt;&lt;localX&lt;&lt;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         &quot;meanA=&quot;&lt;&lt;meanA&lt;&lt;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         &quot;rmsA=&quot;&lt;&lt;rmsA&lt;&lt;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         &quot;entriesA=&quot;&lt;&lt;entriesA&lt;&lt;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         &quot;meanC=&quot;&lt;&lt;meanC&lt;&lt;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         &quot;rmsC=&quot;&lt;&lt;rmsC&lt;&lt;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         &quot;entriesC=&quot;&lt;&lt;entriesC&lt;&lt;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         &quot;offsetA=&quot;&lt;&lt;offsetA&lt;&lt;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         &quot;slopeA=&quot;&lt;&lt;slopeA&lt;&lt;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         &quot;offsetAE=&quot;&lt;&lt;offsetAE&lt;&lt;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         &quot;slopeAE=&quot;&lt;&lt;slopeAE&lt;&lt;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         &quot;chi2A=&quot;&lt;&lt;chi2A&lt;&lt;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         &quot;offsetC=&quot;&lt;&lt;offsetC&lt;&lt;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         &quot;slopeC=&quot;&lt;&lt;slopeC&lt;&lt;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         &quot;offsetCE=&quot;&lt;&lt;offsetCE&lt;&lt;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         &quot;slopeCE=&quot;&lt;&lt;slopeCE&lt;&lt;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         &quot;chi2C=&quot;&lt;&lt;chi2C&lt;&lt;</span>
+<span class="lineNum">     417 </span>            :         &quot;\n&quot;;
+<span class="lineNum">     418 </span>            :       //
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       hisResMap2D[0]-&gt;SetBinContent(ibin1,ibin2, offsetA);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :       hisResMap2D[1]-&gt;SetBinContent(ibin1,ibin2, slopeA);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :       hisResMap2D[2]-&gt;SetBinContent(ibin1,ibin2, offsetC);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       hisResMap2D[3]-&gt;SetBinContent(ibin1,ibin2, slopeC);</span>
+<span class="lineNum">     423 </span>            :       
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :       for (Int_t ibin3=1; ibin3&lt;nbins3; ibin3++){</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         Double_t kZ=hisInput-&gt;GetAxis(3)-&gt;GetBinCenter(ibin3);</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         if (TMath::Abs(kZ)&lt;0.05) continue;  // crossing </span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         his2-&gt;GetAxis(3)-&gt;SetRange(ibin3,ibin3);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         if (TMath::Abs(kZ)&gt;0.15){</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :           his2-&gt;GetAxis(3)-&gt;SetRange(ibin3,ibin3);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         TH1 * his = his2-&gt;Projection(0);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         Double_t mean= his-&gt;GetMean();</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         Double_t rms= his-&gt;GetRMS();</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         Double_t entries= his-&gt;GetEntries();</span>
+<span class="lineNum">     435 </span>            :         //printf(&quot;%f\t%f\t%f\t%f\t%f\t%f\n&quot;, sector,localX,kZ, entries, mean,rms);
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         hisResMap3D-&gt;SetBinContent(ibin1,ibin2,ibin3, mean);</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :         Double_t phi=TMath::Pi()*sector/9;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         if (phi&gt;TMath::Pi()) phi+=TMath::Pi();</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         Double_t meanG=0;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         Double_t rmsG=0;</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         if (entries&gt;50){</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :           if (!fgaus) {     </span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             his-&gt;Fit(&quot;gaus&quot;,&quot;Q&quot;,&quot;goff&quot;);</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :             fgaus= (TF1*)((his-&gt;GetListOfFunctions()-&gt;FindObject(&quot;gaus&quot;))-&gt;Clone());</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :           if (fgaus) {</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :             his-&gt;Fit(fgaus,&quot;Q&quot;,&quot;goff&quot;);</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             meanG=fgaus-&gt;GetParameter(1);</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             rmsG=fgaus-&gt;GetParameter(2);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     451 </span>            :         }
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :         Double_t dsec=sector-Int_t(sector)-0.5;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         Double_t snp=dsec*TMath::Pi()/9.;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         (*pcstream)&lt;&lt;&quot;delta&quot;&lt;&lt;</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :           &quot;ptype=&quot;&lt;&lt;ptype&lt;&lt;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :           &quot;dtype=&quot;&lt;&lt;dtype&lt;&lt;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :           &quot;sector=&quot;&lt;&lt;sector&lt;&lt;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :           &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :           &quot;snp=&quot;&lt;&lt;snp&lt;&lt;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :           &quot;phi=&quot;&lt;&lt;phi&lt;&lt;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :           &quot;localX=&quot;&lt;&lt;localX&lt;&lt;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :           &quot;kZ=&quot;&lt;&lt;kZ&lt;&lt;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :           &quot;theta=&quot;&lt;&lt;kZ&lt;&lt;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :           &quot;mean=&quot;&lt;&lt;mean&lt;&lt;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :           &quot;rms=&quot;&lt;&lt;rms&lt;&lt;</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :           &quot;meanG=&quot;&lt;&lt;meanG&lt;&lt;</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :           &quot;rmsG=&quot;&lt;&lt;rmsG&lt;&lt;</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :           &quot;entries=&quot;&lt;&lt;entries&lt;&lt;</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :           &quot;meanA=&quot;&lt;&lt;meanA&lt;&lt;</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :           &quot;rmsA=&quot;&lt;&lt;rmsA&lt;&lt;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :           &quot;entriesA=&quot;&lt;&lt;entriesA&lt;&lt;</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :           &quot;meanC=&quot;&lt;&lt;meanC&lt;&lt;</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :           &quot;rmsC=&quot;&lt;&lt;rmsC&lt;&lt;</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :           &quot;entriesC=&quot;&lt;&lt;entriesC&lt;&lt;</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :           &quot;offsetA=&quot;&lt;&lt;offsetA&lt;&lt;</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :           &quot;slopeA=&quot;&lt;&lt;slopeA&lt;&lt;</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :           &quot;chi2A=&quot;&lt;&lt;chi2A&lt;&lt;</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :           &quot;offsetC=&quot;&lt;&lt;offsetC&lt;&lt;</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :           &quot;slopeC=&quot;&lt;&lt;slopeC&lt;&lt;</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :           &quot;chi2C=&quot;&lt;&lt;chi2C&lt;&lt;</span>
+<span class="lineNum">     481 </span>            :           &quot;\n&quot;;
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :         delete his;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :       delete his2;</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     delete his1;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   hisResMap3D-&gt;Write();</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   hisResMap2D[0]-&gt;Write();</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   hisResMap2D[1]-&gt;Write();</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   hisResMap2D[2]-&gt;Write();</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   hisResMap2D[3]-&gt;Write();</span>
+<span class="lineNum">     493 </span>            :   //  delete pcstream;
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     495 </span>            : 
+<a name="496"><span class="lineNum">     496 </span>            : </a>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : void   AliTPCCorrectionFit::MakeDistortionMap(THnSparse * his0, TTreeSRedirector * const pcstream, const char* hname, Int_t run, Float_t refX, Int_t type, Int_t integ, Double_t bz){
+<span class="lineNum">     499 </span>            :   //
+<span class="lineNum">     500 </span>            :   // make a distortion map out ou fthe residual histogram
+<span class="lineNum">     501 </span>            :   // Results are written to the debug streamer - pcstream
+<span class="lineNum">     502 </span>            :   // Parameters:
+<span class="lineNum">     503 </span>            :   //   his0       - input (4D) residual histogram
+<span class="lineNum">     504 </span>            :   //   pcstream   - file to write the tree
+<span class="lineNum">     505 </span>            :   //   run        - run number
+<span class="lineNum">     506 </span>            :   //   refX       - track matching reference X
+<span class="lineNum">     507 </span>            :   //   type       - 0- y 1-z,2 -snp, 3-theta, 4=1/pt
+<span class="lineNum">     508 </span>            :   // THnSparse axes:
+<span class="lineNum">     509 </span>            :   // OBJ: TAxis     #Delta  #Delta
+<span class="lineNum">     510 </span>            :   // OBJ: TAxis     tanTheta        tan(#Theta)
+<span class="lineNum">     511 </span>            :   // OBJ: TAxis     phi     #phi
+<span class="lineNum">     512 </span>            :   // OBJ: TAxis     snp     snp
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :   // marian.ivanov@cern.ch
+<span class="lineNum">     515 </span>            :   const Int_t kMinEntries=10;
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :   Int_t idim[4]={0,1,2,3};</span>
+<span class="lineNum">     517 </span>            :   //
+<span class="lineNum">     518 </span>            :   //
+<span class="lineNum">     519 </span>            :   //
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   Int_t nbins3=his0-&gt;GetAxis(3)-&gt;GetNbins();</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :   Int_t first3=his0-&gt;GetAxis(3)-&gt;GetFirst();</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   Int_t last3 =his0-&gt;GetAxis(3)-&gt;GetLast();</span>
+<span class="lineNum">     523 </span>            :   //
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   for (Int_t ibin3=first3; ibin3&lt;last3; ibin3+=1){   // axis 3 - local angle</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     his0-&gt;GetAxis(3)-&gt;SetRange(TMath::Max(ibin3-integ,1),TMath::Min(ibin3+integ,nbins3));</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     Double_t      x3= his0-&gt;GetAxis(3)-&gt;GetBinCenter(ibin3);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     THnSparse * his3= his0-&gt;Projection(3,idim);         //projected histogram according selection 3</span>
+<span class="lineNum">     528 </span>            :     //
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     Int_t nbins2    = his3-&gt;GetAxis(2)-&gt;GetNbins();</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     Int_t first2    = his3-&gt;GetAxis(2)-&gt;GetFirst();</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     Int_t last2     = his3-&gt;GetAxis(2)-&gt;GetLast();</span>
+<span class="lineNum">     532 </span>            :     //
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     for (Int_t ibin2=first2; ibin2&lt;last2; ibin2+=1){   // axis 2 - phi</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :       his3-&gt;GetAxis(2)-&gt;SetRange(TMath::Max(ibin2-integ,1),TMath::Min(ibin2+integ,nbins2));</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       Double_t      x2= his3-&gt;GetAxis(2)-&gt;GetBinCenter(ibin2);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :       THnSparse * his2= his3-&gt;Projection(2,idim);         //projected histogram according selection 2</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :       Int_t nbins1     = his2-&gt;GetAxis(1)-&gt;GetNbins();</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :       Int_t first1     = his2-&gt;GetAxis(1)-&gt;GetFirst();</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       Int_t last1      = his2-&gt;GetAxis(1)-&gt;GetLast();</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       for (Int_t ibin1=first1; ibin1&lt;last1; ibin1++){   //axis 1 - theta</span>
+<span class="lineNum">     541 </span>            :         //
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         Double_t       x1= his2-&gt;GetAxis(1)-&gt;GetBinCenter(ibin1);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :         his2-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibin1-1,1),TMath::Min(ibin1+1,nbins1));</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         if (TMath::Abs(x1)&lt;0.1){</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :           if (x1&lt;0) his2-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibin1-1,1),TMath::Min(ibin1,nbins1));</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :           if (x1&gt;0) his2-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibin1,1),TMath::Min(ibin1+1,nbins1));</span>
+<span class="lineNum">     547 </span>            :         }
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         if (TMath::Abs(x1)&lt;0.06){</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :           his2-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibin1,1),TMath::Min(ibin1,nbins1));</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         TH1 * hisDelta = his2-&gt;Projection(0);</span>
+<span class="lineNum">     552 </span>            :         //
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         Double_t entries = hisDelta-&gt;GetEntries();</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         Double_t mean=0, rms=0;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         if (entries&gt;kMinEntries){</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :           mean    = hisDelta-&gt;GetMean(); </span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :           rms = hisDelta-&gt;GetRMS(); </span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :         Double_t sector = 9.*x2/TMath::Pi();</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         if (sector&lt;0) sector+=18;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         Double_t dsec = sector-Int_t(sector)-0.5;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :         Double_t z=refX*x1;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :         (*pcstream)&lt;&lt;hname&lt;&lt;</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :           &quot;run=&quot;&lt;&lt;run&lt;&lt;</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :           &quot;bz=&quot;&lt;&lt;bz&lt;&lt;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :           &quot;theta=&quot;&lt;&lt;x1&lt;&lt;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :           &quot;phi=&quot;&lt;&lt;x2&lt;&lt;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :           &quot;z=&quot;&lt;&lt;z&lt;&lt;            // dummy z</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :           &quot;snp=&quot;&lt;&lt;x3&lt;&lt;</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :           &quot;entries=&quot;&lt;&lt;entries&lt;&lt;</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :           &quot;mean=&quot;&lt;&lt;mean&lt;&lt;</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :           &quot;rms=&quot;&lt;&lt;rms&lt;&lt;</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :           &quot;refX=&quot;&lt;&lt;refX&lt;&lt;   // track matching refernce plane</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :           &quot;type=&quot;&lt;&lt;type&lt;&lt;   //</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :           &quot;sector=&quot;&lt;&lt;sector&lt;&lt;</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :           &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;</span>
+<span class="lineNum">     577 </span>            :           &quot;\n&quot;;
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         delete hisDelta;</span>
+<span class="lineNum">     579 </span>            :         //printf(&quot;%f\t%f\t%f\t%f\t%f\n&quot;,x3,x2,x1, entries,mean);
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :       delete his2;</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     delete his3;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     586 </span>            : 
+<a name="587"><span class="lineNum">     587 </span>            : </a>
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span>            : void   AliTPCCorrectionFit::MakeDistortionMapCosmic(THnSparse * hisInput, TTreeSRedirector * const pcstream, const char* hname, Int_t run, Float_t refX, Int_t type){
+<span class="lineNum">     590 </span>            :   //
+<span class="lineNum">     591 </span>            :   // make a distortion map out ou fthe residual histogram
+<span class="lineNum">     592 </span>            :   // Results are written to the debug streamer - pcstream
+<span class="lineNum">     593 </span>            :   // Parameters:
+<span class="lineNum">     594 </span>            :   //   his0       - input (4D) residual histogram
+<span class="lineNum">     595 </span>            :   //   pcstream   - file to write the tree
+<span class="lineNum">     596 </span>            :   //   run        - run number
+<span class="lineNum">     597 </span>            :   //   refX       - track matching reference X
+<span class="lineNum">     598 </span>            :   //   type       - 0- y 1-z,2 -snp, 3-theta, 4=1/pt
+<span class="lineNum">     599 </span>            :   // marian.ivanov@cern.ch
+<span class="lineNum">     600 </span>            :   //
+<span class="lineNum">     601 </span>            :   //  Histo axeses
+<span class="lineNum">     602 </span>            :   //   Collection name='TObjArray', class='TObjArray', size=16
+<span class="lineNum">     603 </span>            :   //  0. OBJ: TAxis     #Delta  #Delta
+<span class="lineNum">     604 </span>            :   //  1. OBJ: TAxis     N_{cl}  N_{cl}
+<span class="lineNum">     605 </span>            :   //  2. OBJ: TAxis     dca_{r} (cm)    dca_{r} (cm)
+<span class="lineNum">     606 </span>            :   //  3. OBJ: TAxis     z (cm)  z (cm)
+<span class="lineNum">     607 </span>            :   //  4. OBJ: TAxis     sin(#phi)       sin(#phi)
+<span class="lineNum">     608 </span>            :   //  5. OBJ: TAxis     tan(#theta)     tan(#theta)
+<span class="lineNum">     609 </span>            :   //  6. OBJ: TAxis     1/pt (1/GeV)    1/pt (1/GeV)
+<span class="lineNum">     610 </span>            :   //  7. OBJ: TAxis     pt (GeV)        pt (GeV)
+<span class="lineNum">     611 </span>            :   //  8. OBJ: TAxis     alpha   alpha
+<span class="lineNum">     612 </span>            :   const Int_t kMinEntries=10;
+<span class="lineNum">     613 </span>            :   //
+<span class="lineNum">     614 </span>            :   //  1. make default selections
+<span class="lineNum">     615 </span>            :   //
+<span class="lineNum">     616 </span>            :   TH1 * hisDelta=0;
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :   Int_t idim0[4]={0 , 5, 8,  3};   // delta, theta, alpha, z</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :   hisInput-&gt;GetAxis(1)-&gt;SetRangeUser(110,190);   //long tracks</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   hisInput-&gt;GetAxis(2)-&gt;SetRangeUser(-10,35);    //tracks close to beam pipe</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :   hisInput-&gt;GetAxis(4)-&gt;SetRangeUser(-0.3,0.3); //small snp at TPC entrance</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   hisInput-&gt;GetAxis(7)-&gt;SetRangeUser(3,100); //&quot;high pt tracks&quot;</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :   hisDelta= hisInput-&gt;Projection(0);</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :   hisInput-&gt;GetAxis(0)-&gt;SetRangeUser(-6.*hisDelta-&gt;GetRMS(), +6.*hisDelta-&gt;GetRMS());</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   delete hisDelta;</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :   THnSparse *his0=  hisInput-&gt;Projection(4,idim0);</span>
+<span class="lineNum">     626 </span>            :   //
+<span class="lineNum">     627 </span>            :   // 2. Get mean in diferent bins
+<span class="lineNum">     628 </span>            :   //
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :   Int_t nbins1=his0-&gt;GetAxis(1)-&gt;GetNbins();</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :   Int_t first1=his0-&gt;GetAxis(1)-&gt;GetFirst();</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :   Int_t last1 =his0-&gt;GetAxis(1)-&gt;GetLast();</span>
+<span class="lineNum">     632 </span>            :   //
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :   Double_t bz=AliTrackerBase::GetBz();</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :   Int_t idim[4]={0,1, 2,  3};  // delta, theta,alpha,z</span>
+<span class="lineNum">     635 </span>            :   //
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :   for (Int_t ibin1=first1; ibin1&lt;=last1; ibin1++){   //axis 1 - theta</span>
+<span class="lineNum">     637 </span>            :     //
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     Double_t       x1= his0-&gt;GetAxis(1)-&gt;GetBinCenter(ibin1);  </span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     his0-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibin1-1,1),TMath::Min(ibin1+1,nbins1));</span>
+<span class="lineNum">     640 </span>            :     //
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     THnSparse * his1 = his0-&gt;Projection(4,idim);  // projected histogram according range1</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :     Int_t nbins3     = his1-&gt;GetAxis(3)-&gt;GetNbins();</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :     Int_t first3     = his1-&gt;GetAxis(3)-&gt;GetFirst();</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     Int_t last3      = his1-&gt;GetAxis(3)-&gt;GetLast();</span>
+<span class="lineNum">     645 </span>            :     //
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     for (Int_t ibin3=first3-1; ibin3&lt;=last3; ibin3+=1){   // axis 3 - z at &quot;vertex&quot;</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :       his1-&gt;GetAxis(3)-&gt;SetRange(TMath::Max(ibin3-1,1),TMath::Min(ibin3+1,nbins3));</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :       Double_t      x3= his1-&gt;GetAxis(3)-&gt;GetBinCenter(ibin3);</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :       if (ibin3&lt;first3) {</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :         his1-&gt;GetAxis(3)-&gt;SetRangeUser(-1,1);</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         x3=0;</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :       THnSparse * his3= his1-&gt;Projection(4,idim);         //projected histogram according selection 3</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :       Int_t nbins2    = his3-&gt;GetAxis(2)-&gt;GetNbins();</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :       Int_t first2    = his3-&gt;GetAxis(2)-&gt;GetFirst();</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :       Int_t last2     = his3-&gt;GetAxis(2)-&gt;GetLast();</span>
+<span class="lineNum">     657 </span>            :       //
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :       for (Int_t ibin2=first2; ibin2&lt;=last2; ibin2+=1){</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :         his3-&gt;GetAxis(2)-&gt;SetRange(TMath::Max(ibin2-1,1),TMath::Min(ibin2+1,nbins2));</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :         Double_t x2= his3-&gt;GetAxis(2)-&gt;GetBinCenter(ibin2);</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :         hisDelta = his3-&gt;Projection(0);</span>
+<span class="lineNum">     662 </span>            :         //
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :         Double_t entries = hisDelta-&gt;GetEntries();</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :         Double_t mean=0, rms=0;</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :         if (entries&gt;kMinEntries){</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :           mean    = hisDelta-&gt;GetMean(); </span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :           rms = hisDelta-&gt;GetRMS(); </span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :         Double_t sector = 9.*x2/TMath::Pi();</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         if (sector&lt;0) sector+=18;</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :         Double_t dsec = sector-Int_t(sector)-0.5;</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :         Double_t snp=0;  // dummy snp - equal 0</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :         (*pcstream)&lt;&lt;hname&lt;&lt;</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :           &quot;run=&quot;&lt;&lt;run&lt;&lt;</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :           &quot;bz=&quot;&lt;&lt;bz&lt;&lt;            // magnetic field</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :           &quot;theta=&quot;&lt;&lt;x1&lt;&lt;         // theta</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :           &quot;phi=&quot;&lt;&lt;x2&lt;&lt;           // phi (alpha)</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :           &quot;z=&quot;&lt;&lt;x3&lt;&lt;             // z at &quot;vertex&quot;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :           &quot;snp=&quot;&lt;&lt;snp&lt;&lt;          // dummy snp</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :           &quot;entries=&quot;&lt;&lt;entries&lt;&lt;  // entries in bin</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :           &quot;mean=&quot;&lt;&lt;mean&lt;&lt;        // mean</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :           &quot;rms=&quot;&lt;&lt;rms&lt;&lt;</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :           &quot;refX=&quot;&lt;&lt;refX&lt;&lt;        // track matching refernce plane</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :           &quot;type=&quot;&lt;&lt;type&lt;&lt;        // parameter type</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :           &quot;sector=&quot;&lt;&lt;sector&lt;&lt;    // sector</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :           &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;        // dummy delta sector</span>
+<span class="lineNum">     687 </span>            :           &quot;\n&quot;;
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :         delete hisDelta;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :         printf(&quot;%f\t%f\t%f\t%f\t%f\n&quot;,x1,x3,x2, entries,mean);</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :       delete his3;</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     delete his1;</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   delete his0;</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     697 </span>            : 
+<a name="698"><span class="lineNum">     698 </span>            : </a>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            : void   AliTPCCorrectionFit::MakeDistortionMapSector(THnSparse * hisInput, TTreeSRedirector * const pcstream, const char* hname, Int_t run, Int_t type, Double_t bz){
+<span class="lineNum">     701 </span>            :   //
+<span class="lineNum">     702 </span>            :   // make a distortion map out of the residual histogram
+<span class="lineNum">     703 </span>            :   // Results are written to the debug streamer - pcstream
+<span class="lineNum">     704 </span>            :   // Parameters:
+<span class="lineNum">     705 </span>            :   //   his0       - input (4D) residual histogram
+<span class="lineNum">     706 </span>            :   //   pcstream   - file to write the tree
+<span class="lineNum">     707 </span>            :   //   run        - run number
+<span class="lineNum">     708 </span>            :   //   type       - 0- y 1-z,2 -snp, 3-theta
+<span class="lineNum">     709 </span>            :   //   bz         - magnetic field
+<span class="lineNum">     710 </span>            :   // marian.ivanov@cern.ch
+<span class="lineNum">     711 </span>            : 
+<span class="lineNum">     712 </span>            :   //Collection name='TObjArray', class='TObjArray', size=16
+<span class="lineNum">     713 </span>            :   //0  OBJ: TAxis     delta   delta
+<span class="lineNum">     714 </span>            :   //1  OBJ: TAxis     phi     phi
+<span class="lineNum">     715 </span>            :   //2  OBJ: TAxis     localX  localX
+<span class="lineNum">     716 </span>            :   //3  OBJ: TAxis     kY      kY
+<span class="lineNum">     717 </span>            :   //4  OBJ: TAxis     kZ      kZ
+<span class="lineNum">     718 </span>            :   //5  OBJ: TAxis     is1     is1
+<span class="lineNum">     719 </span>            :   //6  OBJ: TAxis     is0     is0
+<span class="lineNum">     720 </span>            :   //7. OBJ: TAxis     z       z
+<span class="lineNum">     721 </span>            :   //8. OBJ: TAxis     IsPrimary       IsPrimary
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span>            :   const Int_t kMinEntries=10;
+<span class="lineNum">     724 </span>            :   THnSparse * hisSector0=0;
+<span class="lineNum">     725 </span>            :   TH1 * htemp=0;    // histogram to calculate mean value of parameter
+<span class="lineNum">     726 </span>            :   //  Double_t bz=AliTrackerBase::GetBz();
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span>            :   //
+<span class="lineNum">     729 </span>            :   // Loop over pair of sector:
+<span class="lineNum">     730 </span>            :   // isPrim         - 8  ==&gt; 8
+<span class="lineNum">     731 </span>            :   // isec0          - 6  ==&gt; 7
+<span class="lineNum">     732 </span>            :   //   isec1        - 5  ==&gt; 6
+<span class="lineNum">     733 </span>            :   //     refX       - 2  ==&gt; 5
+<span class="lineNum">     734 </span>            :   //
+<span class="lineNum">     735 </span>            :   //     phi        - 1  ==&gt; 4
+<span class="lineNum">     736 </span>            :   //       z        - 7  ==&gt; 3
+<span class="lineNum">     737 </span>            :   //         snp    - 3  ==&gt; 2
+<span class="lineNum">     738 </span>            :   //           theta- 4  ==&gt; 1
+<span class="lineNum">     739 </span>            :   //                  0  ==&gt; 0;           
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   for (Int_t isec0=0; isec0&lt;72; isec0++){</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     Int_t index0[9]={0, 4, 3, 7, 1, 2, 5, 6,8}; //regroup indeces</span>
+<span class="lineNum">     742 </span>            :     //
+<span class="lineNum">     743 </span>            :     //hisInput-&gt;GetAxis(8)-&gt;SetRangeUser(-0.1,0.4);  // select secondaries only ? - get out later ?
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     hisInput-&gt;GetAxis(6)-&gt;SetRangeUser(isec0-0.1,isec0+0.1);</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     hisSector0=hisInput-&gt;Projection(7,index0);</span>
+<span class="lineNum">     746 </span>            :     //
+<span class="lineNum">     747 </span>            :     //
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     for (Int_t isec1=isec0+1; isec1&lt;72; isec1++){    </span>
+<span class="lineNum">     749 </span>            :       //if (isec1!=isec0+36) continue;
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :       if ( TMath::Abs((isec0%18)-(isec1%18))&gt;1.5 &amp;&amp; TMath::Abs((isec0%18)-(isec1%18))&lt;16.5) continue;</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :       printf(&quot;Sectors %d\t%d\n&quot;,isec1,isec0);</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :       hisSector0-&gt;GetAxis(6)-&gt;SetRangeUser(isec1-0.1,isec1+0.1);      </span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :       TH1 * hisX=hisSector0-&gt;Projection(5);</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :       Double_t refX= hisX-&gt;GetMean();</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :       delete hisX;</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :       TH1 *hisDelta=hisSector0-&gt;Projection(0);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :       Double_t dmean = hisDelta-&gt;GetMean();</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :       Double_t drms = hisDelta-&gt;GetRMS();</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :       hisSector0-&gt;GetAxis(0)-&gt;SetRangeUser(dmean-5.*drms, dmean+5.*drms);</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :       delete hisDelta;</span>
+<span class="lineNum">     761 </span>            :       //
+<span class="lineNum">     762 </span>            :       //  1. make default selections
+<span class="lineNum">     763 </span>            :       //
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :       Int_t idim0[5]={0 , 1, 2, 3, 4}; // {delta, theta, snp, z, phi }</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :       THnBase *hisSector1=  hisSector0-&gt;ProjectionND(5,idim0);</span>
+<span class="lineNum">     766 </span>            :       //
+<span class="lineNum">     767 </span>            :       // 2. Get mean in diferent bins
+<span class="lineNum">     768 </span>            :       //
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :       Int_t idim[5]={0, 1, 2,  3, 4};  // {delta, theta-1,snp-2 ,z-3, phi-4}</span>
+<span class="lineNum">     770 </span>            :       //
+<span class="lineNum">     771 </span>            :       //      Int_t nbinsPhi=hisSector1-&gt;GetAxis(4)-&gt;GetNbins();
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :       Int_t firstPhi=hisSector1-&gt;GetAxis(4)-&gt;GetFirst();</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :       Int_t lastPhi =hisSector1-&gt;GetAxis(4)-&gt;GetLast();</span>
+<span class="lineNum">     774 </span>            :       //
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       for (Int_t ibinPhi=firstPhi; ibinPhi&lt;=lastPhi; ibinPhi+=2){   //axis 4 - phi</span>
+<span class="lineNum">     776 </span>            :         //
+<span class="lineNum">     777 </span>            :         // Phi loop
+<span class="lineNum">     778 </span>            :         //
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :         Double_t       xPhi= hisSector1-&gt;GetAxis(4)-&gt;GetBinCenter(ibinPhi);         </span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :         Double_t psec    = (9*xPhi/TMath::Pi());</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :         if (psec&lt;0) psec+=18;</span>
+<span class="lineNum">     782 </span>            :         Bool_t isOK0=kFALSE;
+<span class="lineNum">     783 </span>            :         Bool_t isOK1=kFALSE;
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :         if (TMath::Abs(psec-isec0%18-0.5)&lt;1. || TMath::Abs(psec-isec0%18-17.5)&lt;1.)  isOK0=kTRUE;</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :         if (TMath::Abs(psec-isec1%18-0.5)&lt;1. || TMath::Abs(psec-isec1%18-17.5)&lt;1.)  isOK1=kTRUE;</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :         if (!isOK0) continue;</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :         if (!isOK1) continue;</span>
+<span class="lineNum">     788 </span>            :         //
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         hisSector1-&gt;GetAxis(4)-&gt;SetRange(TMath::Max(ibinPhi-2,firstPhi),TMath::Min(ibinPhi+2,lastPhi));</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :         if (isec1!=isec0+36) {</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :           hisSector1-&gt;GetAxis(4)-&gt;SetRange(TMath::Max(ibinPhi-3,firstPhi),TMath::Min(ibinPhi+3,lastPhi));</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     793 </span>            :         //
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :         htemp = hisSector1-&gt;Projection(4);</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :         xPhi=htemp-&gt;GetMean();</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :         delete htemp;</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :         THnBase * hisPhi = hisSector1-&gt;ProjectionND(4,idim);</span>
+<span class="lineNum">     798 </span>            :         //Int_t nbinsZ     = hisPhi-&gt;GetAxis(3)-&gt;GetNbins();
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         Int_t firstZ     = hisPhi-&gt;GetAxis(3)-&gt;GetFirst();</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :         Int_t lastZ      = hisPhi-&gt;GetAxis(3)-&gt;GetLast();</span>
+<span class="lineNum">     801 </span>            :         //
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         for (Int_t ibinZ=firstZ; ibinZ&lt;=lastZ; ibinZ+=2){   // axis 3 - z</span>
+<span class="lineNum">     803 </span>            :           //
+<span class="lineNum">     804 </span>            :           // Z loop
+<span class="lineNum">     805 </span>            :           //
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :           hisPhi-&gt;GetAxis(3)-&gt;SetRange(TMath::Max(ibinZ,firstZ),TMath::Min(ibinZ,lastZ));</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :           if (isec1!=isec0+36) {</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :             hisPhi-&gt;GetAxis(3)-&gt;SetRange(TMath::Max(ibinZ-1,firstZ),TMath::Min(ibinZ-1,lastZ));       </span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :           htemp = hisPhi-&gt;Projection(3);</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :           Double_t      xZ= htemp-&gt;GetMean();</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :           delete htemp;</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :           THnBase * hisZ= hisPhi-&gt;ProjectionND(3,idim);         </span>
+<span class="lineNum">     814 </span>            :           //projected histogram according selection 3 -z
+<span class="lineNum">     815 </span>            :           //
+<span class="lineNum">     816 </span>            :           //
+<span class="lineNum">     817 </span>            :           //Int_t nbinsSnp    = hisZ-&gt;GetAxis(2)-&gt;GetNbins();
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :           Int_t firstSnp    = hisZ-&gt;GetAxis(2)-&gt;GetFirst();</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :           Int_t lastSnp     = hisZ-&gt;GetAxis(2)-&gt;GetLast();</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :           for (Int_t ibinSnp=firstSnp; ibinSnp&lt;=lastSnp; ibinSnp+=2){   // axis 2 - snp</span>
+<span class="lineNum">     821 </span>            :             //
+<span class="lineNum">     822 </span>            :             // Snp loop
+<span class="lineNum">     823 </span>            :             //
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :             hisZ-&gt;GetAxis(2)-&gt;SetRange(TMath::Max(ibinSnp-1,firstSnp),TMath::Min(ibinSnp+1,lastSnp));</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :             if (isec1!=isec0+36) {</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :               hisZ-&gt;GetAxis(2)-&gt;SetRange(TMath::Max(ibinSnp-2,firstSnp),TMath::Min(ibinSnp+2,lastSnp));</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :             htemp = hisZ-&gt;Projection(2);</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :             Double_t      xSnp= htemp-&gt;GetMean();</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :             delete htemp;</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :             THnBase * hisSnp= hisZ-&gt;ProjectionND(2,idim);         </span>
+<span class="lineNum">     832 </span>            :             //projected histogram according selection 2 - snp
+<span class="lineNum">     833 </span>            :             
+<span class="lineNum">     834 </span>            :             //Int_t nbinsTheta    = hisSnp-&gt;GetAxis(1)-&gt;GetNbins();
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :             Int_t firstTheta    = hisSnp-&gt;GetAxis(1)-&gt;GetFirst();</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :             Int_t lastTheta     = hisSnp-&gt;GetAxis(1)-&gt;GetLast();</span>
+<span class="lineNum">     837 </span>            :             //
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :             for (Int_t ibinTheta=firstTheta; ibinTheta&lt;=lastTheta; ibinTheta+=2){  // axis1 theta</span>
+<span class="lineNum">     839 </span>            :               
+<span class="lineNum">     840 </span>            :               
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :               hisSnp-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibinTheta-2,firstTheta),TMath::Min(ibinTheta+2,lastTheta));</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :               if (isec1!=isec0+36) {</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :                  hisSnp-&gt;GetAxis(1)-&gt;SetRange(TMath::Max(ibinTheta-3,firstTheta),TMath::Min(ibinTheta+3,lastTheta));               </span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :               htemp = hisSnp-&gt;Projection(1);       </span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :               Double_t xTheta=htemp-&gt;GetMean();</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :               delete htemp;</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :               hisDelta = hisSnp-&gt;Projection(0);</span>
+<span class="lineNum">     849 </span>            :               //
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :               Double_t entries = hisDelta-&gt;GetEntries();</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :               Double_t mean=0, rms=0;</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :               if (entries&gt;kMinEntries){</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :                 mean    = hisDelta-&gt;GetMean(); </span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :                 rms = hisDelta-&gt;GetRMS(); </span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :               Double_t sector = 9.*xPhi/TMath::Pi();</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :               if (sector&lt;0) sector+=18;</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :               Double_t dsec = sector-Int_t(sector)-0.5;</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :               Int_t dtype=1;  // TPC alignment type</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :               (*pcstream)&lt;&lt;hname&lt;&lt;</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :                 &quot;run=&quot;&lt;&lt;run&lt;&lt;</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :                 &quot;bz=&quot;&lt;&lt;bz&lt;&lt;             // magnetic field</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :                 &quot;ptype=&quot;&lt;&lt;type&lt;&lt;         // parameter type</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :                 &quot;dtype=&quot;&lt;&lt;dtype&lt;&lt;         // parameter type</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :                 &quot;isec0=&quot;&lt;&lt;isec0&lt;&lt;       // sector 0 </span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :                 &quot;isec1=&quot;&lt;&lt;isec1&lt;&lt;       // sector 1               </span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :                 &quot;sector=&quot;&lt;&lt;sector&lt;&lt;     // sector as float</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :                 &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;         // delta sector</span>
+<span class="lineNum">     869 </span>            :                 //
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :                 &quot;theta=&quot;&lt;&lt;xTheta&lt;&lt;      // theta</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :                 &quot;phi=&quot;&lt;&lt;xPhi&lt;&lt;          // phi (alpha)          </span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :                 &quot;z=&quot;&lt;&lt;xZ&lt;&lt;              // z</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :                 &quot;snp=&quot;&lt;&lt;xSnp&lt;&lt;          // snp</span>
+<span class="lineNum">     874 </span>            :                 
+<span class="lineNum">     875 </span>            :                 //
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :                 &quot;entries=&quot;&lt;&lt;entries&lt;&lt;  // entries in bin</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :                 &quot;mean=&quot;&lt;&lt;mean&lt;&lt;        // mean</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :                 &quot;rms=&quot;&lt;&lt;rms&lt;&lt;          // rms </span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :                 &quot;refX=&quot;&lt;&lt;refX&lt;&lt;        // track matching reference plane</span>
+<span class="lineNum">     880 </span>            :                 &quot;\n&quot;;
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :               delete hisDelta;</span>
+<span class="lineNum">     882 </span>            :               //printf(&quot;%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n&quot;,isec0, isec1, xPhi,xZ,xSnp, xTheta, entries,mean);
+<span class="lineNum">     883 </span>            :               //
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :             }//ibinTheta</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :             delete hisSnp;</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :           } //ibinSnp</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :           delete hisZ;</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :         }//ibinZ</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :         delete hisPhi;</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :       }//ibinPhi</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :       delete hisSector1;      </span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :     }//isec1</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     delete hisSector0;</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :   }//isec0</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span>            : 
+<span class="lineNum">     898 </span>            : 
+<span class="lineNum">     899 </span>            : 
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span>            : // void AliTPCCorrectionFit::MakeLaserDistortionTree(TTree* tree, TObjArray */*corrArray*/, Int_t /*itype*/){
+<span class="lineNum">     902 </span>            : //   //
+<span class="lineNum">     903 </span>            : //   // Make a laser fit tree for global minimization
+<span class="lineNum">     904 </span>            : //   //  
+<span class="lineNum">     905 </span>            : //   AliTPCcalibDB*  calib=AliTPCcalibDB::Instance();  
+<span class="lineNum">     906 </span>            : //   AliTPCCorrection * correction = calib-&gt;GetTPCComposedCorrection();  
+<span class="lineNum">     907 </span>            : //   if (!correction) correction = calib-&gt;GetTPCComposedCorrection(AliTrackerBase::GetBz());  
+<span class="lineNum">     908 </span>            : //   correction-&gt;AddVisualCorrection(correction,0);  //register correction
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span>            : //   //  AliTPCTransform *transform = AliTPCcalibDB::Instance()-&gt;GetTransform() ;
+<span class="lineNum">     911 </span>            : //   //AliTPCParam     *param     = AliTPCcalibDB::Instance()-&gt;GetParameters();
+<span class="lineNum">     912 </span>            : //   //
+<span class="lineNum">     913 </span>            : //   const Double_t cutErrY=0.05;
+<span class="lineNum">     914 </span>            : //   const Double_t kSigmaCut=4;
+<span class="lineNum">     915 </span>            : //   //  const Double_t cutErrZ=0.03;
+<span class="lineNum">     916 </span>            : //   const Double_t kEpsilon=0.00000001;
+<span class="lineNum">     917 </span>            : //   //  const Double_t kMaxDist=1.;  // max distance - space correction
+<span class="lineNum">     918 </span>            : //   TVectorD *vecdY=0;
+<span class="lineNum">     919 </span>            : //   TVectorD *vecdZ=0;
+<span class="lineNum">     920 </span>            : //   TVectorD *veceY=0;
+<span class="lineNum">     921 </span>            : //   TVectorD *veceZ=0;
+<span class="lineNum">     922 </span>            : //   AliTPCLaserTrack *ltr=0;
+<span class="lineNum">     923 </span>            : //   AliTPCLaserTrack::LoadTracks();
+<span class="lineNum">     924 </span>            : //   tree-&gt;SetBranchAddress(&quot;dY.&quot;,&amp;vecdY);
+<span class="lineNum">     925 </span>            : //   tree-&gt;SetBranchAddress(&quot;dZ.&quot;,&amp;vecdZ);
+<span class="lineNum">     926 </span>            : //   tree-&gt;SetBranchAddress(&quot;eY.&quot;,&amp;veceY);
+<span class="lineNum">     927 </span>            : //   tree-&gt;SetBranchAddress(&quot;eZ.&quot;,&amp;veceZ);
+<span class="lineNum">     928 </span>            : //   tree-&gt;SetBranchAddress(&quot;LTr.&quot;,&amp;ltr);
+<span class="lineNum">     929 </span>            : //   Int_t entries= tree-&gt;GetEntries();
+<span class="lineNum">     930 </span>            : //   TTreeSRedirector *pcstream= new TTreeSRedirector(&quot;distortionLaser_0.root&quot;);
+<span class="lineNum">     931 </span>            : //   Double_t bz=AliTrackerBase::GetBz();
+<span class="lineNum">     932 </span>            : //   // 
+<span class="lineNum">     933 </span>            : //   //  Double_t globalXYZ[3];
+<span class="lineNum">     934 </span>            : //   //Double_t globalXYZCorr[3];
+<span class="lineNum">     935 </span>            : //   for (Int_t ientry=0; ientry&lt;entries; ientry++){
+<span class="lineNum">     936 </span>            : //     tree-&gt;GetEntry(ientry);
+<span class="lineNum">     937 </span>            : //     if (!ltr-&gt;GetVecGX()){
+<span class="lineNum">     938 </span>            : //       ltr-&gt;UpdatePoints();
+<span class="lineNum">     939 </span>            : //     }
+<span class="lineNum">     940 </span>            : //     //
+<span class="lineNum">     941 </span>            : //     TVectorD fit10(5);
+<span class="lineNum">     942 </span>            : //     TVectorD fit5(5);
+<span class="lineNum">     943 </span>            : //     printf(&quot;Entry\t%d\n&quot;,ientry);
+<span class="lineNum">     944 </span>            : //     for (Int_t irow0=0; irow0&lt;158; irow0+=1){
+<span class="lineNum">     945 </span>            : //       //       
+<span class="lineNum">     946 </span>            : //       TLinearFitter fitter10(4,&quot;hyp3&quot;);
+<span class="lineNum">     947 </span>            : //       TLinearFitter fitter5(2,&quot;hyp1&quot;);
+<span class="lineNum">     948 </span>            : //       Int_t sector= (Int_t)(*ltr-&gt;GetVecSec())[irow0];
+<span class="lineNum">     949 </span>            : //       if (sector&lt;0) continue;
+<span class="lineNum">     950 </span>            : //       //if (TMath::Abs(vecdY-&gt;GetMatrixArray()[irow0])&lt;kEpsilon) continue;
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span>            : //       Double_t refX= (*ltr-&gt;GetVecLX())[irow0];
+<span class="lineNum">     953 </span>            : //       Int_t firstRow1 = TMath::Max(irow0-10,0);
+<span class="lineNum">     954 </span>            : //       Int_t lastRow1  = TMath::Min(irow0+10,158);
+<span class="lineNum">     955 </span>            : //       Double_t padWidth=(irow0&lt;64)?0.4:0.6;
+<span class="lineNum">     956 </span>            : //       // make long range fit
+<span class="lineNum">     957 </span>            : //       for (Int_t irow1=firstRow1; irow1&lt;=lastRow1; irow1++){
+<span class="lineNum">     958 </span>            : //      if (TMath::Abs((*ltr-&gt;GetVecSec())[irow1]-sector)&gt;kEpsilon) continue;
+<span class="lineNum">     959 </span>            : //      if (veceY-&gt;GetMatrixArray()[irow1]&gt;cutErrY) continue;
+<span class="lineNum">     960 </span>            : //      if (TMath::Abs(vecdY-&gt;GetMatrixArray()[irow1])&lt;kEpsilon) continue;
+<span class="lineNum">     961 </span>            : //      Double_t idealX= (*ltr-&gt;GetVecLX())[irow1];
+<span class="lineNum">     962 </span>            : //      Double_t idealY= (*ltr-&gt;GetVecLY())[irow1];
+<span class="lineNum">     963 </span>            : //      //      Double_t idealZ= (*ltr-&gt;GetVecLZ())[irow1];
+<span class="lineNum">     964 </span>            : //      Double_t gx= (*ltr-&gt;GetVecGX())[irow1];
+<span class="lineNum">     965 </span>            : //      Double_t gy= (*ltr-&gt;GetVecGY())[irow1];
+<span class="lineNum">     966 </span>            : //      Double_t gz= (*ltr-&gt;GetVecGZ())[irow1];
+<span class="lineNum">     967 </span>            : //      Double_t measY=(*vecdY)[irow1]+idealY;
+<span class="lineNum">     968 </span>            : //      Double_t deltaR = GetCorrXYZ(gx, gy, gz, 0,0);
+<span class="lineNum">     969 </span>            : //      // deltaR = R distorted -R ideal
+<span class="lineNum">     970 </span>            : //      Double_t xxx[4]={idealX+deltaR-refX,TMath::Cos(idealY/padWidth), TMath::Sin(idealY/padWidth)};
+<span class="lineNum">     971 </span>            : //      fitter10.AddPoint(xxx,measY,1);
+<span class="lineNum">     972 </span>            : //       }
+<span class="lineNum">     973 </span>            : //       Bool_t isOK=kTRUE;
+<span class="lineNum">     974 </span>            : //       Double_t rms10=0;//TMath::Sqrt(fitter10.GetChisquare()/(fitter10.GetNpoints()-4));
+<span class="lineNum">     975 </span>            : //       Double_t mean10  =0;//   fitter10.GetParameter(0);
+<span class="lineNum">     976 </span>            : //       Double_t slope10  =0;//   fitter10.GetParameter(0);
+<span class="lineNum">     977 </span>            : //       Double_t cosPart10  = 0;//  fitter10.GetParameter(2);
+<span class="lineNum">     978 </span>            : //       Double_t sinPart10   =0;//  fitter10.GetParameter(3); 
+<span class="lineNum">     979 </span>            : 
+<span class="lineNum">     980 </span>            : //       if (fitter10.GetNpoints()&gt;10){
+<span class="lineNum">     981 </span>            : //      fitter10.Eval();
+<span class="lineNum">     982 </span>            : //      rms10=TMath::Sqrt(fitter10.GetChisquare()/(fitter10.GetNpoints()-4));
+<span class="lineNum">     983 </span>            : //      mean10      =   fitter10.GetParameter(0);
+<span class="lineNum">     984 </span>            : //      slope10     =   fitter10.GetParameter(1);
+<span class="lineNum">     985 </span>            : //      cosPart10   =   fitter10.GetParameter(2);
+<span class="lineNum">     986 </span>            : //      sinPart10   =  fitter10.GetParameter(3); 
+<span class="lineNum">     987 </span>            : //      //
+<span class="lineNum">     988 </span>            : //      // make short range fit
+<span class="lineNum">     989 </span>            : //      //
+<span class="lineNum">     990 </span>            : //      for (Int_t irow1=firstRow1+5; irow1&lt;=lastRow1-5; irow1++){
+<span class="lineNum">     991 </span>            : //        if (TMath::Abs((*ltr-&gt;GetVecSec())[irow1]-sector)&gt;kEpsilon) continue;
+<span class="lineNum">     992 </span>            : //        if (veceY-&gt;GetMatrixArray()[irow1]&gt;cutErrY) continue;
+<span class="lineNum">     993 </span>            : //        if (TMath::Abs(vecdY-&gt;GetMatrixArray()[irow1])&lt;kEpsilon) continue;
+<span class="lineNum">     994 </span>            : //        Double_t idealX= (*ltr-&gt;GetVecLX())[irow1];
+<span class="lineNum">     995 </span>            : //        Double_t idealY= (*ltr-&gt;GetVecLY())[irow1];
+<span class="lineNum">     996 </span>            : //        //      Double_t idealZ= (*ltr-&gt;GetVecLZ())[irow1];
+<span class="lineNum">     997 </span>            : //        Double_t gx= (*ltr-&gt;GetVecGX())[irow1];
+<span class="lineNum">     998 </span>            : //        Double_t gy= (*ltr-&gt;GetVecGY())[irow1];
+<span class="lineNum">     999 </span>            : //        Double_t gz= (*ltr-&gt;GetVecGZ())[irow1];
+<span class="lineNum">    1000 </span>            : //        Double_t measY=(*vecdY)[irow1]+idealY;
+<span class="lineNum">    1001 </span>            : //        Double_t deltaR = GetCorrXYZ(gx, gy, gz, 0,0);
+<span class="lineNum">    1002 </span>            : //        // deltaR = R distorted -R ideal 
+<span class="lineNum">    1003 </span>            : //        Double_t expY= mean10+slope10*(idealX+deltaR-refX);
+<span class="lineNum">    1004 </span>            : //        if (TMath::Abs(measY-expY)&gt;kSigmaCut*rms10) continue;
+<span class="lineNum">    1005 </span>            : //        //
+<span class="lineNum">    1006 </span>            : //        Double_t corr=cosPart10*TMath::Cos(idealY/padWidth)+sinPart10*TMath::Sin(idealY/padWidth);
+<span class="lineNum">    1007 </span>            : //        Double_t xxx[4]={idealX+deltaR-refX,TMath::Cos(idealY/padWidth), TMath::Sin(idealY/padWidth)};
+<span class="lineNum">    1008 </span>            : //        fitter5.AddPoint(xxx,measY-corr,1);
+<span class="lineNum">    1009 </span>            : //      }     
+<span class="lineNum">    1010 </span>            : //       }else{
+<span class="lineNum">    1011 </span>            : //      isOK=kFALSE;
+<span class="lineNum">    1012 </span>            : //       }
+<span class="lineNum">    1013 </span>            : //       if (fitter5.GetNpoints()&lt;8) isOK=kFALSE;
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            : //       Double_t rms5=0;//TMath::Sqrt(fitter5.GetChisquare()/(fitter5.GetNpoints()-4));
+<span class="lineNum">    1016 </span>            : //       Double_t offset5  =0;//  fitter5.GetParameter(0);
+<span class="lineNum">    1017 </span>            : //       Double_t slope5   =0;//  fitter5.GetParameter(0); 
+<span class="lineNum">    1018 </span>            : //       if (isOK){
+<span class="lineNum">    1019 </span>            : //      fitter5.Eval();
+<span class="lineNum">    1020 </span>            : //      rms5=TMath::Sqrt(fitter5.GetChisquare()/(fitter5.GetNpoints()-4));
+<span class="lineNum">    1021 </span>            : //      offset5  =  fitter5.GetParameter(0);
+<span class="lineNum">    1022 </span>            : //      slope5   =  fitter5.GetParameter(0); 
+<span class="lineNum">    1023 </span>            : //       }
+<span class="lineNum">    1024 </span>            : //       //
+<span class="lineNum">    1025 </span>            : //       Double_t dtype=5;
+<span class="lineNum">    1026 </span>            : //       Double_t ptype=0;
+<span class="lineNum">    1027 </span>            : //       Double_t phi   =(*ltr-&gt;GetVecPhi())[irow0];
+<span class="lineNum">    1028 </span>            : //       Double_t theta =ltr-&gt;GetTgl();
+<span class="lineNum">    1029 </span>            : //       Double_t mean=(vecdY)-&gt;GetMatrixArray()[irow0];
+<span class="lineNum">    1030 </span>            : //       Double_t gx=0,gy=0,gz=0;
+<span class="lineNum">    1031 </span>            : //       Double_t snp = (*ltr-&gt;GetVecP2())[irow0];
+<span class="lineNum">    1032 </span>            : //       Int_t bundle= ltr-&gt;GetBundle();
+<span class="lineNum">    1033 </span>            : //       Int_t id= ltr-&gt;GetId();
+<span class="lineNum">    1034 </span>            : //       //      Double_t rms = err-&gt;GetMatrixArray()[irow];
+<span class="lineNum">    1035 </span>            : //       //
+<span class="lineNum">    1036 </span>            : //       gx = (*ltr-&gt;GetVecGX())[irow0];
+<span class="lineNum">    1037 </span>            : //       gy = (*ltr-&gt;GetVecGY())[irow0];
+<span class="lineNum">    1038 </span>            : //       gz = (*ltr-&gt;GetVecGZ())[irow0];
+<span class="lineNum">    1039 </span>            : //       Double_t dRrec = GetCorrXYZ(gx, gy, gz, 0,0);
+<span class="lineNum">    1040 </span>            : //       fitter10.GetParameters(fit10);
+<span class="lineNum">    1041 </span>            : //       fitter5.GetParameters(fit5);      
+<span class="lineNum">    1042 </span>            : //       Double_t idealY= (*ltr-&gt;GetVecLY())[irow0];
+<span class="lineNum">    1043 </span>            : //       Double_t measY=(*vecdY)[irow0]+idealY;
+<span class="lineNum">    1044 </span>            : //       Double_t corr=cosPart10*TMath::Cos(idealY/padWidth)+sinPart10*TMath::Sin(idealY/padWidth);
+<span class="lineNum">    1045 </span>            : //       if (TMath::Max(rms5,rms10)&gt;0.06) isOK=kFALSE;
+<span class="lineNum">    1046 </span>            : //       //
+<span class="lineNum">    1047 </span>            : //       (*pcstream)&lt;&lt;&quot;fitFull&quot;&lt;&lt;  // dumpe also intermediate results
+<span class="lineNum">    1048 </span>            : //      &quot;bz=&quot;&lt;&lt;bz&lt;&lt;         // magnetic filed used
+<span class="lineNum">    1049 </span>            : //      &quot;dtype=&quot;&lt;&lt;dtype&lt;&lt;   // detector match type
+<span class="lineNum">    1050 </span>            : //      &quot;ptype=&quot;&lt;&lt;ptype&lt;&lt;   // parameter type
+<span class="lineNum">    1051 </span>            : //      &quot;theta=&quot;&lt;&lt;theta&lt;&lt;   // theta
+<span class="lineNum">    1052 </span>            : //      &quot;phi=&quot;&lt;&lt;phi&lt;&lt;       // phi 
+<span class="lineNum">    1053 </span>            : //      &quot;snp=&quot;&lt;&lt;snp&lt;&lt;       // snp
+<span class="lineNum">    1054 </span>            : //      &quot;sector=&quot;&lt;&lt;sector&lt;&lt;
+<span class="lineNum">    1055 </span>            : //      &quot;bundle=&quot;&lt;&lt;bundle&lt;&lt;
+<span class="lineNum">    1056 </span>            : // //   //      &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;
+<span class="lineNum">    1057 </span>            : //      &quot;refX=&quot;&lt;&lt;refX&lt;&lt;      // reference radius
+<span class="lineNum">    1058 </span>            : //      &quot;gx=&quot;&lt;&lt;gx&lt;&lt;         // global position
+<span class="lineNum">    1059 </span>            : //      &quot;gy=&quot;&lt;&lt;gy&lt;&lt;         // global position
+<span class="lineNum">    1060 </span>            : //      &quot;gz=&quot;&lt;&lt;gz&lt;&lt;         // global position
+<span class="lineNum">    1061 </span>            : //      &quot;dRrec=&quot;&lt;&lt;dRrec&lt;&lt;      // delta Radius in reconstruction
+<span class="lineNum">    1062 </span>            : //      &quot;id=&quot;&lt;&lt;id&lt;&lt;     //bundle
+<span class="lineNum">    1063 </span>            : //      &quot;rms10=&quot;&lt;&lt;rms10&lt;&lt;
+<span class="lineNum">    1064 </span>            : //      &quot;rms5=&quot;&lt;&lt;rms5&lt;&lt;
+<span class="lineNum">    1065 </span>            : //      &quot;fit10.=&quot;&lt;&lt;&amp;fit10&lt;&lt;
+<span class="lineNum">    1066 </span>            : //      &quot;fit5.=&quot;&lt;&lt;&amp;fit5&lt;&lt;
+<span class="lineNum">    1067 </span>            : //      &quot;measY=&quot;&lt;&lt;measY&lt;&lt;
+<span class="lineNum">    1068 </span>            : //      &quot;mean=&quot;&lt;&lt;mean&lt;&lt;
+<span class="lineNum">    1069 </span>            : //      &quot;idealY=&quot;&lt;&lt;idealY&lt;&lt;
+<span class="lineNum">    1070 </span>            : //      &quot;corr=&quot;&lt;&lt;corr&lt;&lt;
+<span class="lineNum">    1071 </span>            : //      &quot;isOK=&quot;&lt;&lt;isOK&lt;&lt;
+<span class="lineNum">    1072 </span>            : //      &quot;\n&quot;;
+<span class="lineNum">    1073 </span>            : //     }
+<span class="lineNum">    1074 </span>            : //   }
+<span class="lineNum">    1075 </span>            : //   delete pcstream;
+<span class="lineNum">    1076 </span>            : // }
+<a name="1077"><span class="lineNum">    1077 </span>            : </a>
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span>            : void AliTPCCorrectionFit::MakeTrackDistortionTree(TTree *tinput, Int_t dtype, Int_t ptype, const TObjArray * corrArray, Int_t step, Int_t offset, Bool_t debug ){
+<span class="lineNum">    1080 </span>            :   //
+<span class="lineNum">    1081 </span>            :   // Make a fit tree:
+<span class="lineNum">    1082 </span>            :   // For each partial correction (specified in array) and given track topology (phi, theta, snp, refX)
+<span class="lineNum">    1083 </span>            :   // calculates partial distortions
+<span class="lineNum">    1084 </span>            :   // Partial distortion is stored in the resulting tree
+<span class="lineNum">    1085 </span>            :   // Output is storred in the file distortion_&lt;dettype&gt;_&lt;partype&gt;.root
+<span class="lineNum">    1086 </span>            :   // Partial  distortion is stored with the name given by correction name
+<span class="lineNum">    1087 </span>            :   //
+<span class="lineNum">    1088 </span>            :   //
+<span class="lineNum">    1089 </span>            :   // Parameters of function:
+<span class="lineNum">    1090 </span>            :   // input     - input tree
+<span class="lineNum">    1091 </span>            :   // dtype     - distortion type 0 - ITSTPC,  1 -TPCTRD, 2 - TPCvertex , 3 - TPC-TOF,  4 - TPCTPC track crossing 
+<span class="lineNum">    1092 </span>            :   // ppype     - parameter type
+<span class="lineNum">    1093 </span>            :   // corrArray - array with partial corrections
+<span class="lineNum">    1094 </span>            :   // step      - skipe entries  - if 1 all entries processed - it is slow
+<span class="lineNum">    1095 </span>            :   // debug     0 if debug on also space points dumped - it is slow
+<span class="lineNum">    1096 </span>            : 
+<span class="lineNum">    1097 </span>            :   const Double_t kMaxSnp = 0.85;  
+<span class="lineNum">    1098 </span>            :   const Double_t kcutSnp=0.25;
+<span class="lineNum">    1099 </span>            :   const Double_t kcutTheta=1.;
+<span class="lineNum">    1100 </span>            :   const Double_t kRadiusTPC=85;
+<span class="lineNum">    1101 </span>            :   //  AliTPCROC *tpcRoc =AliTPCROC::Instance();  
+<span class="lineNum">    1102 </span>            :   //
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :   const Double_t kMass = TDatabasePDG::Instance()-&gt;GetParticle(&quot;pi+&quot;)-&gt;Mass();</span>
+<span class="lineNum">    1104 </span>            :   //  const Double_t kB2C=-0.299792458e-3;
+<span class="lineNum">    1105 </span>            :   const Int_t kMinEntries=20; 
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :   Double_t phi,theta, snp, mean,rms, entries,sector,dsec;</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :   Float_t refX;  </span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :   Int_t run;</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;run&quot;,&amp;run);</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;theta&quot;,&amp;theta);</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;phi&quot;, &amp;phi);</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;snp&quot;,&amp;snp);</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;mean&quot;,&amp;mean);</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;rms&quot;,&amp;rms);</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;entries&quot;,&amp;entries);</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;sector&quot;,&amp;sector);</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;dsec&quot;,&amp;dsec);</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;refX&quot;,&amp;refX);</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :   TTreeSRedirector *pcstream = new TTreeSRedirector(Form(&quot;distortion%d_%d_%d.root&quot;,dtype,ptype,offset));</span>
+<span class="lineNum">    1120 </span>            :   //
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :   Int_t nentries=tinput-&gt;GetEntries();</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :   Int_t ncorr=corrArray-&gt;GetEntries();</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :   Double_t corrections[100]={0}; //</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :   Double_t tPar[5];</span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :   Double_t cov[15]={0,0,0,0,0,0,0,0,0,0,0,0,0,0};</span>
+<span class="lineNum">    1126 </span>            :   Int_t dir=0;
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :   if (dtype==5 || dtype==6) dtype=4;</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :   if (dtype==0) { dir=-1;}</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :   if (dtype==1) { dir=1;}</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :   if (dtype==2) { dir=-1;}</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :   if (dtype==3) { dir=1;}</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :   if (dtype==4) { dir=-1;}</span>
+<span class="lineNum">    1133 </span>            :   //
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :   for (Int_t ientry=offset; ientry&lt;nentries; ientry+=step){</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     tinput-&gt;GetEntry(ientry);</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :     if (TMath::Abs(snp)&gt;kMaxSnp) continue;</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :     tPar[0]=0;</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     tPar[1]=theta*refX;</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     if (dtype==2)  tPar[1]=theta*kRadiusTPC;</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     tPar[2]=snp;</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     tPar[3]=theta;</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :     tPar[4]=(gRandom-&gt;Rndm()-0.5)*0.02;  // should be calculated - non equal to 0</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :     if (dtype==4){</span>
+<span class="lineNum">    1144 </span>            :       // tracks crossing CE
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :       tPar[1]=0;   // track at the CE</span>
+<span class="lineNum">    1146 </span>            :       //if (TMath::Abs(theta) &lt;0.05) continue;  // deep cross
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1148 </span>            : 
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :     if (TMath::Abs(snp) &gt;kcutSnp) continue;</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :     if (TMath::Abs(theta) &gt;kcutTheta) continue;</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :     printf(&quot;%f\t%f\t%f\t%f\t%f\t%f\n&quot;,entries, sector,theta,snp, mean,rms);</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :     Double_t bz=AliTrackerBase::GetBz();</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :     if (dtype !=4) { //exclude TPC  - for TPC mainly non primary tracks</span>
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :       if (dtype!=2 &amp;&amp; TMath::Abs(bz)&gt;0.1 )  tPar[4]=snp/(refX*bz*kB2C*2);</span>
+<span class="lineNum">    1155 </span>            :       
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :       if (dtype==2 &amp;&amp; TMath::Abs(bz)&gt;0.1 )  {</span>
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :         tPar[4]=snp/(kRadiusTPC*bz*kB2C*2);//</span>
+<span class="lineNum">    1158 </span>            :         // snp at the TPC inner radius in case the vertex match used
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1160 </span>            :     }
+<span class="lineNum">    1161 </span>            :     //
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :     tPar[4]+=(gRandom-&gt;Rndm()-0.5)*0.02;</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :     AliExternalTrackParam track(refX,phi,tPar,cov);</span>
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :     Double_t xyz[3];</span>
+<span class="lineNum">    1165 </span><span class="lineNoCov">          0 :     track.GetXYZ(xyz);</span>
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :     Int_t id=0;</span>
+<span class="lineNum">    1167 </span><span class="lineNoCov">          0 :     Double_t pt=1./tPar[4];</span>
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :     Double_t dRrec=0; // dummy value - needed for points - e.g for laser</span>
+<span class="lineNum">    1169 </span>            :     //if (ptype==4 &amp;&amp;bz&lt;0) mean*=-1;  // interpret as curvature -- COMMENTED out - in lookup signed 1/pt used
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :     Double_t refXD=refX;</span>
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :     (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;</span>
+<span class="lineNum">    1172 </span><span class="lineNoCov">          0 :       &quot;run=&quot;&lt;&lt;run&lt;&lt;       // run number</span>
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :       &quot;bz=&quot;&lt;&lt;bz&lt;&lt;         // magnetic filed used</span>
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :       &quot;dtype=&quot;&lt;&lt;dtype&lt;&lt;   // detector match type</span>
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :       &quot;ptype=&quot;&lt;&lt;ptype&lt;&lt;   // parameter type</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :       &quot;theta=&quot;&lt;&lt;theta&lt;&lt;   // theta</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :       &quot;phi=&quot;&lt;&lt;phi&lt;&lt;       // phi </span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :       &quot;snp=&quot;&lt;&lt;snp&lt;&lt;       // snp</span>
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :       &quot;mean=&quot;&lt;&lt;mean&lt;&lt;     // mean dist value</span>
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :       &quot;rms=&quot;&lt;&lt;rms&lt;&lt;       // rms</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :       &quot;sector=&quot;&lt;&lt;sector&lt;&lt;</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :       &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :       &quot;refX=&quot;&lt;&lt;refXD&lt;&lt;         // referece X as double</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :       &quot;gx=&quot;&lt;&lt;xyz[0]&lt;&lt;         // global position at reference</span>
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :       &quot;gy=&quot;&lt;&lt;xyz[1]&lt;&lt;         // global position at reference</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :       &quot;gz=&quot;&lt;&lt;xyz[2]&lt;&lt;         // global position at reference     </span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :       &quot;dRrec=&quot;&lt;&lt;dRrec&lt;&lt;      // delta Radius in reconstruction</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :       &quot;pt=&quot;&lt;&lt;pt&lt;&lt;            // pt</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :       &quot;id=&quot;&lt;&lt;id&lt;&lt;             // track id</span>
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :       &quot;entries=&quot;&lt;&lt;entries;// number of entries in bin</span>
+<span class="lineNum">    1191 </span>            :     //
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :     Bool_t isOK=kTRUE;</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :     if (entries&lt;kMinEntries) isOK=kFALSE;</span>
+<span class="lineNum">    1194 </span>            :     //
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :     if (dtype!=4) for (Int_t icorr=0; icorr&lt;ncorr; icorr++) {</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :       AliTPCCorrection *corr = (AliTPCCorrection*)corrArray-&gt;At(icorr);</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :       corrections[icorr]=0;</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :       if (entries&gt;kMinEntries){</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :         AliExternalTrackParam trackIn(refX,phi,tPar,cov);</span>
+<span class="lineNum">    1200 </span>            :         AliExternalTrackParam *trackOut = 0;
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :         if (debug) trackOut=corr-&gt;FitDistortedTrack(trackIn, refX, dir,pcstream);</span>
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :         if (!debug) trackOut=corr-&gt;FitDistortedTrack(trackIn, refX, dir,0);</span>
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :         if (dtype==0) {dir= -1;}</span>
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :         if (dtype==1) {dir=  1;}</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :         if (dtype==2) {dir= -1;}</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :         if (dtype==3) {dir=  1;}</span>
+<span class="lineNum">    1207 </span>            :         //
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :         if (trackOut){</span>
+<span class="lineNum">    1209 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn,refX,kMass,5,kTRUE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :           if (!trackOut-&gt;Rotate(trackIn.GetAlpha())) isOK=kFALSE;</span>
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(trackOut,trackIn.GetX(),kMass,5,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1212 </span>            :           //      trackOut-&gt;PropagateTo(trackIn.GetX(),AliTrackerBase::GetBz());
+<span class="lineNum">    1213 </span>            :           //      
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :           corrections[icorr]= trackOut-&gt;GetParameter()[ptype]-trackIn.GetParameter()[ptype];</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :           delete trackOut;      </span>
+<span class="lineNum">    1216 </span>            :         }else{
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :           corrections[icorr]=0;</span>
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 :           isOK=kFALSE;</span>
+<span class="lineNum">    1219 </span>            :         }
+<span class="lineNum">    1220 </span>            :         //if (ptype==4 &amp;&amp;bz&lt;0) corrections[icorr]*=-1;  // interpret as curvature - commented out
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;</span>
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :         Form(&quot;%s=&quot;,corr-&gt;GetName())&lt;&lt;corrections[icorr];   // dump correction value</span>
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1225 </span>            :   
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :     if (dtype==4) for (Int_t icorr=0; icorr&lt;ncorr; icorr++) {</span>
+<span class="lineNum">    1227 </span>            :       //
+<span class="lineNum">    1228 </span>            :       // special case of the TPC tracks crossing the CE
+<span class="lineNum">    1229 </span>            :       //
+<span class="lineNum">    1230 </span><span class="lineNoCov">          0 :       AliTPCCorrection *corr = (AliTPCCorrection*)corrArray-&gt;At(icorr);</span>
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 :       corrections[icorr]=0;</span>
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :       if (entries&gt;kMinEntries){</span>
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :         AliExternalTrackParam trackIn0(refX,phi,tPar,cov); //Outer - direction to vertex</span>
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :         AliExternalTrackParam trackIn1(refX,phi,tPar,cov); //Inner - direction magnet </span>
+<span class="lineNum">    1235 </span>            :         AliExternalTrackParam *trackOut0 = 0;
+<span class="lineNum">    1236 </span>            :         AliExternalTrackParam *trackOut1 = 0;
+<span class="lineNum">    1237 </span>            :         //
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :         if (debug)  trackOut0=corr-&gt;FitDistortedTrack(trackIn0, refX, dir,pcstream);</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :         if (!debug) trackOut0=corr-&gt;FitDistortedTrack(trackIn0, refX, dir,0);</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :         if (debug)  trackOut1=corr-&gt;FitDistortedTrack(trackIn1, refX, -dir,pcstream);</span>
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :         if (!debug) trackOut1=corr-&gt;FitDistortedTrack(trackIn1, refX, -dir,0);</span>
+<span class="lineNum">    1242 </span>            :         //
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :         if (trackOut0 &amp;&amp; trackOut1){</span>
+<span class="lineNum">    1244 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn0,refX,kMass,5,kTRUE,kMaxSnp))  isOK=kFALSE;</span>
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn0,refX,kMass,1,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :           if (!trackOut0-&gt;Rotate(trackIn0.GetAlpha())) isOK=kFALSE;</span>
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(trackOut0,trackIn0.GetX(),kMass,5,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1248 </span>            :           //
+<span class="lineNum">    1249 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn1,refX,kMass,5,kTRUE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1250 </span><span class="lineNoCov">          0 :           if (!trackIn1.Rotate(trackIn0.GetAlpha()))  isOK=kFALSE;</span>
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn1,trackIn0.GetX(),kMass,1,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :           if (!trackOut1-&gt;Rotate(trackIn1.GetAlpha())) isOK=kFALSE;    </span>
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(trackOut1,trackIn1.GetX(),kMass,5,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1254 </span>            :           //
+<span class="lineNum">    1255 </span><span class="lineNoCov">          0 :           corrections[icorr] = (trackOut0-&gt;GetParameter()[ptype]-trackIn0.GetParameter()[ptype]);</span>
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :           corrections[icorr]-= (trackOut1-&gt;GetParameter()[ptype]-trackIn1.GetParameter()[ptype]);</span>
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :           if (isOK)</span>
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 :             if ((TMath::Abs(trackOut0-&gt;GetX()-trackOut1-&gt;GetX())&gt;0.1)||</span>
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :                 (TMath::Abs(trackOut0-&gt;GetX()-trackIn1.GetX())&gt;0.1)||</span>
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :                 (TMath::Abs(trackOut0-&gt;GetAlpha()-trackOut1-&gt;GetAlpha())&gt;0.00001)||</span>
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :                 (TMath::Abs(trackOut0-&gt;GetAlpha()-trackIn1.GetAlpha())&gt;0.00001)||</span>
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :                 (TMath::Abs(trackIn0.GetTgl()-trackIn1.GetTgl())&gt;0.0001)||</span>
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :                 (TMath::Abs(trackIn0.GetSnp()-trackIn1.GetSnp())&gt;0.0001)</span>
+<span class="lineNum">    1264 </span>            :                 ){
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :               isOK=kFALSE;</span>
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :             }             </span>
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :           delete trackOut0;      </span>
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :           delete trackOut1;       </span>
+<span class="lineNum">    1269 </span>            :         }else{
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :           corrections[icorr]=0;</span>
+<span class="lineNum">    1271 </span><span class="lineNoCov">          0 :           isOK=kFALSE;</span>
+<span class="lineNum">    1272 </span>            :         }
+<span class="lineNum">    1273 </span>            :         //
+<span class="lineNum">    1274 </span>            :         //if (ptype==4 &amp;&amp;bz&lt;0) corrections[icorr]*=-1;  // interpret as curvature - commented out no in lookup
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">    1276 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;</span>
+<span class="lineNum">    1277 </span><span class="lineNoCov">          0 :         Form(&quot;%s=&quot;,corr-&gt;GetName())&lt;&lt;corrections[icorr];   // dump correction value</span>
+<span class="lineNum">    1278 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1279 </span>            :     //
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :     (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;&quot;isOK=&quot;&lt;&lt;isOK&lt;&lt;&quot;\n&quot;;</span>
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1282 </span>            : 
+<span class="lineNum">    1283 </span>            : 
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :   delete pcstream;</span>
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1286 </span>            : 
+<a name="1287"><span class="lineNum">    1287 </span>            : </a>
+<span class="lineNum">    1288 </span>            : 
+<span class="lineNum">    1289 </span>            : void AliTPCCorrectionFit::MakeSectorDistortionTree(TTree *tinput, Int_t dtype, Int_t ptype, const TObjArray * corrArray, Int_t step, Int_t offset, Bool_t debug ){
+<span class="lineNum">    1290 </span>            :   //
+<span class="lineNum">    1291 </span>            :   // Make a fit tree:
+<span class="lineNum">    1292 </span>            :   // For each partial correction (specified in array) and given track topology (phi, theta, snp, refX)
+<span class="lineNum">    1293 </span>            :   // calculates partial distortions
+<span class="lineNum">    1294 </span>            :   // Partial distortion is stored in the resulting tree
+<span class="lineNum">    1295 </span>            :   // Output is storred in the file distortion_&lt;dettype&gt;_&lt;partype&gt;.root
+<span class="lineNum">    1296 </span>            :   // Partial  distortion is stored with the name given by correction name
+<span class="lineNum">    1297 </span>            :   //
+<span class="lineNum">    1298 </span>            :   //
+<span class="lineNum">    1299 </span>            :   // Parameters of function:
+<span class="lineNum">    1300 </span>            :   // input     - input tree
+<span class="lineNum">    1301 </span>            :   // dtype     - distortion type 10 - IROC-OROC 
+<span class="lineNum">    1302 </span>            :   // ppype     - parameter type
+<span class="lineNum">    1303 </span>            :   // corrArray - array with partial corrections
+<span class="lineNum">    1304 </span>            :   // step      - skipe entries  - if 1 all entries processed - it is slow
+<span class="lineNum">    1305 </span>            :   // debug     0 if debug on also space points dumped - it is slow
+<span class="lineNum">    1306 </span>            : 
+<span class="lineNum">    1307 </span>            :   const Double_t kMaxSnp = 0.8;  
+<span class="lineNum">    1308 </span>            :   const Int_t kMinEntries=200; 
+<span class="lineNum">    1309 </span>            :   //  AliTPCROC *tpcRoc =AliTPCROC::Instance();  
+<span class="lineNum">    1310 </span>            :   //
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :   const Double_t kMass = TDatabasePDG::Instance()-&gt;GetParticle(&quot;pi+&quot;)-&gt;Mass();</span>
+<span class="lineNum">    1312 </span>            :   //  const Double_t kB2C=-0.299792458e-3;
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 :   Double_t phi,theta, snp, mean,rms, entries,sector,dsec,globalZ;</span>
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 :   Int_t isec1, isec0;</span>
+<span class="lineNum">    1315 </span><span class="lineNoCov">          0 :   Double_t refXD;</span>
+<span class="lineNum">    1316 </span>            :   Float_t refX;
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :   Int_t run;</span>
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;run&quot;,&amp;run);</span>
+<span class="lineNum">    1319 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;theta&quot;,&amp;theta);</span>
+<span class="lineNum">    1320 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;phi&quot;, &amp;phi);</span>
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;snp&quot;,&amp;snp);</span>
+<span class="lineNum">    1322 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;mean&quot;,&amp;mean);</span>
+<span class="lineNum">    1323 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;rms&quot;,&amp;rms);</span>
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;entries&quot;,&amp;entries);</span>
+<span class="lineNum">    1325 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;sector&quot;,&amp;sector);</span>
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;dsec&quot;,&amp;dsec);</span>
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;refX&quot;,&amp;refXD);</span>
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;z&quot;,&amp;globalZ);</span>
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;isec0&quot;,&amp;isec0);</span>
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :   tinput-&gt;SetBranchAddress(&quot;isec1&quot;,&amp;isec1);</span>
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :   TTreeSRedirector *pcstream = new TTreeSRedirector(Form(&quot;distortionSector%d_%d_%d.root&quot;,dtype,ptype,offset));</span>
+<span class="lineNum">    1332 </span>            :   //
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :   Int_t nentries=tinput-&gt;GetEntries();</span>
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :   Int_t ncorr=corrArray-&gt;GetEntries();</span>
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :   Double_t corrections[100]={0}; //</span>
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :   Double_t tPar[5];</span>
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :   Double_t cov[15]={0,0,0,0,0,0,0,0,0,0,0,0,0,0};</span>
+<span class="lineNum">    1338 </span>            :   Int_t dir=0;
+<span class="lineNum">    1339 </span>            :   //
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :   for (Int_t ientry=offset; ientry&lt;nentries; ientry+=step){</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :     tinput-&gt;GetEntry(ientry);</span>
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :     refX=refXD;</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :     Int_t id=-1;</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :     if (TMath::Abs(TMath::Abs(isec0%18)-TMath::Abs(isec1%18))==0) id=1;  // IROC-OROC - opposite side</span>
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :     if (TMath::Abs(TMath::Abs(isec0%36)-TMath::Abs(isec1%36))==0) id=2;  // IROC-OROC - same side</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :     if (dtype==10  &amp;&amp; id==-1) continue;</span>
+<span class="lineNum">    1347 </span>            :     //
+<span class="lineNum">    1348 </span>            :     dir=-1;
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :     tPar[0]=0;</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :     tPar[1]=globalZ;</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :     tPar[2]=snp;</span>
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :     tPar[3]=theta;</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :     tPar[4]=(gRandom-&gt;Rndm()-0.1)*0.2;  //</span>
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :     Double_t pt=1./tPar[4];</span>
+<span class="lineNum">    1355 </span>            :     //
+<span class="lineNum">    1356 </span><span class="lineNoCov">          0 :     printf(&quot;%f\t%f\t%f\t%f\t%f\t%f\n&quot;,entries, sector,theta,snp, mean,rms);</span>
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :     Double_t bz=AliTrackerBase::GetBz();</span>
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :     AliExternalTrackParam track(refX,phi,tPar,cov);    </span>
+<span class="lineNum">    1359 </span><span class="lineNoCov">          0 :     Double_t xyz[3],xyzIn[3],xyzOut[3];</span>
+<span class="lineNum">    1360 </span><span class="lineNoCov">          0 :     track.GetXYZ(xyz);</span>
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :     track.GetXYZAt(85,bz,xyzIn);    </span>
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :     track.GetXYZAt(245,bz,xyzOut);    </span>
+<span class="lineNum">    1363 </span><span class="lineNoCov">          0 :     Double_t phiIn  = TMath::ATan2(xyzIn[1],xyzIn[0]);</span>
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :     Double_t phiOut = TMath::ATan2(xyzOut[1],xyzOut[0]);</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :     Double_t phiRef = TMath::ATan2(xyz[1],xyz[0]);</span>
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :     Int_t sectorRef = TMath::Nint(9.*phiRef/TMath::Pi()-0.5);</span>
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :     Int_t sectorIn  = TMath::Nint(9.*phiIn/TMath::Pi()-0.5);</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :     Int_t sectorOut = TMath::Nint(9.*phiOut/TMath::Pi()-0.5);</span>
+<span class="lineNum">    1369 </span>            :     //
+<span class="lineNum">    1370 </span><span class="lineNoCov">          0 :     Bool_t isOK=kTRUE; </span>
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :     if (sectorIn!=sectorOut) isOK=kFALSE;  // requironment - cluster in the same sector</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :     if (sectorIn!=sectorRef) isOK=kFALSE;  // requironment - cluster in the same sector</span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :     if (entries&lt;kMinEntries/(1+TMath::Abs(globalZ/100.))) isOK=kFALSE;  // requironment - minimal amount of tracks in bin</span>
+<span class="lineNum">    1374 </span>            :     // Do downscale
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :     if (TMath::Abs(theta)&gt;1) isOK=kFALSE;</span>
+<span class="lineNum">    1376 </span>            :     //
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :     Double_t dRrec=0; // dummy value - needed for points - e.g for laser</span>
+<span class="lineNum">    1378 </span>            :     //
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :     (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;</span>
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :       &quot;run=&quot;&lt;&lt;run&lt;&lt;       //run</span>
+<span class="lineNum">    1381 </span><span class="lineNoCov">          0 :       &quot;bz=&quot;&lt;&lt;bz&lt;&lt;         // magnetic filed used</span>
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :       &quot;dtype=&quot;&lt;&lt;dtype&lt;&lt;   // detector match type</span>
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :       &quot;ptype=&quot;&lt;&lt;ptype&lt;&lt;   // parameter type</span>
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :       &quot;theta=&quot;&lt;&lt;theta&lt;&lt;   // theta</span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :       &quot;phi=&quot;&lt;&lt;phi&lt;&lt;       // phi </span>
+<span class="lineNum">    1386 </span><span class="lineNoCov">          0 :       &quot;snp=&quot;&lt;&lt;snp&lt;&lt;       // snp</span>
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :       &quot;mean=&quot;&lt;&lt;mean&lt;&lt;     // mean dist value</span>
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :       &quot;rms=&quot;&lt;&lt;rms&lt;&lt;       // rms</span>
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 :       &quot;sector=&quot;&lt;&lt;sector&lt;&lt;</span>
+<span class="lineNum">    1390 </span><span class="lineNoCov">          0 :       &quot;dsec=&quot;&lt;&lt;dsec&lt;&lt;</span>
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :       &quot;refX=&quot;&lt;&lt;refXD&lt;&lt;         // referece X</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :       &quot;gx=&quot;&lt;&lt;xyz[0]&lt;&lt;         // global position at reference</span>
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :       &quot;gy=&quot;&lt;&lt;xyz[1]&lt;&lt;         // global position at reference</span>
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :       &quot;gz=&quot;&lt;&lt;xyz[2]&lt;&lt;         // global position at reference     </span>
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :       &quot;dRrec=&quot;&lt;&lt;dRrec&lt;&lt;      // delta Radius in reconstruction</span>
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :       &quot;pt=&quot;&lt;&lt;pt&lt;&lt;      //pt</span>
+<span class="lineNum">    1397 </span><span class="lineNoCov">          0 :       &quot;id=&quot;&lt;&lt;id&lt;&lt;             // track id</span>
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :       &quot;entries=&quot;&lt;&lt;entries;// number of entries in bin</span>
+<span class="lineNum">    1399 </span>            :     //
+<span class="lineNum">    1400 </span>            :     AliExternalTrackParam *trackOut0 = 0;
+<span class="lineNum">    1401 </span>            :     AliExternalTrackParam *trackOut1 = 0;
+<span class="lineNum">    1402 </span>            :     AliExternalTrackParam *ptrackIn0 = 0;
+<span class="lineNum">    1403 </span>            :     AliExternalTrackParam *ptrackIn1 = 0;
+<span class="lineNum">    1404 </span>            : 
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :     for (Int_t icorr=0; icorr&lt;ncorr; icorr++) {</span>
+<span class="lineNum">    1406 </span>            :       //
+<span class="lineNum">    1407 </span>            :       // special case of the TPC tracks crossing the CE
+<span class="lineNum">    1408 </span>            :       //
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :       AliTPCCorrection *corr = (AliTPCCorrection*)corrArray-&gt;At(icorr);</span>
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 :       corrections[icorr]=0;</span>
+<span class="lineNum">    1411 </span><span class="lineNoCov">          0 :       if (entries&gt;kMinEntries &amp;&amp;isOK){</span>
+<span class="lineNum">    1412 </span><span class="lineNoCov">          0 :         AliExternalTrackParam trackIn0(refX,phi,tPar,cov);</span>
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :         AliExternalTrackParam trackIn1(refX,phi,tPar,cov);</span>
+<span class="lineNum">    1414 </span>            :         ptrackIn1=&amp;trackIn0;
+<span class="lineNum">    1415 </span>            :         ptrackIn0=&amp;trackIn1;
+<span class="lineNum">    1416 </span>            :         //
+<span class="lineNum">    1417 </span><span class="lineNoCov">          0 :         if (debug)  trackOut0=corr-&gt;FitDistortedTrack(trackIn0, refX, dir,pcstream);</span>
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :         if (!debug) trackOut0=corr-&gt;FitDistortedTrack(trackIn0, refX, dir,0);</span>
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :         if (debug)  trackOut1=corr-&gt;FitDistortedTrack(trackIn1, refX, -dir,pcstream);</span>
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :         if (!debug) trackOut1=corr-&gt;FitDistortedTrack(trackIn1, refX, -dir,0);</span>
+<span class="lineNum">    1421 </span>            :         //
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :         if (trackOut0 &amp;&amp; trackOut1){</span>
+<span class="lineNum">    1423 </span>            :           //
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn0,refX,kMass,1,kTRUE,kMaxSnp))  isOK=kFALSE;</span>
+<span class="lineNum">    1425 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn0,refX,kMass,1,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1426 </span>            :           // rotate all tracks to the same frame
+<span class="lineNum">    1427 </span><span class="lineNoCov">          0 :           if (!trackOut0-&gt;Rotate(trackIn0.GetAlpha())) isOK=kFALSE;</span>
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :           if (!trackIn1.Rotate(trackIn0.GetAlpha()))  isOK=kFALSE;</span>
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :           if (!trackOut1-&gt;Rotate(trackIn0.GetAlpha())) isOK=kFALSE;    </span>
+<span class="lineNum">    1430 </span>            :           //
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(trackOut0,refX,kMass,1,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1432 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(&amp;trackIn1,refX,kMass,1,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 :           if (!AliTrackerBase::PropagateTrackTo(trackOut1,refX,kMass,1,kFALSE,kMaxSnp)) isOK=kFALSE;</span>
+<span class="lineNum">    1434 </span>            :           //
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :           corrections[icorr] = (trackOut0-&gt;GetParameter()[ptype]-trackIn0.GetParameter()[ptype]);</span>
+<span class="lineNum">    1436 </span><span class="lineNoCov">          0 :           corrections[icorr]-= (trackOut1-&gt;GetParameter()[ptype]-trackIn1.GetParameter()[ptype]);</span>
+<span class="lineNum">    1437 </span><span class="lineNoCov">          0 :           (*pcstream)&lt;&lt;&quot;fitDebug&quot;&lt;&lt; // just to debug the correction</span>
+<span class="lineNum">    1438 </span><span class="lineNoCov">          0 :             &quot;mean=&quot;&lt;&lt;mean&lt;&lt;</span>
+<span class="lineNum">    1439 </span><span class="lineNoCov">          0 :             &quot;pIn0.=&quot;&lt;&lt;ptrackIn0&lt;&lt;</span>
+<span class="lineNum">    1440 </span><span class="lineNoCov">          0 :             &quot;pIn1.=&quot;&lt;&lt;ptrackIn1&lt;&lt;</span>
+<span class="lineNum">    1441 </span><span class="lineNoCov">          0 :             &quot;pOut0.=&quot;&lt;&lt;trackOut0&lt;&lt;</span>
+<span class="lineNum">    1442 </span><span class="lineNoCov">          0 :             &quot;pOut1.=&quot;&lt;&lt;trackOut1&lt;&lt;</span>
+<span class="lineNum">    1443 </span><span class="lineNoCov">          0 :             &quot;refX=&quot;&lt;&lt;refXD&lt;&lt;</span>
+<span class="lineNum">    1444 </span>            :             &quot;\n&quot;;
+<span class="lineNum">    1445 </span><span class="lineNoCov">          0 :           delete trackOut0;      </span>
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :           delete trackOut1;      </span>
+<span class="lineNum">    1447 </span>            :         }else{
+<span class="lineNum">    1448 </span><span class="lineNoCov">          0 :           corrections[icorr]=0;</span>
+<span class="lineNum">    1449 </span><span class="lineNoCov">          0 :           isOK=kFALSE;</span>
+<span class="lineNum">    1450 </span>            :         }
+<span class="lineNum">    1451 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">    1452 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;</span>
+<span class="lineNum">    1453 </span><span class="lineNoCov">          0 :         Form(&quot;%s=&quot;,corr-&gt;GetName())&lt;&lt;corrections[icorr];   // dump correction value</span>
+<span class="lineNum">    1454 </span>            :     }
+<span class="lineNum">    1455 </span>            :     //
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :     (*pcstream)&lt;&lt;&quot;fit&quot;&lt;&lt;&quot;isOK=&quot;&lt;&lt;isOK&lt;&lt;&quot;\n&quot;;</span>
+<span class="lineNum">    1457 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :   delete pcstream;</span>
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1460 </span>            : 
+<span class="lineNum">    1461 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/RCU/AliHLTAltroChannelSelectorComponent.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">HLT/RCU</a> - AliHLTAltroChannelSelectorComponent.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTAltroChannelSelectorComponent.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">211</td>
+            <td class="headerCovTableEntryLo">7.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : //**************************************************************************
+<span class="lineNum">       4 </span>            : //* This file is property of and copyright by the ALICE HLT Project        * 
+<span class="lineNum">       5 </span>            : //* ALICE Experiment at CERN, All rights reserved.                         *
+<span class="lineNum">       6 </span>            : //*                                                                        *
+<span class="lineNum">       7 </span>            : //* Primary Authors: Matthias Richter &lt;Matthias.Richter@ift.uib.no&gt;        *
+<span class="lineNum">       8 </span>            : //*                  for The ALICE HLT Project.                            *
+<span class="lineNum">       9 </span>            : //*                                                                        *
+<span class="lineNum">      10 </span>            : //* Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      11 </span>            : //* documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      12 </span>            : //* without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      13 </span>            : //* copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      14 </span>            : //* appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      15 </span>            : //* about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      16 </span>            : //* provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      17 </span>            : //**************************************************************************
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : /// @file   AliHLTAltroChannelSelectorComponent.cxx
+<span class="lineNum">      20 </span>            : /// @author Matthias Richter edited by Jason Glyndwr Ulery
+<span class="lineNum">      21 </span>            : /// @date   
+<span class="lineNum">      22 </span>            : /// @brief  A filter/selective readout component for Altro data.
+<span class="lineNum">      23 </span>            : ///
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      26 </span>            : #include &lt;memory&gt;
+<span class="lineNum">      27 </span>            : #include &quot;AliHLTAltroChannelSelectorComponent.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliHLTErrorGuard.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliHLTDAQ.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliRawReaderMemory.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliAltroRawStreamV3.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;TH1.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;TH2.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;TFile.h&quot;
+<a name="36"><span class="lineNum">      36 </span>            : </a>
+<span class="lineNum">      37 </span>            : /** ROOT macro for the implementation of ROOT specific class methods */
+<a name="38"><span class="lineNum">      38 </span><span class="lineCov">          6 : ClassImp(AliHLTAltroChannelSelectorComponent)</span></a>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : AliHLTAltroChannelSelectorComponent::AliHLTAltroChannelSelectorComponent()
+<span class="lineNum">      41 </span>            :   :
+<span class="lineNum">      42 </span><span class="lineCov">          3 :   AliHLTProcessor(),</span>
+<span class="lineNum">      43 </span><span class="lineCov">          3 :   fSkipCorrupted(true),</span>
+<span class="lineNum">      44 </span><span class="lineCov">          3 :   fTalkative(false),</span>
+<span class="lineNum">      45 </span><span class="lineCov">          3 :   fStartTimeBin(0),</span>
+<span class="lineNum">      46 </span><span class="lineCov">          3 :   fEndTimeBin(1024),</span>
+<span class="lineNum">      47 </span><span class="lineCov">          3 :   fSignalThreshold(0),</span>
+<span class="lineNum">      48 </span><span class="lineCov">          3 :   fRMSThreshold(0),</span>
+<span class="lineNum">      49 </span><span class="lineCov">          3 :   fMakeHistogram(false),</span>
+<span class="lineNum">      50 </span><span class="lineCov">          3 :   fhThreshold(NULL),</span>
+<span class="lineNum">      51 </span><span class="lineCov">          3 :   fhRMS(NULL)</span>
+<span class="lineNum">      52 </span><span class="lineCov">         15 : {</span>
+<span class="lineNum">      53 </span>            :   // see header file for class documentation
+<span class="lineNum">      54 </span>            :   // or
+<span class="lineNum">      55 </span>            :   // refer to README to build package
+<span class="lineNum">      56 </span>            :   // or
+<span class="lineNum">      57 </span>            :   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+<a name="58"><span class="lineNum">      58 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : AliHLTAltroChannelSelectorComponent::~AliHLTAltroChannelSelectorComponent()
+<span class="lineNum">      61 </span><span class="lineCov">         12 : {</span>
+<span class="lineNum">      62 </span>            :   // see header file for class documentation
+<a name="63"><span class="lineNum">      63 </span><span class="lineCov">         12 : }</span></a>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : const char* AliHLTAltroChannelSelectorComponent::GetComponentID()
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :   // see header file for class documentation
+<span class="lineNum">      68 </span><span class="lineCov">        570 :   return &quot;AltroChannelSelector&quot;;</span>
+<a name="69"><span class="lineNum">      69 </span>            : }</a>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : void AliHLTAltroChannelSelectorComponent::GetInputDataTypes(AliHLTComponentDataTypeList&amp; list)
+<span class="lineNum">      72 </span>            : {
+<span class="lineNum">      73 </span>            :   // see header file for class documentation
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   list.clear();</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   list.push_back(kAliHLTDataTypeDDLRaw|kAliHLTDataOriginTPC);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   list.push_back(kAliHLTDataTypeHwAddr16);</span>
+<a name="77"><span class="lineNum">      77 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : AliHLTComponentDataType AliHLTAltroChannelSelectorComponent::GetOutputDataType()
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span>            :   // see header file for class documentation
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   return kAliHLTDataTypeDDLRaw|kAliHLTDataOriginTPC;</span>
+<a name="83"><span class="lineNum">      83 </span>            : }</a>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : void AliHLTAltroChannelSelectorComponent::GetOutputDataSize(unsigned long&amp; constBase, double&amp; inputMultiplier)
+<span class="lineNum">      86 </span>            : {
+<span class="lineNum">      87 </span>            :   // see header file for class documentation
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   constBase=0;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   inputMultiplier=1.0;</span>
+<a name="90"><span class="lineNum">      90 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : AliHLTComponent* AliHLTAltroChannelSelectorComponent::Spawn()
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span>            :   // see header file for class documentation
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   return new AliHLTAltroChannelSelectorComponent;</span>
+<a name="96"><span class="lineNum">      96 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : int AliHLTAltroChannelSelectorComponent::DoInit(int argc, const char** argv)
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :   // see header file for class documentation
+<span class="lineNum">     101 </span>            :   int iResult=0;
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   TString argument=&quot;&quot;;</span>
+<span class="lineNum">     103 </span>            :   bool bMissingParam=0;
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   char* cpErr=NULL;</span>
+<span class="lineNum">     105 </span>            :   int i=0;
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   for (; i&lt;argc &amp;&amp; iResult&gt;=0; i++) {</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     cpErr=NULL;</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     argument=argv[i];</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     if (argument.IsNull()) continue;</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :     // -skip-corrupted, just for backward compatibility, not announced
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     if (argument.CompareTo(&quot;-skip-corrupted&quot;)==0) {</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :       fSkipCorrupted=true;</span>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :     // -keep-corrupted
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-keep-corrupted&quot;)==0) {</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :       fSkipCorrupted=false;</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :     // -talkative
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-talkative&quot;)==0) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :       fTalkative=true;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :     // -start-timebin
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-start-timebin&quot;)==0) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :       fStartTimeBin = strtoul( argv[i], &amp;cpErr ,0);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :       if ( *cpErr ) break;</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            :     // -end-timebin
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-end-timebin&quot;)==0) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :       fEndTimeBin = strtoul( argv[i], &amp;cpErr ,0);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :       if ( *cpErr ) break;</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :     // -signal-threshold
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-signal-threshold&quot;)==0) {</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :       fSignalThreshold = strtoul( argv[i], &amp;cpErr ,0);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :       if ( *cpErr ) break;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :     // -rms-threshold
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     } else if (argument.CompareTo(&quot;-rms-threshold&quot;)==0) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :       if ((bMissingParam=(++i&gt;=argc))) break;</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :       fRMSThreshold = strtod( argv[i], &amp;cpErr);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :       if ( *cpErr ) break;</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     }
+<span class="lineNum">     148 </span>            :     //-make-histogram
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     else if(argument.CompareTo(&quot;-make-histogram&quot;)==0){</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :       fMakeHistogram=true;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     152 </span>            :     else {
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :       HLTError(&quot;unknown argument %s&quot;, argument.Data());</span>
+<span class="lineNum">     154 </span>            :       iResult=-EINVAL;
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span>            :   }
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   if (cpErr &amp;&amp; *cpErr) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     HLTError(&quot;Cannot convert specifier '%s' for argument '%s'&quot;, argv[i], argument.Data());</span>
+<span class="lineNum">     160 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   } else if (bMissingParam) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     HLTError(&quot;missing parameter for argument %s&quot;, argument.Data());</span>
+<span class="lineNum">     163 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   if(fMakeHistogram){</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     fhThreshold=new TH1F(&quot;fhThreshold&quot;,&quot;signal-threshold&quot;,1000,0,20);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     if (fhThreshold) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :       fhThreshold-&gt;Sumw2();</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :       fhThreshold-&gt;GetXaxis()-&gt;SetTitle(&quot;MaxSignal - &lt;Signal&gt;&quot;);</span>
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     fhRMS=new TH1F(&quot;fhRMS&quot;,&quot;rms-threshold&quot;,1000,0,10);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     if (fhRMS) {</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :       fhRMS-&gt;Sumw2();</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :       fhRMS-&gt;GetXaxis()-&gt;SetTitle(&quot;MaxSignal/ #sqrt{&lt;Signal^{2}&gt;}&quot;);</span>
+<span class="lineNum">     176 </span>            :     }
+<span class="lineNum">     177 </span>            :   }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :   return iResult;
+<a name="180"><span class="lineNum">     180 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : int AliHLTAltroChannelSelectorComponent::DoDeinit()
+<span class="lineNum">     183 </span>            : {
+<span class="lineNum">     184 </span>            :   // see header file for class documentation
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if(fMakeHistogram){</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     std::auto_ptr&lt;TFile&gt; outFile(new TFile(&quot;CSHistos.root&quot;,&quot;recreate&quot;));</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     if (outFile.get() &amp;&amp; !outFile-&gt;IsZombie()) {</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :       if (fhThreshold) fhThreshold-&gt;Write();</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :       if (fhRMS)       fhRMS-&gt;Write();</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :       outFile-&gt;Write();</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :       outFile-&gt;Close();</span>
+<span class="lineNum">     192 </span>            :     }
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   if (fhThreshold) delete fhThreshold;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   if (fhRMS)       delete fhRMS;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   fhRMS=NULL;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   fhThreshold=NULL;</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="199"><span class="lineNum">     199 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : int AliHLTAltroChannelSelectorComponent::DoEvent(const AliHLTComponentEventData&amp; evtData,
+<span class="lineNum">     202 </span>            :                                                  const AliHLTComponentBlockData* blocks, 
+<span class="lineNum">     203 </span>            :                                                  AliHLTComponentTriggerData&amp; /*trigData*/,
+<span class="lineNum">     204 </span>            :                                                  AliHLTUInt8_t* outputPtr, 
+<span class="lineNum">     205 </span>            :                                                  AliHLTUInt32_t&amp; size,
+<span class="lineNum">     206 </span>            :                                                  AliHLTComponentBlockDataList&amp; outputBlocks )
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            :   // see header file for class documentation
+<span class="lineNum">     209 </span>            :   int iResult=0;
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   AliHLTUInt32_t iCapacity=size;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   size=0;</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :   const int cdhSize=32;//8 32-bit words so 32 bytes
+<span class="lineNum">     214 </span>            :   const int rcuSize=36;//9 32-bit words
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   if (!IsDataEvent()) {</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     size=0;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     219 </span>            :   }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :   // process the DLL input
+<span class="lineNum">     222 </span>            :   int blockno=0;
+<span class="lineNum">     223 </span>            :   const AliHLTComponentBlockData* pDesc=NULL;
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   std::auto_ptr&lt;AliRawReaderMemory&gt; pRawReader(new AliRawReaderMemory);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   if (!pRawReader.get()) return -ENOMEM;</span>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   for (pDesc=GetFirstInputBlock(kAliHLTDataTypeDDLRaw); pDesc!=NULL; pDesc=GetNextInputBlock(), blockno++) {</span>
+<span class="lineNum">     228 </span>            :     iResult=0;
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     if (pDesc-&gt;fSize&lt;=32) {</span>
+<span class="lineNum">     230 </span>            :       continue;
+<span class="lineNum">     231 </span>            :     }
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :     // search for the active pad information
+<span class="lineNum">     234 </span>            :     AliHLTUInt16_t* pActiveHwAddressArray=NULL;
+<span class="lineNum">     235 </span>            :     int iArraySize=0;
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     if (fSignalThreshold==0 &amp;&amp; fabs(fRMSThreshold)&lt;1E-4) {</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     for (int i=0; i&lt;(int)evtData.fBlockCnt; i++ ) {</span>
+<span class="lineNum">     238 </span>            :       // search for selection data of hw address type
+<span class="lineNum">     239 </span>            :       // which matches the data specification of the block
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       if (blocks[i].fDataType==kAliHLTDataTypeHwAddr16 &amp;&amp; blocks[i].fSpecification==pDesc-&gt;fSpecification) {</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         pActiveHwAddressArray=reinterpret_cast&lt;AliHLTUInt16_t*&gt;(blocks[i].fPtr);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         iArraySize=blocks[i].fSize/sizeof(AliHLTUInt16_t);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     244 </span>            :       }
+<span class="lineNum">     245 </span>            :     }
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if (pActiveHwAddressArray==NULL) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;no block of type %s for specification 0x%08x available, data block skipped&quot;, </span>
+<span class="lineNum">     248 </span>            :                  DataType2Text(kAliHLTDataTypeHwAddr16).c_str(), 
+<span class="lineNum">     249 </span>            :                  pDesc-&gt;fSpecification);
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     251 </span>            :     }
+<span class="lineNum">     252 </span>            :     }
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     pRawReader-&gt;Reset();</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     int ddlid=AliHLTDAQ::DdlIDFromHLTBlockData(pDesc-&gt;fDataType.fOrigin, pDesc-&gt;fSpecification);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     if (ddlid&lt;0) {</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       HLTError(&quot;unable to extract DDL Id for data block %s 0x%08x&quot;, DataType2Text(pDesc-&gt;fDataType).c_str(), pDesc-&gt;fSpecification);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     if (!pRawReader-&gt;AddBuffer((UChar_t*)pDesc-&gt;fPtr,pDesc-&gt;fSize, ddlid)) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       ALIHLTERRORGUARD(1, &quot;can not set up AltroDecoder for data block %s 0x%08x,&quot;</span>
+<span class="lineNum">     263 </span>            :                        &quot; skipping data block and suppressing further messages&quot;,
+<span class="lineNum">     264 </span>            :                        DataType2Text(pDesc-&gt;fDataType).c_str(), pDesc-&gt;fSpecification);
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     266 </span>            :     }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     std::auto_ptr&lt;AliAltroRawStreamV3&gt; altroRawStream(new AliAltroRawStreamV3(pRawReader.get()));</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     if (!altroRawStream.get()) {</span>
+<span class="lineNum">     271 </span>            :       iResult=-ENOMEM;
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     273 </span>            :     }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     altroRawStream-&gt;Reset();</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     if (!altroRawStream-&gt;NextDDL()) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :       ALIHLTERRORGUARD(1, &quot;internal error, can not read data from AliRawReaderMemory&quot;);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     279 </span>            :     }
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            :     unsigned int rcuTrailerLength=rcuSize;
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     if(rcuTrailerLength&gt;pDesc-&gt;fSize-cdhSize) HLTWarning(&quot;corrupted data block: RCU trailer length exceeds buffer size&quot;);</span>
+<span class="lineNum">     283 </span>            :   
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     if (iResult&lt;0) {</span>
+<span class="lineNum">     285 </span>            :       // TODO: here the trigger has to come into play. It is up to
+<span class="lineNum">     286 </span>            :       // policy if a corrupted data block should be kept (original
+<span class="lineNum">     287 </span>            :       // DDL) or discarded. In any case, the block is not going to
+<span class="lineNum">     288 </span>            :       // be part of HLTOUT
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;skipping corrupted data block for event %lu, data block %s 0x%08x&quot;, evtData.fEventID,</span>
+<span class="lineNum">     290 </span>            :                  DataType2Text(pDesc-&gt;fDataType).c_str(), pDesc-&gt;fSpecification);
+<span class="lineNum">     291 </span>            :       iResult=0;
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     293 </span>            :     }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :     int iSelected=0;
+<span class="lineNum">     296 </span>            :     int iTotal=0;
+<span class="lineNum">     297 </span>            :     int iCorrupted=0;
+<span class="lineNum">     298 </span>            :     AliHLTUInt32_t iOutputSize=0;
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :     //First add the common data header (CDH)
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     memcpy(outputPtr+size,pDesc-&gt;fPtr,cdhSize);</span>
+<span class="lineNum">     302 </span>            :     iOutputSize+=cdhSize;
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     while (altroRawStream-&gt;NextChannel() &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :       iTotal++;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :       int hwAddress=altroRawStream-&gt;GetHWAddress();</span>
+<span class="lineNum">     307 </span>            :   
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :       if (fSignalThreshold!=0) {</span>
+<span class="lineNum">     309 </span>            :         // treshold by adc counts
+<span class="lineNum">     310 </span>            :         unsigned int sumSignals=0;
+<span class="lineNum">     311 </span>            :         unsigned int maxSignal=0;
+<span class="lineNum">     312 </span>            :         unsigned int nofSignals=0;
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         while(altroRawStream-&gt;NextBunch()){</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :           const UShort_t *bunchData=altroRawStream-&gt;GetSignals();</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :           unsigned int time=altroRawStream-&gt;GetStartTimeBin();</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :           for(Int_t i=0;i&lt;altroRawStream-&gt;GetBunchLength();i++){</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             if(bunchData[i]&gt;0){// disregarding 0 data.</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :               if(time+i&gt;=fStartTimeBin &amp;&amp; time+i&lt;=fEndTimeBin){</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 sumSignals+=bunchData[i];</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                 if (maxSignal&lt;bunchData[i]) maxSignal=bunchData[i];</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 nofSignals++;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     323 </span>            :             }
+<span class="lineNum">     324 </span>            :           }
+<span class="lineNum">     325 </span>            :         }
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         if (nofSignals==0 || maxSignal&lt;=(sumSignals/nofSignals)+fSignalThreshold) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         if (fhThreshold) fhThreshold-&gt;Fill(maxSignal-(sumSignals/nofSignals));</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :       } else if (fabs(fRMSThreshold)&gt;1E-4) {</span>
+<span class="lineNum">     332 </span>            :         // treshold by adc counts
+<span class="lineNum">     333 </span>            :         unsigned int sumSignals=0;
+<span class="lineNum">     334 </span>            :         unsigned int maxSignal=0;
+<span class="lineNum">     335 </span>            :         unsigned int nofSignals=0;
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         while(altroRawStream-&gt;NextBunch()){</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :           const UShort_t *bunchData=altroRawStream-&gt;GetSignals();</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :           unsigned int time=altroRawStream-&gt;GetStartTimeBin();</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :           for(Int_t i=0;i&lt;altroRawStream-&gt;GetBunchLength();i++){</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :             if(bunchData[i]&gt;0){// disregarding 0 data.</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :               if(time+i&gt;=fStartTimeBin &amp;&amp; time+i&lt;=fEndTimeBin){</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                 sumSignals+=bunchData[i]*bunchData[i];</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                 if (maxSignal&lt;bunchData[i]) maxSignal=bunchData[i];</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 nofSignals++;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">     346 </span>            :             }
+<span class="lineNum">     347 </span>            :           }
+<span class="lineNum">     348 </span>            :         }
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         if (nofSignals==0 || maxSignal&lt;=TMath::Sqrt(sumSignals/nofSignals)*fRMSThreshold) {</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     351 </span>            :         }
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         if (fhRMS) fhRMS-&gt;Fill(maxSignal/TMath::Sqrt(sumSignals/nofSignals));</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     354 </span>            :       int active=0;
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :       for (active=0; active&lt;iArraySize; active++) {</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         if (pActiveHwAddressArray[active]==(AliHLTUInt16_t)hwAddress) {</span>
+<span class="lineNum">     357 </span>            :           break;
+<span class="lineNum">     358 </span>            :         }
+<span class="lineNum">     359 </span>            :       }
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       if (active&gt;=iArraySize) {</span>
+<span class="lineNum">     361 </span>            :         HLTDebug(&quot;ALTRO block %#x (%d) discarded (inactive)&quot;, hwAddress, hwAddress);
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     363 </span>            :       }
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :       // no of 10 bit words is without the fill words to fill complete 40 bit words
+<span class="lineNum">     367 </span>            :       // in addition, align to complete 40 bit words (the '+3')
+<span class="lineNum">     368 </span>            :       // also, the 4 bytes of the Altro trailer must be added to get the full size
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :       int channelSize=((altroRawStream-&gt;GetChannelPayloadSize()+2)/3)*4;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :       if (channelSize==0) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         if (fTalkative) HLTWarning(&quot;skipping zero length channel (hw address %d)&quot;, hwAddress);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         iCorrupted++;</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     374 </span>            :       }
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :       channelSize+=4;</span>
+<span class="lineNum">     376 </span>            :       HLTDebug(&quot;ALTRO block hwAddress 0x%08x (%d) selected (active), size %d&quot;, hwAddress, hwAddress, channelSize);
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :       if (iCapacity&gt;=(channelSize+iOutputSize)) {</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         const UChar_t *ChannelData=altroRawStream-&gt;GetChannelPayload();</span>
+<span class="lineNum">     380 </span>            :         iResult=channelSize;
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         memcpy(outputPtr+size+iOutputSize,ChannelData,channelSize);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         if (channelSize == iResult){</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :           if (channelSize%4 == 0) {</span>
+<span class="lineNum">     384 </span>            :             iOutputSize+=channelSize;
+<span class="lineNum">     385 </span>            :           } else {
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             if (fTalkative) HLTWarning(&quot;corrupted ALTRO channel: incomplete 32 bit word (channel hw address %d)&quot;, hwAddress);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :             iCorrupted++;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     389 </span>            :           }
+<span class="lineNum">     390 </span>            :         } else {
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :           if (fTalkative) HLTWarning(&quot;internal error: failed to copy full channel: %d out of %d bytes (hw address %d)&quot;, iResult, channelSize, hwAddress);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :           iCorrupted++;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">     394 </span>            :         }
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         if (fTalkative) HLTError(&quot;failed to write ALTRO channel of length %d for block %d  (hw address %d)&quot;, channelSize, blockno, hwAddress);</span>
+<span class="lineNum">     397 </span>            :         // corrupted channel, but keep going
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         iCorrupted++;</span>
+<span class="lineNum">     399 </span>            :         iResult=0;
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     401 </span>            :       }  
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :       iSelected++;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     404 </span>            :     
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     if (iResult&gt;=0) {</span>
+<span class="lineNum">     406 </span>            :       //Write the RCU Trailer
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :       AliHLTUInt8_t* pSrc=reinterpret_cast&lt;AliHLTUInt8_t*&gt;(pDesc-&gt;fPtr);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :       pSrc+=pDesc-&gt;fSize-rcuTrailerLength;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :       memcpy(outputPtr+size+iOutputSize,pSrc,rcuTrailerLength);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :       iOutputSize+=rcuTrailerLength;</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            :       //Set new payload length of the new data bloock 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :       AliHLTUInt32_t* pSize=reinterpret_cast&lt;AliHLTUInt32_t*&gt;(outputPtr+size+iOutputSize-rcuTrailerLength);</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :       (*pSize)&amp;=~0x3FFFFFF;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :       (*pSize)|=(iOutputSize-rcuTrailerLength-cdhSize+3)/4;//# of 32 bit words in payload</span>
+<span class="lineNum">     416 </span>            :       
+<span class="lineNum">     417 </span>            :       //Write DDL length     
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       AliHLTUInt32_t* pCdhSize=reinterpret_cast&lt;AliHLTUInt32_t*&gt;(outputPtr+size);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       *pCdhSize=iOutputSize;</span>
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            :       // insert block descriptor
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       AliHLTComponentBlockData bd;</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :       FillBlockData(bd);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :       bd.fOffset=size;</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :       bd.fSize=iOutputSize;</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :       bd.fDataType=pDesc-&gt;fDataType;</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :       bd.fSpecification=pDesc-&gt;fSpecification;</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       outputBlocks.push_back(bd);</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :       size+=iOutputSize;</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     if (fTalkative) HLTImportant(&quot;data block %d (0x%08x): selected %d out of %d ALTRO channel(s), %d corrupted channels skipped&quot;, blockno, pDesc-&gt;fSpecification, iSelected, iTotal, iCorrupted);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   if (iResult&lt;0) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     outputBlocks.clear();</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

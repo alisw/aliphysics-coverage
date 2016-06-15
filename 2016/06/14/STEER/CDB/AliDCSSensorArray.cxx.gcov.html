@@ -1,0 +1,880 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/CDB/AliDCSSensorArray.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/CDB</a> - AliDCSSensorArray.cxx<span style="font-size: 80%;"> (source / <a href="AliDCSSensorArray.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">428</td>
+            <td class="headerCovTableEntryLo">3.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryLo">9.5 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      18 </span>            : //                                                                           //
+<span class="lineNum">      19 </span>            : //  Calibration class for DCS sensors                                        //
+<span class="lineNum">      20 </span>            : //  Authors: Marian Ivanov and Haavard Helstrup                              //
+<span class="lineNum">      21 </span>            : //                                                                           //
+<span class="lineNum">      22 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;AliDCSSensorArray.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      26 </span>            : #include &lt;TMath.h&gt;
+<a name="27"><span class="lineNum">      27 </span>            : #include &quot;AliDCSSensor.h&quot;</a>
+<span class="lineNum">      28 </span>            : #include &quot;AliNDLocalRegression.h&quot;
+<span class="lineNum">      29 </span><span class="lineCov">        128 : ClassImp(AliDCSSensorArray)</span>
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : const Double_t kSecInHour = 3600.; // seconds in one hour
+<span class="lineNum">      32 </span>            : const UInt_t   kMinMapTime = 60;   // don't fit maps shorter than one minute
+<a name="33"><span class="lineNum">      33 </span>            : </a>
+<span class="lineNum">      34 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      35 </span><span class="lineCov">         45 : AliDCSSensorArray::AliDCSSensorArray():TNamed(), </span>
+<span class="lineNum">      36 </span><span class="lineCov">         45 :   fMinGraph(10),</span>
+<span class="lineNum">      37 </span><span class="lineCov">         45 :   fMinPoints(10),</span>
+<span class="lineNum">      38 </span><span class="lineCov">         45 :   fIter(10),</span>
+<span class="lineNum">      39 </span><span class="lineCov">         45 :   fMaxDelta(0.0),</span>
+<span class="lineNum">      40 </span><span class="lineCov">         45 :   fFitReq(2),</span>
+<span class="lineNum">      41 </span><span class="lineCov">         45 :   fValCut(-1),</span>
+<span class="lineNum">      42 </span><span class="lineCov">         45 :   fDiffCut(-1),</span>
+<span class="lineNum">      43 </span><span class="lineCov">         45 :   fStartTime (2000,1,1,0,0,0),</span>
+<span class="lineNum">      44 </span><span class="lineCov">         45 :   fEndTime   (2000,1,1,0,0,0),</span>
+<span class="lineNum">      45 </span><span class="lineCov">         45 :   fSensors(0)</span>
+<span class="lineNum">      46 </span><span class="lineCov">        143 : {</span>
+<span class="lineNum">      47 </span>            :   //
+<span class="lineNum">      48 </span>            :   // AliDCSSensorArray default constructor
+<span class="lineNum">      49 </span>            :   //
+<span class="lineNum">      50 </span>            : 
+<a name="51"><span class="lineNum">      51 </span><span class="lineCov">         49 : }</span></a>
+<span class="lineNum">      52 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : AliDCSSensorArray::AliDCSSensorArray(TClonesArray *arr):TNamed(),</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   fMinGraph(10),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   fMinPoints(10),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fIter(10),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fMaxDelta(0.0),</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   fFitReq(2),</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fValCut(-1),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   fDiffCut(-1),</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   fStartTime (2000,1,1,0,0,0),</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   fEndTime   (2000,1,1,0,0,0),</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   fSensors(arr)</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      65 </span>            :   //
+<span class="lineNum">      66 </span>            :   // AliDCSSensorArray special constructor taking TClonesArray from ReadList
+<span class="lineNum">      67 </span>            :   //
+<span class="lineNum">      68 </span>            : 
+<a name="69"><span class="lineNum">      69 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      70 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      71 </span>            : AliDCSSensorArray::AliDCSSensorArray(Int_t run, const char* dbEntry) :
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   TNamed(),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   fMinGraph(10),</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   fMinPoints(10),</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   fIter(10),</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   fMaxDelta(0.0),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   fFitReq(2),</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   fValCut(-1),</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fDiffCut(-1),</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   fStartTime (2000,1,1,0,0,0),</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fEndTime   (2000,1,1,0,0,0),</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   fSensors(0)</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      84 </span>            :   //
+<span class="lineNum">      85 </span>            :   // Read configuration from OCDB
+<span class="lineNum">      86 </span>            :   //
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   AliCDBEntry *entry = AliCDBManager::Instance()-&gt;Get(dbEntry,run);</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   if (entry) {</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     TTree *tree = (TTree*) entry-&gt;GetObject();</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     fSensors = AliDCSSensor::ReadTree(tree);</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     AliError(&quot;Unable to load configuration from CDB!&quot;);</span>
+<span class="lineNum">      94 </span>            :   }
+<a name="95"><span class="lineNum">      95 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      96 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      97 </span>            : AliDCSSensorArray::AliDCSSensorArray(UInt_t startTime, UInt_t endTime,
+<span class="lineNum">      98 </span>            :                        TTree* confTree) :
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   TNamed(),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fMinGraph(10),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fMinPoints(10),</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   fIter(10),</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   fMaxDelta(0.0),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   fFitReq(2),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fValCut(-1),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fDiffCut(-1),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fStartTime (2000,1,1,0,0,0),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   fEndTime   (2000,1,1,0,0,0),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fSensors(0)</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     112 </span>            :   //
+<span class="lineNum">     113 </span>            :   // AliDCSSensorArray constructor for Shuttle preprocessor
+<span class="lineNum">     114 </span>            :   //  (confTree read from OCDB)
+<span class="lineNum">     115 </span>            :   //
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fSensors = AliDCSSensor::ReadTree(confTree);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   fSensors-&gt;BypassStreamer(kFALSE);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   fStartTime = TTimeStamp((time_t)startTime,0);</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   fEndTime   = TTimeStamp((time_t)endTime,0);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     121 </span>            : 
+<a name="122"><span class="lineNum">     122 </span>            : </a>
+<span class="lineNum">     123 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     124 </span>            : AliDCSSensorArray::AliDCSSensorArray(UInt_t startTime, UInt_t endTime,
+<span class="lineNum">     125 </span>            :                        TClonesArray *sensors) :
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   TNamed(),</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   fMinGraph(10),</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   fMinPoints(10),</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   fIter(10),</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   fMaxDelta(0.0),</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   fFitReq(2),</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   fValCut(-1),</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   fDiffCut(-1),</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   fStartTime (2000,1,1,0,0,0),</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   fEndTime   (2000,1,1,0,0,0),</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   fSensors(sensors)</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     139 </span>            :   //
+<span class="lineNum">     140 </span>            :   // AliDCSSensorArray constructor for Shuttle preprocessor
+<span class="lineNum">     141 </span>            :   //  (TClonesArray of AliDCSSensor objects)
+<span class="lineNum">     142 </span>            :   //
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   fStartTime = TTimeStamp((time_t)startTime,0);</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   fEndTime   = TTimeStamp((time_t)endTime,0);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : }</span>
+<a name="146"><span class="lineNum">     146 </span>            : </a>
+<span class="lineNum">     147 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 : AliDCSSensorArray::AliDCSSensorArray(const AliDCSSensorArray &amp;c):TNamed(c),</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   fMinGraph(c.fMinGraph),</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   fMinPoints(c.fMinPoints),</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   fIter(c.fIter),</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   fMaxDelta(c.fMaxDelta),</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   fFitReq(c.fFitReq),</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   fValCut(c.fValCut),</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   fDiffCut(c.fDiffCut),</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   fStartTime (c.fStartTime),</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   fEndTime   (c.fEndTime),</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   fSensors(0)</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     161 </span>            :   //
+<span class="lineNum">     162 </span>            :   // AliDCSSensorArray copy constructor
+<span class="lineNum">     163 </span>            :   //
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   fSensors = (TClonesArray*)c.fSensors-&gt;Clone();</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 : }</span>
+<a name="167"><span class="lineNum">     167 </span>            : </a>
+<span class="lineNum">     168 </span>            : ///_____________________________________________________________________________
+<span class="lineNum">     169 </span>            : AliDCSSensorArray::~AliDCSSensorArray()
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     171 </span>            :   //
+<span class="lineNum">     172 </span>            :   // AliDCSSensorArray destructor  - we have somehwere double delete - had to be disabled -TO BE FIXED LATER
+<span class="lineNum">     173 </span>            :   //
+<span class="lineNum">     174 </span>            :   //fSensors-&gt;Delete();
+<span class="lineNum">     175 </span>            :   //delete fSensors;
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">          6 : }</span>
+<a name="178"><span class="lineNum">     178 </span>            : </a>
+<span class="lineNum">     179 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     180 </span>            : AliDCSSensorArray &amp;AliDCSSensorArray::operator=(const AliDCSSensorArray &amp;c)
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :   //
+<span class="lineNum">     183 </span>            :   // Assignment operator
+<span class="lineNum">     184 </span>            :   //
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if (this != &amp;c) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :      fSensors-&gt;Delete();</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :      new (this) AliDCSSensorArray(c);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :      fSensors = (TClonesArray*)c.fSensors-&gt;Clone();</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   return *this;</span>
+<a name="191"><span class="lineNum">     191 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : void AliDCSSensorArray::Print(const Option_t* option) const{
+<span class="lineNum">     194 </span>            :   //
+<span class="lineNum">     195 </span>            :   // print function overwriten
+<span class="lineNum">     196 </span>            :   //
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   TString opt = option; opt.ToLower();</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   printf(&quot;%s:%s\n&quot;,GetTitle(), GetName());</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   if (!fSensors) return;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   Int_t nsensors=fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nsensors; i++){</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     printf(&quot;Sensor Nr%d\n&quot;,i);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     if (fSensors-&gt;At(i)) fSensors-&gt;At(i)-&gt;Print(option);</span>
+<span class="lineNum">     204 </span>            :   }
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     206 </span>            : 
+<a name="207"><span class="lineNum">     207 </span>            : //____________________________________________________________________________</a>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : void AliDCSSensorArray::SetGraph(TMap *map)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :   //
+<span class="lineNum">     212 </span>            :   // Read graphs from DCS maps
+<span class="lineNum">     213 </span>            :   //
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     TString stringID = entry-&gt;GetStringID();</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     TGraph *gr = (TGraph*)map-&gt;GetValue(stringID.Data());</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     if ( gr !=0 ) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :        entry-&gt;SetGraph((TGraph*)gr-&gt;Clone());</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :        entry-&gt;SetGraph(0);</span>
+<span class="lineNum">     223 </span>            :     }
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   }</span>
+<a name="225"><span class="lineNum">     225 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     226 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     227 </span>            : void AliDCSSensorArray::MakeSplineFit(TMap *map, Bool_t keepMap)
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span>            :   //
+<span class="lineNum">     230 </span>            :   // Make spline fits from DCS maps
+<span class="lineNum">     231 </span>            :   //
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     TString stringID = entry-&gt;GetStringID();</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     TGraph *gr = (TGraph*)map-&gt;GetValue(stringID.Data());</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     if (!gr ) {</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :       entry-&gt;SetFit(0);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       entry-&gt;SetGraph(0);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       AliWarning(Form(&quot;sensor %s: no input graph&quot;,stringID.Data()));</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     242 </span>            :     }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     UInt_t timeDiff = entry-&gt;GetEndTime() - entry-&gt;GetStartTime();</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     if ( timeDiff &lt; kMinMapTime ) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :       AliWarning(Form(&quot;sensor %s: map length &lt; 60 s, DCS graph kept.&quot;,stringID.Data()));</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       entry-&gt;SetGraph((TGraph*)gr-&gt;Clone());</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       AliSplineFit *fit = new AliSplineFit();</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :       fit-&gt;SetMinPoints(fMinGraph);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       fit-&gt;InitKnots(gr,fMinPoints,fIter,fMaxDelta);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       fit-&gt;SplineFit(fFitReq);</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :       fit-&gt;Cleanup();</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       if (fit-&gt;GetKnots()&gt;0) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         entry-&gt;SetFit(fit);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         AliWarning(Form(&quot;sensor %s: no fit performed, DCS graph kept.&quot;,stringID.Data()));</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         entry-&gt;SetGraph((TGraph*)gr-&gt;Clone());</span>
+<span class="lineNum">     258 </span>            :       }
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     if (keepMap) entry-&gt;SetGraph((TGraph*)gr-&gt;Clone());</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   }</span>
+<a name="262"><span class="lineNum">     262 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     263 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     264 </span>            : void AliDCSSensorArray::MakeSplineFitAddPoints(TMap *map)
+<span class="lineNum">     265 </span>            : {
+<span class="lineNum">     266 </span>            :   //
+<span class="lineNum">     267 </span>            :   // Make spline fits from DCS maps
+<span class="lineNum">     268 </span>            :   //
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :   // fetch old points from existing graph
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     TGraph *gr = entry-&gt;GetGraph();</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     if (!gr) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :       gr = new TGraph();</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :       entry-&gt;SetGraph(gr);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     } </span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     TString stringID = entry-&gt;GetStringID();</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :   // fetch new points from DCS map
+<span class="lineNum">     283 </span>            :   
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     TGraph *grAdd = (TGraph*)map-&gt;GetValue(stringID.Data());</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     if (!grAdd ) return;</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :   // add new points to end of graph
+<span class="lineNum">     288 </span>            :   
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     Int_t nPointsOld=gr-&gt;GetN();</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     Int_t nPointsAdd=grAdd-&gt;GetN();</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     gr-&gt;Expand(nPointsOld+nPointsAdd);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     gr-&gt;Set(nPointsOld+nPointsAdd);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     Double_t *addX=grAdd-&gt;GetX();</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     Double_t *addY=grAdd-&gt;GetY();</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nPointsAdd;i++) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       gr-&gt;SetPoint(nPointsOld+i,addX[i],addY[i]);</span>
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            :  
+<span class="lineNum">     299 </span>            :    // make fit to complete graph
+<span class="lineNum">     300 </span>            :    
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     AliSplineFit *fit = new AliSplineFit();</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     fit-&gt;SetMinPoints(fMinGraph);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     fit-&gt;InitKnots(gr,fMinPoints,fIter,fMaxDelta);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     fit-&gt;SplineFit(fFitReq);</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     fit-&gt;Cleanup();</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     if (fit-&gt;GetKnots()&gt;0) {</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :       AliSplineFit *oldFit = entry-&gt;GetFit();</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :       if (oldFit) delete oldFit;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :       entry-&gt;SetFit(fit);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :       AliWarning(Form(&quot;sensor %s: no new fit performed. If available, old fit kept.&quot;,stringID.Data()));</span>
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 : }</span>
+<a name="315"><span class="lineNum">     315 </span>            : </a>
+<span class="lineNum">     316 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     317 </span>            : Int_t AliDCSSensorArray::NumFits() const 
+<span class="lineNum">     318 </span>            : {
+<span class="lineNum">     319 </span>            :  //
+<span class="lineNum">     320 </span>            :  // Return number of sensors where a succesful fit has been made
+<span class="lineNum">     321 </span>            :  //
+<span class="lineNum">     322 </span>            :   Int_t nfit=0;
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     if (entry-&gt;GetFit()) nfit++;</span>
+<span class="lineNum">     327 </span>            :   }    
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   return nfit;</span>
+<a name="329"><span class="lineNum">     329 </span>            : }</a>
+<span class="lineNum">     330 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     331 </span>            : Double_t AliDCSSensorArray::GetValue(UInt_t timeSec, Int_t sensor) 
+<span class="lineNum">     332 </span>            : {
+<span class="lineNum">     333 </span>            :   //
+<span class="lineNum">     334 </span>            :   // Return sensor value at time timeSec (obtained from fitted function)
+<span class="lineNum">     335 </span>            :   //  timeSec = time in seconds from start of run
+<span class="lineNum">     336 </span>            :   //
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(sensor);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :   return entry-&gt;GetValue(TTimeStamp((time_t)fStartTime.GetSec()+timeSec,0));</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     341 </span>            : 
+<a name="342"><span class="lineNum">     342 </span>            : </a>
+<span class="lineNum">     343 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     344 </span>            : TMap* AliDCSSensorArray::ExtractDCS(TMap *dcsMap, Bool_t keepStart)
+<span class="lineNum">     345 </span>            : {
+<span class="lineNum">     346 </span>            :  //
+<span class="lineNum">     347 </span>            :  // Extract temperature graphs from DCS maps
+<span class="lineNum">     348 </span>            :  //
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :  TMap *values = new TMap;</span>
+<span class="lineNum">     350 </span>            :  TObjArray * valueSet;
+<span class="lineNum">     351 </span>            :  // Declare ownership of keys and values
+<span class="lineNum">     352 </span>            :  // added to the TMap, see
+<span class="lineNum">     353 </span>            :  // https://root.cern.ch/root/html/TMap.html#TMap:_TMap
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :  values-&gt;SetOwner();</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :  values-&gt;SetOwnerValue();</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :  //
+<span class="lineNum">     358 </span>            :  // Keep global start/end times
+<span class="lineNum">     359 </span>            :  //    to avoid extrapolations, the fits will only be valid from first 
+<span class="lineNum">     360 </span>            :  //    measured point to last measured point. This is consistent with hardware,
+<span class="lineNum">     361 </span>            :  //    as there would be a new measured point if the value changed.
+<span class="lineNum">     362 </span>            :  
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :  TTimeStamp startTime=fStartTime;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :  TTimeStamp endTime=fEndTime;</span>
+<span class="lineNum">     365 </span>            :  
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :  Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :  for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :    AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :    TString stringID = entry-&gt;GetStringID();</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :    TPair *pair = (TPair*)dcsMap-&gt;FindObject(stringID.Data());</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :    if ( pair ) {                            // only try to read values</span>
+<span class="lineNum">     372 </span>            :                                             // if DCS object available
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :      valueSet = (TObjArray*)pair-&gt;Value();</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :      TGraph *graph = MakeGraph(valueSet,keepStart);   // MakeGraph sets start/end time</span>
+<span class="lineNum">     375 </span>            :                                             // per sensor
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :      values-&gt;Add(new TObjString(stringID.Data()),graph);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :      entry-&gt;SetStartTime(fStartTime);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :      entry-&gt;SetEndTime(fEndTime);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     381 </span>            :  // Reset global start/end time 
+<span class="lineNum">     382 </span>            :  //    ..... yes, I know this won't get a prize for structured programming..:-)
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :  fStartTime=startTime;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :  fEndTime=endTime;</span>
+<span class="lineNum">     386 </span>            :  return values;
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     388 </span>            : 
+<a name="389"><span class="lineNum">     389 </span>            : </a>
+<span class="lineNum">     390 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     391 </span>            : TGraph* AliDCSSensorArray::MakeGraph(TObjArray* valueSet, Bool_t keepStart){
+<span class="lineNum">     392 </span>            :   //
+<span class="lineNum">     393 </span>            :   // Make graph of temperature values read from DCS map
+<span class="lineNum">     394 </span>            :   //   (spline fit parameters will subsequently be obtained from this graph) 
+<span class="lineNum">     395 </span>            :   //
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :   Int_t nentries = valueSet-&gt;GetEntriesFast(); </span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   if ( nentries == 0 ) return 0;</span>
+<span class="lineNum">     398 </span>            :   
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :   Float_t *x = new Float_t[nentries];</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :   Float_t *y = new Float_t[nentries];</span>
+<span class="lineNum">     401 </span>            :   Int_t time0=0, previousTime=0;
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   TTimeStamp firstTime(0);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   TTimeStamp lastTime(0);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   if (keepStart) { </span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :      firstTime = fStartTime;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :      time0 = firstTime.GetSec();</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     408 </span>            :   Int_t out=0;
+<span class="lineNum">     409 </span>            :   Int_t skipped=0;
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   AliDCSValue *val = (AliDCSValue *)valueSet-&gt;At(0);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   AliDCSValue::Type type = val-&gt;GetType();</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :   if ( type == AliDCSValue::kInvalid || type == AliDCSValue::kBool ) {</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :      delete [] x;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :      delete [] y;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :      return 0;</span>
+<span class="lineNum">     416 </span>            :   }
+<span class="lineNum">     417 </span>            :   Float_t value;
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;nentries; i++){</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     val = (AliDCSValue *)valueSet-&gt;At(i);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     if (!val) continue;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     if (time0==0){</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       time0=val-&gt;GetTimeStamp();</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :       firstTime= TTimeStamp((time_t)val-&gt;GetTimeStamp(),0);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :       lastTime=TTimeStamp((time_t)val-&gt;GetTimeStamp(),0);</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     switch ( type )</span>
+<span class="lineNum">     427 </span>            :     { 
+<span class="lineNum">     428 </span>            :       case AliDCSValue::kFloat:
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         value = val-&gt;GetFloat();</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     431 </span>            :       case AliDCSValue::kChar:
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         value = static_cast&lt;Float_t&gt;(val-&gt;GetChar());</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     434 </span>            :       case AliDCSValue::kInt:
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         value = static_cast&lt;Float_t&gt;(val-&gt;GetInt());</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     437 </span>            :       case AliDCSValue::kUInt:
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         value = static_cast&lt;Float_t&gt;(val-&gt;GetUInt());</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     440 </span>            :       default:
+<span class="lineNum">     441 </span>            :         continue;
+<span class="lineNum">     442 </span>            :     }
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     if (fValCut&gt;0 &amp;&amp; TMath::Abs(value)&gt;fValCut) continue;   // refuse values greater than cut</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     if (fDiffCut&gt;0 ) {</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :       if ( out&gt;0 &amp;&amp; skipped&lt;10 &amp;&amp; TMath::Abs(value-y[out-1])&gt;fDiffCut) {</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         skipped++;                               // refuse values changing </span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         continue;                                // by &gt; cut  in one time step</span>
+<span class="lineNum">     448 </span>            :       }                                          
+<span class="lineNum">     449 </span>            :       skipped=0;
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     }                                         </span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     if (val-&gt;GetTimeStamp()-time0&gt;1000000) continue;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     if (val-&gt;GetTimeStamp()-previousTime &lt; 1 ) continue;   // refuse duplicate recordings</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     previousTime=val-&gt;GetTimeStamp();</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     lastTime=TTimeStamp((time_t)val-&gt;GetTimeStamp(),0);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     x[out] = (val-&gt;GetTimeStamp()-time0)/kSecInHour; // give times in fractions of hours </span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     y[out] = value;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     out++;    </span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   if (!keepStart) fStartTime=firstTime;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   fEndTime=lastTime;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   TGraph * graph = new TGraph(out,x,y);</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :   delete [] x;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   delete [] y;</span>
+<span class="lineNum">     464 </span>            :   return graph;
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 : }</span>
+<a name="466"><span class="lineNum">     466 </span>            : </a>
+<span class="lineNum">     467 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     468 </span>            : void AliDCSSensorArray::RemoveGraphDuplicates(Double_t tolerance){
+<span class="lineNum">     469 </span>            : //
+<span class="lineNum">     470 </span>            : //   Remove points with same y value as the previous measured point
+<span class="lineNum">     471 </span>            : //   (to save space for non-fitted graphs -- i.e. last measured point used)
+<span class="lineNum">     472 </span>            : //
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     TGraph *graph = entry-&gt;GetGraph();</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     Double_t x=-999.,y=-999., x0=-999.,y0=-999.;</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     if (graph) {</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :       Int_t npoints=graph-&gt;GetN();</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :       if (npoints&gt;1) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :         for (Int_t i=npoints-1;i&gt;0;i--) {</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :            graph-&gt;GetPoint(i,x,y);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :            graph-&gt;GetPoint(i-1,x0,y0);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :            if ( TMath::Abs(y-y0) &lt; TMath::Abs(tolerance*y0) ) graph-&gt;RemovePoint(i);</span>
+<span class="lineNum">     485 </span>            :          }
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 : }    </span>
+<a name="490"><span class="lineNum">     490 </span>            : </a>
+<span class="lineNum">     491 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     492 </span>            : void AliDCSSensorArray::RemoveAbsBelowThreshold(const Double_t threshold){
+<span class="lineNum">     493 </span>            :   //
+<span class="lineNum">     494 </span>            :   //   Remove points with Abs(y) value below threshold
+<span class="lineNum">     495 </span>            :   //   (to save space for non-fitted graphs)
+<span class="lineNum">     496 </span>            :   //   Only remove if the two neighboring points are also
+<span class="lineNum">     497 </span>            :   //   below threshold t.
+<span class="lineNum">     498 </span>            :   //   See following figure where x = keep, o = remove
+<span class="lineNum">     499 </span>            :   //   ^
+<span class="lineNum">     500 </span>            :   //   | x
+<span class="lineNum">     501 </span>            :   //   |                             x
+<span class="lineNum">     502 </span>            :   //   |     x                      x
+<span class="lineNum">     503 </span>            :   //  t . . . . . . . . . . . . . . . .
+<span class="lineNum">     504 </span>            :   //   |       x o                x
+<span class="lineNum">     505 </span>            :   //  0 - - - - - - - - - - - - - - - - - &gt;
+<span class="lineNum">     506 </span>            :   //   |           o    x   x o o
+<span class="lineNum">     507 </span>            :   // -t . . . . . . . . . . . . . . . .
+<span class="lineNum">     508 </span>            :   //   |                  x
+<span class="lineNum">     509 </span>            :   //
+<span class="lineNum">     510 </span>            :   
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   const Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   for (Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = static_cast&lt;AliDCSSensor*&gt;(fSensors-&gt;At(isensor));</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     TGraph *graph = entry-&gt;GetGraph();</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     Double_t xa=-999.,ya=-999.,xb=-999.,yb=-999.,xc=-999.,yc=-999.;</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     if (graph) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :       const Int_t npoints=graph-&gt;GetN();</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :       for (Int_t i=npoints-2;i&gt;0;i--) {</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         graph-&gt;GetPoint(i-1,xa,ya);</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         graph-&gt;GetPoint(i,xb,yb);</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         graph-&gt;GetPoint(i+1,xc,yc);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         if ( (TMath::Abs(ya) &lt; threshold) &amp;&amp;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :              (TMath::Abs(yb) &lt; threshold) &amp;&amp;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :              (TMath::Abs(yc) &lt; threshold) ) {</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :           graph-&gt;RemovePoint(i);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     527 </span>            :       }
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 : }</span>
+<a name="531"><span class="lineNum">     531 </span>            : </a>
+<span class="lineNum">     532 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     533 </span>            : AliDCSSensor* AliDCSSensorArray::GetSensor(Int_t IdDCS) 
+<span class="lineNum">     534 </span>            : {
+<span class="lineNum">     535 </span>            :  //
+<span class="lineNum">     536 </span>            :  //  Return sensor information for sensor specified by IdDCS
+<span class="lineNum">     537 </span>            :  //
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :  Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :  for (Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :    AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :    if (entry-&gt;GetIdDCS() == IdDCS) return entry;</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :  return 0;</span>
+<a name="544"><span class="lineNum">     544 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     545 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     546 </span>            : AliDCSSensor* AliDCSSensorArray::GetSensor(const TString&amp; stringID)
+<span class="lineNum">     547 </span>            : {
+<span class="lineNum">     548 </span>            :  //
+<span class="lineNum">     549 </span>            :  //  Return sensor information for sensor specified by stringID
+<span class="lineNum">     550 </span>            :  //
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :  Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :  for (Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :    AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :    if (entry-&gt;GetStringID() == stringID) return entry;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :  return 0;</span>
+<a name="557"><span class="lineNum">     557 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     558 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     559 </span>            : AliDCSSensor* AliDCSSensorArray::GetSensor(Double_t x, Double_t y, Double_t z)
+<span class="lineNum">     560 </span>            : {
+<span class="lineNum">     561 </span>            :  //
+<span class="lineNum">     562 </span>            :  //  Return sensor closest to given position
+<span class="lineNum">     563 </span>            :  //
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :  Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     565 </span>            :  Double_t dist2min=1e99;
+<span class="lineNum">     566 </span>            :  Double_t xs,ys,zs,dist2;
+<span class="lineNum">     567 </span>            :  Int_t ind=-1;
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :  for (Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :    AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :    xs = entry-&gt;GetX();</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :    ys = entry-&gt;GetY();</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :    zs = entry-&gt;GetZ();</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :    dist2 = (x-xs)*(x-xs) + (y-ys)*(y-ys) + (z-zs)*(z-zs);</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :    if (dist2 &lt; dist2min) {</span>
+<span class="lineNum">     575 </span>            :       ind=isensor;
+<span class="lineNum">     576 </span>            :       dist2min = dist2;
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     578 </span>            :  }
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :  if ( ind &gt;= 0 ) {</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     return (AliDCSSensor*)fSensors-&gt;At(ind);</span>
+<span class="lineNum">     581 </span>            :  } else {
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     583 </span>            :  }
+<a name="584"><span class="lineNum">     584 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     585 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     586 </span>            : AliDCSSensor* AliDCSSensorArray::GetSensorNum(Int_t ind)
+<span class="lineNum">     587 </span>            : {
+<span class="lineNum">     588 </span>            :  //
+<span class="lineNum">     589 </span>            :  //  Return sensor given by array index
+<span class="lineNum">     590 </span>            :  //
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :  return (AliDCSSensor*)fSensors-&gt;At(ind);</span>
+<span class="lineNum">     592 </span>            : }
+<a name="593"><span class="lineNum">     593 </span>            : </a>
+<span class="lineNum">     594 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     595 </span>            : Int_t AliDCSSensorArray::SetSensor(const TString&amp; stringID,
+<span class="lineNum">     596 </span>            :                           const  AliDCSSensor&amp; sensor)
+<span class="lineNum">     597 </span>            : {
+<span class="lineNum">     598 </span>            :  //
+<span class="lineNum">     599 </span>            :  //  Update sensor information for sensor specified by stringID
+<span class="lineNum">     600 </span>            :  //
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :  Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :  for (Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :    AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :    if (entry-&gt;GetStringID() == stringID) </span>
+<span class="lineNum">     605 </span>            :      {
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :       new ((*fSensors)[isensor])AliDCSSensor(sensor);</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :       return isensor;</span>
+<span class="lineNum">     608 </span>            :      }
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :  return -1;</span>
+<a name="611"><span class="lineNum">     611 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     612 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     613 </span>            : void AliDCSSensorArray::SetSensorNum(const Int_t ind, const AliDCSSensor&amp; sensor)
+<span class="lineNum">     614 </span>            : {
+<span class="lineNum">     615 </span>            :  //
+<span class="lineNum">     616 </span>            :  //  Update sensor information for sensor at index ind
+<span class="lineNum">     617 </span>            :  //
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :    new ((*fSensors)[ind])AliDCSSensor(sensor);</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :    return;</span>
+<a name="620"><span class="lineNum">     620 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     621 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     622 </span>            : void AliDCSSensorArray::RemoveSensorNum(Int_t ind)
+<span class="lineNum">     623 </span>            : {
+<span class="lineNum">     624 </span>            :  //
+<span class="lineNum">     625 </span>            :  //  Return sensor given by array index
+<span class="lineNum">     626 </span>            :  //
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :   delete fSensors-&gt;RemoveAt(ind);</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :   fSensors-&gt;Compress();</span>
+<a name="630"><span class="lineNum">     630 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     631 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     632 </span>            : void AliDCSSensorArray::RemoveSensor(Int_t IdDCS)
+<span class="lineNum">     633 </span>            : {
+<span class="lineNum">     634 </span>            :  //
+<span class="lineNum">     635 </span>            :  //  Deletes Sensor by given IdDCS
+<span class="lineNum">     636 </span>            :  //
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :   for (Int_t isensor=0; isensor&lt;nsensors; isensor++) { // loop over sensors</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     if (entry-&gt;GetIdDCS()==IdDCS) {</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :       delete fSensors-&gt;RemoveAt(isensor);</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     644 </span>            :     }
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :   fSensors-&gt;Compress();</span>
+<a name="647"><span class="lineNum">     647 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     648 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     649 </span>            : TArrayI AliDCSSensorArray::OutsideThreshold(Double_t threshold, UInt_t timeSec, Bool_t below) const
+<span class="lineNum">     650 </span>            : {
+<span class="lineNum">     651 </span>            :  //
+<span class="lineNum">     652 </span>            :  // Return sensors with values outside threshold at time defined by second
+<span class="lineNum">     653 </span>            :  // parameter
+<span class="lineNum">     654 </span>            :  // By default sensors with values below threshold are listed, if third
+<span class="lineNum">     655 </span>            :  // parameter is set to kFALSE sensors with values above threshold are listed
+<span class="lineNum">     656 </span>            :  //
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :   Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :   TArrayI array(nsensors);</span>
+<span class="lineNum">     659 </span>            :   Int_t outside=0;
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :   for (Int_t isensor=0; isensor&lt;nsensors; isensor++) { // loop over sensors</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     AliDCSSensor *entry = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     Double_t val=entry-&gt;GetValue(timeSec);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     if (below) {</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :       if (val&lt;threshold) array[outside++] = entry-&gt;GetIdDCS();</span>
+<span class="lineNum">     665 </span>            :     } else {
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :       if (val&gt;threshold) array[outside++] = entry-&gt;GetIdDCS();</span>
+<span class="lineNum">     667 </span>            :     }    
+<span class="lineNum">     668 </span>            :   }
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   array.Set(outside);</span>
+<span class="lineNum">     670 </span>            :   return array;
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 : }</span>
+<a name="672"><span class="lineNum">     672 </span>            :  </a>
+<span class="lineNum">     673 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     674 </span>            : Int_t AliDCSSensorArray::GetFirstIdDCS() const
+<span class="lineNum">     675 </span>            : {
+<span class="lineNum">     676 </span>            :  //
+<span class="lineNum">     677 </span>            :  //  Return DCS Id of first sensor
+<span class="lineNum">     678 </span>            :  //
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :  if ( fSensors != 0 ) {</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     return ((AliDCSSensor*)fSensors-&gt;At(0))-&gt;GetIdDCS();</span>
+<span class="lineNum">     681 </span>            :  } else {
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     683 </span>            :  }
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 : }</span>
+<a name="685"><span class="lineNum">     685 </span>            : </a>
+<span class="lineNum">     686 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     687 </span>            : Int_t AliDCSSensorArray::GetLastIdDCS() const 
+<span class="lineNum">     688 </span>            : {
+<span class="lineNum">     689 </span>            :  //
+<span class="lineNum">     690 </span>            :  //  Return DCS Id of last sensor
+<span class="lineNum">     691 </span>            :  //
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :  if ( fSensors != 0 ) {</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     Int_t last = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     return ((AliDCSSensor*)fSensors-&gt;At(last-1))-&gt;GetIdDCS();</span>
+<span class="lineNum">     695 </span>            :  } else {
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     697 </span>            :  }
+<a name="698"><span class="lineNum">     698 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     699 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     700 </span>            : void AliDCSSensorArray::ClearGraph()
+<span class="lineNum">     701 </span>            : {
+<span class="lineNum">     702 </span>            :   //
+<span class="lineNum">     703 </span>            :   // Delete DCS graphs from all sensors in array
+<span class="lineNum">     704 </span>            :   //
+<span class="lineNum">     705 </span>            :    
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :    Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :    for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :      AliDCSSensor *sensor = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :      TGraph *gr = sensor-&gt;GetGraph();</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :      if ( gr != 0 ) {</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :        delete gr;</span>
+<span class="lineNum">     712 </span>            :        gr = 0;
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :      sensor-&gt;SetGraph(0);</span>
+<span class="lineNum">     715 </span>            :    }
+<a name="716"><span class="lineNum">     716 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     717 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     718 </span>            : void AliDCSSensorArray::ClearFit()
+<span class="lineNum">     719 </span>            : {
+<span class="lineNum">     720 </span>            :   //
+<span class="lineNum">     721 </span>            :   // Delete spline fits from all sensors in array
+<span class="lineNum">     722 </span>            :   //
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :    Int_t nsensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :    for ( Int_t isensor=0; isensor&lt;nsensors; isensor++) {</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :      AliDCSSensor *sensor = (AliDCSSensor*)fSensors-&gt;At(isensor);</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :      AliSplineFit *fit = sensor-&gt;GetFit();</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :      if ( fit != 0 ) {</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :        delete fit;</span>
+<span class="lineNum">     730 </span>            :        fit = 0;
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :      sensor-&gt;SetFit(0);</span>
+<span class="lineNum">     733 </span>            :    }
+<a name="734"><span class="lineNum">     734 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     735 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     736 </span>            : void AliDCSSensorArray::AddSensors(AliDCSSensorArray *newSensors)
+<span class="lineNum">     737 </span>            : {
+<span class="lineNum">     738 </span>            :   //
+<span class="lineNum">     739 </span>            :   // add sensors from two sensor arrays
+<span class="lineNum">     740 </span>            :   //
+<span class="lineNum">     741 </span>            :   
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :   Int_t numNew = newSensors-&gt;NumSensors();</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :   Int_t numOld = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :   fSensors-&gt;Expand(numOld+numNew);</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;numNew;i++) {</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     AliDCSSensor *sens = newSensors-&gt;GetSensorNum(i);</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     new ((*fSensors)[numOld+i]) AliDCSSensor(*sens);</span>
+<span class="lineNum">     748 </span>            :   }
+<a name="749"><span class="lineNum">     749 </span><span class="lineNoCov">          0 : }  </span></a>
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span>            : void  AliDCSSensorArray::DumpToTree(const char * fname, Int_t deltaT, Int_t sigmaT){
+<span class="lineNum">     752 </span>            :   ///
+<span class="lineNum">     753 </span>            :   /// Dump the content of the DCS sensor array into the tree
+<span class="lineNum">     754 </span>            :   /// Usage:
+<span class="lineNum">     755 </span>            :   ///   1.) visualization
+<span class="lineNum">     756 </span>            :   ///   2.) make a numerical diff (if saved as root file)
+<span class="lineNum">     757 </span>            :   ///   3.) make a &quot;alphabetic&quot; diff if saved as xml file
+<span class="lineNum">     758 </span>            :   ///
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :   Int_t nSensors = fSensors-&gt;GetEntries();</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :   UInt_t nBins=TMath::Nint(Double_t(fEndTime-fStartTime)/deltaT)+1;  </span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :   UInt_t startTime=deltaT*(fStartTime/deltaT);</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :   TVectorF values(nSensors);</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :   TVectorF valuesSmooth(nSensors);</span>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :   for (Int_t iSensor=0; iSensor&lt;nSensors; iSensor++){</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     AliDCSSensor *sensor=  GetSensorNum (iSensor);</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     TGraph *gr = sensor-&gt;GetGraph();</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     if (gr) gr-&gt;Sort();</span>
+<span class="lineNum">     769 </span>            :   }
+<span class="lineNum">     770 </span>            :   //
+<span class="lineNum">     771 </span>            :   //
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :   TTreeSRedirector *pcstream = new TTreeSRedirector(fname,&quot;recreate&quot;);</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   for (Int_t itime=0; itime&lt;nBins; itime++) {</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     UInt_t evalTime=startTime+itime*deltaT;</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     TTimeStamp timeStamp(evalTime);</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     (*pcstream)&lt;&lt;&quot;sensorDumpTime&quot;&lt;&lt;&quot;evalTime=&quot;&lt;&lt;evalTime;</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     for (Int_t iSensor=0; iSensor&lt;nSensors; iSensor++){</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :       AliDCSSensor *sensor=  GetSensorNum (iSensor);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :       values[iSensor]=sensor-&gt;GetValue(timeStamp);</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :       TGraph *gr = sensor-&gt;GetGraph();</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :       valuesSmooth[iSensor]=0;</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :       if (gr){</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         valuesSmooth[iSensor]=AliNDLocalRegression::EvalGraphKernel(gr, (timeStamp-sensor-&gt;GetStartTime())/3600., sigmaT/3600.,3,0,1);</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;sensorDumpTime&quot;&lt;&lt;TString::Format(&quot;%s=&quot;,(sensor-&gt;GetStringID()).Data())&lt;&lt;values[iSensor];      </span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;sensorDumpTime&quot;&lt;&lt;TString::Format(&quot;s%s=&quot;,(sensor-&gt;GetStringID()).Data())&lt;&lt;valuesSmooth[iSensor];      </span>
+<span class="lineNum">     787 </span>            :     }
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     (*pcstream)&lt;&lt;&quot;sensorDumpTime&quot;&lt;&lt;&quot;\n&quot;;</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :   (*pcstream)&lt;&lt;&quot;sensorDumpFull&quot;&lt;&lt;&quot;array.=&quot;&lt;&lt;this&lt;&lt;&quot;\n&quot;;    </span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :   for (Int_t iSensor=0; iSensor&lt;nSensors; iSensor++){</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     AliDCSSensor *sensor=  GetSensorNum (iSensor);</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :     if (sensor-&gt;GetGraph()){</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :       (*pcstream)&lt;&lt;&quot;sensorDump&quot;&lt;&lt;TString::Format(&quot;gr%s.=&quot;,(sensor-&gt;GetStringID()).Data())&lt;&lt;sensor; </span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     797 </span>            :   }
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :   (*pcstream)&lt;&lt;&quot;sensorDump&quot;&lt;&lt;&quot;\n&quot;;</span>
+<span class="lineNum">     799 </span>            :   
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :   delete pcstream;</span>
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     804 </span>            :   
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

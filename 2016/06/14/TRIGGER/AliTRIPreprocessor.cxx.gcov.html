@@ -1,0 +1,365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TRIGGER/AliTRIPreprocessor.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">TRIGGER</a> - AliTRIPreprocessor.cxx<span style="font-size: 80%;"> (source / <a href="AliTRIPreprocessor.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">94</td>
+            <td class="headerCovTableEntryLo">1.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">8.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$*/
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : // Trigger preprocessor class. 
+<span class="lineNum">      19 </span>            : // According to the TriggerDetectorMask read from the logbook_trigger_clusters
+<span class="lineNum">      20 </span>            : // DAQ table, the triggering detectors are identified, and the 
+<span class="lineNum">      21 </span>            : // corresponding procedure is called.
+<span class="lineNum">      22 </span>            : // Data are stored in the OCDB, in /TRIGGER/&lt;DET&gt;/&lt;level3&gt;, where
+<span class="lineNum">      23 </span>            : // &lt;DET&gt; correspond to the triggering detector,
+<span class="lineNum">      24 </span>            : // and &lt;level3&gt; is defined in the detector procedure
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;AliTRIPreprocessor.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;AliCDBMetaData.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliCDBEntry.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliITSTriggerConditions.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &quot;AliTOFFEEReader.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliTOFTriggerMask.h&quot;
+<span class="lineNum">      35 </span>            :           
+<span class="lineNum">      36 </span>            : #include &lt;TTimeStamp.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;TList.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;TROOT.h&gt;
+<a name="40"><span class="lineNum">      40 </span>            : #include &lt;TSystem.h&gt;</a>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineCov">         12 : ClassImp(AliTRIPreprocessor)</span>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : // names of detectors/systems in the DETECTORS_MAP in /date/db/detCodes.h
+<span class="lineNum">      45 </span>            : const char* AliTRIPreprocessor::fgkDetectorsMapName[AliTRIPreprocessor::kNDetectorsMap] = {&quot;SPD&quot;/*0*/, &quot;SDD&quot;/*1*/, &quot;SSD&quot;/*2*/, &quot;TPC&quot;/*3*/, &quot;TRD&quot;/*4*/, 
+<span class="lineNum">      46 </span>            :                                                                                &quot;TOF&quot;/*5*/, &quot;HMP&quot;/*6*/, &quot;PHS&quot;/*7*/, &quot;CPV&quot;/*8*/, &quot;PMD&quot;/*9*/, 
+<span class="lineNum">      47 </span>            :                                                                                &quot;MCH&quot;/*10*/,&quot;MTR&quot;/*11*/,&quot;FMD&quot;/*12*/,&quot;T00&quot;/*13*/,&quot;V00&quot;/*14*/, 
+<span class="lineNum">      48 </span>            :                                                                                &quot;ZDC&quot;/*15*/,&quot;ACO&quot;/*16*/,&quot;TRI&quot;/*17*/,&quot;EMC&quot;/*18*/,&quot;TST&quot;/*19*/, 
+<span class="lineNum">      49 </span>            :                                                                                &quot;&quot;/*20*/,   &quot;&quot;/*21*/,   &quot;&quot;/*22*/,   &quot;&quot;/*23*/,   &quot;&quot;/*24*/,   
+<span class="lineNum">      50 </span>            :                                                                                &quot;&quot;/*25*/,   &quot;&quot;/*26*/,   &quot;&quot;/*27*/,   &quot;&quot;/*28*/,   &quot;GRP&quot;/*29*/, 
+<span class="lineNum">      51 </span>            :                                                                                &quot;HLT&quot;/*30*/};
+<a name="52"><span class="lineNum">      52 </span>            : </a>
+<span class="lineNum">      53 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">      54 </span>            : AliTRIPreprocessor::AliTRIPreprocessor(AliShuttleInterface* shuttle) :
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   AliPreprocessor(&quot;TRI&quot;, shuttle),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fShuttle(shuttle)</span>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      59 </span>            :         //
+<span class="lineNum">      60 </span>            :         // constructor
+<span class="lineNum">      61 </span>            :         //
+<span class="lineNum">      62 </span>            :         
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         AddRunType(&quot;PHYSICS&quot;);</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         AddRunType(&quot;STANDALONE_PULSER&quot;);</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : }</span>
+<a name="66"><span class="lineNum">      66 </span>            : </a>
+<span class="lineNum">      67 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">      68 </span>            : AliTRIPreprocessor::~AliTRIPreprocessor()
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      70 </span>            :         //
+<span class="lineNum">      71 </span>            :         // destructor
+<span class="lineNum">      72 </span>            :         //
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : }</span>
+<a name="74"><span class="lineNum">      74 </span>            : </a>
+<span class="lineNum">      75 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">      76 </span>            : void AliTRIPreprocessor::Initialize(Int_t run, UInt_t startTime,
+<span class="lineNum">      77 </span>            :         UInt_t endTime)
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            :         //
+<span class="lineNum">      81 </span>            :         // Initialize preprocessor
+<span class="lineNum">      82 </span>            :         //
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         AliPreprocessor::Initialize(run, startTime, endTime);</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :         Log(Form(&quot;\n\tRun %d \n\tStartTime %s \n\tEndTime %s&quot;, run,</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :                 TTimeStamp(startTime).AsString(),</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :                 TTimeStamp(endTime).AsString()));</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : }</span>
+<a name="91"><span class="lineNum">      91 </span>            : </a>
+<span class="lineNum">      92 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">      93 </span>            : Bool_t AliTRIPreprocessor::ProcessDCS()
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span>            :         //
+<span class="lineNum">      96 </span>            :         // DCS data are never needed
+<span class="lineNum">      97 </span>            :         //
+<span class="lineNum">      98 </span>            :         
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         return kFALSE;</span>
+<span class="lineNum">     100 </span>            : }
+<a name="101"><span class="lineNum">     101 </span>            : </a>
+<span class="lineNum">     102 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">     103 </span>            : UInt_t AliTRIPreprocessor::Process(TMap* /*dcsAliasMap*/)
+<span class="lineNum">     104 </span>            : {
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :         // Procees function:
+<span class="lineNum">     107 </span>            :         // After reading the TriggerDetectorMask, the
+<span class="lineNum">     108 </span>            :         // corresponding triggering detector procedures to 
+<span class="lineNum">     109 </span>            :         // process the trigger data are called.
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :         typedef Short_t (AliTRIPreprocessor::*AliProcessTriggerData)();
+<span class="lineNum">     112 </span>            :         const AliProcessTriggerData processTriggerDataArray[AliTRIPreprocessor::kNDetectorsMap]= { 
+<span class="lineNum">     113 </span>            :                 &amp;AliTRIPreprocessor::ProcessSPDTriggerData,
+<span class="lineNum">     114 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     115 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     116 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     117 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     118 </span>            :                 &amp;AliTRIPreprocessor::ProcessTOFTriggerData,
+<span class="lineNum">     119 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     120 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     121 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     122 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     123 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     124 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     125 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     126 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     127 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     128 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     129 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     130 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     131 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     132 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     133 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     134 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     135 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     136 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     137 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     138 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     139 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     140 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     141 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     142 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData,
+<span class="lineNum">     143 </span>            :                 &amp;AliTRIPreprocessor::ProcessEmptyTriggerData}; 
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :         // getting the list of triggering detectors from DAQ logbook
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         TString triggerDetectorMask = (TString)GetTriggerDetectorMask();</span>
+<span class="lineNum">     149 </span>            :         Int_t result=0;
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         if (!triggerDetectorMask.IsNull()){</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                 Int_t length = triggerDetectorMask.Length();</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                 Log(Form(&quot;mask = %s&quot;, triggerDetectorMask.Data()));</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                   for (Int_t i = 0; i&lt;length; i++){</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                         AliDebug(2,Form(&quot;%d-th bit = %c in index %d&quot;,i,triggerDetectorMask[length-1-i],length-1-i));</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                         if (triggerDetectorMask[length-1-i] == '1'){</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                                 Log(&quot;****************************************&quot;);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                                 Log(Form(&quot;Processing Trigger data for %s&quot;,fgkDetectorsMapName[i]));</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                                 Log(&quot;****************************************&quot;);</span>
+<span class="lineNum">     159 </span>            :                                
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                                 result+=(this-&gt;*processTriggerDataArray[i])();</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                         }</span>
+<span class="lineNum">     162 </span>            :                 }
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            :         // result should be 0 to end successfully
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :         return result;
+<span class="lineNum">     168 </span>            : 
+<a name="169"><span class="lineNum">     169 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     170 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">     171 </span>            : Short_t AliTRIPreprocessor::ProcessSPDTriggerData() 
+<span class="lineNum">     172 </span>            : {
+<span class="lineNum">     173 </span>            :         //
+<span class="lineNum">     174 </span>            :         // Processing SPD Trigger Data
+<span class="lineNum">     175 </span>            :         //
+<span class="lineNum">     176 </span>            :         
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         Log(&quot;************** Processing SPD Trigger data... **************&quot;);</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :         // Read new conditions from dcs fxs
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         AliITSTriggerConditions* newCond = new AliITSTriggerConditions();</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         TString fxsID = &quot;pit_conditions&quot;;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         TList* list = GetFileSources(kDCS, fxsID.Data());</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         if (!list) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :                 AliError(&quot;FXS file not found.&quot;);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :                 return 1;</span>
+<span class="lineNum">     186 </span>            :         }
+<span class="lineNum">     187 </span>            :         UInt_t nFiles = 0;
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         while (list-&gt;At(nFiles)!=NULL) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                 TObjString* fileNameEntry = (TObjString*) list-&gt;At(nFiles);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 TString fileName = GetFile(kDCS, fxsID.Data(), fileNameEntry-&gt;GetString().Data());</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                 if (fileName.IsNull()) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                         Log(Form(&quot;GetFile failed to retrieve file %s.&quot;,fileNameEntry-&gt;GetString().Data()));</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                         return 1;</span>
+<span class="lineNum">     194 </span>            :                 }
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                 if (nFiles==0) newCond-&gt;ReadFromTextFile(fileName.Data());</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                 nFiles++;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if (nFiles!=1) {</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                 AliWarning(Form(&quot;Found %d files with id %s (expected exactly 1).&quot;,nFiles,fxsID.Data()));</span>
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            :         
+<span class="lineNum">     202 </span>            :         // Read old conditions from ocdb
+<span class="lineNum">     203 </span>            :         AliITSTriggerConditions* oldCond = NULL;
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         AliCDBEntry* pitCond = GetFromOCDB(&quot;SPD&quot;, &quot;PITConditions&quot;);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         if (pitCond) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 oldCond = (AliITSTriggerConditions*) pitCond-&gt;GetObject();</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                 if (!oldCond) {</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                         AliError(&quot;AliCDBEntry::GetObject() returned NULL.&quot;);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                         return 1;</span>
+<span class="lineNum">     210 </span>            :                 }
+<span class="lineNum">     211 </span>            :         }
+<span class="lineNum">     212 </span>            :         else {
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                 Log(&quot;Old conditions not found in database.&quot;);</span>
+<span class="lineNum">     214 </span>            :         }
+<span class="lineNum">     215 </span>            :         
+<span class="lineNum">     216 </span>            :         // Do we need to update db?
+<span class="lineNum">     217 </span>            :         Bool_t doUpdate = kTRUE;
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         if (oldCond) {</span>
+<span class="lineNum">     219 </span>            :                 // compare to see if there were any changes...
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 if (newCond-&gt;IsEqualTo(oldCond)) {</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                         Log(&quot;Old conditions equal to new conditions. Do nothing.&quot;);</span>
+<span class="lineNum">     222 </span>            :                         doUpdate = kFALSE;
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     224 </span>            :         }
+<span class="lineNum">     225 </span>            :         
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         if (doUpdate) {</span>
+<span class="lineNum">     227 </span>            :                 // store new conditions in ocdb
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                 AliCDBMetaData metaData;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                 metaData.SetResponsible(&quot;Henrik Tydesjo&quot;);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                 metaData.SetComment(&quot;Created by Trigger PreProcessor&quot;);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                 if (!Store(&quot;SPD&quot;, &quot;PITConditions&quot;, newCond, &amp;metaData, 0, kTRUE)) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                         Log(&quot;Failed to store conditions data.&quot;);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                         return 1;</span>
+<span class="lineNum">     234 </span>            :                 }
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                 Log(&quot;Database updated.&quot;);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     237 </span>            :         
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         delete newCond;</span>
+<span class="lineNum">     239 </span>            :         
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         Log(&quot;************************* ...done.*************************&quot;);</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         return 0; // 0 means success</span>
+<span class="lineNum">     243 </span>            :         
+<a name="244"><span class="lineNum">     244 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     245 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">     246 </span>            : Short_t AliTRIPreprocessor::ProcessTOFTriggerData() 
+<span class="lineNum">     247 </span>            : {
+<span class="lineNum">     248 </span>            :         //
+<span class="lineNum">     249 </span>            :         // Processing TOF Trigger Data
+<span class="lineNum">     250 </span>            :         //
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         Log(&quot;************** Processing TOF Trigger data... **************&quot;);</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         const char * nameFile = GetFile(kDCS,&quot;TofFeeLightMap&quot;, &quot;&quot;); </span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         AliInfo(Form(&quot;toffeeLight file name = %s&quot;,nameFile));</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         if (nameFile == NULL) {</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :           return 1;</span>
+<span class="lineNum">     258 </span>            :         } 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         AliTOFFEEReader feeReader;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         feeReader.LoadFEElightConfig(nameFile);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         feeReader.ParseFEElightConfig();</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         AliTOFTriggerMask triggerMask;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         triggerMask.SetTriggerMaskArray(feeReader.GetTriggerMaskArray());</span>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         AliCDBMetaData metaData;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         metaData.SetBeamPeriod(0);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         metaData.SetResponsible(&quot;Roberto Preghenella&quot;);</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         metaData.SetComment(&quot;TOF trigger mask&quot;);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         if (!Store(&quot;TOF&quot;, &quot;TriggerMask&quot;, &amp;triggerMask, &amp;metaData, 0, kTRUE)) {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :           Log(&quot;error while storing TriggerMask object&quot;);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :           return 1;</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         Log(&quot;TriggerMask object successfully stored&quot;);</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         Log(&quot;************************* ...done.*************************&quot;);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="277"><span class="lineNum">     277 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     278 </span>            : //______________________________________________________________________________________________
+<span class="lineNum">     279 </span>            : Short_t AliTRIPreprocessor::ProcessEmptyTriggerData() 
+<span class="lineNum">     280 </span>            : {
+<span class="lineNum">     281 </span>            :         //
+<span class="lineNum">     282 </span>            :         // Processing TOF Trigger Data
+<span class="lineNum">     283 </span>            :         //
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         Log(&quot;************** Trigger data Processing not yet implemented **************&quot;);</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     287 </span>            : }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

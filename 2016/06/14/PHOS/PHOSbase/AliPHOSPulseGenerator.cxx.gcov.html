@@ -1,0 +1,370 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - PHOS/PHOSbase/AliPHOSPulseGenerator.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">PHOS/PHOSbase</a> - AliPHOSPulseGenerator.cxx<span style="font-size: 80%;"> (source / <a href="AliPHOSPulseGenerator.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">49</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntryLo">40.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryLo">64.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 2007, ALICE Experiment at CERN, All rights reserved.      *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : // The class which simulates the pulse shape from the PHOS FEE shaper,
+<span class="lineNum">      19 </span>            : // make sampled amplitudes, digitize them.
+<span class="lineNum">      20 </span>            : // Use case:
+<span class="lineNum">      21 </span>            : //   AliPHOSPulseGenerator *pulse = new AliPHOSPulseGenerator(energy,time);
+<span class="lineNum">      22 </span>            : //   Int_t *adcHG = new Int_t[pulse-&gt;GetRawFormatTimeBins()];
+<span class="lineNum">      23 </span>            : //   Int_t *adcLG= new Int_t[pulse-&gt;GetRawFormatTimeBins()];
+<span class="lineNum">      24 </span>            : //   pulse-&gt;AddNoise(1.);
+<span class="lineNum">      25 </span>            : //   pulse-&gt;MakeSamples();
+<span class="lineNum">      26 </span>            : //   pulse-&gt;GetSamples(adcHG, adcHG) ; 
+<span class="lineNum">      27 </span>            : //   pulse-&gt;Print();
+<span class="lineNum">      28 </span>            : //   pulse-&gt;Draw();
+<span class="lineNum">      29 </span>            : //
+<span class="lineNum">      30 </span>            : // Author: Yuri Kharlov, after Yves Schutz and Per Thomas Hille
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : // --- ROOT system ---
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &lt;TCanvas.h&gt; 
+<span class="lineNum">      35 </span>            : #include &lt;TF1.h&gt; 
+<span class="lineNum">      36 </span>            : #include &lt;TGraph.h&gt; 
+<span class="lineNum">      37 </span>            : #include &lt;TH1F.h&gt; 
+<span class="lineNum">      38 </span>            : #include &lt;TMath.h&gt; 
+<span class="lineNum">      39 </span>            : #include &lt;TRandom.h&gt;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : // --- AliRoot header files ---
+<span class="lineNum">      42 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliPHOSPulseGenerator.h&quot;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : // --- Standard library ---
+<span class="lineNum">      46 </span>            : #include &lt;cmath&gt;
+<span class="lineNum">      47 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : using std::cout;
+<a name="50"><span class="lineNum">      50 </span>            : using std::endl; </a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineCov">         22 : ClassImp(AliPHOSPulseGenerator) </span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : Int_t    AliPHOSPulseGenerator::fgOrder       = 2 ;        // order of the Gamma function
+<span class="lineNum">      55 </span>            : Double_t AliPHOSPulseGenerator::fgTimePeak    = 2.1E-6 ;   // tau=2.1 micro seconds
+<span class="lineNum">      56 </span>            : Double_t AliPHOSPulseGenerator::fgTimeTrigger = 100E-9 ;   // one tick 100 ns
+<a name="57"><span class="lineNum">      57 </span>            : </a>
+<span class="lineNum">      58 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      59 </span>            : AliPHOSPulseGenerator::AliPHOSPulseGenerator(Double_t a, Double_t t0)
+<span class="lineNum">      60 </span><span class="lineCov">         18 :   : TObject(), fAmplitude(a), fTZero(t0), fHG2LGratio(16.), fDataHG(0), fDataLG(0), fDigitize(kTRUE)</span>
+<span class="lineNum">      61 </span><span class="lineCov">         45 : {</span>
+<span class="lineNum">      62 </span>            :   // Contruct a pulsegenrator object and initializes all necessary parameters
+<span class="lineNum">      63 </span>            :   // @param a digit amplitude in GeV
+<span class="lineNum">      64 </span>            :   // @param t0 time delay in nanoseconds of signal relative the first sample. 
+<span class="lineNum">      65 </span>            :   // This value should be between 0 and Ts, where Ts is the sample interval
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineCov">         18 :   fDataHG = new Double_t[fkTimeBins];</span>
+<span class="lineNum">      68 </span><span class="lineCov">         18 :   fDataLG = new Double_t[fkTimeBins];</span>
+<span class="lineNum">      69 </span><span class="lineCov">          9 :   Reset();</span>
+<span class="lineNum">      70 </span><span class="lineCov">         18 : }</span>
+<a name="71"><span class="lineNum">      71 </span>            : </a>
+<span class="lineNum">      72 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      73 </span>            : AliPHOSPulseGenerator::~AliPHOSPulseGenerator()
+<span class="lineNum">      74 </span><span class="lineCov">         54 : {</span>
+<span class="lineNum">      75 </span>            :   // Destructor: delete arrays of samples
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineCov">         18 :   delete [] fDataHG;</span>
+<span class="lineNum">      78 </span><span class="lineCov">          9 :   fDataHG=0;</span>
+<span class="lineNum">      79 </span><span class="lineCov">         18 :   delete [] fDataLG;</span>
+<span class="lineNum">      80 </span><span class="lineCov">          9 :   fDataLG=0;</span>
+<span class="lineNum">      81 </span><span class="lineCov">         27 : }</span>
+<a name="82"><span class="lineNum">      82 </span>            : </a>
+<span class="lineNum">      83 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      84 </span>            : void AliPHOSPulseGenerator::Reset()
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :   // Reset all sample amplitudes to 0
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">     121191 :   for (Int_t i=0; i&lt;fkTimeBins; i++) {</span>
+<span class="lineNum">      89 </span><span class="lineCov">      59700 :     fDataHG[i] = 0.;</span>
+<span class="lineNum">      90 </span><span class="lineCov">      59700 :     fDataLG[i] = 0.;</span>
+<span class="lineNum">      91 </span>            :   }
+<span class="lineNum">      92 </span><span class="lineCov">        597 : }</span>
+<a name="93"><span class="lineNum">      93 </span>            : </a>
+<span class="lineNum">      94 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      95 </span>            : void AliPHOSPulseGenerator::AddBaseline(Double_t baselineLevel)
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span>            :   // Adds a baseline offset to the signal
+<span class="lineNum">      98 </span>            :   // @param baselineLevel The basline level to add
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;fkTimeBins; i++) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     fDataHG[i] += baselineLevel;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     fDataLG[i] += baselineLevel;</span>
+<span class="lineNum">     102 </span>            :   }
+<span class="lineNum">     103 </span>            :   // Digitize floating point amplitudes to integers
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   if (fDigitize) Digitize();</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 : }</span>
+<a name="106"><span class="lineNum">     106 </span>            : </a>
+<span class="lineNum">     107 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     108 </span>            : void AliPHOSPulseGenerator::AddNoise(Double_t sigma)
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span>            :   // Adds Gaussian uncorrelated to the sample array
+<span class="lineNum">     111 </span>            :   // @param sigma the noise amplitude in entities of ADC levels  
+<span class="lineNum">     112 </span>            :   
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;fkTimeBins; i++) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     fDataHG[i] = gRandom-&gt;Gaus(0., sigma) ; </span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     fDataLG[i] = gRandom-&gt;Gaus(0., sigma) ; </span>
+<span class="lineNum">     116 </span>            :   }
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 : }</span>
+<a name="118"><span class="lineNum">     118 </span>            : </a>
+<span class="lineNum">     119 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     120 </span>            : void AliPHOSPulseGenerator::AddNoise(Double_t * /* sigma */, Double_t /* cutoff */)
+<span class="lineNum">     121 </span>            : {
+<span class="lineNum">     122 </span>            :   //Adds correlated Gaussian noise with cutof frequency &quot;cutoff&quot;
+<span class="lineNum">     123 </span>            :   // @param sigma noise amplitude in entities of ADC levels
+<span class="lineNum">     124 </span>            :   // @param -30DB cutoff frequency of the noise in entities of sampling frequency
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   AliError(&quot;not implemented yet&quot;);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 : }</span>
+<a name="128"><span class="lineNum">     128 </span>            : </a>
+<span class="lineNum">     129 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     130 </span>            : void AliPHOSPulseGenerator::AddPretriggerSamples(Int_t nPresamples)
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span>            :   // Adds pretrigger samples to the sample arrays and replace them
+<span class="lineNum">     133 </span>            :   // with concatinated and truncated arrays
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   Double_t *tmpDataHG = new Double_t[fkTimeBins];</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   Double_t *tmpDataLG = new Double_t[fkTimeBins];</span>
+<span class="lineNum">     137 </span>            :   Int_t i;
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   for (i=0; i&lt;fkTimeBins; i++) {</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     tmpDataHG[i] = fDataHG[i];</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     tmpDataLG[i] = fDataLG[i];</span>
+<span class="lineNum">     141 </span>            :   }
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   for (i=0; i&lt;fkTimeBins; i++) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     if (i&lt;nPresamples) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :       fDataHG[i] = 0.;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :       fDataLG[i] = 0.;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     147 </span>            :     else {
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :       fDataHG[i] = tmpDataHG[i-nPresamples];</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :       fDataLG[i] = tmpDataLG[i-nPresamples];</span>
+<span class="lineNum">     150 </span>            :     }
+<span class="lineNum">     151 </span>            :   }
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   delete [] tmpDataHG;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   delete [] tmpDataLG;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 : }</span>
+<a name="155"><span class="lineNum">     155 </span>            : </a>
+<span class="lineNum">     156 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     157 </span>            : void AliPHOSPulseGenerator::Digitize()
+<span class="lineNum">     158 </span>            : {
+<span class="lineNum">     159 </span>            :   // Emulates ADC: rounds up to nearest integer value all amplitudes
+<span class="lineNum">     160 </span><span class="lineCov">      47096 :   for (Int_t i=0; i&lt;fkTimeBins; i++) {</span>
+<span class="lineNum">     161 </span><span class="lineCov">      23200 :     fDataHG[i] = (Int_t)(fDataHG[i]);</span>
+<span class="lineNum">     162 </span><span class="lineCov">      23200 :     fDataLG[i] = (Int_t)(fDataLG[i]);</span>
+<span class="lineNum">     163 </span>            :   }
+<span class="lineNum">     164 </span><span class="lineCov">        232 : }</span>
+<a name="165"><span class="lineNum">     165 </span>            : </a>
+<span class="lineNum">     166 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">     167 </span>            : Double_t AliPHOSPulseGenerator::RawResponseFunction(Double_t *x, Double_t *par) 
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :   // Shape of the electronics raw reponse:
+<span class="lineNum">     170 </span>            :   // It is a semi-gaussian, 2nd order Gamma function of the general form
+<span class="lineNum">     171 </span>            :   // v(t) = A *(t/tp)**n * exp(-n * t/tp-n) with 
+<span class="lineNum">     172 </span>            :   // tp : peaking time  fgTimePeak
+<span class="lineNum">     173 </span>            :   // n  : order of the function
+<span class="lineNum">     174 </span>            :   
+<span class="lineNum">     175 </span>            :   Double_t signal ;
+<span class="lineNum">     176 </span><span class="lineCov">      92800 :   Double_t xx = x[0] - ( fgTimeTrigger + par[1] ) ; </span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineCov">      87850 :   if (xx &lt; 0 || xx &gt; GetRawFormatTimeMax()) </span>
+<span class="lineNum">     179 </span><span class="lineCov">       4950 :     signal = 0. ;  </span>
+<span class="lineNum">     180 </span>            :   else {
+<span class="lineNum">     181 </span><span class="lineCov">      41450 :     signal =  par[0] * TMath::Power(xx/fgTimePeak, fgOrder) * TMath::Exp(-fgOrder*(xx/fgTimePeak-1.)) ; //normalized to par[2] at maximum</span>
+<span class="lineNum">     182 </span>            :   }
+<span class="lineNum">     183 </span><span class="lineCov">      46400 :   return signal ;  </span>
+<span class="lineNum">     184 </span>            : }
+<a name="185"><span class="lineNum">     185 </span>            : </a>
+<span class="lineNum">     186 </span>            : //__________________________________________________________________
+<span class="lineNum">     187 </span>            : Bool_t AliPHOSPulseGenerator::MakeSamples()
+<span class="lineNum">     188 </span>            : {
+<span class="lineNum">     189 </span>            :   // for a start time fTZero and an amplitude fAmplitude given by digit, 
+<span class="lineNum">     190 </span>            :   // calculates the raw sampled response AliPHOSPulseGenerator::RawResponseFunction
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :   const Int_t kRawSignalOverflow = 0x3FF ; // decimal 1023
+<span class="lineNum">     193 </span>            :   Bool_t lowGain = kFALSE ; 
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineCov">        464 :   TF1 signalF(&quot;signal&quot;, RawResponseFunction, 0, GetRawFormatTimeMax(), 4);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">      46864 :   for (Int_t iTime = 0; iTime &lt; GetRawFormatTimeBins(); iTime++) {</span>
+<span class="lineNum">     198 </span><span class="lineCov">      23200 :     signalF.SetParameter(0, fAmplitude) ; </span>
+<span class="lineNum">     199 </span><span class="lineCov">      23200 :     signalF.SetParameter(1, fTZero) ; </span>
+<span class="lineNum">     200 </span><span class="lineCov">      23200 :     Double_t time = iTime * GetRawFormatTimeMax() / GetRawFormatTimeBins() ;</span>
+<span class="lineNum">     201 </span><span class="lineCov">      23200 :     Double_t signal = signalF.Eval(time) ;     </span>
+<span class="lineNum">     202 </span><span class="lineCov">      23200 :     fDataHG[iTime] += signal;</span>
+<span class="lineNum">     203 </span><span class="lineCov">      23200 :     if ( static_cast&lt;Int_t&gt;(fDataHG[iTime]+0.5) &gt; kRawSignalOverflow ){  // larger than 10 bits </span>
+<span class="lineNum">     204 </span><span class="lineCov">       3229 :       fDataHG[iTime] = kRawSignalOverflow ;</span>
+<span class="lineNum">     205 </span>            :       lowGain = kTRUE ; 
+<span class="lineNum">     206 </span><span class="lineCov">       3229 :     }</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">      23200 :     Double_t aLGamp = fAmplitude/fHG2LGratio ;</span>
+<span class="lineNum">     209 </span><span class="lineCov">      23200 :     signalF.SetParameter(0, aLGamp) ;</span>
+<span class="lineNum">     210 </span><span class="lineCov">      23200 :     signal = signalF.Eval(time) ;  </span>
+<span class="lineNum">     211 </span><span class="lineCov">      23200 :     fDataLG[iTime] += signal;</span>
+<span class="lineNum">     212 </span><span class="lineCov">      23200 :     if ( static_cast&lt;Int_t&gt;(fDataLG[iTime]+0.5) &gt; kRawSignalOverflow)  // larger than 10 bits </span>
+<span class="lineNum">     213 </span><span class="lineCov">        615 :       fDataLG[iTime] = kRawSignalOverflow ;</span>
+<span class="lineNum">     214 </span>            :   }
+<span class="lineNum">     215 </span>            :   // Digitize floating point amplitudes to integers
+<span class="lineNum">     216 </span><span class="lineCov">        464 :   if (fDigitize) Digitize();</span>
+<span class="lineNum">     217 </span><span class="lineCov">        232 :   return lowGain ; </span>
+<span class="lineNum">     218 </span><span class="lineCov">        232 : }</span>
+<a name="219"><span class="lineNum">     219 </span>            : </a>
+<span class="lineNum">     220 </span>            : //__________________________________________________________________
+<span class="lineNum">     221 </span>            : void AliPHOSPulseGenerator::GetSamples(Int_t *adcHG, Int_t *adcLG) const
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span>            :   // Return integer sample arrays adcHG and adcLG
+<span class="lineNum">     224 </span><span class="lineCov">      47096 :   for (Int_t iTime = 0; iTime &lt; GetRawFormatTimeBins(); iTime++) {</span>
+<span class="lineNum">     225 </span><span class="lineCov">      23200 :     adcHG[iTime] = static_cast&lt;Int_t&gt;(fDataHG[iTime]) ;</span>
+<span class="lineNum">     226 </span><span class="lineCov">      23200 :     adcLG[iTime] = static_cast&lt;Int_t&gt;(fDataLG[iTime]) ;</span>
+<span class="lineNum">     227 </span>            :   }
+<span class="lineNum">     228 </span><span class="lineCov">        232 : }</span>
+<a name="229"><span class="lineNum">     229 </span>            : </a>
+<span class="lineNum">     230 </span>            : //__________________________________________________________________
+<span class="lineNum">     231 </span>            : void AliPHOSPulseGenerator::Print(Option_t*) const
+<span class="lineNum">     232 </span>            : {
+<span class="lineNum">     233 </span>            :   // Prints sampled amplitudes to stdout
+<span class="lineNum">     234 </span>            :   Int_t i;
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;High gain: &quot;;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   for (i=0; i&lt;fkTimeBins; i++)</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     cout &lt;&lt; (Int_t)fDataHG[i] &lt;&lt; &quot; &quot;;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   cout &lt;&lt; endl;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;Low  gain: &quot;;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   for (i=0; i&lt;fkTimeBins; i++)</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     cout &lt;&lt; (Int_t)fDataLG[i] &lt;&lt; &quot; &quot;;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   cout &lt;&lt; endl;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 : }</span>
+<a name="245"><span class="lineNum">     245 </span>            : </a>
+<span class="lineNum">     246 </span>            : //__________________________________________________________________
+<span class="lineNum">     247 </span>            : void AliPHOSPulseGenerator::Draw(Option_t* opt)
+<span class="lineNum">     248 </span>            : {
+<span class="lineNum">     249 </span>            :   // Draw graphs with high and low gain samples
+<span class="lineNum">     250 </span>            :   // Option_t* opt=&quot;all&quot;: draw both HG and LG in one canvas
+<span class="lineNum">     251 </span>            :   //               &quot;HG&quot; : draw HG only
+<span class="lineNum">     252 </span>            :   //               &quot;LG&quot; : draw LG only
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   Double_t *time = new Double_t[fkTimeBins];</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   for (Int_t iTime = 0; iTime &lt; GetRawFormatTimeBins(); iTime++) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     time[iTime] = iTime * GetRawFormatTimeMax() / GetRawFormatTimeBins() ;</span>
+<span class="lineNum">     257 </span>            :   }
+<span class="lineNum">     258 </span>            :   Int_t nPoints = fkTimeBins;
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   TGraph *graphHG = new TGraph(nPoints,time,fDataHG);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   TGraph *graphLG = new TGraph(nPoints,time,fDataLG);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   graphHG-&gt;SetMarkerStyle(20);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   graphLG-&gt;SetMarkerStyle(20);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   graphHG-&gt;SetMarkerSize(0.4);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   graphLG-&gt;SetMarkerSize(0.4);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   graphHG-&gt;SetTitle(&quot;High gain samples&quot;);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   graphLG-&gt;SetTitle(&quot;Low gain samples&quot;);</span>
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   TCanvas *c1 = new TCanvas(&quot;c1&quot;,&quot;Raw ALTRO samples&quot;,10,10,700,500);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   c1-&gt;SetFillColor(0);</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   if (strstr(opt,&quot;all&quot;)){</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     c1-&gt;Divide(2,1);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     c1-&gt;cd(1);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     gPad-&gt;SetLeftMargin(0.15);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   if (strstr(opt,&quot;LG&quot;) == 0){</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     graphHG-&gt;Draw(&quot;AP&quot;);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     graphHG-&gt;GetHistogram()-&gt;SetTitleOffset(1.0,&quot;Y&quot;);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     graphHG-&gt;GetHistogram()-&gt;SetXTitle(&quot;time, sec&quot;);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     graphHG-&gt;GetHistogram()-&gt;SetYTitle(&quot;Amplitude, ADC counts&quot;);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   if (strstr(opt,&quot;all&quot;)){</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     c1-&gt;cd(2);</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     gPad-&gt;SetLeftMargin(0.15);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   if (strstr(opt,&quot;HG&quot;) == 0){</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     graphLG-&gt;Draw(&quot;AP&quot;);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     graphLG-&gt;GetHistogram()-&gt;SetTitleOffset(1.0,&quot;Y&quot;);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     graphLG-&gt;GetHistogram()-&gt;SetXTitle(&quot;time, sec&quot;);</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     graphLG-&gt;GetHistogram()-&gt;SetYTitle(&quot;Amplitude, ADC counts&quot;);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   c1-&gt;Update();</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     294 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCbase/AliTPCBoundaryVoltError.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCbase</a> - AliTPCBoundaryVoltError.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCBoundaryVoltError.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">216</td>
+            <td class="headerCovTableEntryLo">0.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntryLo">7.1 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /// \class AliTPCBoundaryVoltError
+<span class="lineNum">      17 </span>            : ///
+<span class="lineNum">      18 </span>            : ///   &lt;h2&gt; AliTPCBoundaryVoltError class   &lt;/h2&gt;
+<span class="lineNum">      19 </span>            : ///   This class calculates the space point distortions due to residual voltage errors on
+<span class="lineNum">      20 </span>            : ///   the main boundaries of the TPC. For example, the inner vessel of the TPC is shifted
+<span class="lineNum">      21 </span>            : ///   by a certain amount, whereas the ROCs on the A side and the C side follow this mechanical
+<span class="lineNum">      22 </span>            : ///   shift (at the inner vessel) in z direction. This example can be named &quot;conical deformation&quot;
+<span class="lineNum">      23 </span>            : ///   of the TPC field cage (see example below).
+<span class="lineNum">      24 </span>            : ///
+<span class="lineNum">      25 </span>            : ///   The boundary conditions can be set via two arrays (A and C side) which contain the
+<span class="lineNum">      26 </span>            : ///   residual voltage setting modeling a possible shift or an inhomogeneity on the TPC field
+<span class="lineNum">      27 </span>            : ///   cage. In order to avoid that the user splits the Central Electrode (CE), the settings for
+<span class="lineNum">      28 </span>            : ///   the C side is taken from the array on the A side (points: A.6 and A.7). The region betweem
+<span class="lineNum">      29 </span>            : ///    the points is interpolated linearly onto the boundaries.
+<span class="lineNum">      30 </span>            : ///
+<span class="lineNum">      31 </span>            : ///   The class uses the PoissonRelaxation2D (see AliTPCCorrection) to calculate the resulting
+<span class="lineNum">      32 </span>            : ///   electrical field inhomogeneities in the (r,z)-plane. Then, the Langevin-integral formalism
+<span class="lineNum">      33 </span>            : ///   is used to calculate the space point distortions.
+<span class="lineNum">      34 </span>            : ///   Note: This class assumes a homogeneous magnetic field.
+<span class="lineNum">      35 </span>            : ///
+<span class="lineNum">      36 </span>            : ///   One has two possibilities when calculating the $dz$ distortions. The resulting distortions
+<span class="lineNum">      37 </span>            : ///   are purely due to the change of the drift velocity (along with the change of the drift field)
+<span class="lineNum">      38 </span>            : ///   when the SetROCDisplacement is FALSE. This emulates for example a Gating-Grid Voltage offset
+<span class="lineNum">      39 </span>            : ///   without moving the ROCs. When the flag is set to TRUE, the ROCs are assumed to be misaligned
+<span class="lineNum">      40 </span>            : ///   and the corresponding offset in z is added.
+<span class="lineNum">      41 </span>            : /// ![Picture from ROOT macro](AliTPCBoundaryVoltError_cxx_1511bb7.png)
+<span class="lineNum">      42 </span>            : ///
+<span class="lineNum">      43 </span>            : /// \author Jim Thomas, Stefan Rossegger
+<span class="lineNum">      44 </span>            : /// \date 01/06/2010
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #include &quot;AliMagF.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;TGeoGlobalMagField.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliTPCcalibDB.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliTPCParam.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;TMatrixD.h&quot;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;AliTPCROC.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliTPCBoundaryVoltError.h&quot;
+<a name="57"><span class="lineNum">      57 </span>            : </a>
+<span class="lineNum">      58 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      59 </span><span class="lineCov">         24 : ClassImp(AliTPCBoundaryVoltError)</span>
+<a name="60"><span class="lineNum">      60 </span>            : /// \endcond</a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : AliTPCBoundaryVoltError::AliTPCBoundaryVoltError()
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   : AliTPCCorrection(&quot;BoundaryVoltError&quot;,&quot;Boundary Voltage Error&quot;),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     fC0(0.),fC1(0.),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     fROCdisplacement(kTRUE),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     fInitLookUp(kFALSE)</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      68 </span>            :   //
+<span class="lineNum">      69 </span>            :   // default constructor
+<span class="lineNum">      70 </span>            :   //
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;8; i++){</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     fBoundariesA[i]= 0;  </span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     if (i&lt;6) fBoundariesC[i]= 0;</span>
+<span class="lineNum">      74 </span>            :   }
+<a name="75"><span class="lineNum">      75 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 : AliTPCBoundaryVoltError::~AliTPCBoundaryVoltError() {</span>
+<span class="lineNum">      78 </span>            :   /// default destructor
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : 
+<a name="83"><span class="lineNum">      83 </span>            : </a>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : Bool_t AliTPCBoundaryVoltError::AddCorrectionCompact(AliTPCCorrection* corr, Double_t weight){
+<span class="lineNum">      86 </span>            :   /// Add correction  and make them compact
+<span class="lineNum">      87 </span>            :   /// Assumptions:
+<span class="lineNum">      88 </span>            :   ///  - origin of distortion/correction are additive
+<span class="lineNum">      89 </span>            :   ///  - only correction ot the same type supported ()
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   if (corr==NULL) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     AliError(&quot;Zerro pointer - correction&quot;);</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">      94 </span>            :   }  
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   AliTPCBoundaryVoltError* corrC = dynamic_cast&lt;AliTPCBoundaryVoltError *&gt;(corr);</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   if (corrC == NULL) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     AliError(TString::Format(&quot;Inconsistent class types: %s\%s&quot;,IsA()-&gt;GetName(),corr-&gt;IsA()-&gt;GetName()).Data());</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">      99 </span>            :   }
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   if (fROCdisplacement!=corrC-&gt;fROCdisplacement){</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     AliError(TString::Format(&quot;Inconsistent fROCdisplacement : %s\%s&quot;,IsA()-&gt;GetName(),corr-&gt;IsA()-&gt;GetName()).Data());</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     return kFALSE;    </span>
+<span class="lineNum">     103 </span>            :   }
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i &lt;8; i++){</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     fBoundariesA[i]+= corrC-&gt;fBoundariesA[i]*weight;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     fBoundariesC[i]+= corrC-&gt;fBoundariesC[i]*weight;</span>
+<span class="lineNum">     107 </span>            :   }
+<span class="lineNum">     108 </span>            :   //
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : 
+<a name="113"><span class="lineNum">     113 </span>            : </a>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : void AliTPCBoundaryVoltError::Init() {
+<span class="lineNum">     116 </span>            :   /// Initialization funtion
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   AliMagF* magF= (AliMagF*)TGeoGlobalMagField::Instance()-&gt;GetField();</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   if (!magF) AliError(&quot;Magneticd field - not initialized&quot;);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   Double_t bzField = magF-&gt;SolenoidField()/10.; //field in T</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   AliTPCParam *param= AliTPCcalibDB::Instance()-&gt;GetParameters();</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   if (!param) AliError(&quot;Parameters - not initialized&quot;);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   Double_t vdrift = param-&gt;GetDriftV()/1000000.; // [cm/us]   // From dataBase: to be updated: per second (ideally)</span>
+<span class="lineNum">     124 </span>            :   Double_t ezField = 400; // [V/cm]   // to be updated: never (hopefully)
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   Double_t wt = -10.0 * (bzField*10) * vdrift / ezField ; </span>
+<span class="lineNum">     126 </span>            :   // Correction Terms for effective omegaTau; obtained by a laser calibration run
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   SetOmegaTauT1T2(wt,fT1,fT2);</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   InitBoundaryVoltErrorDistortion();</span>
+<a name="130"><span class="lineNum">     130 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : void AliTPCBoundaryVoltError::Update(const TTimeStamp &amp;/*timeStamp*/) {
+<span class="lineNum">     133 </span>            :   /// Update function
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   AliMagF* magF= (AliMagF*)TGeoGlobalMagField::Instance()-&gt;GetField();</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   if (!magF) AliError(&quot;Magneticd field - not initialized&quot;);</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   Double_t bzField = magF-&gt;SolenoidField()/10.; //field in T</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   AliTPCParam *param= AliTPCcalibDB::Instance()-&gt;GetParameters();</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   if (!param) AliError(&quot;Parameters - not initialized&quot;);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   Double_t vdrift = param-&gt;GetDriftV()/1000000.; // [cm/us]  // From dataBase: to be updated: per second (ideally)</span>
+<span class="lineNum">     141 </span>            :   Double_t ezField = 400; // [V/cm]   // to be updated: never (hopefully)
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   Double_t wt = -10.0 * (bzField*10) * vdrift / ezField ; </span>
+<span class="lineNum">     143 </span>            :   // Correction Terms for effective omegaTau; obtained by a laser calibration run
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   SetOmegaTauT1T2(wt,fT1,fT2);</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     147 </span>            : 
+<a name="148"><span class="lineNum">     148 </span>            : </a>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            : void AliTPCBoundaryVoltError::GetCorrection(const Float_t x[],const Short_t roc,Float_t dx[]) {
+<span class="lineNum">     151 </span>            :   /// Calculates the correction due e.g. residual voltage errors on the TPC boundaries
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   if (!fInitLookUp) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     AliInfo(&quot;Lookup table was not initialized!  Perform the inizialisation now ...&quot;);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     InitBoundaryVoltErrorDistortion();</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            :   Int_t   order     = 1 ;               // FIXME: hardcoded? Linear interpolation = 1, Quadratic = 2         
+<span class="lineNum">     159 </span>            :                                         // note that the poisson solution was linearly mirroed on this grid!
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   Double_t intEr, intEphi, intdEz ;</span>
+<span class="lineNum">     161 </span>            :   Double_t r, phi, z ;
+<span class="lineNum">     162 </span>            :   Int_t    sign;
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   r      =  TMath::Sqrt( x[0]*x[0] + x[1]*x[1] ) ;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   phi    =  TMath::ATan2(x[1],x[0]) ;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   if ( phi &lt; 0 ) phi += TMath::TwoPi() ;                   // Table uses phi from 0 to 2*Pi</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   z      =  x[2] ;                                         // Create temporary copy of x[2]</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   if ( (roc%36) &lt; 18 ) {</span>
+<span class="lineNum">     170 </span>            :     sign =  1;       // (TPC A side)
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     172 </span>            :     sign = -1;       // (TPC C side)
+<span class="lineNum">     173 </span>            :   }
+<span class="lineNum">     174 </span>            :   
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   if ( sign==1  &amp;&amp; z &lt;  fgkZOffSet ) z =  fgkZOffSet;    // Protect against discontinuity at CE</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   if ( sign==-1 &amp;&amp; z &gt; -fgkZOffSet ) z = -fgkZOffSet;    // Protect against discontinuity at CE</span>
+<span class="lineNum">     177 </span>            :   
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :   intEphi = 0.0;  // Efield is symmetric in phi - 2D calculation
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   if ( (sign==1 &amp;&amp; z&lt;0) || (sign==-1 &amp;&amp; z&gt;0) ) // just a consistency check</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     AliError(&quot;ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!&quot;);</span>
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :   // Get the E field integral
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   Interpolate2DEdistortion( order, r, z, fLookUpErOverEz, intEr );</span>
+<span class="lineNum">     186 </span>            :   // Get DeltaEz field integral
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   Interpolate2DEdistortion( order, r, z, fLookUpDeltaEz, intdEz );</span>
+<span class="lineNum">     188 </span>            :   
+<span class="lineNum">     189 </span>            :   // Calculate distorted position
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   if ( r &gt; 0.0 ) {</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     phi =  phi + ( fC0*intEphi - fC1*intEr ) / r;      </span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     r   =  r   + ( fC0*intEr   + fC1*intEphi );  </span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     194 </span>            :   
+<span class="lineNum">     195 </span>            :   // Calculate correction in cartesian coordinates
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   dx[0] = r * TMath::Cos(phi) - x[0];</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   dx[1] = r * TMath::Sin(phi) - x[1]; </span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   dx[2] = intdEz;  // z distortion - (internally scaled with driftvelocity dependency </span>
+<span class="lineNum">     199 </span>            :                    // on the Ez field plus the actual ROC misalignment (if set TRUE)
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : 
+<a name="202"><span class="lineNum">     202 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : void AliTPCBoundaryVoltError::InitBoundaryVoltErrorDistortion() {
+<span class="lineNum">     205 </span>            :   /// Initialization of the Lookup table which contains the solutions of the
+<span class="lineNum">     206 </span>            :   /// Dirichlet boundary problem
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   const Float_t  gridSizeR   =  (fgkOFCRadius-fgkIFCRadius) / (kRows-1) ;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   const Float_t  gridSizeZ   =  fgkTPCZ0 / (kColumns-1) ;</span>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   TMatrixD voltArrayA(kRows,kColumns), voltArrayC(kRows,kColumns); // boundary vectors</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   TMatrixD chargeDensity(kRows,kColumns);                              // dummy charge</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   TMatrixD arrayErOverEzA(kRows,kColumns), arrayErOverEzC(kRows,kColumns); // solution</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   TMatrixD arrayDeltaEzA(kRows,kColumns),  arrayDeltaEzC(kRows,kColumns); // solution</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   Double_t  rList[kRows], zedList[kColumns] ;</span>
+<span class="lineNum">     217 </span>            :   
+<span class="lineNum">     218 </span>            :   // Fill arrays with initial conditions.  V on the boundary and ChargeDensity in the volume.      
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   for ( Int_t j = 0 ; j &lt; kColumns ; j++ ) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     Double_t zed = j*gridSizeZ ;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     zedList[j] = zed ;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0 ; i &lt; kRows ; i++ )  {</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :       Double_t radius = fgkIFCRadius + i*gridSizeR ;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :       rList[i]           = radius ;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :       voltArrayA(i,j)        = 0;  // Initialize voltArrayA to zero</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :       voltArrayC(i,j)        = 0;  // Initialize voltArrayC to zero</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :       chargeDensity(i,j)     = 0;  // Initialize ChargeDensity to zero - not used in this class</span>
+<span class="lineNum">     228 </span>            :     }
+<span class="lineNum">     229 </span>            :   }      
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :   // check if boundary values are the same for the C side (for later, saving some calculation time)
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :   Int_t symmetry = -1; // assume that  A and C side are identical (but anti-symmetric!) // e.g conical deformation
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   Int_t sVec[8];</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :   // check if boundaries are different (regardless the sign)
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;8; i++) { </span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     if (TMath::Abs(TMath::Abs(fBoundariesA[i]) - TMath::Abs(fBoundariesC[i])) &gt; 1e-5) </span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       symmetry = 0;  </span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     sVec[i] = (Int_t)( TMath::Sign((Float_t)1.,fBoundariesA[i]) * TMath::Sign((Float_t)1.,fBoundariesC[i])); </span>
+<span class="lineNum">     242 </span>            :   }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   if (symmetry==-1) { // still the same values?</span>
+<span class="lineNum">     244 </span>            :     // check the kind of symmetry , if even ...
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     if (sVec[0]==1 &amp;&amp; sVec[1]==1 &amp;&amp; sVec[2]==1 &amp;&amp; sVec[3]==1 &amp;&amp; sVec[4]==1 &amp;&amp; sVec[5]==1 &amp;&amp; sVec[6]==1 &amp;&amp; sVec[7]==1 ) </span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       symmetry =  1;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     else if (sVec[0]==-1 &amp;&amp; sVec[1]==-1 &amp;&amp; sVec[2]==-1 &amp;&amp; sVec[3]==-1 &amp;&amp; sVec[4]==-1 &amp;&amp; sVec[5]==-1 &amp;&amp; sVec[6]==-1 &amp;&amp; sVec[7]==-1 ) </span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       symmetry = -1;</span>
+<span class="lineNum">     249 </span>            :     else
+<span class="lineNum">     250 </span>            :       symmetry =  0; // some of the values differ in the sign -&gt; neither symmetric nor antisymmetric
+<span class="lineNum">     251 </span>            :   }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            :   // Solve the electrosatic problem in 2D 
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :   // Fill the complete Boundary vectors
+<span class="lineNum">     258 </span>            :   // Start at IFC at CE and work anti-clockwise through IFC, ROC, OFC, and CE (clockwise for C side)
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   for ( Int_t j = 0 ; j &lt; kColumns ; j++ ) {</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     Double_t zed = j*gridSizeZ ;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0 ; i &lt; kRows ; i++ ) { </span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       Double_t radius = fgkIFCRadius + i*gridSizeR ;</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :       // A side boundary vectors
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       if ( i == 0 ) voltArrayA(i,j) += zed   *((fBoundariesA[1]-fBoundariesA[0])/((kColumns-1)*gridSizeZ))</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         + fBoundariesA[0] ; // IFC</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :       if ( j == kColumns-1 ) voltArrayA(i,j) += (radius-fgkIFCRadius)*((fBoundariesA[3]-fBoundariesA[2])/((kRows-1)*gridSizeR))</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         + fBoundariesA[2] ; // ROC</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :       if ( i == kRows-1 ) voltArrayA(i,j) += zed   *((fBoundariesA[4]-fBoundariesA[5])/((kColumns-1)*gridSizeZ))</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         + fBoundariesA[5] ; // OFC</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :       if ( j == 0 ) voltArrayA(i,j) += (radius-fgkIFCRadius)*((fBoundariesA[6]-fBoundariesA[7])/((kRows-1)*gridSizeR))</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         + fBoundariesA[7] ; // CE</span>
+<span class="lineNum">     273 </span>            :       
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       if (symmetry==0) {</span>
+<span class="lineNum">     275 </span>            :         // C side boundary vectors
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         if ( i == 0 ) voltArrayC(i,j) += zed   *((fBoundariesC[1]-fBoundariesC[0])/((kColumns-1)*gridSizeZ))</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :           + fBoundariesC[0] ; // IFC</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         if ( j == kColumns-1 ) voltArrayC(i,j) += (radius-fgkIFCRadius)*((fBoundariesC[3]-fBoundariesC[2])/((kRows-1)*gridSizeR))</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :           + fBoundariesC[2] ; // ROC</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         if ( i == kRows-1 ) voltArrayC(i,j) += zed   *((fBoundariesC[4]-fBoundariesC[5])/((kColumns-1)*gridSizeZ))</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :           + fBoundariesC[5] ; // OFC</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         if ( j == 0 ) voltArrayC(i,j) += (radius-fgkIFCRadius)*((fBoundariesC[6]-fBoundariesC[7])/((kRows-1)*gridSizeR))</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :           + fBoundariesC[7] ; // CE</span>
+<span class="lineNum">     284 </span>            :       }
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            :     }
+<span class="lineNum">     287 </span>            :   }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   voltArrayA(0,0)               *= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   voltArrayA(kRows-1,0)         *= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   voltArrayA(0,kColumns-1)      *= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   voltArrayA(kRows-1,kColumns-1)*= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :   if (symmetry==0) {</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     voltArrayC(0,0)               *= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     voltArrayC(kRows-1,0)         *= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     voltArrayC(0,kColumns-1)      *= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     voltArrayC(kRows-1,kColumns-1)*= 0.5 ; // Use average boundary condition at corner</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :   // always solve the problem on the A side
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   PoissonRelaxation2D( voltArrayA, chargeDensity, arrayErOverEzA, arrayDeltaEzA, </span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                        kRows, kColumns, kIterations, fROCdisplacement ) ;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   if (symmetry!=0) { // A and C side are the same (&quot;anti-symmetric&quot; or &quot;symmetric&quot;)</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     for ( Int_t j = 0 ; j &lt; kColumns ; j++ ) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :       for ( Int_t i = 0 ; i &lt; kRows ; i++ ) { </span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         arrayErOverEzC(i,j) = symmetry*arrayErOverEzA(i,j);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         arrayDeltaEzC(i,j) = -symmetry*arrayDeltaEzA(i,j);</span>
+<span class="lineNum">     311 </span>            :       }
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   } else if (symmetry==0) { // A and C side are different - Solve the problem on the C side too</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     PoissonRelaxation2D( voltArrayC, chargeDensity, arrayErOverEzC, arrayDeltaEzC,</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                          kRows, kColumns, kIterations, fROCdisplacement ) ;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     for ( Int_t j = 0 ; j &lt; kColumns ; j++ ) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :       for ( Int_t i = 0 ; i &lt; kRows ; i++ ) { </span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         arrayDeltaEzC(i,j) = -arrayDeltaEzC(i,j); // negative z coordinate!</span>
+<span class="lineNum">     319 </span>            :       }
+<span class="lineNum">     320 </span>            :     }
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :   // Interpolate results onto standard grid for Electric Fields
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   Int_t ilow=0, jlow=0 ;</span>
+<span class="lineNum">     325 </span>            :   Double_t z,r;
+<span class="lineNum">     326 </span>            :   Float_t saveEr[2] ;         
+<span class="lineNum">     327 </span>            :   Float_t saveEz[2] ;         
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0 ; i &lt; kNZ ; ++i )  {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     z = TMath::Abs( fgkZList[i] ) ;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     for ( Int_t j = 0 ; j &lt; kNR ; ++j ) {</span>
+<span class="lineNum">     331 </span>            :       // Linear interpolation !!
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       r = fgkRList[j] ;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :       Search( kRows,   rList, r, ilow ) ;          // Note switch - R in rows and Z in columns</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :       Search( kColumns, zedList, z, jlow ) ;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :       if ( ilow &lt; 0 ) ilow = 0 ;                   // check if out of range</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :       if ( jlow &lt; 0 ) jlow = 0 ;   </span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :       if ( ilow + 1  &gt;=  kRows - 1 ) ilow =  kRows - 2 ;           </span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :       if ( jlow + 1  &gt;=  kColumns - 1 ) jlow =  kColumns - 2 ; </span>
+<span class="lineNum">     339 </span>            :       
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :       if (fgkZList[i]&gt;0) {         // A side solution</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         saveEr[0] = arrayErOverEzA(ilow,jlow) + </span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :           (arrayErOverEzA(ilow,jlow+1)-arrayErOverEzA(ilow,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         saveEr[1] = arrayErOverEzA(ilow+1,jlow) + </span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :           (arrayErOverEzA(ilow+1,jlow+1)-arrayErOverEzA(ilow+1,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         saveEz[0] = arrayDeltaEzA(ilow,jlow) + </span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :           (arrayDeltaEzA(ilow,jlow+1)-arrayDeltaEzA(ilow,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         saveEz[1] = arrayDeltaEzA(ilow+1,jlow) + </span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :           (arrayDeltaEzA(ilow+1,jlow+1)-arrayDeltaEzA(ilow+1,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :       } else if (fgkZList[i]&lt;0) {  // C side solution</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         saveEr[0] = arrayErOverEzC(ilow,jlow) + </span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :           (arrayErOverEzC(ilow,jlow+1)-arrayErOverEzC(ilow,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         saveEr[1] = arrayErOverEzC(ilow+1,jlow) + </span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :           (arrayErOverEzC(ilow+1,jlow+1)-arrayErOverEzC(ilow+1,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         saveEz[0] = arrayDeltaEzC(ilow,jlow) + </span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :           (arrayDeltaEzC(ilow,jlow+1)-arrayDeltaEzC(ilow,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         saveEz[1] = arrayDeltaEzC(ilow+1,jlow) + </span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :           (arrayDeltaEzC(ilow+1,jlow+1)-arrayDeltaEzC(ilow+1,jlow))*(z-zedList[jlow])/gridSizeZ ;</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         AliWarning(&quot;Field calculation at z=0 (CE) is not allowed!&quot;);</span>
+<span class="lineNum">     362 </span>            :         saveEr[0]=0; saveEr[1]=0;
+<span class="lineNum">     363 </span>            :         saveEz[0]=0; saveEz[1]=0;
+<span class="lineNum">     364 </span>            :       }
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       fLookUpErOverEz[i][j] = saveEr[0] + (saveEr[1]-saveEr[0])*(r-rList[ilow])/gridSizeR ;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :       fLookUpDeltaEz[i][j]  = saveEz[0] + (saveEz[1]-saveEz[0])*(r-rList[ilow])/gridSizeR ;</span>
+<span class="lineNum">     367 </span>            :     }
+<span class="lineNum">     368 </span>            :   }
+<span class="lineNum">     369 </span>            :   
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   voltArrayA.Clear();</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :   voltArrayC.Clear();</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :   chargeDensity.Clear();</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :   arrayErOverEzA.Clear();</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :   arrayErOverEzC.Clear();</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :   arrayDeltaEzA.Clear();</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   arrayDeltaEzC.Clear();</span>
+<span class="lineNum">     377 </span>            :   
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   fInitLookUp = kTRUE;</span>
+<span class="lineNum">     379 </span>            : 
+<a name="380"><span class="lineNum">     380 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            : void AliTPCBoundaryVoltError::Print(const Option_t* option) const {
+<span class="lineNum">     383 </span>            :   /// Print function to check the settings of the boundary vectors
+<span class="lineNum">     384 </span>            :   /// option==&quot;a&quot; prints the C0 and C1 coefficents for calibration purposes
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :   TString opt = option; opt.ToLower();</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   printf(&quot;%s\n&quot;,GetTitle());</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   printf(&quot; - Voltage settings (on the TPC boundaries) - linearly interpolated\n&quot;);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   printf(&quot;  : A-side (anti-clockwise)\n&quot;); </span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :   printf(&quot;     (0,1):\t IFC (CE) : %3.1f V \t IFC (ROC): %3.1f V \n&quot;,fBoundariesA[0],fBoundariesA[1]);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :   printf(&quot;     (2,3):\t ROC (IFC): %3.1f V \t ROC (OFC): %3.1f V \n&quot;,fBoundariesA[2],fBoundariesA[3]);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   printf(&quot;     (4,5):\t OFC (ROC): %3.1f V \t OFC (CE) : %3.1f V \n&quot;,fBoundariesA[4],fBoundariesA[5]);</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   printf(&quot;     (6,7):\t CE  (OFC): %3.1f V \t CE  (IFC): %3.1f V \n&quot;,fBoundariesA[6],fBoundariesA[7]);</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   printf(&quot;  : C-side (clockwise)\n&quot;); </span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :   printf(&quot;     (0,1):\t IFC (CE) : %3.1f V \t IFC (ROC): %3.1f V \n&quot;,fBoundariesC[0],fBoundariesC[1]);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :   printf(&quot;     (2,3):\t ROC (IFC): %3.1f V \t ROC (OFC): %3.1f V \n&quot;,fBoundariesC[2],fBoundariesC[3]);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   printf(&quot;     (4,5):\t OFC (ROC): %3.1f V \t OFC (CE) : %3.1f V \n&quot;,fBoundariesC[4],fBoundariesC[5]);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   printf(&quot;     (6,7):\t CE  (OFC): %3.1f V \t CE  (IFC): %3.1f V \n&quot;,fBoundariesC[6],fBoundariesC[7]);</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :   // Check wether the settings of the Central Electrode agree (on the A and C side)
+<span class="lineNum">     401 </span>            :   // Note: they have to be antisymmetric!
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   if (( TMath::Abs(fBoundariesA[6]+fBoundariesC[6])&gt;1e-5) || ( TMath::Abs(fBoundariesA[7]+fBoundariesC[7])&gt;1e-5 ) ){</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     AliWarning(&quot;Boundary parameters for the Central Electrode (CE) are not anti-symmetric! HOW DID YOU MANAGE THAT?&quot;);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     AliWarning(&quot;Congratulations, you just splitted the Central Electrode of the TPC!&quot;);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     AliWarning(&quot;Non-physical settings of the boundary parameter at the Central Electrode&quot;);</span>
+<span class="lineNum">     406 </span>            :   }
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   if (opt.Contains(&quot;a&quot;)) { // Print all details</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     printf(&quot; - T1: %1.4f, T2: %1.4f \n&quot;,fT1,fT2);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     printf(&quot; - C1: %1.4f, C0: %1.4f \n&quot;,fC1,fC0);</span>
+<span class="lineNum">     411 </span>            :   } 
+<span class="lineNum">     412 </span>            :    
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :   if (!fInitLookUp) </span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     AliError(&quot;Lookup table was not initialized! You should do InitBoundaryVoltErrorDistortion() ...&quot;);</span>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 : }</span>
+<a name="417"><span class="lineNum">     417 </span>            : </a>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            : void AliTPCBoundaryVoltError::SetBoundariesA(Float_t boundariesA[8]){
+<span class="lineNum">     420 </span>            :   /// set voltage errors on the TPC boundaries - A side
+<span class="lineNum">     421 </span>            :   ///
+<span class="lineNum">     422 </span>            :   /// Start at IFC at the Central electrode and work anti-clockwise (clockwise for C side) through
+<span class="lineNum">     423 </span>            :   /// IFC, ROC, OFC, and CE. The boundary conditions are currently defined to be a linear
+<span class="lineNum">     424 </span>            :   /// interpolation between pairs of numbers in the Boundary (e.g. fBoundariesA) vector.
+<span class="lineNum">     425 </span>            :   /// The first pair of numbers represent the beginning and end of the Inner Field cage, etc.
+<span class="lineNum">     426 </span>            :   /// The unit of the error potential vector is [Volt], whereas 1mm shift of the IFC would
+<span class="lineNum">     427 </span>            :   /// correspond to ~ 40 V
+<span class="lineNum">     428 </span>            :   ///
+<span class="lineNum">     429 </span>            :   /// Note: The setting for the CE will be passed to the C side!
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;8; i++) {</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     fBoundariesA[i]= boundariesA[i];  </span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     if (i&gt;5) fBoundariesC[i]= -boundariesA[i]; // setting for the CE is passed to C side</span>
+<span class="lineNum">     434 </span>            :   }
+<a name="435"><span class="lineNum">     435 </span><span class="lineNoCov">          0 :   fInitLookUp=kFALSE;</span></a>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     437 </span>            : void AliTPCBoundaryVoltError::SetBoundariesC(Float_t boundariesC[6]){
+<span class="lineNum">     438 </span>            :   /// set voltage errors on the TPC boundaries - C side
+<span class="lineNum">     439 </span>            :   ///
+<span class="lineNum">     440 </span>            :   /// Start at IFC at the Central electrode and work clockwise (for C side) through
+<span class="lineNum">     441 </span>            :   /// IFC, ROC and OFC. The boundary conditions are currently defined to be a linear
+<span class="lineNum">     442 </span>            :   /// interpolation between pairs of numbers in the Boundary (e.g. fBoundariesC) vector.
+<span class="lineNum">     443 </span>            :   /// The first pair of numbers represent the beginning and end of the Inner Field cage, etc.
+<span class="lineNum">     444 </span>            :   /// The unit of the error potential vector is [Volt], whereas 1mm shift of the IFC would
+<span class="lineNum">     445 </span>            :   /// correspond to ~ 40 V
+<span class="lineNum">     446 </span>            :   ///
+<span class="lineNum">     447 </span>            :   /// Note: The setting for the CE will be taken from the A side (pos 6 and 7)!
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;6; i++) {</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     fBoundariesC[i]= boundariesC[i];  </span>
+<span class="lineNum">     451 </span>            :   }
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   fInitLookUp=kFALSE;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

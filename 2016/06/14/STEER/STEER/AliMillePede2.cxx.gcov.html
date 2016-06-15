@@ -1,0 +1,1527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliMillePede2.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliMillePede2.cxx<span style="font-size: 80%;"> (source / <a href="AliMillePede2.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">772</td>
+            <td class="headerCovTableEntryLo">0.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">39</td>
+            <td class="headerCovTableEntryLo">2.6 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**********************************************************************************************/</a>
+<span class="lineNum">       2 </span>            : /* General class for alignment with large number of degrees of freedom                        */
+<span class="lineNum">       3 </span>            : /* Based on the original milliped2 by Volker Blobel                                           */
+<span class="lineNum">       4 </span>            : /* and AliMillepede class by Javier                                                           */ 
+<span class="lineNum">       5 </span>            : /* Allows operations with large sparse matrices                                               */ 
+<span class="lineNum">       6 </span>            : /* http://www.desy.de/~blobel/mptalks.html                                                    */
+<span class="lineNum">       7 </span>            : /*                                                                                            */ 
+<span class="lineNum">       8 </span>            : /* Author: ruben.shahoyan@cern.ch                                                             */
+<span class="lineNum">       9 </span>            : /*                                                                                            */ 
+<span class="lineNum">      10 </span>            : /**********************************************************************************************/
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #include &quot;AliMillePede2.h&quot;
+<span class="lineNum">      13 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      14 </span>            : #include &lt;TStopwatch.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;TFile.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;TChain.h&gt;
+<span class="lineNum">      17 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      18 </span>            : #include &lt;TVectorD.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;TArrayL.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;TArrayF.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      22 </span>            : #include &quot;AliMatrixSq.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliSymMatrix.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;AliRectMatrix.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;AliMatrixSparse.h&quot;
+<span class="lineNum">      26 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;unistd.h&gt; 
+<span class="lineNum">      29 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;fstream&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : //#define _DUMP_EQ_BEFORE_
+<span class="lineNum">      35 </span>            : //#define _DUMP_EQ_AFTER_
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : //#define _DUMPEQ_BEFORE_
+<span class="lineNum">      38 </span>            : //#define _DUMPEQ_AFTER_ 
+<a name="39"><span class="lineNum">      39 </span>            : </a>
+<span class="lineNum">      40 </span>            : using std::ifstream;
+<span class="lineNum">      41 </span><span class="lineCov">        126 : ClassImp(AliMillePede2)</span>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : Bool_t   AliMillePede2::fgInvChol        = kTRUE;     // Invert global matrix with Cholesky solver
+<span class="lineNum">      44 </span>            : Bool_t   AliMillePede2::fgWeightSigma    = kTRUE;     // weight local constraint by module statistics
+<span class="lineNum">      45 </span>            : Bool_t   AliMillePede2::fgIsMatGloSparse = kFALSE;    // use faster dense matrix by default
+<span class="lineNum">      46 </span>            : Int_t    AliMillePede2::fgMinResCondType = 1;         // Jacoby preconditioner by default
+<span class="lineNum">      47 </span>            : Double_t AliMillePede2::fgMinResTol      = 1.e-11;    // default tolerance
+<span class="lineNum">      48 </span>            : Int_t    AliMillePede2::fgMinResMaxIter  = 10000;     // default max number of iterations 
+<span class="lineNum">      49 </span>            : Int_t    AliMillePede2::fgIterSol        = AliMinResSolve::kSolMinRes; // default iterative solver
+<span class="lineNum">      50 </span>            : Int_t    AliMillePede2::fgNKrylovV       = 240;        // default number of Krylov vectors to keep
+<a name="51"><span class="lineNum">      51 </span>            : </a>
+<span class="lineNum">      52 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : AliMillePede2::AliMillePede2() </span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 : : fNLocPar(0),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   fNGloPar(0),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fNGloParIni(0),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fNGloSize(0),</span>
+<span class="lineNum">      58 </span>            : //
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   fNLocEquations(0),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   fIter(0),</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   fMaxIter(10),</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   fNStdDev(3),</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   fNGloConstraints(0),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   fNLagrangeConstraints(0),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   fNLocFits(0),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   fNLocFitsRejected(0),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   fNGloFix(0),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   fGloSolveStatus(kFailed),</span>
+<span class="lineNum">      69 </span>            : //
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   fChi2CutFactor(1.),</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   fChi2CutRef(1.),</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   fResCutInit(100.),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   fResCut(100.),</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   fMinPntValid(1),</span>
+<span class="lineNum">      75 </span>            : //
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   fNGroupsSet(0),</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   fParamGrID(0),</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   fProcPnt(0),</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   fVecBLoc(0),</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   fDiagCGlo(0),</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fVecBGlo(0),</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   fInitPar(0),</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   fDeltaPar(0),</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   fSigmaPar(0),</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   fIsLinear(0),</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   fConstrUsed(0),</span>
+<span class="lineNum">      87 </span>            : //
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   fGlo2CGlo(0),</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   fCGlo2Glo(0),</span>
+<span class="lineNum">      90 </span>            : //
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   fMatCLoc(0),</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   fMatCGlo(0),</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   fMatCGloLoc(0),</span>
+<span class="lineNum">      94 </span>            :   //
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fFillIndex(0),</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fFillValue(0),</span>
+<span class="lineNum">      97 </span>            :   //
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   fRecDataTreeName(&quot;AliMillePedeRecords_Data&quot;),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   fRecConsTreeName(&quot;AliMillePedeRecords_Consaints&quot;),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   fRecDataBranchName(&quot;Record_Data&quot;),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   fRecConsBranchName(&quot;Record_Consaints&quot;),</span>
+<span class="lineNum">     102 </span>            :   //
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   fDataRecFName(&quot;/tmp/mp2_data_records.root&quot;),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   fRecord(0),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fDataRecFile(0),  </span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fTreeData(0),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fRecFileStatus(0),</span>
+<span class="lineNum">     108 </span>            :   //
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   fConstrRecFName(&quot;/tmp/mp2_constraints_records.root&quot;),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   fTreeConstr(0),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   fConsRecFile(0),</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   fCurrRecDataID(0),</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   fCurrRecConstrID(0),</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   fLocFitAdd(kTRUE),</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   fUseRecordWeight(kTRUE),</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fMinRecordLength(1),</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   fSelFirst(1),</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   fSelLast(-1),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   fRejRunList(0),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   fAccRunList(0),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   fAccRunListWgh(0),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   fRunWgh(1),</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   fkReGroup(0)</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   fWghScl[0] = fWghScl[1] = -1;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 : }</span>
+<a name="127"><span class="lineNum">     127 </span>            : </a>
+<span class="lineNum">     128 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     129 </span>            : AliMillePede2::AliMillePede2(const AliMillePede2&amp; src) : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   TObject(src),fNLocPar(0),fNGloPar(0),fNGloParIni(0),fNGloSize(0),fNLocEquations(0),fIter(0),</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   fMaxIter(10),fNStdDev(3),fNGloConstraints(0),fNLagrangeConstraints(0),</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   fNLocFits(0),fNLocFitsRejected(0),</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   fNGloFix(0),fGloSolveStatus(0),fChi2CutFactor(0),fChi2CutRef(0),fResCutInit(0),</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   fResCut(0),fMinPntValid(1),fNGroupsSet(0),fParamGrID(0),fProcPnt(0),fVecBLoc(0),fDiagCGlo(0),fVecBGlo(0),</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   fInitPar(0),fDeltaPar(0),fSigmaPar(0),fIsLinear(0),fConstrUsed(0),fGlo2CGlo(0),fCGlo2Glo(0),</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   fMatCLoc(0),fMatCGlo(0),fMatCGloLoc(0),fFillIndex(0),fFillValue(0),</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   fRecDataTreeName(0),fRecConsTreeName(0),fRecDataBranchName(0),fRecConsBranchName(0),</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   fDataRecFName(0),fRecord(0),fDataRecFile(0),</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   fTreeData(0),fRecFileStatus(0),fConstrRecFName(0),fTreeConstr(0),fConsRecFile(0),fCurrRecDataID(0),</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   fCurrRecConstrID(0),fLocFitAdd(kTRUE),</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   fUseRecordWeight(kTRUE),</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   fMinRecordLength(1),</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   fSelFirst(1),</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   fSelLast(-1),</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   fRejRunList(0),</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   fAccRunList(0),</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   fAccRunListWgh(0),</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   fRunWgh(1),</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   fkReGroup(0)</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   fWghScl[0] = src.fWghScl[0];</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   fWghScl[1] = src.fWghScl[1];</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   printf(&quot;Dummy\n&quot;);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 : }</span>
+<a name="155"><span class="lineNum">     155 </span>            : </a>
+<span class="lineNum">     156 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     157 </span>            : AliMillePede2::~AliMillePede2() 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     159 </span>            :   // destructor
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   CloseDataRecStorage();</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   CloseConsRecStorage();</span>
+<span class="lineNum">     162 </span>            :   //
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   delete[] fParamGrID;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   delete[] fProcPnt;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   delete[] fVecBLoc;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   delete[] fDiagCGlo;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   delete[] fVecBGlo;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   delete[] fInitPar;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   delete[] fDeltaPar;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   delete[] fSigmaPar;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   delete[] fGlo2CGlo;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   delete[] fCGlo2Glo;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   delete[] fIsLinear;</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   delete[] fConstrUsed;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   delete[] fFillIndex;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   delete[] fFillValue;</span>
+<span class="lineNum">     177 </span>            :   //
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   delete fRecord;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   delete fMatCLoc;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   delete fMatCGlo;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   delete fMatCGloLoc;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   delete fRejRunList;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   delete fAccRunList;</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   delete fAccRunListWgh;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 : } </span>
+<a name="186"><span class="lineNum">     186 </span>            : </a>
+<span class="lineNum">     187 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     188 </span>            : Int_t AliMillePede2::InitMille(int nGlo, int nLoc, int lNStdDev,double lResCut, double lResCutInit, const Int_t* regroup)
+<span class="lineNum">     189 </span>            : {
+<span class="lineNum">     190 </span>            :   // init all
+<span class="lineNum">     191 </span>            :   //
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   fNGloParIni = nGlo;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   if (regroup) { // regrouping is requested</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     fkReGroup = regroup;</span>
+<span class="lineNum">     195 </span>            :     int ng = 0; // recalculate N globals
+<span class="lineNum">     196 </span>            :     int maxPID = -1;
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     for (int i=0;i&lt;nGlo;i++) if (regroup[i]&gt;=0) {ng++; if (regroup[i]&gt;maxPID) maxPID = regroup[i];} </span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     maxPID++;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Regrouping is requested: from %d raw to %d formal globals grouped to %d real globals&quot;,nGlo,ng,maxPID));</span>
+<span class="lineNum">     200 </span>            :     nGlo = maxPID;
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   if (nLoc&gt;0)        fNLocPar = nLoc;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :   if (nGlo&gt;0)        fNGloPar = nGlo;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   if (lResCutInit&gt;0) fResCutInit = lResCutInit; </span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :   if (lResCut&gt;0)     fResCut     = lResCut;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   if (lNStdDev&gt;0)    fNStdDev    = lNStdDev;</span>
+<span class="lineNum">     207 </span>            :   //
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;NLoc: %d NGlo: %d&quot;,fNLocPar,fNGloPar));</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   fNGloSize = fNGloPar;</span>
+<span class="lineNum">     211 </span>            :   //
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   if (fgIsMatGloSparse) {fMatCGlo = new AliMatrixSparse(fNGloPar); fMatCGlo-&gt;SetSymmetric(kTRUE);}</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   else                   fMatCGlo = new AliSymMatrix(fNGloPar);</span>
+<span class="lineNum">     214 </span>            :   //
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   fFillIndex    = new Int_t[fNGloPar];</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   fFillValue    = new Double_t[fNGloPar];</span>
+<span class="lineNum">     217 </span>            :   //
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   fMatCLoc      = new AliSymMatrix(fNLocPar);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   fMatCGloLoc   = new AliRectMatrix(fNGloPar,fNLocPar);</span>
+<span class="lineNum">     220 </span>            :   //
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   fParamGrID    = new Int_t[fNGloPar];</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   fProcPnt      = new Int_t[fNGloPar];</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   fVecBLoc      = new Double_t[fNLocPar];</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   fDiagCGlo     = new Double_t[fNGloPar];</span>
+<span class="lineNum">     225 </span>            :   //
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   fInitPar      = new Double_t[fNGloPar];</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   fDeltaPar     = new Double_t[fNGloPar];</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   fSigmaPar     = new Double_t[fNGloPar];</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   fIsLinear     = new Bool_t[fNGloPar];</span>
+<span class="lineNum">     230 </span>            :   //
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   fGlo2CGlo     = new Int_t[fNGloPar];</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   fCGlo2Glo     = new Int_t[fNGloPar];</span>
+<span class="lineNum">     233 </span>            :   //
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   memset(fVecBLoc   ,0,fNLocPar*sizeof(Double_t));</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   memset(fDiagCGlo  ,0,fNGloPar*sizeof(Double_t));</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   memset(fInitPar   ,0,fNGloPar*sizeof(Double_t));</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   memset(fDeltaPar  ,0,fNGloPar*sizeof(Double_t));</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   memset(fSigmaPar  ,0,fNGloPar*sizeof(Double_t));</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   memset(fProcPnt   ,0,fNGloPar*sizeof(Int_t));</span>
+<span class="lineNum">     240 </span>            :   //
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   for (int i=fNGloPar;i--;) {</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     fGlo2CGlo[i] = fCGlo2Glo[i] = -1;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     fIsLinear[i] = kTRUE;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     fParamGrID[i] = -1;</span>
+<span class="lineNum">     245 </span>            :   }
+<span class="lineNum">     246 </span>            :   //
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   fWghScl[0] = -1; </span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   fWghScl[1] = -1;</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 : }</span>
+<a name="251"><span class="lineNum">     251 </span>            : </a>
+<span class="lineNum">     252 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     253 </span>            : Bool_t AliMillePede2::ImposeDataRecFile(const char* fname)
+<span class="lineNum">     254 </span>            : {
+<span class="lineNum">     255 </span>            :   // set filename for records
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :   CloseDataRecStorage();</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   SetDataRecFName(fname);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   return InitDataRecStorage(kTRUE); // open in read mode</span>
+<span class="lineNum">     259 </span>            : }
+<a name="260"><span class="lineNum">     260 </span>            : </a>
+<span class="lineNum">     261 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     262 </span>            : Bool_t AliMillePede2::ImposeConsRecFile(const char* fname)
+<span class="lineNum">     263 </span>            : {
+<span class="lineNum">     264 </span>            :   // set filename for constraints
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   CloseConsRecStorage();</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   SetConsRecFName(fname);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   return InitConsRecStorage(kTRUE); // open in read mode</span>
+<span class="lineNum">     268 </span>            : }
+<a name="269"><span class="lineNum">     269 </span>            : </a>
+<span class="lineNum">     270 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     271 </span>            : Bool_t AliMillePede2::InitDataRecStorage(Bool_t read)
+<span class="lineNum">     272 </span>            : {
+<span class="lineNum">     273 </span>            :   // initialize the buffer for processed measurements records
+<span class="lineNum">     274 </span>            :   //
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   if (fTreeData) {AliInfo(&quot;Data Records File is already initialized&quot;); return kFALSE;} </span>
+<span class="lineNum">     276 </span>            :   //
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   if (!fRecord) fRecord = new AliMillePedeRecord();</span>
+<span class="lineNum">     278 </span>            :   //
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   if (!read) { // write mode: cannot use chain</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     fDataRecFile = TFile::Open(GetDataRecFName(),&quot;recreate&quot;);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     if (!fDataRecFile) {AliFatal(Form(&quot;Failed to initialize data records file %s&quot;,GetDataRecFName())); return kFALSE;}</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;File %s used for derivatives records&quot;,GetDataRecFName()));</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     fTreeData = new TTree(GetRecDataTreeName(),&quot;Data Records for AliMillePede2&quot;);</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     fTreeData-&gt;Branch(GetRecDataBranchName(),&quot;AliMillePedeRecord&quot;,&amp;fRecord,32000,99);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     286 </span>            :   else { // use chain
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     TChain* ch = new TChain(GetRecDataTreeName());</span>
+<span class="lineNum">     288 </span>            :     //
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     if (fDataRecFName.EndsWith(&quot;.root&quot;)) ch-&gt;AddFile(fDataRecFName);</span>
+<span class="lineNum">     290 </span>            :     else { // assume text file with list of filenames
+<span class="lineNum">     291 </span>            :       //
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       ifstream inpf(fDataRecFName.Data());</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :       if (!inpf.good()) {AliInfo(Form(&quot;Failed on input records list %s\n&quot;,fDataRecFName.Data())); return kFALSE;}</span>
+<span class="lineNum">     294 </span>            :       //
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :       TString recfName;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       while ( !(recfName.ReadLine(inpf)).eof() ) {</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         recfName = recfName.Strip(TString::kBoth,' ');</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         if (recfName.BeginsWith(&quot;//&quot;) || recfName.BeginsWith(&quot;#&quot;) || !recfName.EndsWith(&quot;.root&quot;)) {  // comment</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :           AliInfo(Form(&quot;Skip %s\n&quot;,recfName.Data()));</span>
+<span class="lineNum">     300 </span>            :           continue;
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span>            :         //
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         recfName = recfName.Strip(TString::kBoth,',');</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         recfName = recfName.Strip(TString::kBoth,'&quot;');</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         gSystem-&gt;ExpandPathName(recfName);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         printf(&quot;Adding %s\n&quot;,recfName.Data());</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         ch-&gt;AddFile(recfName.Data());</span>
+<span class="lineNum">     308 </span>            :       }      
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     310 </span>            :     //
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     Long64_t nent = ch-&gt;GetEntries();</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     if (nent&lt;1) { AliInfo(&quot;Obtained chain is empty&quot;); return kFALSE;}</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     fTreeData = ch;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     fTreeData-&gt;SetBranchAddress(GetRecDataBranchName(),&amp;fRecord);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Found %lld derivatives records&quot;,nent));</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :   fCurrRecDataID = -1;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   fRecFileStatus = read ? 1:2;</span>
+<span class="lineNum">     319 </span>            :   //
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 : }</span>
+<a name="322"><span class="lineNum">     322 </span>            : </a>
+<span class="lineNum">     323 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     324 </span>            : Bool_t AliMillePede2::InitConsRecStorage(Bool_t read)
+<span class="lineNum">     325 </span>            : {
+<span class="lineNum">     326 </span>            :   // initialize the buffer for processed measurements records
+<span class="lineNum">     327 </span>            :   //
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   if (fConsRecFile) {AliInfo(&quot;Constraints Records File is already initialized&quot;); return kFALSE;} </span>
+<span class="lineNum">     329 </span>            :   //
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   if (!fRecord) fRecord = new AliMillePedeRecord();</span>
+<span class="lineNum">     331 </span>            :   //
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   fConsRecFile = TFile::Open(GetConsRecFName(),read ? &quot;&quot;:&quot;recreate&quot;);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   if (!fConsRecFile) {AliInfo(Form(&quot;Failed to initialize constraints records file %s&quot;,GetConsRecFName())); return kFALSE;}</span>
+<span class="lineNum">     334 </span>            :   //
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;File %s used for constraints records&quot;,GetConsRecFName()));</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   if (read) {</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     fTreeConstr = (TTree*)fConsRecFile-&gt;Get(GetRecConsTreeName());</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     if (!fTreeConstr) {AliInfo(Form(&quot;Did not find constraints records tree in %s&quot;,GetConsRecFName())); return kFALSE;}</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     fTreeConstr-&gt;SetBranchAddress(GetRecConsBranchName(),&amp;fRecord);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Found %lld constraints records&quot;,fTreeConstr-&gt;GetEntries()));</span>
+<span class="lineNum">     341 </span>            :     //
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     343 </span>            :   else {
+<span class="lineNum">     344 </span>            :     //
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     fTreeConstr = new TTree(GetRecConsTreeName(),&quot;Constraints Records for AliMillePede2&quot;);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     fTreeConstr-&gt;Branch(GetRecConsBranchName(),&quot;AliMillePedeRecord&quot;,&amp;fRecord,32000,99);</span>
+<span class="lineNum">     347 </span>            :   }
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :   fCurrRecConstrID = -1;</span>
+<span class="lineNum">     349 </span>            :   //
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 : }</span>
+<a name="352"><span class="lineNum">     352 </span>            : </a>
+<span class="lineNum">     353 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     354 </span>            : void AliMillePede2::CloseDataRecStorage()
+<span class="lineNum">     355 </span>            : {
+<span class="lineNum">     356 </span>            :   // close records file
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   if (fTreeData) {</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     if (fDataRecFile &amp;&amp; fDataRecFile-&gt;IsWritable()) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :       fDataRecFile-&gt;cd();</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       fTreeData-&gt;Write();</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     delete fTreeData;  </span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     fTreeData = 0;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     if (fDataRecFile) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       fDataRecFile-&gt;Close();</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :       delete fDataRecFile;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :       fDataRecFile = 0;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     369 </span>            :   }
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   fRecFileStatus = 0;</span>
+<span class="lineNum">     371 </span>            :   //
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 : }</span>
+<a name="373"><span class="lineNum">     373 </span>            : </a>
+<span class="lineNum">     374 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     375 </span>            : void AliMillePede2::CloseConsRecStorage()
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span>            :   // close constraints file
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   if (fTreeConstr) {</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     if (fConsRecFile-&gt;IsWritable()) {</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :       fConsRecFile-&gt;cd();</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :       fTreeConstr-&gt;Write();</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     delete fTreeConstr;  </span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     fTreeConstr = 0;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     fConsRecFile-&gt;Close();</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     delete fConsRecFile;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     fConsRecFile = 0;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     389 </span>            :   //
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 : }</span>
+<a name="391"><span class="lineNum">     391 </span>            : </a>
+<span class="lineNum">     392 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     393 </span>            : Bool_t AliMillePede2::ReadNextRecordData()
+<span class="lineNum">     394 </span>            : {
+<span class="lineNum">     395 </span>            :   // read next data record (if any)
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :   if (!fTreeData || ++fCurrRecDataID &gt;= fTreeData-&gt;GetEntries()) { fCurrRecDataID--; return kFALSE;}</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   fTreeData-&gt;GetEntry(fCurrRecDataID);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 : }</span>
+<a name="400"><span class="lineNum">     400 </span>            : </a>
+<span class="lineNum">     401 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     402 </span>            : Bool_t AliMillePede2::ReadNextRecordConstraint()
+<span class="lineNum">     403 </span>            : {
+<span class="lineNum">     404 </span>            :   // read next constraint record (if any)
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   if (!fTreeConstr || ++fCurrRecConstrID &gt;= fTreeConstr-&gt;GetEntries()) { fCurrRecConstrID--; return kFALSE;}</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   fTreeConstr-&gt;GetEntry(fCurrRecConstrID);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 : }</span>
+<a name="409"><span class="lineNum">     409 </span>            : </a>
+<span class="lineNum">     410 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     411 </span>            : void AliMillePede2::SetRecordWeight(double wgh)
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span>            :   // assign weight
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   if (fRecFileStatus&lt;2) InitDataRecStorage(); // create a buffer to store the data</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   fRecord-&gt;SetWeight(wgh);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 : }</span>
+<a name="417"><span class="lineNum">     417 </span>            : </a>
+<span class="lineNum">     418 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     419 </span>            : void AliMillePede2::SetRecordRun(Int_t run)
+<span class="lineNum">     420 </span>            : {
+<span class="lineNum">     421 </span>            :   // assign run
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :   if (fRecFileStatus&lt;2) InitDataRecStorage(); // create a buffer to store the data</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   fRecord-&gt;SetRunID(run);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 : }</span>
+<a name="425"><span class="lineNum">     425 </span>            : </a>
+<span class="lineNum">     426 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     427 </span>            : void AliMillePede2::SetLocalEquation(double *dergb, double *derlc, double lMeas, double lSigma)
+<span class="lineNum">     428 </span>            : {
+<span class="lineNum">     429 </span>            :   // assing derivs of loc.eq.
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :   if (fRecFileStatus&lt;2) InitDataRecStorage(); // create a buffer to store the data</span>
+<span class="lineNum">     431 </span>            :   //
+<span class="lineNum">     432 </span>            :   // write data of single measurement
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   if (lSigma&lt;=0.0) { // If parameter is fixed, then no equation</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     for (int i=fNLocPar; i--;) derlc[i] = 0.0;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     for (int i=fNGloParIni; i--;) dergb[i] = 0.0;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     437 </span>            :   }
+<span class="lineNum">     438 </span>            :   //
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddResidual(lMeas);</span>
+<span class="lineNum">     440 </span>            :   //
+<span class="lineNum">     441 </span>            :   // Retrieve local param interesting indices
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;fNLocPar;i++) if (!IsZero(derlc[i])) {fRecord-&gt;AddIndexValue(i,derlc[i]); derlc[i] = 0.0;}</span>
+<span class="lineNum">     443 </span>            :   //
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddWeight( 1.0/lSigma/lSigma );</span>
+<span class="lineNum">     445 </span>            :   //
+<span class="lineNum">     446 </span>            :   // Idem for global parameters
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;fNGloParIni;i++) if (!IsZero(dergb[i])) {</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     fRecord-&gt;AddIndexValue(i,dergb[i]); dergb[i] = 0.0;</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     int idrg = GetRGId(i);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     fRecord-&gt;MarkGroup(idrg&lt;0 ? -1 : fParamGrID[i]);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     452 </span>            :   //  fRecord-&gt;Print();
+<span class="lineNum">     453 </span>            :   //
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 : }</span>
+<a name="455"><span class="lineNum">     455 </span>            : </a>
+<span class="lineNum">     456 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     457 </span>            : void AliMillePede2::SetLocalEquation(int *indgb, double *dergb, int ngb, int *indlc,
+<span class="lineNum">     458 </span>            :                                      double *derlc,int nlc,double lMeas,double lSigma)
+<span class="lineNum">     459 </span>            : {       
+<span class="lineNum">     460 </span>            :   // write data of single measurement. Note: the records ignore regrouping, store direct parameters
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   if (lSigma&lt;=0.0) { // If parameter is fixed, then no equation</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     for (int i=nlc;i--;)  derlc[i] = 0.0;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     for (int i=ngb;i--;)  dergb[i] = 0.0;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     465 </span>            :   }
+<span class="lineNum">     466 </span>            :   //
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   if (fRecFileStatus&lt;2) InitDataRecStorage(); // create a buffer to store the data</span>
+<span class="lineNum">     468 </span>            :   //
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddResidual(lMeas);</span>
+<span class="lineNum">     470 </span>            :   //
+<span class="lineNum">     471 </span>            :   // Retrieve local param interesting indices
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;nlc;i++) if (!IsZero(derlc[i])) {fRecord-&gt;AddIndexValue(indlc[i],derlc[i]); derlc[i]=0.; indlc[i]=0;}</span>
+<span class="lineNum">     473 </span>            :   //
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddWeight( 1./lSigma/lSigma );</span>
+<span class="lineNum">     475 </span>            :   //
+<span class="lineNum">     476 </span>            :   // Idem for global parameters
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;ngb;i++) if (!IsZero(dergb[i])) {fRecord-&gt;AddIndexValue(indgb[i],dergb[i]); dergb[i]=0.; indgb[i]=0;} </span>
+<span class="lineNum">     478 </span>            :   //
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     480 </span>            : 
+<a name="481"><span class="lineNum">     481 </span>            : </a>
+<span class="lineNum">     482 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     483 </span>            : void AliMillePede2::SetGlobalConstraint(const double *dergb, double val, double sigma)
+<span class="lineNum">     484 </span>            : {       
+<span class="lineNum">     485 </span>            :   // Define a constraint equation.
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   if (!fConsRecFile || !fConsRecFile-&gt;IsWritable()) InitConsRecStorage(); // create a buffer to store the data</span>
+<span class="lineNum">     487 </span>            :   //
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   fRecord-&gt;Reset();</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddResidual(val);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddWeight(sigma);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;fNGloParIni; i++) if (!IsZero(dergb[i])) fRecord-&gt;AddIndexValue(i,dergb[i]);</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :   fNGloConstraints++;</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :   if (IsZero(sigma)) fNLagrangeConstraints++;</span>
+<span class="lineNum">     494 </span>            :   //  printf(&quot;NewConstraint:\n&quot;); fRecord-&gt;Print(); //RRR
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :   SaveRecordConstraint();</span>
+<span class="lineNum">     496 </span>            :   //
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 : }</span>
+<a name="498"><span class="lineNum">     498 </span>            : </a>
+<span class="lineNum">     499 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     500 </span>            : void AliMillePede2::SetGlobalConstraint(const int *indgb, const double *dergb, int ngb, double val,double sigma)
+<span class="lineNum">     501 </span>            : {       
+<span class="lineNum">     502 </span>            :   // Define a constraint equation.
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :   if (!fConsRecFile || !fConsRecFile-&gt;IsWritable()) InitConsRecStorage(); // create a buffer to store the data</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   fRecord-&gt;Reset();</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddResidual(val);</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   fRecord-&gt;AddWeight(sigma);   // dummy</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;ngb; i++) if (!IsZero(dergb[i]))  fRecord-&gt;AddIndexValue(indgb[i],dergb[i]);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :   fNGloConstraints++;</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   if (IsZero(sigma)) fNLagrangeConstraints++;</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   SaveRecordConstraint();</span>
+<span class="lineNum">     511 </span>            :   //
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 : }</span>
+<a name="513"><span class="lineNum">     513 </span>            : </a>
+<span class="lineNum">     514 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     515 </span>            : Int_t AliMillePede2::LocalFit(double *localParams)
+<span class="lineNum">     516 </span>            : {
+<span class="lineNum">     517 </span>            :   /*
+<span class="lineNum">     518 </span>            :     Perform local parameters fit once all the local equations have been set
+<span class="lineNum">     519 </span>            :     -----------------------------------------------------------
+<span class="lineNum">     520 </span>            :     localParams = (if !=0) will contain the fitted track parameters and
+<span class="lineNum">     521 </span>            :     related errors
+<span class="lineNum">     522 </span>            :   */
+<span class="lineNum">     523 </span>            :   static int     nrefSize = 0;
+<span class="lineNum">     524 </span>            :   //  static TArrayI refLoc,refGlo,nrefLoc,nrefGlo;
+<span class="lineNum">     525 </span>            :   static Int_t  *refLoc=0,*refGlo=0,*nrefLoc=0,*nrefGlo=0;
+<span class="lineNum">     526 </span>            :   int nPoints = 0;
+<span class="lineNum">     527 </span>            :   //
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :   AliSymMatrix    &amp;matCLoc    = *fMatCLoc;</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   AliMatrixSq     &amp;matCGlo    = *fMatCGlo;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   AliRectMatrix   &amp;matCGloLoc = *fMatCGloLoc;</span>
+<span class="lineNum">     531 </span>            :   //
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :   memset(fVecBLoc,0,fNLocPar*sizeof(double));</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   matCLoc.Reset();      </span>
+<span class="lineNum">     534 </span>            :   //
+<span class="lineNum">     535 </span>            :   int cnt=0;
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   int recSz = fRecord-&gt;GetSize();</span>
+<span class="lineNum">     537 </span>            :   //
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :   while(cnt&lt;recSz) {  // Transfer the measurement records to matrices</span>
+<span class="lineNum">     539 </span>            :     //
+<span class="lineNum">     540 </span>            :     // extract addresses of residual, weight and pointers on local and global derivatives for each point
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     if (nrefSize&lt;=nPoints) {</span>
+<span class="lineNum">     542 </span>            :       int *tmpA = 0;
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       nrefSize = 2*(nPoints+1); </span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :       tmpA = refLoc;  refLoc  = new Int_t[nrefSize]; if (tmpA) memcpy(refLoc,tmpA,nPoints*sizeof(int));</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :       tmpA = refGlo;  refGlo  = new Int_t[nrefSize]; if (tmpA) memcpy(refGlo,tmpA,nPoints*sizeof(int));</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :       tmpA = nrefLoc; nrefLoc = new Int_t[nrefSize]; if (tmpA) memcpy(nrefLoc,tmpA,nPoints*sizeof(int));</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :       tmpA = nrefGlo; nrefGlo = new Int_t[nrefSize]; if (tmpA) memcpy(nrefGlo,tmpA,nPoints*sizeof(int));</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     549 </span>            :     //
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     refLoc[nPoints]  = ++cnt;</span>
+<span class="lineNum">     551 </span>            :     int nLoc = 0;
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     while(!fRecord-&gt;IsWeight(cnt)) {nLoc++; cnt++;}</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     nrefLoc[nPoints] = nLoc;</span>
+<span class="lineNum">     554 </span>            :     //
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     refGlo[nPoints]  = ++cnt;</span>
+<span class="lineNum">     556 </span>            :     int nGlo = 0;
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     while(!fRecord-&gt;IsResidual(cnt) &amp;&amp; cnt&lt;recSz) {nGlo++; cnt++;} </span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     nrefGlo[nPoints] = nGlo;</span>
+<span class="lineNum">     559 </span>            :     //
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     nPoints++;</span>
+<span class="lineNum">     561 </span>            :   }
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :   if (fMinRecordLength&gt;0 &amp;&amp; nPoints &lt; fMinRecordLength) return 0; // ignore</span>
+<span class="lineNum">     563 </span>            :   //
+<span class="lineNum">     564 </span>            :   double vl;
+<span class="lineNum">     565 </span>            :   //
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   double gloWgh = fRunWgh;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :   if (fUseRecordWeight) gloWgh *= fRecord-&gt;GetWeight(); // global weight for this set</span>
+<span class="lineNum">     568 </span>            :   Int_t maxLocUsed = 0;
+<span class="lineNum">     569 </span>            :   //
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :   for (int ip=nPoints;ip--;) {  // Transfer the measurement records to matrices</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     double  resid  = fRecord-&gt;GetValue( refLoc[ip]-1 );</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     double  weight = fRecord-&gt;GetValue( refGlo[ip]-1 )*gloWgh;</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     int odd = (ip&amp;0x1);</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     if (fWghScl[odd]&gt;0) weight *= fWghScl[odd];</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     double *derLoc = fRecord-&gt;GetValue()+refLoc[ip];</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     double *derGlo = fRecord-&gt;GetValue()+refGlo[ip];</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     int    *indLoc = fRecord-&gt;GetIndex()+refLoc[ip];</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     int    *indGlo = fRecord-&gt;GetIndex()+refGlo[ip];</span>
+<span class="lineNum">     579 </span>            :     //
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     for (int i=nrefGlo[ip];i--;) {      // suppress the global part (only relevant with iterations)</span>
+<span class="lineNum">     581 </span>            :       //
+<span class="lineNum">     582 </span>            :       // if regrouping was requested, do it here
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :       if (fkReGroup) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         int idtmp = fkReGroup[ indGlo[i] ];</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         if (idtmp == kFixParID) indGlo[i] = kFixParID; // fixed param in regrouping </span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         else                    indGlo[i] = idtmp;</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     588 </span>            :       //
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :       int iID = indGlo[i];              // Global param indice</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :       if (iID&lt;0 || fSigmaPar[iID]&lt;=0.) continue;                              // fixed parameter RRRCheck</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :       if (fIsLinear[iID]) resid -= derGlo[i]*(fInitPar[iID]+fDeltaPar[iID]);  // linear parameter</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :       else                resid -= derGlo[i]*fDeltaPar[iID];                  // nonlinear parameter</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     594 </span>            :     //
+<span class="lineNum">     595 </span>            :     // Symmetric matrix, don't bother j&gt;i coeffs
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     for (int i=nrefLoc[ip];i--;) {         // Fill local matrix and vector</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :       fVecBLoc[ indLoc[i] ] += weight*resid*derLoc[i];</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :       if (indLoc[i]&gt;maxLocUsed) maxLocUsed = indLoc[i];  </span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :       for (int j=i+1;j--;) matCLoc(indLoc[i] ,indLoc[j]) += weight*derLoc[i]*derLoc[j];</span>
+<span class="lineNum">     600 </span>            :     }
+<span class="lineNum">     601 </span>            :     //
+<span class="lineNum">     602 </span>            :   } // end of the transfer of the measurement record to matrices
+<span class="lineNum">     603 </span>            :   //
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   matCLoc.SetSizeUsed(++maxLocUsed);   // data with B=0 may use less than declared nLocals </span>
+<span class="lineNum">     605 </span>            :   //
+<span class="lineNum">     606 </span>            :   /* //RRR
+<span class="lineNum">     607 </span>            :   fRecord-&gt;Print(&quot;l&quot;);
+<span class="lineNum">     608 </span>            :   printf(&quot;\nBefore\nLocalMatrix: &quot;); matCLoc.Print(&quot;l&quot;);
+<span class="lineNum">     609 </span>            :   printf(&quot;RHSLoc: &quot;); for (int i=0;i&lt;fNLocPar;i++) printf(&quot;%+e |&quot;,fVecBLoc[i]); printf(&quot;\n&quot;);
+<span class="lineNum">     610 </span>            :   */
+<span class="lineNum">     611 </span>            :   // first try to solve by faster Cholesky decomposition, then by Gaussian elimination
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :   if (!matCLoc.SolveChol(fVecBLoc,kTRUE)) {</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     AliInfo(&quot;Failed to solve locals by Cholesky, trying Gaussian Elimination&quot;);</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     if (!matCLoc.SolveSpmInv(fVecBLoc,kTRUE)) { </span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :       AliInfo(&quot;Failed to solve locals by Gaussian Elimination, skip...&quot;);</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :       matCLoc.Print(&quot;d&quot;);</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :       return 0; // failed to solve</span>
+<span class="lineNum">     618 </span>            :     }
+<span class="lineNum">     619 </span>            :   }
+<span class="lineNum">     620 </span>            :   //
+<span class="lineNum">     621 </span>            :   // If requested, store the track params and errors
+<span class="lineNum">     622 </span>            :   //RRR  printf(&quot;locfit: &quot;); for (int i=0;i&lt;fNLocPar;i++) printf(&quot;%+e |&quot;,fVecBLoc[i]); printf(&quot;\n&quot;);
+<span class="lineNum">     623 </span>            :   
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   if (localParams) for (int i=maxLocUsed; i--;) {</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :       localParams[2*i]   = fVecBLoc[i];</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :       localParams[2*i+1] = TMath::Sqrt(TMath::Abs(matCLoc.QueryDiag(i)));</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     628 </span>            :   //
+<span class="lineNum">     629 </span>            :   float lChi2 = 0;
+<span class="lineNum">     630 </span>            :   int   nEq   = 0;
+<span class="lineNum">     631 </span>            :   //
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :   for (int ip=nPoints;ip--;) {  // Calculate residuals</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :     double  resid  = fRecord-&gt;GetValue( refLoc[ip]-1 );</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     double  weight = fRecord-&gt;GetValue( refGlo[ip]-1 )*gloWgh;</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     int odd = (ip&amp;0x1);</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     if (fWghScl[odd]&gt;0) weight *= fWghScl[odd];</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     double *derLoc = fRecord-&gt;GetValue()+refLoc[ip];</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     double *derGlo = fRecord-&gt;GetValue()+refGlo[ip];</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     int    *indLoc = fRecord-&gt;GetIndex()+refLoc[ip];</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     int    *indGlo = fRecord-&gt;GetIndex()+refGlo[ip];</span>
+<span class="lineNum">     641 </span>            :     //
+<span class="lineNum">     642 </span>            :     // Suppress local and global contribution in residuals;
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :     for (int i=nrefLoc[ip];i--;) resid -= derLoc[i]*fVecBLoc[ indLoc[i] ];     // local part </span>
+<span class="lineNum">     644 </span>            :     //
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     for (int i=nrefGlo[ip];i--;) {                                             // global part</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :       int iID = indGlo[i];</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :       if ( iID&lt;0 || fSigmaPar[iID] &lt;= 0.) continue;                            // fixed parameter RRRCheck</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :       if (fIsLinear[iID]) resid -= derGlo[i]*(fInitPar[iID]+fDeltaPar[iID]);   // linear parameter</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :       else                resid -= derGlo[i]*fDeltaPar[iID];                   // nonlinear parameter</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     651 </span>            :     //
+<span class="lineNum">     652 </span>            :     // reject the track if the residual is too large (outlier)
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     double absres = TMath::Abs(resid);</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     if ( (absres &gt;= fResCutInit &amp;&amp; fIter ==1 ) ||</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :          (absres &gt;= fResCut     &amp;&amp; fIter &gt; 1)) {</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :       if (fLocFitAdd) fNLocFitsRejected++;      </span>
+<span class="lineNum">     657 </span>            :       //      printf(&quot;reject res %5ld %+e\n&quot;,fCurrRecDataID,resid);
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     659 </span>            :     }
+<span class="lineNum">     660 </span>            :     // 
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     lChi2 += weight*resid*resid ; // total chi^2</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     nEq++;                        // number of equations                        </span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   } // end of Calculate residuals</span>
+<span class="lineNum">     664 </span>            :   //
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :   lChi2 /= gloWgh;  </span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   int nDoF = nEq-maxLocUsed;</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :   lChi2 = (nDoF&gt;0) ? lChi2/nDoF : 0;  // Chi^2/dof  </span>
+<span class="lineNum">     668 </span>            :   //
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   if (fNStdDev != 0 &amp;&amp; nDoF&gt;0 &amp;&amp; lChi2 &gt; Chi2DoFLim(fNStdDev,nDoF)*fChi2CutFactor) { // check final chi2</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     if (fLocFitAdd) fNLocFitsRejected++;      </span>
+<span class="lineNum">     671 </span>            :     //    printf(&quot;reject chi2 %5ld: %+e\n&quot;,fCurrRecDataID, lChi2);
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     673 </span>            :   }
+<span class="lineNum">     674 </span>            :   //
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   if (fLocFitAdd) {</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     fNLocFits++;</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     fNLocEquations += nEq;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     679 </span>            :   else {
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     fNLocFits--;</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :     fNLocEquations -= nEq;</span>
+<span class="lineNum">     682 </span>            :   }
+<span class="lineNum">     683 </span>            :   //
+<span class="lineNum">     684 </span>            :   //  local operations are finished, track is accepted 
+<span class="lineNum">     685 </span>            :   //  We now update the global parameters (other matrices)
+<span class="lineNum">     686 </span>            :   //
+<span class="lineNum">     687 </span>            :   int nGloInFit = 0;
+<span class="lineNum">     688 </span>            :   //
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   for (int ip=nPoints;ip--;) {  // Update matrices</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     double  resid  = fRecord-&gt;GetValue( refLoc[ip]-1 );</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     double  weight = fRecord-&gt;GetValue( refGlo[ip]-1 )*gloWgh;</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     int odd = (ip&amp;0x1);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     if (fWghScl[odd]&gt;0) weight *= fWghScl[odd];</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     double *derLoc = fRecord-&gt;GetValue()+refLoc[ip];</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     double *derGlo = fRecord-&gt;GetValue()+refGlo[ip];</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     int    *indLoc = fRecord-&gt;GetIndex()+refLoc[ip];</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     int    *indGlo = fRecord-&gt;GetIndex()+refGlo[ip];</span>
+<span class="lineNum">     698 </span>            :     //
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     for (int i=nrefGlo[ip];i--;) {   // suppress the global part</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :       int iID = indGlo[i];           // Global param indice</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :       if ( iID&lt;0 || fSigmaPar[iID] &lt;= 0.) continue;                                // fixed parameter RRRCheck</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :       if (fIsLinear[iID])  resid -= derGlo[i]*(fInitPar[iID]+fDeltaPar[iID]);      // linear parameter</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :       else                 resid -= derGlo[i]*fDeltaPar[iID];                      // nonlinear parameter</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     705 </span>            :     //
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :     for (int ig=nrefGlo[ip];ig--;) {</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :       int iIDg = indGlo[ig];   // Global param indice (the matrix line)          </span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :       if ( iIDg&lt;0 || fSigmaPar[iIDg] &lt;= 0.) continue;                              // fixed parameter RRRCheck</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :       if (fLocFitAdd) fVecBGlo[ iIDg ] += weight*resid*derGlo[ig]; //!!!</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :       else            fVecBGlo[ iIDg ] -= weight*resid*derGlo[ig]; //!!!</span>
+<span class="lineNum">     711 </span>            :       //
+<span class="lineNum">     712 </span>            :       // First of all, the global/global terms (exactly like local matrix)
+<span class="lineNum">     713 </span>            :       int nfill = 0;
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :       for (int jg=ig+1;jg--;) { // matCGlo is symmetric by construction  </span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :         int jIDg = indGlo[jg];</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :         if ( jIDg&lt;0 || fSigmaPar[jIDg] &lt;= 0.) continue;                            // fixed parameter RRRCheck</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :         if ( !IsZero(vl = weight*derGlo[ig]*derGlo[jg]) ) {</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :           fFillIndex[nfill]   = jIDg;</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :           fFillValue[nfill++] = fLocFitAdd ? vl:-vl;</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :       if (nfill) matCGlo.AddToRow(iIDg,fFillValue,fFillIndex,nfill);</span>
+<span class="lineNum">     723 </span>            :       //
+<span class="lineNum">     724 </span>            :       // Now we have also rectangular matrices containing global/local terms.
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :       int iCIDg = fGlo2CGlo[iIDg];  // compressed Index of index          </span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :       if (iCIDg == -1) {</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         Double_t *rowGL = matCGloLoc(nGloInFit);</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :         for (int k=maxLocUsed;k--;) rowGL[k] = 0.0;  // reset the row</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :         iCIDg = fGlo2CGlo[iIDg] = nGloInFit;</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :         fCGlo2Glo[nGloInFit++] = iIDg;</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     732 </span>            :       //
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :       Double_t *rowGLIDg = matCGloLoc(iCIDg);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :       for (int il=nrefLoc[ip];il--;) rowGLIDg[ indLoc[il] ] += weight*derGlo[ig]*derLoc[il];</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :       fProcPnt[iIDg] += fLocFitAdd ? 1:-1;       // update counter</span>
+<span class="lineNum">     736 </span>            :       //
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     738 </span>            :   } // end of Update matrices
+<span class="lineNum">     739 </span>            :   //
+<span class="lineNum">     740 </span>            :   /*//RRR
+<span class="lineNum">     741 </span>            :   printf(&quot;After GLO\n&quot;);
+<span class="lineNum">     742 </span>            :   printf(&quot;MatCLoc: &quot;); fMatCLoc-&gt;Print(&quot;l&quot;);
+<span class="lineNum">     743 </span>            :   printf(&quot;MatCGlo: &quot;); fMatCGlo-&gt;Print(&quot;l&quot;);
+<span class="lineNum">     744 </span>            :   printf(&quot;MatCGlLc:&quot;); fMatCGloLoc-&gt;Print(&quot;l&quot;);
+<span class="lineNum">     745 </span>            :   printf(&quot;BGlo: &quot;); for (int i=0; i&lt;fNGloPar; i++) printf(&quot;%+e |&quot;,fVecBGlo[i]); printf(&quot;\n&quot;);
+<span class="lineNum">     746 </span>            :   */
+<span class="lineNum">     747 </span>            :   // calculate fMatCGlo -= fMatCGloLoc * fMatCLoc * fMatCGloLoc^T
+<span class="lineNum">     748 </span>            :   // and       fVecBGlo -= fMatCGloLoc * fVecBLoc
+<span class="lineNum">     749 </span>            :   //
+<span class="lineNum">     750 </span>            :   //-------------------------------------------------------------- &gt;&gt;&gt;
+<span class="lineNum">     751 </span>            :   double vll;
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :   for (int iCIDg=0; iCIDg&lt;nGloInFit; iCIDg++) {</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     int iIDg = fCGlo2Glo[iCIDg];</span>
+<span class="lineNum">     754 </span>            :     //
+<span class="lineNum">     755 </span>            :     vl = 0;
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     Double_t *rowGLIDg =  matCGloLoc(iCIDg);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     for (int kl=0;kl&lt;maxLocUsed;kl++) if (rowGLIDg[kl]) vl += rowGLIDg[kl]*fVecBLoc[kl];</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     if  (!IsZero(vl)) fVecBGlo[iIDg] -= fLocFitAdd ? vl : -vl;</span>
+<span class="lineNum">     759 </span>            :     //
+<span class="lineNum">     760 </span>            :     int nfill = 0;
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     for (int jCIDg=0;jCIDg&lt;=iCIDg; jCIDg++) {  </span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :       int jIDg = fCGlo2Glo[jCIDg];</span>
+<span class="lineNum">     763 </span>            :       //
+<span class="lineNum">     764 </span>            :       vl = 0;
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :       Double_t *rowGLJDg =  matCGloLoc(jCIDg);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :       for (int kl=0;kl&lt;maxLocUsed;kl++) {</span>
+<span class="lineNum">     767 </span>            :         // diag terms
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :         if ( (!IsZero(vll=rowGLIDg[kl]*rowGLJDg[kl])) ) vl += matCLoc.QueryDiag(kl)*vll;</span>
+<span class="lineNum">     769 </span>            :         //
+<span class="lineNum">     770 </span>            :         // off-diag terms
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :         for (int ll=0;ll&lt;kl;ll++) {</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :           if ( !IsZero(vll=rowGLIDg[kl]*rowGLJDg[ll]) ) vl += matCLoc(kl,ll)*vll;</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :           if ( !IsZero(vll=rowGLIDg[ll]*rowGLJDg[kl]) ) vl += matCLoc(kl,ll)*vll;</span>
+<span class="lineNum">     774 </span>            :         }
+<span class="lineNum">     775 </span>            :       }
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :       if (!IsZero(vl)) {</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :         fFillIndex[nfill]   = jIDg;</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         fFillValue[nfill++] = fLocFitAdd ? -vl : vl;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     780 </span>            :     }
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     if (nfill)  matCGlo.AddToRow(iIDg,fFillValue,fFillIndex,nfill);</span>
+<span class="lineNum">     782 </span>            :   }
+<span class="lineNum">     783 </span>            :   //
+<span class="lineNum">     784 </span>            :   // reset compressed index array
+<span class="lineNum">     785 </span>            :   //
+<span class="lineNum">     786 </span>            :   /*//RRR
+<span class="lineNum">     787 </span>            :   printf(&quot;After GLOLoc\n&quot;);
+<span class="lineNum">     788 </span>            :   printf(&quot;MatCGlo: &quot;); fMatCGlo-&gt;Print(&quot;&quot;);
+<span class="lineNum">     789 </span>            :   printf(&quot;BGlo: &quot;); for (int i=0; i&lt;fNGloPar; i++) printf(&quot;%+e |&quot;,fVecBGlo[i]); printf(&quot;\n&quot;);
+<span class="lineNum">     790 </span>            :   */
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :   for (int i=nGloInFit;i--;) { </span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :     fGlo2CGlo[ fCGlo2Glo[i] ] = -1;</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     fCGlo2Glo[i] = -1;</span>
+<span class="lineNum">     794 </span>            :   }
+<span class="lineNum">     795 </span>            :   //
+<span class="lineNum">     796 </span>            :   //---------------------------------------------------- &lt;&lt;&lt;
+<span class="lineNum">     797 </span>            :   return 1;
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 : }</span>
+<a name="799"><span class="lineNum">     799 </span>            : </a>
+<span class="lineNum">     800 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     801 </span>            : Int_t AliMillePede2::GlobalFit(Double_t *par, Double_t *error, Double_t *pull)
+<span class="lineNum">     802 </span>            : {
+<span class="lineNum">     803 </span>            :   // performs a requested number of global iterations
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   fIter = 1;</span>
+<span class="lineNum">     805 </span>            :   //
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   TStopwatch sw; sw.Start();</span>
+<span class="lineNum">     807 </span>            :   //
+<span class="lineNum">     808 </span>            :   int res = 0;
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   AliInfo(&quot;Starting Global fit.&quot;);</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :   while (fIter&lt;=fMaxIter) {</span>
+<span class="lineNum">     811 </span>            :     //
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     res = GlobalFitIteration();</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     if (!res) break;</span>
+<span class="lineNum">     814 </span>            :     //
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     if (!IsZero(fChi2CutFactor-fChi2CutRef)) {    </span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :       fChi2CutFactor = TMath::Sqrt(fChi2CutFactor);</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :       if (fChi2CutFactor &lt; 1.2*fChi2CutRef) {</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :         fChi2CutFactor = fChi2CutRef;</span>
+<span class="lineNum">     819 </span>            :         //RRR   fIter = fMaxIter - 1;     // Last iteration
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     821 </span>            :     }
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :     fIter++;</span>
+<span class="lineNum">     823 </span>            :   }
+<span class="lineNum">     824 </span>            :   //
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :   sw.Stop();</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Global fit %s, CPU time: %.1f&quot;,res ? &quot;Converged&quot;:&quot;Failed&quot;,sw.CpuTime()));  </span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   if (!res) return 0;</span>
+<span class="lineNum">     828 </span>            :   //
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :   if (par) for (int i=fNGloParIni;i--;) par[i] = GetFinalParam(i);</span>
+<span class="lineNum">     830 </span>            :   //
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :   if (fGloSolveStatus==kInvert) { // errors on params are available</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :     if (error) for (int i=fNGloParIni;i--;) error[i] = GetFinalError(i);</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :     if (pull)  for (int i=fNGloParIni;i--;) pull[i]  = GetPull(i);</span>
+<span class="lineNum">     834 </span>            :   }
+<span class="lineNum">     835 </span>            :   //
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 : }</span>
+<a name="838"><span class="lineNum">     838 </span>            : </a>
+<span class="lineNum">     839 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">     840 </span>            : Int_t AliMillePede2::GlobalFitIteration()
+<span class="lineNum">     841 </span>            : {
+<span class="lineNum">     842 </span>            :   // perform global parameters fit once all the local equations have been fitted
+<span class="lineNum">     843 </span>            :   //
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Global Fit Iteration#%2d (Local Fit Chi^2 cut factor: %.2f)&quot;,fIter,fChi2CutFactor));</span>
+<span class="lineNum">     845 </span>            :   //
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :   if (!fNGloPar || !fTreeData) {</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :     AliInfo(&quot;No data was stored, stopping iteration&quot;);</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     849 </span>            :   }
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   TStopwatch sw,sws; </span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :   sw.Start();</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   sws.Stop();</span>
+<span class="lineNum">     853 </span>            :   //
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :   if (!fConstrUsed) {</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :     fConstrUsed = new Bool_t[fNGloConstraints];</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :     memset(fConstrUsed,0,fNGloConstraints*sizeof(Bool_t));</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     858 </span>            :   // Reset all info specific for this step
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :   AliMatrixSq&amp; matCGlo = *fMatCGlo;</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :   matCGlo.Reset();</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :   memset(fProcPnt,0,fNGloPar*sizeof(Int_t));</span>
+<span class="lineNum">     862 </span>            :   //
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :   fNGloConstraints = fTreeConstr ? fTreeConstr-&gt;GetEntries() : 0;</span>
+<span class="lineNum">     864 </span>            :   //
+<span class="lineNum">     865 </span>            :   // count number of Lagrange constraints: they need new row/cols to be added
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :   fNLagrangeConstraints = 0;</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;fNGloConstraints; i++) {</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :     ReadRecordConstraint(i);</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :     if ( IsZero(fRecord-&gt;GetValue(1)) ) fNLagrangeConstraints++; // exact constraint (no error) -&gt; Lagrange multiplier </span>
+<span class="lineNum">     870 </span>            :   }
+<span class="lineNum">     871 </span>            :   //
+<span class="lineNum">     872 </span>            :   // if needed, readjust the size of the global vector (for matrices this is done automatically)
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :   if (!fVecBGlo || fNGloSize!=fNGloPar+fNLagrangeConstraints) {</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     delete[] fVecBGlo;   // in case some constraint was added between the two manual iterations</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :     fNGloSize = fNGloPar+fNLagrangeConstraints;</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     fVecBGlo = new Double_t[fNGloSize];</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :   memset(fVecBGlo,0,fNGloSize*sizeof(double));</span>
+<span class="lineNum">     879 </span>            :   //
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :   fNLocFits         = 0;</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :   fNLocFitsRejected = 0;</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :   fNLocEquations    = 0;</span>
+<span class="lineNum">     883 </span>            :   //
+<span class="lineNum">     884 </span>            :   //  Process data records and build the matrices
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :   Long_t ndr = fTreeData-&gt;GetEntries();</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :   Long_t first = fSelFirst&gt;0  ? fSelFirst : 0;</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :   Long_t last  = fSelLast&lt;1   ? ndr : (fSelLast&gt;=ndr ? ndr : fSelLast+Long_t(1));</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :   ndr = last - first;</span>
+<span class="lineNum">     889 </span>            :   //
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Building the Global matrix from data records %ld : %ld&quot;,first,last));</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :   if (ndr&lt;1) return 0;</span>
+<span class="lineNum">     892 </span>            :   //
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :   TStopwatch swt; swt.Start();</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :   fLocFitAdd = kTRUE;  // add contributions of matching tracks</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :   for (Long_t i=0;i&lt;ndr;i++) {</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :     Long_t iev = i+first;</span>
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :     ReadRecordData(iev);</span>
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :     if (!IsRecordAcceptable()) continue;</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :     LocalFit();</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :     if ( (i%int(0.2*ndr)) == 0) printf(&quot;%.1f%% of local fits done\n&quot;, double(100.*i)/ndr);</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :   swt.Stop();</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :   printf(&quot;%ld local fits done: &quot;, ndr);</span>
+<span class="lineNum">     904 </span>            :   /*
+<span class="lineNum">     905 </span>            :   printf(&quot;MatCGlo: &quot;); fMatCGlo-&gt;Print(&quot;l&quot;);
+<span class="lineNum">     906 </span>            :   printf(&quot;BGlo: &quot;); for (int i=0; i&lt;fNGloPar; i++) printf(&quot;%+e |&quot;,fVecBGlo[i]); printf(&quot;\n&quot;);
+<span class="lineNum">     907 </span>            :   swt.Print();
+<span class="lineNum">     908 </span>            :   */
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :   sw.Start(kFALSE);</span>
+<span class="lineNum">     910 </span>            :   //
+<span class="lineNum">     911 </span>            :   //
+<span class="lineNum">     912 </span>            :   // ---------------------- Reject parameters with low statistics ------------&gt;&gt;
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :   fNGloFix = 0;</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :   if (fMinPntValid&gt;1 &amp;&amp; fNGroupsSet) {</span>
+<span class="lineNum">     915 </span>            :     //
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :     printf(&quot;Checking parameters with statistics &lt; %d\n&quot;,fMinPntValid);</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :     TStopwatch swsup;</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :     swsup.Start();</span>
+<span class="lineNum">     919 </span>            :     // 1) build the list of parameters to fix
+<span class="lineNum">     920 </span>            :     Int_t fixArrSize = 10;
+<span class="lineNum">     921 </span>            :     Int_t nFixedGroups = 0;
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :     TArrayI fixGroups(fixArrSize);</span>
+<span class="lineNum">     923 </span>            :     //
+<span class="lineNum">     924 </span>            :     int grIDold = -2;
+<span class="lineNum">     925 </span>            :     int oldStart = -1;
+<span class="lineNum">     926 </span>            :     double oldMin = 1.e20;
+<span class="lineNum">     927 </span>            :     double oldMax =-1.e20;
+<span class="lineNum">     928 </span>            :     //
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :     for (int i=fNGloPar;i--;) { // // Reset row and column of fixed params and add 1/sig^2 to free ones</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :       int grID = fParamGrID[i];</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :       if (grID&lt;0) continue; // not in the group</span>
+<span class="lineNum">     932 </span>            :       //
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :       if (grID!=grIDold) { // starting new group</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :         if (grIDold&gt;=0) { // decide if the group has enough statistics</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :           if (oldMin&lt;fMinPntValid &amp;&amp; oldMax&lt;2*fMinPntValid) { // suppress group</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :             for (int iold=oldStart;iold&gt;i;iold--) fProcPnt[iold] = 0;</span>
+<span class="lineNum">     937 </span>            :             Bool_t fnd = kFALSE;    // check if the group is already accounted
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :             for (int j=nFixedGroups;j--;) if (fixGroups[j]==grIDold) {fnd=kTRUE; break;}</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :             if (!fnd) {</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :               if (nFixedGroups&gt;=fixArrSize) {fixArrSize*=2; fixGroups.Set(fixArrSize);}</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :               fixGroups[nFixedGroups++] = grIDold; // add group to fix</span>
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :           }       </span>
+<span class="lineNum">     944 </span>            :         }
+<span class="lineNum">     945 </span>            :         grIDold = grID; // mark the start of the new group
+<span class="lineNum">     946 </span>            :         oldStart = i;
+<span class="lineNum">     947 </span>            :         oldMin =  1.e20;
+<span class="lineNum">     948 </span>            :         oldMax = -1.e20;
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :       if (oldMin&gt;fProcPnt[i]) oldMin = fProcPnt[i];</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :       if (oldMax&lt;fProcPnt[i]) oldMax = fProcPnt[i];</span>
+<span class="lineNum">     952 </span>            :       //
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     954 </span>            :     // extra check for the last group
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :     if (grIDold&gt;=0 &amp;&amp; oldMin&lt;fMinPntValid &amp;&amp; oldMax&lt;2*fMinPntValid) { // suppress group</span>
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :       for (int iold=oldStart;iold--;) fProcPnt[iold] = 0;</span>
+<span class="lineNum">     957 </span>            :       Bool_t fnd = kFALSE;    // check if the group is already accounted
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :       for (int j=nFixedGroups;j--;) if (fixGroups[j]==grIDold) {fnd=kTRUE; break;}</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :       if (!fnd) {</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :         if (nFixedGroups&gt;=fixArrSize) {fixArrSize*=2; fixGroups.Set(fixArrSize);}</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :         fixGroups[nFixedGroups++] = grIDold; // add group to fix</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     964 </span>            :     //
+<span class="lineNum">     965 </span>            :     // 2) loop over records and add contributions of fixed groups with negative sign
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :     fLocFitAdd = kFALSE;</span>
+<span class="lineNum">     967 </span>            :     //
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :     for (Long_t i=0;i&lt;ndr;i++) {</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :       Long_t iev = i+first;</span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :       ReadRecordData(iev);</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :       if (!IsRecordAcceptable()) continue;</span>
+<span class="lineNum">     972 </span>            :       Bool_t suppr = kFALSE;
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :       for (int ifx=nFixedGroups;ifx--;)if (fRecord-&gt;IsGroupPresent(fixGroups[ifx])) suppr = kTRUE;</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :       if (suppr) LocalFit();</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :     fLocFitAdd = kTRUE;</span>
+<span class="lineNum">     977 </span>            :     //
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     if (nFixedGroups) {</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :       printf(&quot;Suppressed contributions of groups with NPoints&lt;%d :\n&quot;,fMinPntValid);</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :       for (int i=0;i&lt;nFixedGroups;i++) printf(&quot;%d &quot;,fixGroups[i]); printf(&quot;\n&quot;);</span>
+<span class="lineNum">     981 </span>            :     }
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :     swsup.Stop();</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :     swsup.Print();</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     985 </span>            :   // ---------------------- Reject parameters with low statistics ------------&lt;&lt;
+<span class="lineNum">     986 </span>            :   //
+<span class="lineNum">     987 </span>            :   // add large number to diagonal of fixed params  
+<span class="lineNum">     988 </span>            :   //
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :   for (int i=fNGloPar;i--;) { // // Reset row and column of fixed params and add 1/sig^2 to free ones</span>
+<span class="lineNum">     990 </span>            :     //    printf(&quot;#%3d : Nproc : %5d   grp: %d\n&quot;,i,fProcPnt[i],fParamGrID[i]);
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :     if (fProcPnt[i]&lt;1) {</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :       fNGloFix++; </span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :       fVecBGlo[i] = 0.;</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :       matCGlo.DiagElem(i) = 1.;//float(fNLocEquations*fNLocEquations);</span>
+<span class="lineNum">     995 </span>            :       //      matCGlo.DiagElem(i) = float(fNLocEquations*fNLocEquations);
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :     else matCGlo.DiagElem(i) += (fgWeightSigma ? fProcPnt[i] : 1.)/(fSigmaPar[i]*fSigmaPar[i]);</span>
+<span class="lineNum">     998 </span>            :   }
+<span class="lineNum">     999 </span>            :   //
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :   for (int i=fNGloPar;i--;) fDiagCGlo[i] = matCGlo.QueryDiag(i); // save the diagonal elements  </span>
+<span class="lineNum">    1001 </span>            :   //
+<span class="lineNum">    1002 </span>            :   // add constraint equations
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :   int nVar = fNGloPar;                    // Current size of global matrix      </span>
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;fNGloConstraints; i++) {</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :     ReadRecordConstraint(i);</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :     double val   = fRecord-&gt;GetValue(0);  </span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     double sig   = fRecord-&gt;GetValue(1);  </span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :     int    *indV = fRecord-&gt;GetIndex()+2;</span>
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :     double *der  = fRecord-&gt;GetValue()+2;</span>
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :     int    csize = fRecord-&gt;GetSize()-2;</span>
+<span class="lineNum">    1011 </span>            :     //
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :     if (fkReGroup) {</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :       for (int jp=csize;jp--;) {</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :         int idp = indV[jp];</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :         if (fkReGroup[idp]&lt;0) AliFatal(Form(&quot;Constain is requested for suppressed parameter #%d&quot;,indV[jp]));</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :         indV[jp] = idp;</span>
+<span class="lineNum">    1017 </span>            :       }
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1019 </span>            :     // check if after suppression of fixed variables there are non-0 derivatives
+<span class="lineNum">    1020 </span>            :     // and determine the max statistics of involved params
+<span class="lineNum">    1021 </span>            :     int nSuppressed = 0;
+<span class="lineNum">    1022 </span>            :     int maxStat = 1;
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     for (int j=csize;j--;) {</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :       if (fProcPnt[indV[j]]&lt;1) nSuppressed++; </span>
+<span class="lineNum">    1025 </span>            :       else {
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :         maxStat = TMath::Max(maxStat,fProcPnt[indV[j]]);</span>
+<span class="lineNum">    1027 </span>            :       }
+<span class="lineNum">    1028 </span>            :     }
+<span class="lineNum">    1029 </span>            :     //
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :     if (nSuppressed==csize) {</span>
+<span class="lineNum">    1031 </span>            :       //      AliInfo(Form(&quot;Neglecting constraint %d of %d derivatives since no free parameters left&quot;,i,csize));
+<span class="lineNum">    1032 </span>            :       //
+<span class="lineNum">    1033 </span>            :       // was this constraint ever created ? 
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :       if ( sig==0 &amp;&amp; fConstrUsed[i] ) { // this is needed only for constraints with Lagrange multiplier</span>
+<span class="lineNum">    1035 </span>            :         // to avoid empty row impose dummy constraint on &quot;Lagrange multiplier&quot;
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :         matCGlo.DiagElem(nVar) = 1.;</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :         fVecBGlo[nVar++] = 0;</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">    1040 </span>            :     }
+<span class="lineNum">    1041 </span>            :     //
+<span class="lineNum">    1042 </span>            :     // account for already accumulated corrections
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :     for (int j=csize; j--;) val -= der[j]*(fInitPar[ indV[j] ]+fDeltaPar[ indV[j] ]);</span>
+<span class="lineNum">    1044 </span>            :     //
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :     if (sig &gt; 0) {  // this is a gaussian constriant: no Lagrange multipliers are added</span>
+<span class="lineNum">    1046 </span>            :       //
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :       double sig2i = (fgWeightSigma ? TMath::Sqrt(maxStat) : 1.)/sig/sig;</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :       for (int ir=0;ir&lt;csize;ir++) {</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :         int iID = indV[ir];</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :         for (int ic=0;ic&lt;=ir;ic++) { // matrix is symmetric</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :           int jID = indV[ic];</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :           double vl = der[ir]*der[ic]*sig2i;</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :           if (!IsZero(vl)) matCGlo(iID,jID) += vl;</span>
+<span class="lineNum">    1054 </span>            :         }
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :         fVecBGlo[iID] += val*der[ir]*sig2i;</span>
+<span class="lineNum">    1056 </span>            :       }
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1058 </span>            :     else {   // this is exact constriant:  Lagrange multipliers must be added
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :       for (int j=csize; j--;) {</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :         int jID = indV[j];</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :         if (fProcPnt[jID]&lt;1) continue;                      // this parameter was fixed, don't put it into constraint</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :         matCGlo(nVar,jID) = float(fNLocEquations)*der[j];   // fMatCGlo is symmetric, only lower triangle is filled  </span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1064 </span>            :       //
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :       if (matCGlo.QueryDiag(nVar)) matCGlo.DiagElem(nVar) = 0.0;</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :       fVecBGlo[nVar++] = float(fNLocEquations)*val; //RS ? should we use here fNLocFits ? </span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :       fConstrUsed[i] = kTRUE;</span>
+<span class="lineNum">    1068 </span>            :     }
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1070 </span>            :   //
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Obtained %-7ld equations from %-7ld records (%-7ld rejected). Fixed %-4d globals&quot;,</span>
+<span class="lineNum">    1072 </span>            :                fNLocEquations,fNLocFits,fNLocFitsRejected,fNGloFix));
+<span class="lineNum">    1073 </span>            : 
+<span class="lineNum">    1074 </span>            :   //
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :   sws.Start();</span>
+<span class="lineNum">    1076 </span>            : 
+<span class="lineNum">    1077 </span>            : #ifdef _DUMP_EQ_BEFORE_
+<span class="lineNum">    1078 </span>            :   const char* faildumpB = Form(&quot;mp2eq_before%d.dat&quot;,fIter);
+<span class="lineNum">    1079 </span>            :   int defoutB = dup(1);
+<span class="lineNum">    1080 </span>            :   if (defoutB&lt;0) {AliFatal(&quot;Failed on dup&quot;); exit(1);}
+<span class="lineNum">    1081 </span>            :   int slvDumpB = open(faildumpB, O_RDWR|O_CREAT, 0666);
+<span class="lineNum">    1082 </span>            :   if (slvDumpB&gt;=0) {
+<span class="lineNum">    1083 </span>            :     dup2(slvDumpB,1);
+<span class="lineNum">    1084 </span>            :     printf(&quot;Solving%d for %d params\n&quot;,fIter,fNGloSize);
+<span class="lineNum">    1085 </span>            :     matCGlo.Print(&quot;10&quot;);
+<span class="lineNum">    1086 </span>            :     for (int i=0;i&lt;fNGloSize;i++) printf(&quot;b%2d : %+.10f\n&quot;,i,fVecBGlo[i]);
+<span class="lineNum">    1087 </span>            :   }
+<span class="lineNum">    1088 </span>            :   dup2(defoutB,1);
+<span class="lineNum">    1089 </span>            :   close(slvDumpB);
+<span class="lineNum">    1090 </span>            :   close(defoutB);
+<span class="lineNum">    1091 </span>            : 
+<span class="lineNum">    1092 </span>            : #endif
+<span class="lineNum">    1093 </span>            :   /*
+<span class="lineNum">    1094 </span>            :   printf(&quot;Solving:\n&quot;);
+<span class="lineNum">    1095 </span>            :   matCGlo.Print(&quot;l&quot;);
+<span class="lineNum">    1096 </span>            :   for (int i=0;i&lt;fNGloSize;i++) printf(&quot;b%2d : %+e\n&quot;,i,fVecBGlo[i]);
+<span class="lineNum">    1097 </span>            :   */
+<span class="lineNum">    1098 </span>            : #ifdef _DUMPEQ_BEFORE_  
+<span class="lineNum">    1099 </span>            :   const char* faildumpB = Form(&quot;mp2eq_before%d.dat&quot;,fIter);
+<span class="lineNum">    1100 </span>            :   int defoutB = dup(1);
+<span class="lineNum">    1101 </span>            :   int slvDumpB = open(faildumpB, O_RDWR|O_CREAT, 0666);
+<span class="lineNum">    1102 </span>            :   dup2(slvDumpB,1);
+<span class="lineNum">    1103 </span>            :   //
+<span class="lineNum">    1104 </span>            :   printf(&quot;#Equation before step %d\n&quot;,fIter);
+<span class="lineNum">    1105 </span>            :   fMatCGlo-&gt;Print(&quot;10&quot;);
+<span class="lineNum">    1106 </span>            :   printf(&quot;#RHS/STAT : NGlo:%d NGloSize:%d\n&quot;,fNGloPar,fNGloSize);
+<span class="lineNum">    1107 </span>            :   for (int i=0;i&lt;fNGloSize;i++) printf(&quot;%d %+.10f %d\n&quot;,i,fVecBGlo[i],fProcPnt[i]);
+<span class="lineNum">    1108 </span>            :   //
+<span class="lineNum">    1109 </span>            :   dup2(defoutB,1);
+<span class="lineNum">    1110 </span>            :   close(slvDumpB);
+<span class="lineNum">    1111 </span>            :   close(defoutB);
+<span class="lineNum">    1112 </span>            : #endif
+<span class="lineNum">    1113 </span>            :   //
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :   fGloSolveStatus = SolveGlobalMatEq();                     // obtain solution for this step</span>
+<span class="lineNum">    1115 </span>            : #ifdef _DUMPEQ_AFTER_  
+<span class="lineNum">    1116 </span>            :   const char* faildumpA = Form(&quot;mp2eq_after%d.dat&quot;,fIter);
+<span class="lineNum">    1117 </span>            :   int defoutA = dup(1);
+<span class="lineNum">    1118 </span>            :   int slvDumpA = open(faildumpA, O_RDWR|O_CREAT, 0666);
+<span class="lineNum">    1119 </span>            :   dup2(slvDumpA,1);
+<span class="lineNum">    1120 </span>            :   //
+<span class="lineNum">    1121 </span>            :   printf(&quot;#Matrix after step %d\n&quot;,fIter);
+<span class="lineNum">    1122 </span>            :   fMatCGlo-&gt;Print(&quot;10&quot;);
+<span class="lineNum">    1123 </span>            :   printf(&quot;#RHS/STAT : NGlo:%d NGloSize:%d\n&quot;,fNGloPar,fNGloSize);
+<span class="lineNum">    1124 </span>            :   for (int i=0;i&lt;fNGloSize;i++) printf(&quot;%d %+.10f %d\n&quot;,i,fVecBGlo[i],fProcPnt[i]);
+<span class="lineNum">    1125 </span>            :   //
+<span class="lineNum">    1126 </span>            :   dup2(defoutA,1);
+<span class="lineNum">    1127 </span>            :   close(slvDumpA);
+<span class="lineNum">    1128 </span>            :   close(defoutA);
+<span class="lineNum">    1129 </span>            : #endif
+<span class="lineNum">    1130 </span>            :   //
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :   sws.Stop();</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :   printf(&quot;Solve %d |&quot;,fIter); sws.Print();</span>
+<span class="lineNum">    1133 </span>            :   //
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :   sw.Stop();</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Iteration#%2d %s. CPU time: %.1f&quot;,fIter,fGloSolveStatus==kFailed ? &quot;Failed&quot;:&quot;Converged&quot;,sw.CpuTime()));</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :   if (fGloSolveStatus==kFailed) return 0;</span>
+<span class="lineNum">    1137 </span>            :   //
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :   for (int i=fNGloPar;i--;) fDeltaPar[i] += fVecBGlo[i];    // Update global parameters values (for iterations)</span>
+<span class="lineNum">    1139 </span>            : 
+<span class="lineNum">    1140 </span>            : #ifdef _DUMP_EQ_AFTER_
+<span class="lineNum">    1141 </span>            :   const char* faildumpA = Form(&quot;mp2eq_after%d.dat&quot;,fIter);
+<span class="lineNum">    1142 </span>            :   int defoutA = dup(1);
+<span class="lineNum">    1143 </span>            :   if (defoutA&lt;0) {AliFatal(&quot;Failed on dup&quot;); exit(1);}
+<span class="lineNum">    1144 </span>            :   int slvDumpA = open(faildumpA, O_RDWR|O_CREAT, 0666);
+<span class="lineNum">    1145 </span>            :   if (slvDumpA&gt;=0) {
+<span class="lineNum">    1146 </span>            :     dup2(slvDumpA,1);
+<span class="lineNum">    1147 </span>            :     printf(&quot;Solving%d for %d params\n&quot;,fIter,fNGloSize);
+<span class="lineNum">    1148 </span>            :     matCGlo.Print(&quot;10&quot;);
+<span class="lineNum">    1149 </span>            :     for (int i=0;i&lt;fNGloSize;i++) printf(&quot;b%2d : %+.10f\n&quot;,i,fVecBGlo[i]);
+<span class="lineNum">    1150 </span>            :   }
+<span class="lineNum">    1151 </span>            :   dup2(defoutA,1);
+<span class="lineNum">    1152 </span>            :   close(slvDumpA);
+<span class="lineNum">    1153 </span>            :   close(defoutA);
+<span class="lineNum">    1154 </span>            : #endif
+<span class="lineNum">    1155 </span>            :   //
+<span class="lineNum">    1156 </span>            :   /*
+<span class="lineNum">    1157 </span>            :   printf(&quot;Solved:\n&quot;);
+<span class="lineNum">    1158 </span>            :   matCGlo.Print(&quot;l&quot;);
+<span class="lineNum">    1159 </span>            :   for (int i=0;i&lt;fNGloSize;i++) printf(&quot;b%2d : %+e (-&gt;%+e)\n&quot;,i,fVecBGlo[i], fDeltaPar[i]);
+<span class="lineNum">    1160 </span>            :   */
+<span class="lineNum">    1161 </span>            : 
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :   PrintGlobalParameters();</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 : }</span>
+<a name="1165"><span class="lineNum">    1165 </span>            : </a>
+<span class="lineNum">    1166 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1167 </span>            : Int_t AliMillePede2::SolveGlobalMatEq()
+<span class="lineNum">    1168 </span>            : {
+<span class="lineNum">    1169 </span>            :   //
+<span class="lineNum">    1170 </span>            :   // solve global matrix equation MatCGlob*X=VecBGlo and store the result in the VecBGlo
+<span class="lineNum">    1171 </span>            :   //
+<span class="lineNum">    1172 </span>            :   /*
+<span class="lineNum">    1173 </span>            :   printf(&quot;GlobalMatrix\n&quot;);
+<span class="lineNum">    1174 </span>            :   fMatCGlo-&gt;Print(&quot;l&quot;);
+<span class="lineNum">    1175 </span>            :   printf(&quot;RHS\n&quot;);
+<span class="lineNum">    1176 </span>            :   for (int i=0;i&lt;fNGloPar;i++) printf(&quot;%d %+e\n&quot;,i,fVecBGlo[i]);
+<span class="lineNum">    1177 </span>            :   */
+<span class="lineNum">    1178 </span>            :   //
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :   if (!fgIsMatGloSparse) {</span>
+<span class="lineNum">    1180 </span>            :     //
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :     if (fNLagrangeConstraints==0) { // pos-def systems are faster to solve by Cholesky</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :       if ( ((AliSymMatrix*)fMatCGlo)-&gt;SolveChol(fVecBGlo, fgInvChol) ) return fgInvChol ? kInvert:kNoInversion;</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :       else AliInfo(&quot;Solution of Global Dense System by Cholesky failed, trying Gaussian Elimiation&quot;);</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1185 </span>            :     //
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :     if (((AliSymMatrix*)fMatCGlo)-&gt;SolveSpmInv(fVecBGlo, kTRUE)) return kInvert;</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :     else AliInfo(&quot;Solution of Global Dense System by Gaussian Elimination failed, trying iterative methods&quot;);</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1189 </span>            :   // try to solve by minres
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :   TVectorD sol(fNGloSize);</span>
+<span class="lineNum">    1191 </span>            :   //
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :   AliMinResSolve *slv = new AliMinResSolve(fMatCGlo,fVecBGlo);</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :   if (!slv) return kFailed;</span>
+<span class="lineNum">    1194 </span>            :   //
+<span class="lineNum">    1195 </span>            :   Bool_t res = kFALSE;
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :   if      (fgIterSol == AliMinResSolve::kSolMinRes) </span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :     res =  slv-&gt;SolveMinRes(sol,fgMinResCondType,fgMinResMaxIter,fgMinResTol);</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :   else if (fgIterSol == AliMinResSolve::kSolFGMRes) </span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :     res =  slv-&gt;SolveFGMRES(sol,fgMinResCondType,fgMinResMaxIter,fgMinResTol,fgNKrylovV);</span>
+<span class="lineNum">    1200 </span>            :   else 
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Undefined Iteritive Solver ID=%d, only %d are defined&quot;,fgIterSol,AliMinResSolve::kNSolvers));</span>
+<span class="lineNum">    1202 </span>            :   //
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :   if (!res) {</span>
+<span class="lineNum">    1204 </span>            :     const char* faildump = &quot;fgmr_failed.dat&quot;;
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     int defout = dup(1);</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :     if (defout&lt;0) {</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :       AliInfo(&quot;Failed on dup&quot;);</span>
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :       return kFailed;</span>
+<span class="lineNum">    1209 </span>            :     }
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :     int slvDump = open(faildump, O_RDWR|O_CREAT, 0666);</span>
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :     if (slvDump&gt;=0) {</span>
+<span class="lineNum">    1212 </span><span class="lineNoCov">          0 :       dup2(slvDump,1);</span>
+<span class="lineNum">    1213 </span>            :       //
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :       printf(&quot;#Failed to solve using solver %d with PreCond: %d MaxIter: %d Tol: %e NKrylov: %d\n&quot;,</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :              fgIterSol,fgMinResCondType,fgMinResMaxIter,fgMinResTol,fgNKrylovV);</span>
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :       printf(&quot;#Dump of matrix:\n&quot;);</span>
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :       fMatCGlo-&gt;Print(&quot;10&quot;);</span>
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 :       printf(&quot;#Dump of RHS:\n&quot;);</span>
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :       for (int i=0;i&lt;fNGloSize;i++) printf(&quot;%d %+.10f\n&quot;,i,fVecBGlo[i]);</span>
+<span class="lineNum">    1220 </span>            :       //
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :       dup2(defout,1);</span>
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :       close(slvDump);</span>
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :       close(defout);</span>
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :       printf(&quot;#Dumped failed matrix and RHS to %s\n&quot;,faildump);</span>
+<span class="lineNum">    1225 </span>            :     }
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :     else AliInfo(&quot;Failed on file open for matrix dumping&quot;);</span>
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     close(defout);</span>
+<span class="lineNum">    1228 </span>            :     return kFailed;
+<span class="lineNum">    1229 </span>            :   }
+<span class="lineNum">    1230 </span><span class="lineNoCov">          0 :   for (int i=fNGloSize;i--;) fVecBGlo[i] = sol[i];</span>
+<span class="lineNum">    1231 </span>            :   //
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :   return kNoInversion;</span>
+<span class="lineNum">    1233 </span>            :   //
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 : }</span>
+<a name="1235"><span class="lineNum">    1235 </span>            : </a>
+<span class="lineNum">    1236 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1237 </span>            : Float_t AliMillePede2::Chi2DoFLim(int nSig, int nDoF) const
+<span class="lineNum">    1238 </span>            : {
+<span class="lineNum">    1239 </span>            :   /// return the limit in chi^2/nd for n sigmas stdev authorized
+<span class="lineNum">    1240 </span>            :   // Only n=1, 2, and 3 are expected in input
+<span class="lineNum">    1241 </span>            :   int lNSig;
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :   float sn[3]        =  {0.47523, 1.690140, 2.782170};</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :   float table[3][30] = {{1.0000, 1.1479, 1.1753, 1.1798, 1.1775, 1.1730, 1.1680, 1.1630,</span>
+<span class="lineNum">    1244 </span>            :                          1.1581, 1.1536, 1.1493, 1.1454, 1.1417, 1.1383, 1.1351, 1.1321,
+<span class="lineNum">    1245 </span>            :                          1.1293, 1.1266, 1.1242, 1.1218, 1.1196, 1.1175, 1.1155, 1.1136,
+<span class="lineNum">    1246 </span>            :                          1.1119, 1.1101, 1.1085, 1.1070, 1.1055, 1.1040},
+<span class="lineNum">    1247 </span>            :                         {4.0000, 3.0900, 2.6750, 2.4290, 2.2628, 2.1415, 2.0481, 1.9736,
+<span class="lineNum">    1248 </span>            :                          1.9124, 1.8610, 1.8171, 1.7791, 1.7457, 1.7161, 1.6897, 1.6658,
+<span class="lineNum">    1249 </span>            :                          1.6442, 1.6246, 1.6065, 1.5899, 1.5745, 1.5603, 1.5470, 1.5346,
+<span class="lineNum">    1250 </span>            :                          1.5230, 1.5120, 1.5017, 1.4920, 1.4829, 1.4742},
+<span class="lineNum">    1251 </span>            :                         {9.0000, 5.9146, 4.7184, 4.0628, 3.6410, 3.3436, 3.1209, 2.9468,
+<span class="lineNum">    1252 </span>            :                          2.8063, 2.6902, 2.5922, 2.5082, 2.4352, 2.3711, 2.3143, 2.2635,
+<span class="lineNum">    1253 </span>            :                          2.2178, 2.1764, 2.1386, 2.1040, 2.0722, 2.0428, 2.0155, 1.9901,
+<span class="lineNum">    1254 </span>            :                          1.9665, 1.9443, 1.9235, 1.9040, 1.8855, 1.8681}};
+<span class="lineNum">    1255 </span>            :   
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :   if (nDoF &lt; 1) {</span>
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :     return 0.0;</span>
+<span class="lineNum">    1258 </span>            :   }
+<span class="lineNum">    1259 </span>            :   else {  
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :     lNSig = TMath::Max(1,TMath::Min(nSig,3));</span>
+<span class="lineNum">    1261 </span>            :     
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :     if (nDoF &lt;= 30) {    </span>
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :       return table[lNSig-1][nDoF-1];</span>
+<span class="lineNum">    1264 </span>            :     }
+<span class="lineNum">    1265 </span>            :     else { // approximation
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :       return ((sn[lNSig-1]+TMath::Sqrt(float(2*nDoF-3)))*</span>
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :               (sn[lNSig-1]+TMath::Sqrt(float(2*nDoF-3))))/float(2*nDoF-2);</span>
+<span class="lineNum">    1268 </span>            :     }
+<span class="lineNum">    1269 </span>            :   }
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 : }</span>
+<a name="1271"><span class="lineNum">    1271 </span>            : </a>
+<span class="lineNum">    1272 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1273 </span>            : Int_t AliMillePede2::SetIterations(double lChi2CutFac)
+<span class="lineNum">    1274 </span>            : {
+<span class="lineNum">    1275 </span>            :   // Number of iterations is calculated from lChi2CutFac 
+<span class="lineNum">    1276 </span><span class="lineNoCov">          0 :   fChi2CutFactor = TMath::Max(1.0, lChi2CutFac);</span>
+<span class="lineNum">    1277 </span>            :   //
+<span class="lineNum">    1278 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Initial cut factor is %f&quot;,fChi2CutFactor));</span>
+<span class="lineNum">    1279 </span><span class="lineNoCov">          0 :   fIter = 1; // Initializes the iteration process</span>
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">    1281 </span>            : }
+<a name="1282"><span class="lineNum">    1282 </span>            : </a>
+<span class="lineNum">    1283 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1284 </span>            : Double_t AliMillePede2::GetParError(int iPar) const
+<span class="lineNum">    1285 </span>            : {
+<span class="lineNum">    1286 </span>            :   // return error for parameter iPar
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :   if (fGloSolveStatus==kInvert) {</span>
+<span class="lineNum">    1288 </span><span class="lineNoCov">          0 :     if (fkReGroup) iPar = fkReGroup[iPar];</span>
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :     if (iPar&lt;0) {</span>
+<span class="lineNum">    1290 </span>            :       //  AliDebug(2,Form(&quot;Parameter %d was suppressed in the regrouping&quot;,iPar)); 
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">    1292 </span>            :     }
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :     double res = fMatCGlo-&gt;QueryDiag(iPar);</span>
+<span class="lineNum">    1294 </span><span class="lineNoCov">          0 :     if (res&gt;=0) return TMath::Sqrt(res);</span>
+<span class="lineNum">    1295 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :   return 0.;</span>
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 : }</span>
+<a name="1298"><span class="lineNum">    1298 </span>            : </a>
+<span class="lineNum">    1299 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1300 </span>            : Double_t AliMillePede2::GetPull(int iPar) const
+<span class="lineNum">    1301 </span>            : {
+<span class="lineNum">    1302 </span>            :   // return pull for parameter iPar
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :   if (fGloSolveStatus==kInvert) {</span>
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :     if (fkReGroup) iPar = fkReGroup[iPar];</span>
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :     if (iPar&lt;0) {</span>
+<span class="lineNum">    1306 </span>            :       //  AliDebug(2,Form(&quot;Parameter %d was suppressed in the regrouping&quot;,iPar)); 
+<span class="lineNum">    1307 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">    1308 </span>            :     }
+<span class="lineNum">    1309 </span>            :     //
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :     return fProcPnt[iPar]&gt;0 &amp;&amp; (fSigmaPar[iPar]*fSigmaPar[iPar]-fMatCGlo-&gt;QueryDiag(iPar))&gt;0. &amp;&amp; fSigmaPar[iPar]&gt;0 </span>
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :       ? fDeltaPar[iPar]/TMath::Sqrt(fSigmaPar[iPar]*fSigmaPar[iPar]-fMatCGlo-&gt;QueryDiag(iPar)) : 0;</span>
+<span class="lineNum">    1312 </span>            :   } 
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 :   return 0.;</span>
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1315 </span>            : 
+<a name="1316"><span class="lineNum">    1316 </span>            : </a>
+<span class="lineNum">    1317 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1318 </span>            : Int_t AliMillePede2::PrintGlobalParameters() const
+<span class="lineNum">    1319 </span>            : {
+<span class="lineNum">    1320 </span>            :   ///  Print the final results into the logfile
+<span class="lineNum">    1321 </span>            :   double lError = 0.;
+<span class="lineNum">    1322 </span>            :   double lGlobalCor =0.;
+<span class="lineNum">    1323 </span>            :         
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :   printf(&quot;\nMillePede2 output\n&quot;);</span>
+<span class="lineNum">    1325 </span><span class="lineNoCov">          0 :   printf(&quot;   Result of fit for global parameters\n&quot;);</span>
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :   printf(&quot;   ===================================\n&quot;);</span>
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :   printf(&quot;    I       initial       final       differ        lastcor        error       gcor       Npnt\n&quot;);</span>
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :   printf(&quot;----------------------------------------------------------------------------------------------\n&quot;);</span>
+<span class="lineNum">    1329 </span>            :   //
+<span class="lineNum">    1330 </span>            :   int lastPrintedId = -1;
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :   for (int i0=0; i0&lt;fNGloParIni; i0++) {</span>
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :     int i = GetRGId(i0); if (i&lt;0) continue;</span>
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :     if (i!=i0 &amp;&amp; lastPrintedId&gt;=0 &amp;&amp; i&lt;=lastPrintedId) continue; // grouped param</span>
+<span class="lineNum">    1334 </span>            :     lastPrintedId = i;
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :     lError = GetParError(i0);</span>
+<span class="lineNum">    1336 </span>            :     lGlobalCor = 0.0;
+<span class="lineNum">    1337 </span>            :     //          
+<span class="lineNum">    1338 </span>            :     double dg;
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :     if (fGloSolveStatus==kInvert &amp;&amp; TMath::Abs( (dg=fMatCGlo-&gt;QueryDiag(i)) *fDiagCGlo[i]) &gt; 0) {    </span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :       lGlobalCor = TMath::Sqrt(TMath::Abs(1.0-1.0/(dg*fDiagCGlo[i])));</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :       printf(&quot;%4d(%4d)\t %+.6f\t %+.6f\t %+.6f\t %.6f\t %.6f\t %.6f\t %6d\n&quot;,</span>
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :              i,i0,fInitPar[i],fInitPar[i]+fDeltaPar[i],fDeltaPar[i],fVecBGlo[i],lError,lGlobalCor,fProcPnt[i]);</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1344 </span>            :     else {    
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :       printf(&quot;%4d (%4d)\t %+.6f\t %+.6f\t %+.6f\t %.6f\t OFF\t OFF\t %6d\n&quot;,i,i0,fInitPar[i],fInitPar[i]+fDeltaPar[i],</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :              fDeltaPar[i],fVecBGlo[i],fProcPnt[i]);</span>
+<span class="lineNum">    1347 </span>            :     }
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">    1350 </span>            : }
+<a name="1351"><span class="lineNum">    1351 </span>            : </a>
+<span class="lineNum">    1352 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1353 </span>            : Bool_t AliMillePede2::IsRecordAcceptable()
+<span class="lineNum">    1354 </span>            : {
+<span class="lineNum">    1355 </span>            :   // validate record according run lists set by the user
+<span class="lineNum">    1356 </span>            :   static Long_t prevRunID = kMaxInt;
+<span class="lineNum">    1357 </span>            :   static Bool_t prevAns   = kTRUE;
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :   Long_t runID = fRecord-&gt;GetRunID();</span>
+<span class="lineNum">    1359 </span><span class="lineNoCov">          0 :   if (runID!=prevRunID) {</span>
+<span class="lineNum">    1360 </span>            :     int n = 0;
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :     fRunWgh = 1.;</span>
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :     prevRunID = runID;</span>
+<span class="lineNum">    1363 </span>            :     // is run to be rejected?
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :     if (fRejRunList &amp;&amp; (n=fRejRunList-&gt;GetSize())) {</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :       prevAns = kTRUE;</span>
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :       for (int i=n;i--;) if (runID == (*fRejRunList)[i]) {</span>
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :           prevAns = kFALSE; </span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :           AliInfo(Form(&quot;New Run to reject: %ld&quot;,runID));</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">    1370 </span>            :         }
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :     else if (fAccRunList &amp;&amp; (n=fAccRunList-&gt;GetSize())) {     // is run specifically selected</span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :       prevAns = kFALSE;</span>
+<span class="lineNum">    1374 </span><span class="lineNoCov">          0 :       for (int i=n;i--;) if (runID == (*fAccRunList)[i]) {</span>
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :         prevAns = kTRUE; </span>
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :         if (fAccRunListWgh) fRunWgh = (*fAccRunListWgh)[i]; </span>
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :         AliInfo(Form(&quot;New Run to accept explicitly: %ld, weight=%f&quot;,runID,fRunWgh));</span>
+<span class="lineNum">    1378 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1379 </span>            :       }
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :       if (!prevAns) AliInfo(Form(&quot;New Run is not in the list to accept: %ld&quot;,runID)); </span>
+<span class="lineNum">    1381 </span>            :     }
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1383 </span>            :   //
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :   return prevAns;</span>
+<span class="lineNum">    1385 </span>            :   //
+<span class="lineNum">    1386 </span>            : }
+<a name="1387"><span class="lineNum">    1387 </span>            : </a>
+<span class="lineNum">    1388 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1389 </span>            : void AliMillePede2::SetRejRunList(const UInt_t *runs, Int_t nruns)
+<span class="lineNum">    1390 </span>            : {
+<span class="lineNum">    1391 </span>            :   // set the list of runs to be rejected
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :   if (fRejRunList) delete fRejRunList; </span>
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :   fRejRunList = 0;</span>
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :   if (nruns&lt;1 || !runs) return;</span>
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :   fRejRunList = new TArrayL(nruns);</span>
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;nruns;i++) (*fRejRunList)[i] = runs[i];</span>
+<span class="lineNum">    1397 </span><span class="lineNoCov">          0 : }</span>
+<a name="1398"><span class="lineNum">    1398 </span>            : </a>
+<span class="lineNum">    1399 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1400 </span>            : void AliMillePede2::SetAccRunList(const UInt_t *runs, Int_t nruns, const Float_t* wghList)
+<span class="lineNum">    1401 </span>            : {
+<span class="lineNum">    1402 </span>            :   // set the list of runs to be selected
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :   if (fAccRunList) delete fAccRunList;</span>
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :   if (fAccRunListWgh) delete fAccRunListWgh;</span>
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :   fAccRunList = 0;</span>
+<span class="lineNum">    1406 </span><span class="lineNoCov">          0 :   if (nruns&lt;1 || !runs) return;</span>
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 :   fAccRunList = new TArrayL(nruns);</span>
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :   fAccRunListWgh = new TArrayF(nruns);</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;nruns;i++) {</span>
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 :     (*fAccRunList)[i] = runs[i];</span>
+<span class="lineNum">    1411 </span><span class="lineNoCov">          0 :     (*fAccRunListWgh)[i] =wghList ? wghList[i] : 1.0;</span>
+<span class="lineNum">    1412 </span>            :   }
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 : }</span>
+<a name="1414"><span class="lineNum">    1414 </span>            : </a>
+<span class="lineNum">    1415 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1416 </span>            : void AliMillePede2::SetInitPars(const Double_t* par) 
+<span class="lineNum">    1417 </span>            : {
+<span class="lineNum">    1418 </span>            :   // initialize parameters, account for eventual grouping
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;fNGloParIni;i++) {</span>
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :     int id = GetRGId(i); if (id&lt;0) continue;</span>
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 :     fInitPar[id] = par[i];</span>
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1423 </span><span class="lineNoCov">          0 : }</span>
+<a name="1424"><span class="lineNum">    1424 </span>            : </a>
+<span class="lineNum">    1425 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1426 </span>            : void AliMillePede2::SetSigmaPars(const Double_t* par) 
+<span class="lineNum">    1427 </span>            : {
+<span class="lineNum">    1428 </span>            :   // initialize sigmas, account for eventual grouping
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :   for (int i=0;i&lt;fNGloParIni;i++) {</span>
+<span class="lineNum">    1430 </span><span class="lineNoCov">          0 :     int id = GetRGId(i); if (id&lt;0) continue;</span>
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :     fSigmaPar[id] = par[i];</span>
+<span class="lineNum">    1432 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 : }</span>
+<a name="1434"><span class="lineNum">    1434 </span>            : </a>
+<span class="lineNum">    1435 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1436 </span>            : void AliMillePede2::SetInitPar(Int_t i,Double_t par)
+<span class="lineNum">    1437 </span>            : {
+<span class="lineNum">    1438 </span>            :   // initialize param, account for eventual grouping
+<span class="lineNum">    1439 </span><span class="lineNoCov">          0 :   int id = GetRGId(i); if (id&lt;0) return;</span>
+<span class="lineNum">    1440 </span><span class="lineNoCov">          0 :   fInitPar[id] = par;</span>
+<span class="lineNum">    1441 </span><span class="lineNoCov">          0 : }</span>
+<a name="1442"><span class="lineNum">    1442 </span>            : </a>
+<span class="lineNum">    1443 </span>            : //_____________________________________________________________________________________________
+<span class="lineNum">    1444 </span>            : void AliMillePede2::SetSigmaPar(Int_t i,Double_t par)
+<span class="lineNum">    1445 </span>            : {
+<span class="lineNum">    1446 </span>            :   // initialize sigma, account for eventual grouping
+<span class="lineNum">    1447 </span><span class="lineNoCov">          0 :   int id = GetRGId(i); if (id&lt;0) return;</span>
+<span class="lineNum">    1448 </span><span class="lineNoCov">          0 :   fSigmaPar[id] = par;</span>
+<span class="lineNum">    1449 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1450 </span>            : 
+<span class="lineNum">    1451 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/TPCLib/tracking-ca/AliHLTTPCCASliceData.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">HLT/TPCLib/tracking-ca</a> - AliHLTTPCCASliceData.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTTPCCASliceData.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">210</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // **************************************************************************</a>
+<span class="lineNum">       2 </span>            : // * This file is property of and copyright by the ALICE HLT Project        *
+<span class="lineNum">       3 </span>            : // * All rights reserved.                                                   *
+<span class="lineNum">       4 </span>            : // *                                                                        *
+<span class="lineNum">       5 </span>            : // * Primary Authors:                                                       *
+<span class="lineNum">       6 </span>            : // *     Copyright 2009       Matthias Kretz &lt;kretz@kde.org&gt;                *
+<span class="lineNum">       7 </span>            : // *                                                                        *
+<span class="lineNum">       8 </span>            : // * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       9 </span>            : // * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      10 </span>            : // * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      11 </span>            : // * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      12 </span>            : // * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      13 </span>            : // * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      14 </span>            : // * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      15 </span>            : // **************************************************************************
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #include &quot;AliHLTTPCCASliceData.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;AliHLTTPCCAClusterData.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;AliHLTTPCCAMath.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;AliHLTArray.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;AliHLTTPCCAHit.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;AliHLTTPCCAParam.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliHLTTPCCAGPUConfig.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;AliHLTTPCCAGPUTracker.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;MemoryAssignmentHelpers.h&quot;
+<span class="lineNum">      26 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      27 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      28 </span>            : 
+<a name="29"><span class="lineNum">      29 </span>            : // calculates an approximation for 1/sqrt(x)</a>
+<span class="lineNum">      30 </span>            : // Google for 0x5f3759df :)
+<span class="lineNum">      31 </span>            : static inline float fastInvSqrt( float _x )
+<span class="lineNum">      32 </span>            : {
+<span class="lineNum">      33 </span>            :   // the function calculates fast inverse sqrt
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 :   union { float f; int i; } x = { _x };</span>
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :   const float xhalf = 0.5f * x.f;</span>
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :   x.i = 0x5f3759df - ( x.i &gt;&gt; 1 );</span>
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :   x.f = x.f * ( 1.5f - xhalf * x.f * x.f );</span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :   return x.f;</span>
+<a name="40"><span class="lineNum">      40 </span>            : }</a>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset )
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span>            :   // grid creation
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :   if ( row-&gt;NHits() &lt;= 0 ) { // no hits or invalid data</span>
+<span class="lineNum">      47 </span>            :     // grid coordinates don't matter, since there are no hits
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     row-&gt;fGrid.CreateEmpty();</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">      50 </span>            :   }
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :   float yMin =  1.e3f;
+<span class="lineNum">      53 </span>            :   float yMax = -1.e3f;
+<span class="lineNum">      54 </span>            :   float zMin =  1.e3f;
+<span class="lineNum">      55 </span>            :   float zMax = -1.e3f;
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   for ( int i = ClusterDataHitNumberOffset; i &lt; ClusterDataHitNumberOffset + row-&gt;fNHits; ++i ) {</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     const float y = data[i].x;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     const float z = data[i].y;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     if ( yMax &lt; y ) yMax = y;</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     if ( yMin &gt; y ) yMin = y;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     if ( zMax &lt; z ) zMax = z;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     if ( zMin &gt; z ) zMin = z;</span>
+<span class="lineNum">      63 </span>            :   }
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   const float norm = fastInvSqrt( row-&gt;fNHits );</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   row-&gt;fGrid.Create( yMin, yMax, zMin, zMax,</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :                      CAMath::Max( ( yMax - yMin ) * norm, 2.f ),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :                      CAMath::Max( ( zMax - zMin ) * norm, 2.f ) );</span>
+<a name="69"><span class="lineNum">      69 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const AliHLTArray&lt;AliHLTTPCCAHit&gt; &amp;binSortedHits )
+<span class="lineNum">      72 </span>            : {
+<span class="lineNum">      73 </span>            :   // hit data packing
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :   static const float shortPackingConstant = 1.f / 65535.f;
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   const float y0 = row-&gt;fGrid.YMin();</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :   const float z0 = row-&gt;fGrid.ZMin();</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   const float stepY = ( row-&gt;fGrid.YMax() - y0 ) * shortPackingConstant;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   const float stepZ = ( row-&gt;fGrid.ZMax() - z0 ) * shortPackingConstant;</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   const float stepYi = 1.f / stepY;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   const float stepZi = 1.f / stepZ;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   row-&gt;fHy0 = y0;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   row-&gt;fHz0 = z0;</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   row-&gt;fHstepY = stepY;</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   row-&gt;fHstepZ = stepZ;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   row-&gt;fHstepYi = stepYi;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   row-&gt;fHstepZi = stepZi;</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   for ( int hitIndex = 0; hitIndex &lt; row-&gt;fNHits; ++hitIndex ) {</span>
+<span class="lineNum">      91 </span>            :     // bin sorted index!
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     const int globalHitIndex = row-&gt;fHitNumberOffset + hitIndex;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     const AliHLTTPCCAHit &amp;hh = binSortedHits[hitIndex];</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     const float xx = ( ( hh.Y() - y0 ) * stepYi ) + .5 ;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     const float yy = ( ( hh.Z() - z0 ) * stepZi ) + .5 ;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if ( xx &lt; 0 || yy &lt; 0 || xx &gt;= 65536  || yy &gt;= 65536 ) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :       std::cout &lt;&lt; &quot;!!!! hit packing error!!! &quot; &lt;&lt; xx &lt;&lt; &quot; &quot; &lt;&lt; yy &lt;&lt; &quot; &quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      99 </span>            :     // HitData is bin sorted
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     fHitData[globalHitIndex].x = (unsigned short) xx;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     fHitData[globalHitIndex].y = (unsigned short) yy;</span>
+<span class="lineNum">     102 </span>            :   }
+<a name="103"><span class="lineNum">     103 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : void AliHLTTPCCASliceData::Clear()
+<span class="lineNum">     106 </span>            : {
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fNumberOfHits = 0;</span>
+<a name="108"><span class="lineNum">     108 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &amp;p )
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span>            :   // initialisation of rows
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         if (!fRows) fRows = new AliHLTTPCCARow[HLTCA_ROW_COUNT + 1];</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   for ( int i = 0; i &lt; p.NRows(); ++i ) {</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     fRows[i].fX = p.RowX( i );</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     fRows[i].fMaxY = CAMath::Tan( p.DAlpha() / 2. ) * fRows[i].fX;</span>
+<span class="lineNum">     117 </span>            :   }
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 : }</span>
+<a name="119"><span class="lineNum">     119 </span>            : </a>
+<span class="lineNum">     120 </span>            : #ifndef HLTCA_GPUCODE
+<span class="lineNum">     121 </span>            :         AliHLTTPCCASliceData::~AliHLTTPCCASliceData()
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         {</span>
+<span class="lineNum">     123 </span>            :                 //Standard Destrcutor
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                 if (fRows)</span>
+<span class="lineNum">     125 </span>            :                 {
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                         if (!fIsGpuSliceData) delete[] fRows;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :                         fRows = NULL;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :                 if (fMemory)</span>
+<span class="lineNum">     130 </span>            :                 {
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                         if (!fIsGpuSliceData) delete[] fMemory;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                         fMemory = NULL;</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         }</span>
+<a name="136"><span class="lineNum">     136 </span>            : #endif</a>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory)
+<span class="lineNum">     139 </span>            : {
+<span class="lineNum">     140 </span>            :         //Set Pointer to slice data memory to external memory
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         fMemory = (char*) pSliceMemory;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         fRows = (AliHLTTPCCARow*) pRowMemory;</span>
+<a name="143"><span class="lineNum">     143 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
+<span class="lineNum">     146 </span>            : {
+<span class="lineNum">     147 </span>            :   //Set slice data internal pointers
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   int hitMemCount = HLTCA_ROW_COUNT * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + data-&gt;NumberOfClusters();</span>
+<span class="lineNum">     150 </span>            :   //Calculate Memory needed to store hits in rows
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :   const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/ ;
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   fNumberOfHitsPlusAlign = NextMultipleOf &lt; ( kVectorAlignment &gt; sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) &gt; ( hitMemCount );</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :   fNumberOfHits = data-&gt;NumberOfClusters();</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   const int firstHitInBinSize = (23 + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int)) * HLTCA_ROW_COUNT + 4 * fNumberOfHits + 3;</span>
+<span class="lineNum">     156 </span>            :   //FIXME: sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int) * HLTCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
+<span class="lineNum">     157 </span>            :   //Might be replaced by correct value
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            :   const int memorySize =
+<span class="lineNum">     160 </span>            :     // LinkData, HitData
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     fNumberOfHitsPlusAlign * 4 * sizeof( short ) +</span>
+<span class="lineNum">     162 </span>            :     // FirstHitInBin
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     NextMultipleOf&lt;kVectorAlignment&gt;( ( firstHitInBinSize ) * sizeof( int ) ) +</span>
+<span class="lineNum">     164 </span>            :     // HitWeights, ClusterDataIndex
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     fNumberOfHitsPlusAlign * 2 * sizeof( int );</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :   if ( 1 )// fMemorySize &lt; memorySize ) { // release the memory on CPU
+<span class="lineNum">     168 </span>            :   {
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         fMemorySize = memorySize + 4;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         if (allocate)</span>
+<span class="lineNum">     171 </span>            :         {
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                 if (!fIsGpuSliceData)</span>
+<span class="lineNum">     173 </span>            :                 {
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                         if (fMemory)</span>
+<span class="lineNum">     175 </span>            :                         {
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                                 delete[] fMemory;</span>
+<span class="lineNum">     177 </span>            :                         }
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                         fMemory = new char[fMemorySize];// kVectorAlignment];</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     180 </span>            :                 else
+<span class="lineNum">     181 </span>            :                 {
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :                         if (fMemorySize &gt; HLTCA_GPU_SLICE_DATA_MEMORY)</span>
+<span class="lineNum">     183 </span>            :                         {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :                                 return(0);</span>
+<span class="lineNum">     185 </span>            :                         }
+<span class="lineNum">     186 </span>            :                 }
+<span class="lineNum">     187 </span>            :         }
+<span class="lineNum">     188 </span>            :   }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   char *mem = fMemory;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   AssignMemory( fLinkUpData,   mem, fNumberOfHitsPlusAlign );</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   AssignMemory( fLinkDownData, mem, fNumberOfHitsPlusAlign );</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   AssignMemory( fHitData,     mem, fNumberOfHitsPlusAlign );</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   AssignMemory( fFirstHitInBin,  mem, firstHitInBinSize );</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   fGpuMemorySize = mem - fMemory;</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :   //Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   AssignMemory( fHitWeights,   mem, fNumberOfHitsPlusAlign );</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   AssignMemory( fClusterDataIndex, mem, fNumberOfHitsPlusAlign );</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   return(mem - fMemory);</span>
+<a name="201"><span class="lineNum">     201 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &amp;data )
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span>            :   // initialisation from cluster data
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :   ////////////////////////////////////
+<span class="lineNum">     208 </span>            :   // 0. sort rows
+<span class="lineNum">     209 </span>            :   ////////////////////////////////////
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   fNumberOfHits = data.NumberOfClusters();</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   float2* YZData = new float2[fNumberOfHits];</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   int* tmpHitIndex = new int[fNumberOfHits];</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   int RowOffset[HLTCA_ROW_COUNT];</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   int NumberOfClustersInRow[HLTCA_ROW_COUNT];</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   fFirstRow = HLTCA_ROW_COUNT;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   fLastRow = 0;</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   for (int i = 0;i &lt; fNumberOfHits;i++)</span>
+<span class="lineNum">     223 </span>            :   {
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     const int tmpRow = data.RowNumber(i);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         NumberOfClustersInRow[tmpRow]++;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         if (tmpRow &gt; fLastRow) fLastRow = tmpRow;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         if (tmpRow &lt; fFirstRow) fFirstRow = tmpRow;</span>
+<span class="lineNum">     228 </span>            :   }
+<span class="lineNum">     229 </span>            :   int tmpOffset = 0;
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   for (int i = fFirstRow;i &lt;= fLastRow;i++)</span>
+<span class="lineNum">     231 </span>            :   {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :           RowOffset[i] = tmpOffset;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :           tmpOffset += NumberOfClustersInRow[i];</span>
+<span class="lineNum">     234 </span>            :   }
+<span class="lineNum">     235 </span>            :   {
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :           int RowsFilled[HLTCA_ROW_COUNT];</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :           memset(RowsFilled, 0, HLTCA_ROW_COUNT * sizeof(int));</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :           for (int i = 0;i &lt; fNumberOfHits;i++)</span>
+<span class="lineNum">     239 </span>            :           {
+<span class="lineNum">     240 </span>            :                 float2 tmp;
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 tmp.x = data.Y(i);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :                 tmp.y = data.Z(i);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                 int tmpRow = data.RowNumber(i);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                 int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                 YZData[newIndex] = tmp;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 tmpHitIndex[newIndex] = i;</span>
+<span class="lineNum">     247 </span>            :           }
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   if (fFirstRow == HLTCA_ROW_COUNT) fFirstRow = 0;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :   ////////////////////////////////////
+<span class="lineNum">     252 </span>            :   // 1. prepare arrays
+<span class="lineNum">     253 </span>            :   ////////////////////////////////////
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   const int numberOfRows = fLastRow - fFirstRow + 1;</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   if (SetPointers(&amp;data, true) == 0)</span>
+<span class="lineNum">     258 </span>            :   {
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         delete[] YZData;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         delete[] tmpHitIndex;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     262 </span>            :   }
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :   ////////////////////////////////////
+<span class="lineNum">     265 </span>            :   // 2. fill HitData and FirstHitInBin
+<span class="lineNum">     266 </span>            :   ////////////////////////////////////
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   for ( int rowIndex = 0; rowIndex &lt; fFirstRow; ++rowIndex ) {</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     AliHLTTPCCARow &amp;row = fRows[rowIndex];</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     row.fGrid.CreateEmpty();</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     row.fNHits = 0;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     row.fFullSize = 0;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     row.fHitNumberOffset = 0;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     row.fFirstHitInBinOffset = 0;</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     row.fHy0 = 0.f;</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     row.fHz0 = 0.f;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     row.fHstepY = 1.f;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     row.fHstepZ = 1.f;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     row.fHstepYi = 1.f;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     row.fHstepZi = 1.f;</span>
+<span class="lineNum">     282 </span>            :   }
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   for ( int rowIndex = fLastRow + 1; rowIndex &lt; HLTCA_ROW_COUNT + 1; ++rowIndex ) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     AliHLTTPCCARow &amp;row = fRows[rowIndex];</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     row.fGrid.CreateEmpty();</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     row.fNHits = 0;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     row.fFullSize = 0;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     row.fHitNumberOffset = 0;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     row.fFirstHitInBinOffset = 0;</span>
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     row.fHy0 = 0.f;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     row.fHz0 = 0.f;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     row.fHstepY = 1.f;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     row.fHstepZ = 1.f;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     row.fHstepYi = 1.f;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     row.fHstepZi = 1.f;</span>
+<span class="lineNum">     297 </span>            :   }
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   AliHLTResizableArray&lt;AliHLTTPCCAHit&gt; binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v));</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :   int gridContentOffset = 0;
+<span class="lineNum">     303 </span>            :   int hitOffset = 0;
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   int binCreationMemorySize = 103 * 2 + fNumberOfHits;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   AliHLTResizableArray&lt;unsigned short&gt; binCreationMemory( binCreationMemorySize );</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :   fGPUSharedDataReq = 0;</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :   for ( int rowIndex = fFirstRow; rowIndex &lt;= fLastRow; ++rowIndex ) {</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     AliHLTTPCCARow &amp;row = fRows[rowIndex];</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         row.fNHits = NumberOfClustersInRow[rowIndex];</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     assert( row.fNHits &lt; ( 1 &lt;&lt; sizeof( unsigned short ) * 8 ) );</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         row.fHitNumberOffset = hitOffset;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         hitOffset += NextMultipleOf&lt;sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)&gt;(NumberOfClustersInRow[rowIndex]);</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     row.fFirstHitInBinOffset = gridContentOffset;</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     CreateGrid( &amp;row, YZData, RowOffset[rowIndex] );</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     const AliHLTTPCCAGrid &amp;grid = row.fGrid;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     const int numberOfBins = grid.N();</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :     int binCreationMemorySizeNew;
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     if ( ( binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1) &gt; binCreationMemorySize ) {</span>
+<span class="lineNum">     325 </span>            :       binCreationMemorySize = binCreationMemorySizeNew;
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :       binCreationMemory.Resize( binCreationMemorySize );</span>
+<span class="lineNum">     327 </span>            :     }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     AliHLTArray&lt;unsigned short&gt; c = binCreationMemory;           // number of hits in all previous bins</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     AliHLTArray&lt;unsigned short&gt; bins = c + ( numberOfBins + 3 ); // cache for the bin index for every hit in this row</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     AliHLTArray&lt;unsigned short&gt; filled = bins + row.fNHits;      // counts how many hits there are per bin</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     for ( unsigned int bin = 0; bin &lt; row.fGrid.N() + 3; ++bin ) {</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :       filled[bin] = 0; // initialize filled[] to 0</span>
+<span class="lineNum">     335 </span>            :     }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     for ( int hitIndex = 0; hitIndex &lt; row.fNHits; ++hitIndex ) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :       const int globalHitIndex = RowOffset[rowIndex] + hitIndex;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :       const unsigned short bin = row.fGrid.GetBin( YZData[globalHitIndex].x, YZData[globalHitIndex].y );</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :       bins[hitIndex] = bin;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :       ++filled[bin];</span>
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            :     unsigned short n = 0;
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     for ( int bin = 0; bin &lt; numberOfBins + 3; ++bin ) {</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :       c[bin] = n;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :       n += filled[bin];</span>
+<span class="lineNum">     349 </span>            :     }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     for ( int hitIndex = 0; hitIndex &lt; row.fNHits; ++hitIndex ) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :       const unsigned short bin = bins[hitIndex];</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :       --filled[bin];</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :       const unsigned short ind = c[bin] + filled[bin]; // generate an index for this hit that is &gt;= c[bin] and &lt; c[bin + 1]</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :       const int globalBinsortedIndex = row.fHitNumberOffset + ind;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :       const int globalHitIndex = RowOffset[rowIndex] + hitIndex;</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :       // allows to find the global hit index / coordinates from a global bin sorted hit index
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :       fClusterDataIndex[globalBinsortedIndex] = tmpHitIndex[globalHitIndex];</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       binSortedHits[ind].SetY( YZData[globalHitIndex].x );</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :       binSortedHits[ind].SetZ( YZData[globalHitIndex].y );</span>
+<span class="lineNum">     362 </span>            :     }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     PackHitData( &amp;row, binSortedHits );</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     for ( int i = 0; i &lt; numberOfBins; ++i ) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :       fFirstHitInBin[row.fFirstHitInBinOffset + i] = c[i]; // global bin-sorted hit index</span>
+<span class="lineNum">     368 </span>            :     }
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     const unsigned short a = c[numberOfBins];</span>
+<span class="lineNum">     370 </span>            :     // grid.N is &lt;= row.fNHits
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     const int nn = numberOfBins + grid.Ny() + 3;</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     for ( int i = numberOfBins; i &lt; nn; ++i ) {</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :       assert( (signed) row.fFirstHitInBinOffset + i &lt; 23 * numberOfRows + 4 * fNumberOfHits + 3 );</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :       fFirstHitInBin[row.fFirstHitInBinOffset + i] = a;</span>
+<span class="lineNum">     375 </span>            :     }
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     row.fFullSize = nn;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     gridContentOffset += nn;</span>
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         if (NextMultipleOf&lt;sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)&gt;(row.fNHits) + nn &gt; (unsigned) fGPUSharedDataReq)</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                 fGPUSharedDataReq = NextMultipleOf&lt;sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)&gt;(row.fNHits) + nn;</span>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            :         //Make pointer aligned
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         gridContentOffset = NextMultipleOf&lt;sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)&gt;(gridContentOffset);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   delete[] YZData;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   delete[] tmpHitIndex;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            : #if 0
+<span class="lineNum">     391 </span>            :   //SG cell finder - test code
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :   if ( fTmpHitInputIDs ) delete[] fTmpHitInputIDs;
+<span class="lineNum">     394 </span>            :   fTmpHitInputIDs = new int [NHits];
+<span class="lineNum">     395 </span>            :   const float areaY = .5;
+<span class="lineNum">     396 </span>            :   const float areaZ = .5;
+<span class="lineNum">     397 </span>            :   int newRowNHitsTotal = 0;
+<span class="lineNum">     398 </span>            :   bool *usedHits = new bool [NHits];
+<span class="lineNum">     399 </span>            :   for ( int iHit = 0; iHit &lt; NHits; iHit++ ) usedHits[iHit] = 0;
+<span class="lineNum">     400 </span>            :   for ( int iRow = 0; iRow &lt; fParam.NRows(); iRow++ ) {
+<span class="lineNum">     401 </span>            :     rowHeaders[iRow*2  ] = newRowNHitsTotal; // new first hit
+<span class="lineNum">     402 </span>            :     rowHeaders[iRow*2+1] = 0; // new N hits
+<span class="lineNum">     403 </span>            :     int newRowNHits = 0;
+<span class="lineNum">     404 </span>            :     int oldRowFirstHit = RowFirstHit[iRow];
+<span class="lineNum">     405 </span>            :     int oldRowLastHit = oldRowFirstHit + RowNHits[iRow];
+<span class="lineNum">     406 </span>            :     for ( int iHit = oldRowFirstHit; iHit &lt; oldRowLastHit; iHit++ ) {
+<span class="lineNum">     407 </span>            :       if ( usedHits[iHit] ) continue;
+<span class="lineNum">     408 </span>            :       float x0 = X[iHit];
+<span class="lineNum">     409 </span>            :       float y0 = Y[iHit];
+<span class="lineNum">     410 </span>            :       float z0 = Z[iHit];
+<span class="lineNum">     411 </span>            :       float cx = x0;
+<span class="lineNum">     412 </span>            :       float cy = y0;
+<span class="lineNum">     413 </span>            :       float cz = z0;
+<span class="lineNum">     414 </span>            :       int nclu = 1;
+<span class="lineNum">     415 </span>            :       usedHits[iHit] = 1;
+<span class="lineNum">     416 </span>            :       if ( 0 ) for ( int jHit = iHit + 1; jHit &lt; oldRowLastHit; jHit++ ) {//SG!!!
+<span class="lineNum">     417 </span>            :           //if( usedHits[jHit] ) continue;
+<span class="lineNum">     418 </span>            :           float dy = Y[jHit] - y0;
+<span class="lineNum">     419 </span>            :           float dz = Z[jHit] - z0;
+<span class="lineNum">     420 </span>            :           if ( CAMath::Abs( dy ) &lt; areaY &amp;&amp; CAMath::Abs( dz ) &lt; areaZ ) {
+<span class="lineNum">     421 </span>            :             cx += X[jHit];
+<span class="lineNum">     422 </span>            :             cy += Y[jHit];
+<span class="lineNum">     423 </span>            :             cz += Z[jHit];
+<span class="lineNum">     424 </span>            :             nclu++;
+<span class="lineNum">     425 </span>            :             usedHits[jHit] = 1;
+<span class="lineNum">     426 </span>            :           }
+<span class="lineNum">     427 </span>            :         }
+<span class="lineNum">     428 </span>            :       int id = newRowNHitsTotal + newRowNHits;
+<span class="lineNum">     429 </span>            :       hitsXYZ[id*3+0 ] = cx / nclu;
+<span class="lineNum">     430 </span>            :       hitsXYZ[id*3+1 ] = cy / nclu;
+<span class="lineNum">     431 </span>            :       hitsXYZ[id*3+2 ] = cz / nclu;
+<span class="lineNum">     432 </span>            :       fTmpHitInputIDs[id] = iHit;
+<span class="lineNum">     433 </span>            :       newRowNHits++;
+<span class="lineNum">     434 </span>            :     }
+<span class="lineNum">     435 </span>            :     rowHeaders[iRow*2+1] = newRowNHits;
+<span class="lineNum">     436 </span>            :     newRowNHitsTotal += newRowNHits;
+<span class="lineNum">     437 </span>            :   }
+<span class="lineNum">     438 </span>            :   NHitsTotal() = newRowNHitsTotal;
+<span class="lineNum">     439 </span>            :   reinterpret_cast&lt;int*&gt;( fInputEvent )[1+fParam.NRows()*2] = newRowNHitsTotal;
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            :   delete[] usedHits;
+<span class="lineNum">     442 </span>            : #endif
+<a name="443"><span class="lineNum">     443 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span>            : void AliHLTTPCCASliceData::ClearHitWeights()
+<span class="lineNum">     446 </span>            : {
+<span class="lineNum">     447 </span>            :   // clear hit weights
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            : #ifdef ENABLE_VECTORIZATION
+<span class="lineNum">     450 </span>            :   const int_v v0( Zero );
+<span class="lineNum">     451 </span>            :   const int *const end = fHitWeights + fNumberOfHits;
+<span class="lineNum">     452 </span>            :   for ( int *mem = fHitWeights; mem &lt; end; mem += v0.Size ) {
+<span class="lineNum">     453 </span>            :     v0.store( mem );
+<span class="lineNum">     454 </span>            :   }
+<span class="lineNum">     455 </span>            : #else
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :   for ( int i = 0; i &lt; fNumberOfHitsPlusAlign; ++i ) {</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     fHitWeights[i] = 0;</span>
+<span class="lineNum">     458 </span>            :   }
+<span class="lineNum">     459 </span>            : #endif
+<a name="460"><span class="lineNum">     460 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            : void AliHLTTPCCASliceData::ClearLinks()
+<span class="lineNum">     463 </span>            : {
+<span class="lineNum">     464 </span>            :   // link cleaning
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            : #ifdef ENABLE_VECTORIZATION
+<span class="lineNum">     467 </span>            :   const short_v v0( -1 );
+<span class="lineNum">     468 </span>            :   const short *const end1 = fLinkUpData + fNumberOfHits;
+<span class="lineNum">     469 </span>            :   for ( short *mem = fLinkUpData; mem &lt; end; mem += v0.Size ) {
+<span class="lineNum">     470 </span>            :     v0.store( mem );
+<span class="lineNum">     471 </span>            :   }
+<span class="lineNum">     472 </span>            :   const short *const end2 = fLinkDownData + fNumberOfHits;
+<span class="lineNum">     473 </span>            :   for ( short *mem = fLinkDownData; mem &lt; end; mem += v0.Size ) {
+<span class="lineNum">     474 </span>            :     v0.store( mem );
+<span class="lineNum">     475 </span>            :   }
+<span class="lineNum">     476 </span>            : #else
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :   for ( int i = 0; i &lt; fNumberOfHits; ++i ) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     fLinkUpData[i] = -1;</span>
+<span class="lineNum">     479 </span>            :   }
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   for ( int i = 0; i &lt; fNumberOfHits; ++i ) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     fLinkDownData[i] = -1;</span>
+<span class="lineNum">     482 </span>            :   }
+<span class="lineNum">     483 </span>            : #endif
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     485 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

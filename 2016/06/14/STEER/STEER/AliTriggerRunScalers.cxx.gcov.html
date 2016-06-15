@@ -1,0 +1,1051 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliTriggerRunScalers.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliTriggerRunScalers.cxx<span style="font-size: 80%;"> (source / <a href="AliTriggerRunScalers.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">69</td>
+            <td class="headerCovTableEntry">576</td>
+            <td class="headerCovTableEntryLo">12.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id: AliTriggerRunScalers.cxx 22322 2007-11-22 11:43:14Z cvetan $ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      19 </span>            : //
+<span class="lineNum">      20 </span>            : // Class to define the ALICE Trigger Scalers Record per Run.
+<span class="lineNum">      21 </span>            : // ReadScalers(): 
+<span class="lineNum">      22 </span>            : // read the txt file (rXXXX.cnt) provided by CTP and creates array of records.
+<span class="lineNum">      23 </span>            : // Saves resuly without any corrections as 32 bit words in AliTriggerScaler.
+<span class="lineNum">      24 </span>            : // ReadScalers called by AliGRPPreprocessor , result saved in OCDB.
+<span class="lineNum">      25 </span>            : // CorrectScalersOverflow():
+<span class="lineNum">      26 </span>            : // correct 32 bit counter words for overflow and saves them as 64 bit words AliTriggerRecordESD
+<span class="lineNum">      27 </span>            : // Called in AliReconstruction/
+<span class="lineNum">      28 </span>            : // ConsistencyCheck(): 
+<span class="lineNum">      29 </span>            : // checks if the last scaler added to record is consistent, 
+<span class="lineNum">      30 </span>            : // i.e. time increases and valued are not decreasing in time.
+<span class="lineNum">      31 </span>            : // 
+<span class="lineNum">      32 </span>            : //
+<span class="lineNum">      33 </span>            : //////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : //#include &lt;TObject.h&gt;
+<span class="lineNum">      39 </span>            : //#include &lt;TArrayC.h&gt;
+<span class="lineNum">      40 </span>            : //#include &lt;TFile.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;TClass.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      46 </span>            : #include &lt;TGraphErrors.h&gt;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;AliLog.h&quot;  
+<span class="lineNum">      49 </span>            : #include &quot;AliTimeStamp.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliTriggerScalers.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliTriggerScalersESD.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;AliTriggerScalersRecord.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;AliTriggerScalersRecordESD.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;AliTriggerRunScalers.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;AliTriggerConfiguration.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;AliTriggerClass.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;AliTriggerBCMask.h&quot;
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : using std::endl;
+<a name="60"><span class="lineNum">      60 </span>            : using std::cout;</a>
+<span class="lineNum">      61 </span>            : using std::ifstream;
+<span class="lineNum">      62 </span><span class="lineCov">        126 : ClassImp( AliTriggerRunScalers )</span>
+<a name="63"><span class="lineNum">      63 </span>            : </a>
+<span class="lineNum">      64 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      65 </span>            : AliTriggerRunScalers::AliTriggerRunScalers():
+<span class="lineNum">      66 </span><span class="lineCov">          2 :   TObject(),</span>
+<span class="lineNum">      67 </span><span class="lineCov">          2 :   fVersion(0),</span>
+<span class="lineNum">      68 </span><span class="lineCov">          2 :   fRunNumber(0),</span>
+<span class="lineNum">      69 </span><span class="lineCov">          2 :   fnClasses(0),</span>
+<span class="lineNum">      70 </span><span class="lineCov">          2 :   fClassIndex(),                    </span>
+<span class="lineNum">      71 </span><span class="lineCov">          2 :   fScalersRecord(),</span>
+<span class="lineNum">      72 </span><span class="lineCov">          2 :   fScalersRecordESD()</span>
+<span class="lineNum">      73 </span><span class="lineCov">         10 : {</span>
+<span class="lineNum">      74 </span>            :   // Default constructor
+<a name="75"><span class="lineNum">      75 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">      76 </span>            : //______________________________________________________________________________
+<span class="lineNum">      77 </span>            : AliTriggerRunScalers::~AliTriggerRunScalers() 
+<span class="lineNum">      78 </span><span class="lineCov">         12 : {</span>
+<span class="lineNum">      79 </span>            :  // Destructor
+<span class="lineNum">      80 </span><span class="lineCov">          2 :  fScalersRecord.SetOwner(); </span>
+<span class="lineNum">      81 </span><span class="lineCov">          2 :  fScalersRecord.Delete(); </span>
+<span class="lineNum">      82 </span><span class="lineCov">          2 :  fScalersRecordESD.SetOwner(); </span>
+<span class="lineNum">      83 </span><span class="lineCov">          2 :  fScalersRecordESD.Delete(); </span>
+<a name="84"><span class="lineNum">      84 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">      85 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      86 </span>            : void AliTriggerRunScalers::AddTriggerScalers( AliTriggerScalersRecord* scaler ) 
+<span class="lineNum">      87 </span>            : { 
+<span class="lineNum">      88 </span>            :   // Add scaler and check consistency
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   fScalersRecord.AddLast( scaler );</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   UInt_t* overflow[8];</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;8; i++) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :      overflow[i] = new UInt_t[fnClasses];</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :      for(Int_t j=0; j&lt;fnClasses; j++) overflow[i][j] = 0;</span>
+<span class="lineNum">      94 </span>            :   }
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   if (AliTriggerRunScalers::ConsistencyCheck(fScalersRecord.GetEntriesFast()-1,kFALSE,overflow)){</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :    AliErrorClass(&quot;Trigger counters not in the right order or decreasing!&quot;);</span>
+<span class="lineNum">      97 </span>            :   //  scaler-&gt;Print();
+<span class="lineNum">      98 </span>            :   //  fScalersRecord.Sort(); 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :  for(Int_t i=0; i&lt;8; i++) {</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     delete overflow[i];</span>
+<span class="lineNum">     102 </span>            :  }
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 : }</span>
+<a name="104"><span class="lineNum">     104 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : AliTriggerRunScalers::AliTriggerRunScalers(const AliTriggerRunScalers &amp;run) :
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :  TObject(),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :  fVersion(run.fVersion),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :  fRunNumber(run.fRunNumber),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :  fnClasses(run.fnClasses),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :  fClassIndex(),                    </span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :  fScalersRecord(),</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :  fScalersRecordESD()</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     115 </span>            : // copy constructor
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fClassIndex.Set(run.fClassIndex.GetSize());</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 : for (Int_t i = 0; i &lt; run.fClassIndex.GetSize(); i++) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     if (run.fClassIndex[i]) fClassIndex.AddAt(run.fClassIndex[i], i);</span>
+<span class="lineNum">     119 </span>            :   }
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 : for (Int_t i = 0; i &lt; run.fScalersRecord.GetEntriesFast(); i++) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     if (run.fScalersRecord[i]) fScalersRecord.Add(run.fScalersRecord[i]-&gt;Clone());</span>
+<span class="lineNum">     122 </span>            :   }
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 : for (Int_t i = 0; i &lt; run.fScalersRecordESD.GetEntriesFast(); i++) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     if (run.fScalersRecordESD[i]) fScalersRecordESD.Add(run.fScalersRecordESD[i]-&gt;Clone());</span>
+<span class="lineNum">     125 </span>            :   }
+<span class="lineNum">     126 </span>            : 
+<a name="127"><span class="lineNum">     127 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     128 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     129 </span>            : AliTriggerRunScalers &amp;AliTriggerRunScalers::operator=(const AliTriggerRunScalers&amp; run)
+<span class="lineNum">     130 </span>            : {
+<span class="lineNum">     131 </span>            : // assignment operator
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 : if(&amp;run == this) return *this;</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 : ((TObject *)this)-&gt;operator=(run);</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : fVersion = run.fVersion;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 : fRunNumber = run.fRunNumber;</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : fnClasses = run.fnClasses;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 : for (Int_t i = 0; i &lt; run.fClassIndex.GetSize(); i++) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     if (run.fClassIndex[i]) fClassIndex.AddAt(run.fClassIndex[i], i);</span>
+<span class="lineNum">     141 </span>            :   }
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : for (Int_t i = 0; i &lt; run.fScalersRecord.GetEntriesFast(); i++) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     if (run.fScalersRecord[i]) fScalersRecord.Add(run.fScalersRecord[i]-&gt;Clone());</span>
+<span class="lineNum">     144 </span>            :   }
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : for (Int_t i = 0; i &lt; run.fScalersRecordESD.GetEntriesFast(); i++) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (run.fScalersRecordESD[i]) fScalersRecordESD.Add(run.fScalersRecordESD[i]-&gt;Clone());</span>
+<span class="lineNum">     147 </span>            :   }
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 : return *this;</span>
+<a name="149"><span class="lineNum">     149 </span><span class="lineNoCov">          0 : } </span></a>
+<span class="lineNum">     150 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     151 </span>            : AliTriggerRunScalers* AliTriggerRunScalers::ReadScalers( TString &amp; filename )
+<span class="lineNum">     152 </span>            : {
+<span class="lineNum">     153 </span>            :   // Read scalers from text file(.cnt) provided by CTP 
+<span class="lineNum">     154 </span>            :   // for given run and convert it to root format 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   if( gSystem-&gt;AccessPathName( filename.Data() ) ) {</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :      AliErrorClass( Form( &quot;file (%s) not found&quot;, filename.Data() ) );</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :      return NULL;</span>
+<span class="lineNum">     158 </span>            :   }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   ifstream *file = new ifstream ( filename.Data() );</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   if (!*file) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     AliErrorClass(Form(&quot;Error opening file (%s) !\n&quot;,filename.Data()));</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     file-&gt;close();</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     delete file;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     166 </span>            :   }
+<span class="lineNum">     167 </span>            :   
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   AliTriggerRunScalers* rScaler = new AliTriggerRunScalers();</span>
+<span class="lineNum">     169 </span>            :   
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   TString strLine;</span>
+<span class="lineNum">     171 </span>            :   Bool_t verflag = kFALSE;
+<span class="lineNum">     172 </span>            :   Bool_t classflag = kFALSE;
+<span class="lineNum">     173 </span>            :   Bool_t run2=kFALSE;
+<span class="lineNum">     174 </span>            :   UChar_t nclass = 0;
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   while (strLine.ReadLine(*file)) {</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     if (strLine.BeginsWith(&quot;#&quot;)) continue;</span>
+<span class="lineNum">     177 </span>            :     
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     TObjArray *tokens = strLine.Tokenize(&quot; \t&quot;);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     Int_t ntokens = tokens-&gt;GetEntriesFast();</span>
+<span class="lineNum">     180 </span>            :     // 1st line, version, it is one number, 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     if (!verflag) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :       if (ntokens != 1) { </span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         AliErrorClass( Form( &quot;Error reading version number from (%s), line :%s\n&quot;, </span>
+<span class="lineNum">     184 </span>            :                               filename.Data() , strLine.Data() ) );  
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         delete tokens;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     187 </span>            :       }
+<span class="lineNum">     188 </span>            :   //    cout &lt;&lt; &quot;Version &quot;&lt;&lt; ((TObjString*)tokens-&gt;At(0))-&gt;String().Atoi() &lt;&lt; endl;
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :       Short_t version= ((TObjString*)tokens-&gt;At(0))-&gt;String().Atoi();</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :       rScaler-&gt;SetVersion( version );</span>
+<span class="lineNum">     191 </span>            :       verflag = kTRUE;
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :       if(version &gt; 2) run2=kTRUE;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :       delete tokens;</span>
+<span class="lineNum">     194 </span>            :       continue;
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            :    
+<span class="lineNum">     197 </span>            :     // 2nd line, run number , number of classes, list of classes used in this partition
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     if (!classflag) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :       if ( !((TObjString*)tokens-&gt;At(1))-&gt;String().IsDigit() ) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         AliErrorClass( Form( &quot;Error reading Run number from (%s)\n&quot;, filename.Data() )); </span>
+<span class="lineNum">     202 </span>            :       }
+<span class="lineNum">     203 </span>            :   //    cout &lt;&lt; &quot;Run Number &quot; &lt;&lt; ((TObjString*)tokens-&gt;At(0))-&gt;String().Atoi() &lt;&lt; endl;
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :       rScaler-&gt;SetRunNumber( ((TObjString*)tokens-&gt;At(0))-&gt;String().Atoi() );</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       nclass = (UChar_t)((TObjString*)tokens-&gt;At(1))-&gt;String().Atoi();</span>
+<span class="lineNum">     206 </span>            :   //    cout &lt;&lt; &quot;Number of classes &quot; &lt;&lt; nclass &lt;&lt; endl;
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       rScaler-&gt;SetNumClasses( nclass );</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :       if ( nclass != ntokens - 2 ) {</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         AliErrorClass( Form( &quot;Error reading number of classes from (%s)\n&quot;, filename.Data() ));</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     211 </span>            :       }
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :       for (UChar_t i=0; i&lt;nclass; ++i) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         rScaler-&gt;SetClass( i, (Char_t)((TObjString*)tokens-&gt;At(2+i))-&gt;String().Atoi() );</span>
+<span class="lineNum">     214 </span>            :       }
+<span class="lineNum">     215 </span>            :       classflag = kTRUE;
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :       delete tokens;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     218 </span>            :     }
+<span class="lineNum">     219 </span>            :     
+<span class="lineNum">     220 </span>            :     // Records
+<span class="lineNum">     221 </span>            :     // Each record consists of 1+(number of classes in partition) lines
+<span class="lineNum">     222 </span>            :     //  1st line of record = time stamp (4 words)
+<span class="lineNum">     223 </span>            :     //                        1st word = ORBIT(24 bits)
+<span class="lineNum">     224 </span>            :     //                        2nd word = Period Counter (28 bit)
+<span class="lineNum">     225 </span>            :     //                        3rd word = seconds (32 bits) from epoch
+<span class="lineNum">     226 </span>            :     //                        4th word = microsecs (32 bits)
+<span class="lineNum">     227 </span>            :     //  other lines = 6 words of counters (L0 before,L0 after, ....)
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     if (ntokens != 4 &amp;&amp; ntokens !=5) { </span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :       AliErrorClass( Form( &quot;Error reading timestamp from (%s): line (%s)&quot;, </span>
+<span class="lineNum">     230 </span>            :                             filename.Data(), strLine.Data() )); 
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :       return NULL;</span>
+<span class="lineNum">     232 </span>            :     }
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     UInt_t orbit     = strtoul(((TObjString*)tokens-&gt;At(0))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     UInt_t period    = strtoul(((TObjString*)tokens-&gt;At(1))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     UInt_t seconds   = strtoul(((TObjString*)tokens-&gt;At(2))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     UInt_t microSecs = strtoul(((TObjString*)tokens-&gt;At(3))-&gt;String(), NULL, 10); </span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     AliTriggerScalersRecord * rec = new AliTriggerScalersRecord();</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     if(ntokens==5){</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       UInt_t tgroup=strtoul(((TObjString*)tokens-&gt;At(4))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :       rec-&gt;SetTimeGroup(tgroup);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     rec-&gt;SetTimeStamp( orbit, period, seconds, microSecs );</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     TString strLine1;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     for (Int_t i=0; i&lt;nclass; ++i) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :       strLine1.ReadLine(*file);</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       if (strLine1.BeginsWith(&quot;#&quot;)) continue;</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :       TObjArray *tokens1 = strLine1.Tokenize(&quot; \t&quot;);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       Int_t ntokens1 = tokens1-&gt;GetEntriesFast();</span>
+<span class="lineNum">     251 </span>            :       // Wrong number of classes
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :       Bool_t err = run2 || (ntokens1 !=6);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       err = err &amp;&amp; (!run2 || (ntokens1 != 8));</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       if(err) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         AliErrorClass( Form( &quot;Error reading scalers from (%s): line (%s): ntokens=%i&quot;, </span>
+<span class="lineNum">     256 </span>            :                              filename.Data(), strLine1.Data(),ntokens1 ));
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         delete rec;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         delete tokens1;</span>
+<span class="lineNum">     259 </span>            :         //return rScaler;
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     261 </span>            :       }
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :       UInt_t lOCB = strtoul(((TObjString*)tokens1-&gt;At(0))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       UInt_t lOCA = strtoul(((TObjString*)tokens1-&gt;At(1))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       UInt_t l1CB = strtoul(((TObjString*)tokens1-&gt;At(2))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :       UInt_t l1CA = strtoul(((TObjString*)tokens1-&gt;At(3))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :       UInt_t l2CB = strtoul(((TObjString*)tokens1-&gt;At(4))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :       UInt_t l2CA = strtoul(((TObjString*)tokens1-&gt;At(5))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :       if(run2){</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         UInt_t lMCB = strtoul(((TObjString*)tokens1-&gt;At(6))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         UInt_t lMCA = strtoul(((TObjString*)tokens1-&gt;At(7))-&gt;String(), NULL, 10);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         rec-&gt;AddTriggerScalers( rScaler-&gt;GetClass(i),</span>
+<span class="lineNum">     273 </span>            :                                 lOCB, lOCA, l1CB,
+<span class="lineNum">     274 </span>            :                                 l1CA, l2CB, l2CA, lMCB, lMCA );
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :       }else{</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         rec-&gt;AddTriggerScalers( rScaler-&gt;GetClass(i),</span>
+<span class="lineNum">     277 </span>            :                                 lOCB, lOCA, l1CB,
+<span class="lineNum">     278 </span>            :                                 l1CA, l2CB, l2CA );
+<span class="lineNum">     279 </span>            :       }
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :       delete tokens1;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     } </span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     rScaler-&gt;AddTriggerScalers( rec );</span>
+<span class="lineNum">     283 </span>            :     
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     delete tokens;     </span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   file-&gt;close();</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   delete file;</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   return  rScaler; </span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 : }</span>
+<a name="291"><span class="lineNum">     291 </span>            :   </a>
+<span class="lineNum">     292 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     293 </span>            : Int_t  AliTriggerRunScalers::FindNearestScalersRecord( const AliTimeStamp *stamp ) const
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            :    // Find Trigger scaler record with the closest timestamp &lt;= &quot;stamp&quot;
+<span class="lineNum">     296 </span>            :    // using a binary search. 
+<span class="lineNum">     297 </span>            :    // return the index in the array of records, if the timestamp 
+<span class="lineNum">     298 </span>            :    // is out of range return -1
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :    Int_t   base, position=-1, last, result = 0;
+<span class="lineNum">     301 </span>            :    Int_t op2 = 0;
+<span class="lineNum">     302 </span>            :    
+<span class="lineNum">     303 </span>            :    //fScalersRecord.Sort();
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :    base = 0;
+<span class="lineNum">     306 </span><span class="lineCov">        152 :    last = fScalersRecord.GetEntriesFast();</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineCov">        228 :    while (last &gt;= base) {</span>
+<span class="lineNum">     309 </span><span class="lineCov">         76 :       position = (base+last) / 2;</span>
+<span class="lineNum">     310 </span><span class="lineCov">        228 :       AliDebug(1, Form(&quot;position= %d   base= %d    last= %d  &quot;,position,base,last));</span>
+<span class="lineNum">     311 </span><span class="lineCov">         76 :       AliTriggerScalersRecord* rec = (AliTriggerScalersRecord*)fScalersRecord.At(position);</span>
+<span class="lineNum">     312 </span><span class="lineCov">        228 :       if( rec &amp;&amp; rec-&gt;GetTimeStamp()) op2 = 1;</span>
+<span class="lineNum">     313 </span><span class="lineCov">        152 :       if( op2 &amp;&amp; (result = stamp-&gt;Compare(rec-&gt;GetTimeStamp())) == 0  )</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :          return position;  // exact match </span>
+<span class="lineNum">     315 </span><span class="lineCov">         76 :       if (!op2 || result &lt; 0)</span>
+<span class="lineNum">     316 </span><span class="lineCov">         76 :          last = position-1;</span>
+<span class="lineNum">     317 </span>            :       else
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :          base = position+1;</span>
+<span class="lineNum">     319 </span>            :       op2 = 0;  
+<span class="lineNum">     320 </span><span class="lineCov">         76 :    }</span>
+<span class="lineNum">     321 </span><span class="lineCov">         76 :    if( (position == 0 &amp;&amp; result &lt; 0) || position &gt;= fScalersRecord.GetEntriesFast() ) </span>
+<span class="lineNum">     322 </span><span class="lineCov">         76 :     return -1;  // out of range</span>
+<span class="lineNum">     323 </span>            :    else 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     return (result &lt; 0 ) ? position-1 : position; // nearst &lt; stamp   </span>
+<a name="325"><span class="lineNum">     325 </span><span class="lineCov">         76 : }</span></a>
+<span class="lineNum">     326 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     327 </span>            : Int_t AliTriggerRunScalers::ConsistencyCheck(Int_t position,Bool_t correctOverflow, UInt_t** overflow)
+<span class="lineNum">     328 </span>            : {
+<span class="lineNum">     329 </span>            :    //Check if counters are consistent(increase). Example: lOCB(n) &lt; lOCB(n+1) and lOCB &gt; lOCA
+<span class="lineNum">     330 </span>            :    // scalers coding 0,1,2,3,4,5=0b,0a,1b,1a,2b,2a
+<span class="lineNum">     331 </span>            :    // returns: 
+<span class="lineNum">     332 </span>            :    //         1 = decresing time 
+<span class="lineNum">     333 </span>            :    //         2 = too big jump in scalers, looks like some readings are missing
+<span class="lineNum">     334 </span>            :    //         3 = (level+1) &gt; (level)
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :    if (position == 0){</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :       if(correctOverflow){</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         AliErrorClass(&quot;Position=0 not alowed as comparison with previous record not possible&quot;);</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :       }else return 0; // to work correctly in AddScalers</span>
+<span class="lineNum">     340 </span>            :    };
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :    UInt_t ovflow[8]; // Overflow for last pair of counters</span>
+<span class="lineNum">     342 </span>            :    Int_t nlevels=6;
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :    if(fVersion&gt;2) nlevels=8;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :    UInt_t c2[8], c1[8];</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :    ULong64_t c64[6]; </span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :    ULong64_t c1_64[8],c2_64[8]; </span>
+<span class="lineNum">     347 </span>            :    ULong64_t const max1 = 4294967296ul;  //32bit counters overflow after 4294967296
+<span class="lineNum">     348 </span>            :    ULong64_t const max2 = 1000000000ul;  //when counters overflow they seem to be decreasing. Assume decrease cannot be smaller than max2.
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :    AliTriggerScalersRecord* scalers2 = (AliTriggerScalersRecord*)fScalersRecord.At(position);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :    AliTriggerScalersRecord* scalers1 = (AliTriggerScalersRecord*)fScalersRecord.At(position-1);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :    if (scalers2-&gt;Compare((AliTriggerScalersRecord*)fScalersRecord.At(position-1)) == -1){</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :      AliError(&quot;Records time decreases.&quot;);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     355 </span>            :    }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :    AliTriggerScalersRecordESD* recESD = 0;
+<span class="lineNum">     358 </span>            :    // Create overflow corrected record
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :    if(correctOverflow){</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :      recESD = new AliTriggerScalersRecordESD();</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :      recESD-&gt;SetTimeStamp(scalers2-&gt;GetTimeStamp());</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :      recESD-&gt;SetTimeGroup(scalers2-&gt;GetTimeGroup());</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :    }</span>
+<span class="lineNum">     364 </span>            :    // Consistency check
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :    for( Int_t ic=0; ic&lt;fnClasses; ++ic ){</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :       for(Int_t i=0;i&lt;8;i++)ovflow[i]=0;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :       TObjArray* scalersArray2 = (TObjArray*)scalers2-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :       AliTriggerScalers* counters2 = (AliTriggerScalers*)scalersArray2-&gt;At(ic);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :       UChar_t iclass = counters2-&gt;GetClassIndex();</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :       if(fVersion&gt;2)counters2-&gt;GetAllScalersM012(c2); else counters2-&gt;GetAllScalers(c2);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :       TObjArray* scalersArray1 = (TObjArray*)scalers1-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :       AliTriggerScalers* counters1 = (AliTriggerScalers*)scalersArray1-&gt;At(ic);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :       if(fVersion&gt;2)counters1-&gt;GetAllScalersM012(c1); else counters1-&gt;GetAllScalers(c1);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :       for(Int_t i=0;i&lt;(nlevels);i++){</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :          if ( c2[i] &gt;= c1[i] ) continue;</span>
+<span class="lineNum">     376 </span>            :          //else if ( c2[i] &lt; c1[i] &amp;&amp; (c1[i] - c2[i]) &gt; max2) overflow[i][ic]++;
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :          else if ( c2[i] &lt; c1[i] &amp;&amp; (c1[i] - c2[i]) &gt; max2) ovflow[i]++;</span>
+<span class="lineNum">     378 </span>            :          else{
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :            AliError(&quot;Decreasing count with time.&quot;);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :            AliError(Form(&quot;%d c2: %u c1[i] %u &quot;,i,c2[i],c1[i]));</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :            return 2;</span>
+<span class="lineNum">     382 </span>            :          }
+<span class="lineNum">     383 </span>            :          //printf(&quot;i %i c2 %ul c1 %ul increase %i overflow %i \n&quot;,i,c2[i],c1[i],increase[i],overflow[i][ic]);
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     385 </span>            :       //  Checking reletaive increase between 2 subsequent records
+<span class="lineNum">     386 </span>            :       //  Counters in one record can decrease versus level
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       for(Int_t i=0;i&lt;nlevels;i++){</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :        c2_64[i]=c2[i]+max1*(overflow[i][ic]+ovflow[i]);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :        c1_64[i]=c1[i]+max1*overflow[i][ic];</span>
+<span class="lineNum">     390 </span>            :       }
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :       for(Int_t i=0;i&lt;(nlevels-1);i++){</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         if ((c2_64[i] - c1_64[i]) &lt; (c2_64[i+1] - c1_64[i+1]) ) {</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                  if ( ((c2_64[i+1] - c1_64[i+1]) - (c2_64[i] - c1_64[i])) &lt; 16ull ) {AliDebugClass(1,&quot;Trigger scaler Level[i+1] &gt; Level[i]. Diff &lt; 16!&quot;);}</span>
+<span class="lineNum">     394 </span>            :                  else {
+<span class="lineNum">     395 </span>            :                     ULong64_t delta= (c2_64[i+1] - c1_64[i+1]) - (c2_64[i] - c1_64[i]);
+<span class="lineNum">     396 </span>            :                     // Difference for LMA a L0B can be bigger due to the way counters are read
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :                     if ((i != 1) || (delta&gt;512ull)){</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                      AliWarning(Form(&quot;Run %09lu (level+1)&gt;level pos= %d i=%d&quot;,GetRunNumber(),position,i));</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :                      AliWarning(Form(&quot;%llu %llu %llu %llu delta: %llu&quot;,c1_64[i],c1_64[i+1],c2_64[i],c2_64[i+1],delta));</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                      AliError(&quot;Diff too big&quot;);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :                      return 1;</span>
+<span class="lineNum">     402 </span>            :                     }
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     404 </span>            :         }
+<span class="lineNum">     405 </span>            :       }
+<span class="lineNum">     406 </span>            :       // Correct for overflow
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :       if(correctOverflow){ </span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         for(Int_t i=0;i&lt;8;i++)overflow[i][ic] += ovflow[i];</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         if(fVersion&gt;2){for(Int_t i=0;i&lt;6;i++){ c64[i]=c2[i+2]+max1*overflow[i+2][ic]; }}</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         else{for(Int_t i=0;i&lt;6;i++){ c64[i]=c2[i]+max1*overflow[i][ic]; }}</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         AliTriggerScalersESD* s= new AliTriggerScalersESD(iclass,c64);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         if(fVersion&gt;2){</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :           ULong64_t cLMB = c2[0]+max1*overflow[0][ic];</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :           ULong64_t cLMA = c2[1]+max1*overflow[1][ic];</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :           s-&gt;SetLMCB(cLMB);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :           s-&gt;SetLMCA(cLMA);</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :         recESD-&gt;AddTriggerScalers(s);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :  if(correctOverflow)fScalersRecordESD.AddLast(recESD);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :  return 0;</span>
+<a name="424"><span class="lineNum">     424 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     425 </span>            : //____________________________________________________________________________
+<span class="lineNum">     426 </span>            : Int_t AliTriggerRunScalers::CorrectScalersOverflow()
+<span class="lineNum">     427 </span>            : {
+<span class="lineNum">     428 </span>            :  // Run over fScalersRecord, check overflow using CheckConsistency methos
+<span class="lineNum">     429 </span>            :  // and save corrected result in fScalersRecordESD.
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            :  // Temporary fix for the OCDB entries written with v4-16-Release
+<span class="lineNum">     432 </span>            :  // where the wrong sorting was used
+<span class="lineNum">     433 </span><span class="lineCov">          4 :  fScalersRecord.Sort();</span>
+<span class="lineNum">     434 </span><span class="lineCov">          2 :  UInt_t c1[8];</span>
+<span class="lineNum">     435 </span><span class="lineCov">          2 :  ULong64_t c64[8];</span>
+<span class="lineNum">     436 </span><span class="lineCov">          2 :  AliTriggerScalersRecordESD* recESD = new AliTriggerScalersRecordESD();</span>
+<span class="lineNum">     437 </span>            :  // add 0
+<span class="lineNum">     438 </span><span class="lineCov">          2 :  if (!fScalersRecord.GetEntriesFast()) {</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :    AliError(&quot;Scalers record array is empty&quot;); </span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :    return 0;</span>
+<span class="lineNum">     441 </span>            :  }
+<span class="lineNum">     442 </span><span class="lineCov">          2 :  AliTriggerScalersRecord* scalers = (AliTriggerScalersRecord*)fScalersRecord.At(0);</span>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineCov">          2 :  recESD-&gt;SetTimeStamp(scalers-&gt;GetTimeStamp());</span>
+<span class="lineNum">     445 </span><span class="lineCov">          2 :  recESD-&gt;SetTimeGroup(scalers-&gt;GetTimeGroup());</span>
+<span class="lineNum">     446 </span>            :  // Create ESD scalers, i.e. ULong64_t, next correct for overflow
+<span class="lineNum">     447 </span><span class="lineCov">          8 :  for( Int_t ic=0; ic&lt;fnClasses; ++ic ){</span>
+<span class="lineNum">     448 </span><span class="lineCov">          2 :     TObjArray* scalersArray = (TObjArray*)scalers-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     449 </span><span class="lineCov">          2 :     AliTriggerScalers* counters = (AliTriggerScalers*)scalersArray-&gt;At(ic);</span>
+<span class="lineNum">     450 </span><span class="lineCov">          4 :     if(fVersion&gt;2)counters-&gt;GetAllScalersM012(c1); else counters-&gt;GetAllScalers(c1);</span>
+<span class="lineNum">     451 </span><span class="lineCov">          2 :     UChar_t iclass = counters-&gt;GetClassIndex();</span>
+<span class="lineNum">     452 </span><span class="lineCov">          2 :     if(fVersion&gt;2){</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       for(Int_t i=0; i&lt;6; i++)c64[i]=c1[i+2];</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     }else{</span>
+<span class="lineNum">     455 </span><span class="lineCov">         28 :       for(Int_t i=0; i&lt;6; i++)c64[i]=c1[i];</span>
+<span class="lineNum">     456 </span>            :     }
+<span class="lineNum">     457 </span><span class="lineCov">          2 :     AliTriggerScalersESD* s= new AliTriggerScalersESD(iclass,c64);</span>
+<span class="lineNum">     458 </span><span class="lineCov">          2 :     if(fVersion&gt;2){</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :       s-&gt;SetLMCB(counters-&gt;GetLMCB());</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :       s-&gt;SetLMCA(counters-&gt;GetLMCA());</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     462 </span><span class="lineCov">          2 :     recESD-&gt;AddTriggerScalers(s);</span>
+<span class="lineNum">     463 </span>            :  }
+<span class="lineNum">     464 </span><span class="lineCov">          2 :  fScalersRecordESD.AddLast(recESD);</span>
+<span class="lineNum">     465 </span>            :  // Correct for overflow
+<span class="lineNum">     466 </span><span class="lineCov">          2 :  UInt_t* overflow[8];</span>
+<span class="lineNum">     467 </span><span class="lineCov">         36 :  for(Int_t i=0; i&lt;8; i++) {</span>
+<span class="lineNum">     468 </span><span class="lineCov">         16 :     overflow[i] = new UInt_t[fnClasses];</span>
+<span class="lineNum">     469 </span><span class="lineCov">         64 :     for(Int_t j=0; j&lt;fnClasses; j++) overflow[i][j] = 0;</span>
+<span class="lineNum">     470 </span>            :  }
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineCov">          6 :  for(Int_t i=1;i&lt;fScalersRecord.GetEntriesFast(); i++){</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :   if(ConsistencyCheck(i,kTRUE,overflow)){</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     StdoutToAliError(fScalersRecord.At(i)-&gt;Print(); fScalersRecord.At(i-1)-&gt;Print(););</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     fScalersRecordESD.SetOwner();</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     fScalersRecordESD.Delete(); </span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Inconsistent scalers, they will not be provided.\n&quot;);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     for(Int_t i=0; i&lt;8; i++)delete overflow[i];</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     480 </span>            :   }
+<span class="lineNum">     481 </span>            :  }
+<span class="lineNum">     482 </span><span class="lineCov">         68 :  for(Int_t i=0; i&lt;8; i++)delete[] overflow[i];</span>
+<span class="lineNum">     483 </span><span class="lineCov">          2 :  if(fScalersRecordESD.GetEntriesFast() != fScalersRecord.GetEntriesFast()){</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     AliErrorClass(&quot;Internal error: #scalers ESD != #scalers \n&quot;);</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     486 </span>            :  }
+<span class="lineNum">     487 </span><span class="lineCov">          2 :  return 0;</span>
+<a name="488"><span class="lineNum">     488 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     489 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     490 </span>            : AliTriggerScalersESD* AliTriggerRunScalers::GetScalersForEventClass(const AliTimeStamp* stamp,const Int_t classIndex) const
+<span class="lineNum">     491 </span>            : {
+<span class="lineNum">     492 </span>            :  // Find scalers for event for class in fScalersRecordESD
+<span class="lineNum">     493 </span>            :  // Assumes that fScalerRecord = fScalerRecordESD
+<span class="lineNum">     494 </span><span class="lineCov">        136 :  Int_t position = FindNearestScalersRecord(stamp);</span>
+<span class="lineNum">     495 </span><span class="lineCov">         68 :  if ( position == -1 ) { </span>
+<span class="lineNum">     496 </span><span class="lineCov">         68 :   AliErrorClass(&quot;Event AliTimeStamp out of range!&quot;);</span>
+<span class="lineNum">     497 </span><span class="lineCov">         68 :   return 0; </span>
+<span class="lineNum">     498 </span>            :  }
+<span class="lineNum">     499 </span>            :  // check also position=max
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD* scalrec1 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(position);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD* scalrec2 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(position+1);</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :  TObjArray* scalers1 = (TObjArray*)scalrec1-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :  TObjArray* scalers2 = (TObjArray*)scalrec2-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :  if(scalers1-&gt;GetEntriesFast() != fnClasses){</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   AliErrorClass(&quot;Internal error: #classes in RecordESD != fnClasses\n&quot;);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   return 0; </span>
+<span class="lineNum">     508 </span>            :  }
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            :  AliTriggerScalersESD *s1,*s2;
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :  for ( Int_t ic=0; ic &lt; (Int_t)fnClasses; ++ic ){</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :       s1 = (AliTriggerScalersESD*)scalers1-&gt;At(ic);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :       s2 = (AliTriggerScalersESD*)scalers2-&gt;At(ic);</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :       Bool_t classfound = (s1-&gt;GetClassIndex() == classIndex) &amp;&amp; (s2-&gt;GetClassIndex() == classIndex);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :       if(classfound){</span>
+<span class="lineNum">     518 </span>            :         ULong64_t max = 16777216ul;
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         AliTriggerScalersRecordESD* scalrec0 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(0);</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         TObjArray* scalers0 = (TObjArray*)scalrec0-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         AliTriggerScalersESD *s0 = (AliTriggerScalersESD*)scalers0-&gt;At(ic);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         ULong64_t base[6],c1[6],c2[6],cint[6];</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         ULong64_t orbit = max*(stamp-&gt;GetPeriod()) + stamp-&gt;GetOrbit();</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         s0-&gt;GetAllScalers(base);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         s1-&gt;GetAllScalers(c1);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         s2-&gt;GetAllScalers(c2);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         ULong64_t orbit1 = max*(scalrec1-&gt;GetTimeStamp()-&gt;GetPeriod())+scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit();</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :         ULong64_t orbit2 = max*(scalrec2-&gt;GetTimeStamp()-&gt;GetPeriod())+scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit();</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :         for(Int_t i=0;i&lt;6;i++){</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :            Double_t slope=Double_t(c2[i]-c1[i])/Double_t(orbit2-orbit1);</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :            cint[i]=ULong64_t(slope*(orbit-orbit1)) +c1[i] -base[i];</span>
+<span class="lineNum">     532 </span>            :         }
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         AliTriggerScalersESD* result = new AliTriggerScalersESD(classIndex,cint);</span>
+<span class="lineNum">     534 </span>            :         return result;
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :  AliErrorClass(Form(&quot;Classindex %i not found.\n&quot;,classIndex));</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :  return 0;</span>
+<span class="lineNum">     539 </span><span class="lineCov">         68 : }</span>
+<a name="540"><span class="lineNum">     540 </span>            : </a>
+<span class="lineNum">     541 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     542 </span>            : const AliTriggerScalersRecordESD* AliTriggerRunScalers::GetScalersDeltaForEvent(const AliTimeStamp* stamp) const
+<span class="lineNum">     543 </span>            : {
+<span class="lineNum">     544 </span>            :  // Find scalers for event for class in fScalersRecordESD
+<span class="lineNum">     545 </span>            :  // Assumes that fScalerRecord = fScalerRecordESD
+<span class="lineNum">     546 </span><span class="lineCov">         16 :  Int_t position = FindNearestScalersRecord(stamp);</span>
+<span class="lineNum">     547 </span><span class="lineCov">          8 :  if ( position == -1 ) { </span>
+<span class="lineNum">     548 </span><span class="lineCov">          8 :   AliErrorClass(&quot;Event AliTimeStamp out of range!&quot;);</span>
+<span class="lineNum">     549 </span><span class="lineCov">          8 :   return 0; </span>
+<span class="lineNum">     550 </span>            :  }
+<span class="lineNum">     551 </span>            :  // check also position=max
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :  if (fScalersRecordESD.GetEntriesFast()&lt;2) return 0;</span>
+<span class="lineNum">     553 </span>            :  
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD* scalrec1 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(position);</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD* scalrec2 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(position+1);</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :  TObjArray* scalers1 = (TObjArray*)scalrec1-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :  TObjArray* scalers2 = (TObjArray*)scalrec2-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :  if(scalers1-&gt;GetEntriesFast() != fnClasses){</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   AliErrorClass(&quot;Internal error: #classes in RecordESD != fnClasses\n&quot;);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   return 0; </span>
+<span class="lineNum">     562 </span>            :  }
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD *scalrec = new AliTriggerScalersRecordESD();</span>
+<span class="lineNum">     564 </span>            :  AliTriggerScalersESD *s1,*s2;
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :  for ( Int_t ic=0; ic &lt; (Int_t)fnClasses; ++ic ){</span>
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :   s1 = (AliTriggerScalersESD*)scalers1-&gt;At(ic);</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :   s2 = (AliTriggerScalersESD*)scalers2-&gt;At(ic);</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :   ULong64_t c1[6],c2[6],cint[6];</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   s1-&gt;GetAllScalers(c1);</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :   s2-&gt;GetAllScalers(c2);</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i&lt;6;i++){</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :      cint[i]=c2[i]-c1[i];</span>
+<span class="lineNum">     575 </span>            :   }
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :   AliTriggerScalersESD* result = new AliTriggerScalersESD(s1-&gt;GetClassIndex(),cint);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :   scalrec-&gt;AddTriggerScalers(result);</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     579 </span>            :  UInt_t max = 16777216ul;
+<span class="lineNum">     580 </span>            :  UInt_t orbit, period;
+<span class="lineNum">     581 </span>            :  
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :  if (scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit() &gt; scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit()) {</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :   orbit = scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit() - scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit();</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :   period = scalrec2-&gt;GetTimeStamp()-&gt;GetPeriod() - scalrec1-&gt;GetTimeStamp()-&gt;GetPeriod();</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     586 </span>            :  else {
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :   orbit = max - (scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit() - scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit());</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :   period = scalrec2-&gt;GetTimeStamp()-&gt;GetPeriod() - scalrec1-&gt;GetTimeStamp()-&gt;GetPeriod() - 1;</span>
+<span class="lineNum">     589 </span>            :  }
+<span class="lineNum">     590 </span>            :  
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :  AliTimeStamp *timestamp = new AliTimeStamp(orbit, period, 0);</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :  scalrec-&gt;SetTimeStamp(timestamp);</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :  delete timestamp;</span>
+<span class="lineNum">     594 </span>            :  return scalrec;
+<a name="595"><span class="lineNum">     595 </span><span class="lineCov">          8 : }</span></a>
+<span class="lineNum">     596 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     597 </span>            : const AliTriggerScalersRecordESD* AliTriggerRunScalers::GetScalersDeltaForRun() const
+<span class="lineNum">     598 </span>            : {
+<span class="lineNum">     599 </span>            :  // Find scalers for event for class in fScalersRecordESD
+<span class="lineNum">     600 </span>            :  // Assumes that fScalerRecord = fScalerRecordESD
+<span class="lineNum">     601 </span><span class="lineCov">         24 :  if (fScalersRecordESD.GetEntriesFast()&lt;2) return 0;</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD* scalrec1 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(0);</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD* scalrec2 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(fScalersRecord.GetEntriesFast()-1);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :  TObjArray* scalers1 = (TObjArray*)scalrec1-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :  TObjArray* scalers2 = (TObjArray*)scalrec2-&gt;GetTriggerScalers();</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :  if(scalers1-&gt;GetEntriesFast() != fnClasses){</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :   AliErrorClass(&quot;Internal error: #classes in RecordESD != fnClasses\n&quot;);</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   return 0; </span>
+<span class="lineNum">     611 </span>            :  }
+<span class="lineNum">     612 </span>            :  AliTriggerScalersESD *s1,*s2;
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :  AliTriggerScalersRecordESD *scalrec = new AliTriggerScalersRecordESD();</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :  for ( Int_t ic=0; ic &lt; (Int_t)fnClasses; ++ic ){</span>
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   s1 = (AliTriggerScalersESD*)scalers1-&gt;At(ic);</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :   s2 = (AliTriggerScalersESD*)scalers2-&gt;At(ic);</span>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   ULong64_t c1[6],c2[6],cint[6];</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :   s1-&gt;GetAllScalers(c1);</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   s2-&gt;GetAllScalers(c2);</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :   for(Int_t i=0;i&lt;6;i++){</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :      cint[i]=c2[i]-c1[i];</span>
+<span class="lineNum">     624 </span>            :   }
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :   AliTriggerScalersESD* result = new AliTriggerScalersESD(s1-&gt;GetClassIndex(),cint);</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :   scalrec-&gt;AddTriggerScalers(result);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     628 </span>            :  UInt_t max = 16777216ul;
+<span class="lineNum">     629 </span>            :  UInt_t orbit, period;
+<span class="lineNum">     630 </span>            :  
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :  if (scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit() &gt; scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit()) {</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :   orbit = scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit() - scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit();</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :   period = scalrec2-&gt;GetTimeStamp()-&gt;GetPeriod() - scalrec1-&gt;GetTimeStamp()-&gt;GetPeriod();</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :  }</span>
+<span class="lineNum">     635 </span>            :  else {
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :   orbit = max - (scalrec1-&gt;GetTimeStamp()-&gt;GetOrbit() - scalrec2-&gt;GetTimeStamp()-&gt;GetOrbit());</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :   period = scalrec2-&gt;GetTimeStamp()-&gt;GetPeriod() - scalrec1-&gt;GetTimeStamp()-&gt;GetPeriod() - 1;</span>
+<span class="lineNum">     638 </span>            :  }
+<span class="lineNum">     639 </span>            :  
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :  AliTimeStamp *timestamp = new AliTimeStamp(orbit, period, 0);</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :  scalrec-&gt;SetTimeStamp(timestamp);</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :  delete timestamp;</span>
+<span class="lineNum">     643 </span>            :  return scalrec;
+<a name="644"><span class="lineNum">     644 </span><span class="lineCov">          8 : }</span></a>
+<span class="lineNum">     645 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     646 </span>            : Bool_t AliTriggerRunScalers::CalculateMu(Double_t &amp;mu, Double_t &amp;errmu, ULong64_t countsB, ULong64_t countsAC, UShort_t nB, UShort_t nAC, UInt_t orbits, Bool_t bkgCorr, Double_t triggerEff, Double_t errorEff) 
+<span class="lineNum">     647 </span>            : {
+<span class="lineNum">     648 </span>            :  
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :    if (nB!=0 &amp;&amp; orbits!=0)  {</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :       Double_t pB = (Double_t)countsB/((ULong64_t)nB*orbits); // probability for B trigger</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :       if (!bkgCorr || nAC==0 ) {</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :          mu = -log(1-pB)/triggerEff;</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :          errmu = TMath::Sqrt(pB/((1-pB)*nB*orbits) + mu*mu*errorEff*errorEff/(triggerEff*triggerEff)); //</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :          return kTRUE;</span>
+<span class="lineNum">     655 </span>            :       }
+<span class="lineNum">     656 </span>            :       else 
+<span class="lineNum">     657 </span>            :       {
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :          Double_t pAC = (Double_t)countsAC/((ULong64_t)nAC*orbits); // probability for AC trigger (background)</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :          mu = ( log(1.-pAC) - log(1.-pB) )/triggerEff;</span>
+<span class="lineNum">     660 </span>            :          // error
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :          errmu =  TMath::Sqrt(pB/((1.-pB)*nB*orbits) + pAC/((1.-pAC)*nAC*orbits) /*- 2*TMath::Sqrt(pB*pAC/(nB*nAC*(1.-pB)*(1.-pAC)))/orbits*/ + mu*mu*errorEff*errorEff/(triggerEff*triggerEff)); // assume no correlation between B and AC rates, hence no cov term in error</span>
+<span class="lineNum">     662 </span>            :          return kTRUE;
+<span class="lineNum">     663 </span>            :       }
+<span class="lineNum">     664 </span>            :    }
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :    return kFALSE;</span>
+<a name="666"><span class="lineNum">     666 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     667 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     668 </span>            : Bool_t AliTriggerRunScalers::CalculateMu(Double_t &amp;mu, Double_t &amp;errmu, ULong64_t countsB, ULong64_t countsAC, ULong64_t beamB, UShort_t nB, UShort_t nAC, Bool_t bkgCorr, Double_t triggerEff, Double_t errorEff) 
+<span class="lineNum">     669 </span>            : {
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :    if (beamB!=0)  {</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :       Double_t pB = (Double_t)countsB/beamB; // probability for B trigger</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :       if (!bkgCorr || nAC==0 || nB==0) {</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :          mu = -log(1-pB)/triggerEff;</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :          errmu = TMath::Sqrt(pB/((1-pB)*beamB) + mu*mu*errorEff*errorEff/(triggerEff*triggerEff)); //</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :          return kTRUE;</span>
+<span class="lineNum">     677 </span>            :       }
+<span class="lineNum">     678 </span>            :       else
+<span class="lineNum">     679 </span>            :       {
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :          Double_t pAC = (Double_t)countsAC/((ULong64_t)nAC*beamB/(Double_t)nB); // probability for AC trigger (background)</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :          mu = ( log(1-pAC) - log(1-pB) )/triggerEff;</span>
+<span class="lineNum">     682 </span>            :          // error
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :          errmu =  TMath::Sqrt(pB/((1-pB)*beamB) + pAC/((1-pAC)*nAC*beamB/nB) + mu*mu*errorEff*errorEff/(triggerEff*triggerEff));</span>
+<span class="lineNum">     684 </span>            :          return kTRUE;
+<span class="lineNum">     685 </span>            :       }
+<span class="lineNum">     686 </span>            :    }
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :    return kFALSE;</span>
+<a name="688"><span class="lineNum">     688 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     689 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     690 </span>            : ULong64_t AliTriggerRunScalers::GetDeltaScaler(const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2, Int_t classIndex, TString level)
+<span class="lineNum">     691 </span>            : {
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :   const AliTriggerScalersESD* scalers1 = scalRec1-&gt;GetTriggerScalersForClass(classIndex);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   const AliTriggerScalersESD* scalers2 = scalRec2-&gt;GetTriggerScalersForClass(classIndex);</span>
+<span class="lineNum">     694 </span>            :   ULong64_t s1=0;
+<span class="lineNum">     695 </span>            :   ULong64_t s2=0;
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   if (level == &quot;l0b&quot;) {s1=scalers1-&gt;GetLOCB(); s2=scalers2-&gt;GetLOCB();}</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :   else if (level == &quot;l0a&quot;) {s1=scalers1-&gt;GetLOCA(); s2=scalers2-&gt;GetLOCA();}</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :   else if (level == &quot;l1b&quot;) {s1=scalers1-&gt;GetL1CB(); s2=scalers2-&gt;GetL1CB();}</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   else if (level == &quot;l1a&quot;) {s1=scalers1-&gt;GetL1CA(); s2=scalers2-&gt;GetL1CA();}</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :   else if (level == &quot;l2b&quot;) {s1=scalers1-&gt;GetL2CB(); s2=scalers2-&gt;GetL2CB();}</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :   else if (level == &quot;l2a&quot;) {s1=scalers1-&gt;GetL2CA(); s2=scalers2-&gt;GetL2CA();}</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :   else return 0;</span>
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :   return s2-s1;</span>
+<a name="706"><span class="lineNum">     706 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     707 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     708 </span>            : Double_t AliTriggerRunScalers::GetDeltaTime(const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2)
+<span class="lineNum">     709 </span>            : {
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :   const AliTimeStamp* stamp1 = scalRec1-&gt;GetTimeStamp();</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :   const AliTimeStamp* stamp2 = scalRec2-&gt;GetTimeStamp();</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :   UInt_t orbit1 = stamp1-&gt;GetOrbit();</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :   UInt_t orbit2 = stamp2-&gt;GetOrbit();</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   UInt_t period1 = stamp1-&gt;GetPeriod();</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :   UInt_t period2 = stamp2-&gt;GetPeriod();</span>
+<span class="lineNum">     716 </span>            :   UInt_t max = 16777216;  // The period counter increases when 24 bit orbit counter overflow
+<span class="lineNum">     717 </span>            :   Double_t orbitSec = 89.1*1.e-6; // Length of 1 orbit in seconds
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :   return ((period2 - period1)*max + (orbit2-orbit1))*orbitSec;</span>
+<a name="719"><span class="lineNum">     719 </span>            : }</a>
+<span class="lineNum">     720 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     721 </span>            : UInt_t AliTriggerRunScalers::GetDeltaOrbits(const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2)
+<span class="lineNum">     722 </span>            : {
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   const AliTimeStamp* stamp1 = scalRec1-&gt;GetTimeStamp();</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :   const AliTimeStamp* stamp2 = scalRec2-&gt;GetTimeStamp();</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   UInt_t orbit1 = stamp1-&gt;GetOrbit();</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :   UInt_t orbit2 = stamp2-&gt;GetOrbit();</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :   UInt_t period1 = stamp1-&gt;GetPeriod();</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :   UInt_t period2 = stamp2-&gt;GetPeriod();</span>
+<span class="lineNum">     729 </span>            :   UInt_t max = 16777216;  // The period counter increases when 24 bit orbit counter overflow
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :   return (period2 - period1)*max + (orbit2-orbit1);</span>
+<a name="731"><span class="lineNum">     731 </span>            : }</a>
+<span class="lineNum">     732 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     733 </span>            : Bool_t AliTriggerRunScalers::GetScalerRate(Double_t &amp;rate, Double_t &amp;error, const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2, Int_t classIndex, TString level)
+<span class="lineNum">     734 </span>            : {
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :   if (level != &quot;l0b&quot; &amp;&amp; level != &quot;l0a&quot; &amp;&amp; level != &quot;l1b&quot; &amp;&amp; level != &quot;l1a&quot; &amp;&amp; level != &quot;l2b&quot; &amp;&amp; level != &quot;l2a&quot;) return kFALSE;</span>
+<span class="lineNum">     736 </span>            :  
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :   ULong64_t scaler = GetDeltaScaler(scalRec1, scalRec2, classIndex, level);</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :   Double_t time = GetDeltaTime(scalRec1, scalRec2 );</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :   if (time==0.) return kFALSE;</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   rate = (Double_t)scaler/time;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :   error = (Double_t)sqrt(scaler)/time;</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="743"><span class="lineNum">     743 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     744 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     745 </span>            : Bool_t AliTriggerRunScalers::GetScalerRatePerBC(Double_t &amp;rate, Double_t &amp;error, const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2, AliTriggerConfiguration* cfg, Int_t classIndex, TString level)
+<span class="lineNum">     746 </span>            : {
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :   if (level != &quot;l0b&quot; &amp;&amp; level != &quot;l0a&quot; &amp;&amp; level != &quot;l1b&quot; &amp;&amp; level != &quot;l1a&quot; &amp;&amp; level != &quot;l2b&quot; &amp;&amp; level != &quot;l2a&quot;) return kFALSE;</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :   const AliTriggerClass* trgclass = cfg-&gt;GetTriggerClass(classIndex);</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :   AliTriggerBCMask* bcMask = new AliTriggerBCMask();</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :   if (trgclass) bcMask = (AliTriggerBCMask*)trgclass-&gt;GetBCMask();</span>
+<span class="lineNum">     751 </span>            :   Int_t nBC=0;
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :   if (TString(bcMask-&gt;GetName()).CompareTo(&quot;NONE&quot;)!=0){</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :      nBC = (UShort_t)bcMask-&gt;GetNUnmaskedBCs();</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :   if (nBC&lt;1) return kFALSE;</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :   ULong64_t scaler = GetDeltaScaler(scalRec1, scalRec2, classIndex, level);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   Double_t time = GetDeltaTime(scalRec1, scalRec2 );</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   if (time==0.) return kFALSE;</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :   rate = (Double_t)scaler/time/nBC;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :   error = (Double_t)sqrt(scaler)/time/nBC;</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<a name="762"><span class="lineNum">     762 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     763 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     764 </span>            : Bool_t AliTriggerRunScalers::GetClassL2L0(Double_t &amp;l2l0, Double_t &amp;error, const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2, Int_t classIndex)
+<span class="lineNum">     765 </span>            : {
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :   ULong64_t l0 = GetDeltaScaler(scalRec1, scalRec2, classIndex, &quot;l0b&quot;);</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :   ULong64_t l2 = GetDeltaScaler(scalRec1, scalRec2, classIndex, &quot;l2a&quot;);</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :   if (l0!=0) {</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     l2l0 = (Double_t)l2/l0;</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :     error = (Double_t)sqrt(l2-l2*l2/l0)/l0;</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     return kTRUE;</span>
+<span class="lineNum">     772 </span>            :   }
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="774"><span class="lineNum">     774 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     775 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     776 </span>            : Bool_t AliTriggerRunScalers::GetMuFromClassScaler(Double_t &amp;mu, Double_t &amp;errmu, const char* className, const AliTriggerScalersRecordESD* scalRec1, const AliTriggerScalersRecordESD* scalRec2, AliTriggerConfiguration* cfg, Bool_t colBCsFromFillScheme, Bool_t bkgCorr, Double_t triggerEff, Double_t errorEff)
+<span class="lineNum">     777 </span>            : {
+<span class="lineNum">     778 </span>            :   // className = the first part of the class name. For example CINT1 for the class CINT1-B-NOPF-ALL
+<span class="lineNum">     779 </span>            :   // colBCsFromFillScheme=kTRUE - use filling scheme and orbit counter
+<span class="lineNum">     780 </span>            :   // colBCsFromFillScheme=kFALSE - use cbeamb scaler to get number of colliding BCs
+<span class="lineNum">     781 </span>            :   // One can also switch background correction ON or OFF with bkgCorr
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :   TObjArray cint1bNames;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :   TObjArray cint1acNames;</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :   TObjArray cbeambNames;</span>
+<span class="lineNum">     785 </span>            :   //
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :   cint1bNames.Add(new TNamed(Form(&quot;%s-ABCE&quot;,className),NULL));</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   cint1bNames.Add(new TNamed(Form(&quot;%s-B&quot;,className),NULL));</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :   cint1acNames.Add(new TNamed(Form(&quot;%s-AC&quot;,className),NULL));</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :   cbeambNames.Add(new TNamed(&quot;CBEAMB&quot;,NULL));</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :   cbeambNames.Add(new TNamed(&quot;CTRUE&quot;,NULL));</span>
+<span class="lineNum">     791 </span>            :   //
+<span class="lineNum">     792 </span>            :   Int_t cint1bIndex=-1, cint1acIndex=-1, cbeambIndex=-1;
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :   TString nameString;</span>
+<span class="lineNum">     794 </span>            :   //
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;cfg-&gt;GetClasses().GetEntriesFast(); i++ ) {</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :      nameString = cfg-&gt;GetClassNameFromIndex(i);</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :      for (Int_t j=0; j&lt;cint1bNames.GetEntriesFast(); j++ ) {</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :        if (nameString.BeginsWith(cint1bNames.At(j)-&gt;GetName())) cint1bIndex = i;</span>
+<span class="lineNum">     799 </span>            :      }
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :      for (Int_t j=0; j&lt;cint1acNames.GetEntriesFast(); j++ ) {</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :        if (nameString.BeginsWith(cint1acNames.At(j)-&gt;GetName())) cint1acIndex = i;</span>
+<span class="lineNum">     802 </span>            :      }
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :      for (Int_t j=0; j&lt;cbeambNames.GetEntriesFast(); j++ ) {</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :        if (nameString.BeginsWith(cbeambNames.At(j)-&gt;GetName())) cbeambIndex = i;</span>
+<span class="lineNum">     805 </span>            :      }
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :      nameString.Clear();</span>
+<span class="lineNum">     807 </span>            :   }
+<span class="lineNum">     808 </span>            :   //
+<span class="lineNum">     809 </span>            :   ULong64_t cint1b = 0;
+<span class="lineNum">     810 </span>            :   UShort_t nB=0;
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   if (cint1bIndex!=-1) {</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :      cint1b=GetDeltaScaler(scalRec1, scalRec2, cint1bIndex, &quot;l0b&quot;);</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :      const AliTriggerClass* cint1bClass = cfg-&gt;GetTriggerClass(cint1bIndex);</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :      AliTriggerBCMask* cint1bBCMask = new AliTriggerBCMask();</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :      if (cint1bClass) cint1bBCMask = (AliTriggerBCMask*)cint1bClass-&gt;GetBCMask();</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :      if (TString(cint1bBCMask-&gt;GetName()).CompareTo(&quot;NONE&quot;)!=0){</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :         nB = (UShort_t)cint1bBCMask-&gt;GetNUnmaskedBCs();</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :   } else return kFALSE;</span>
+<span class="lineNum">     820 </span>            :   ULong64_t cint1ac = 0;
+<span class="lineNum">     821 </span>            :   UShort_t nAC=0;
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :   if (cint1acIndex!=-1) {</span>
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :      cint1ac=GetDeltaScaler(scalRec1, scalRec2, cint1acIndex, &quot;l0b&quot;);</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :      AliTriggerClass* cint1acClass = cfg-&gt;GetTriggerClass(cint1acIndex);</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :      AliTriggerBCMask* cint1acBCMask = new AliTriggerBCMask();</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :      if (cint1acClass) cint1acBCMask = (AliTriggerBCMask*)cint1acClass-&gt;GetBCMask();</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :      if (TString(cint1acBCMask-&gt;GetName()).CompareTo(&quot;NONE&quot;)!=0){</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         nAC = (UShort_t)cint1acBCMask-&gt;GetNUnmaskedBCs();</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :      }</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     831 </span>            :   ULong64_t cbeamb = 0;
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :   if (cbeambIndex!=-1) cbeamb=GetDeltaScaler(scalRec1, scalRec2, cbeambIndex, &quot;l0b&quot;);</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :   UInt_t orbits = GetDeltaOrbits(scalRec1, scalRec2);</span>
+<span class="lineNum">     834 </span>            :   //
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :   if (bkgCorr &amp;&amp; (nB==0 || nAC==0 )) return kFALSE;</span>
+<span class="lineNum">     836 </span>            :   //
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :   if (colBCsFromFillScheme) {</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :      if (CalculateMu(mu, errmu, cint1b, cint1ac, nB, nAC, orbits, bkgCorr, triggerEff, errorEff)) return kTRUE;</span>
+<span class="lineNum">     839 </span>            :   }
+<span class="lineNum">     840 </span>            :   else {
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :      if (cint1b!=0 &amp;&amp; cbeamb==0) return kFALSE;</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :      if (CalculateMu(mu, errmu, cint1b, cint1ac, cbeamb, nB, nAC, bkgCorr, triggerEff, errorEff)) return kTRUE;</span>
+<span class="lineNum">     843 </span>            :   }
+<span class="lineNum">     844 </span>            :   //
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="846"><span class="lineNum">     846 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     847 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     848 </span>            : ULong64_t AliTriggerRunScalers::GetDeltaScalerForRun(Int_t classIndex, TString level)
+<span class="lineNum">     849 </span>            : {
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()==0) {</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :      if (CorrectScalersOverflow()==1) return 0;</span>
+<span class="lineNum">     852 </span>            :   }
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :   if (level != &quot;l0b&quot; &amp;&amp; level != &quot;l0a&quot; &amp;&amp; level != &quot;l1b&quot; &amp;&amp; level != &quot;l1a&quot; &amp;&amp; level != &quot;l2b&quot; &amp;&amp; level != &quot;l2a&quot;) return 0;</span>
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()&gt;1) { </span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :      const AliTriggerScalersRecordESD* scalRec1 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(0);</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :      const AliTriggerScalersRecordESD* scalRec2 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(fScalersRecordESD.GetEntriesFast()-1);</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :      return GetDeltaScaler(scalRec1, scalRec2, classIndex, level);</span>
+<span class="lineNum">     859 </span>            :   }
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="861"><span class="lineNum">     861 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     862 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     863 </span>            : Bool_t AliTriggerRunScalers::GetScalerRateForRun(Double_t &amp;rate, Double_t &amp;error, Int_t classIndex, TString level)
+<span class="lineNum">     864 </span>            : {
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :   if (level != &quot;l0b&quot; &amp;&amp; level != &quot;l0a&quot; &amp;&amp; level != &quot;l1b&quot; &amp;&amp; level != &quot;l1a&quot; &amp;&amp; level != &quot;l2b&quot; &amp;&amp; level != &quot;l2a&quot;) return 0;</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()==0) {</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :      if (CorrectScalersOverflow()==1) return kFALSE;</span>
+<span class="lineNum">     868 </span>            :   }
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()&gt;=4) {</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :      const AliTriggerScalersRecordESD* scalRec1 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(0);</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :      const AliTriggerScalersRecordESD* scalRec2 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(fScalersRecordESD.GetEntriesFast()-1);</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :      if (GetScalerRate(rate, error, scalRec1, scalRec2, classIndex, level)) return kTRUE;</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="875"><span class="lineNum">     875 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     876 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     877 </span>            : Bool_t AliTriggerRunScalers::GetClassL2L0ForRun(Double_t &amp;l2l0, Double_t &amp;error, Int_t classIndex)
+<span class="lineNum">     878 </span>            : {
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()==0) {</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :      if (CorrectScalersOverflow()==1) return kFALSE;</span>
+<span class="lineNum">     881 </span>            :   }
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()&gt;=4) {</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :      const AliTriggerScalersRecordESD* scalRec1 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(0);</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :      const AliTriggerScalersRecordESD* scalRec2 = (AliTriggerScalersRecordESD*)fScalersRecordESD.At(fScalersRecordESD.GetEntriesFast()-1);  // Skip the first and last scaler readings for timing reasons</span>
+<span class="lineNum">     885 </span>            : 
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :      if ( GetClassL2L0(l2l0, error, scalRec1, scalRec2, classIndex)) return kTRUE;</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="889"><span class="lineNum">     889 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     890 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     891 </span>            : TGraphErrors* AliTriggerRunScalers::GetGraphScalerRate(const char* className, TString level, AliTriggerConfiguration* cfg)
+<span class="lineNum">     892 </span>            : {
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :   Int_t classIndex = cfg-&gt;GetClassIndexFromName(className);</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :   if (classIndex == -1) return 0;</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()==0) {</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :      if (CorrectScalersOverflow()==1) return 0;</span>
+<span class="lineNum">     897 </span>            :   }
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :   if (level != &quot;l0b&quot; &amp;&amp; level != &quot;l0a&quot; &amp;&amp; level != &quot;l1b&quot; &amp;&amp; level != &quot;l1a&quot; &amp;&amp; level != &quot;l2b&quot; &amp;&amp; level != &quot;l2a&quot;) return 0;</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :   Int_t nent = fScalersRecordESD.GetEntriesFast();</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :   Double_t* time = new Double_t[nent];</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :   Double_t* etime = new Double_t[nent];</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :   Double_t* rate = new Double_t[nent];</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :   Double_t* erate = new Double_t[nent];</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;nent-1;i++) {</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :      if (i&gt;0) time[i] = time[i-1]+GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i-1), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i))/2.+GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1))/2.;</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :      else time[0] = GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(0), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(1))/2.;</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :      etime[i] = GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1))/2.;</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :      if (!GetScalerRate( rate[i], erate[i], (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1),  classIndex, level)) {rate[i]=-1; erate[i]=0.;}</span>
+<span class="lineNum">     909 </span>            :   }
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :   TGraphErrors* graph = new TGraphErrors(nent-1, time, rate, etime, erate);  </span>
+<span class="lineNum">     911 </span>            :   return graph;
+<a name="912"><span class="lineNum">     912 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     913 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     914 </span>            : TGraphErrors* AliTriggerRunScalers::GetGraphScalerL2L0Ratio(const char* className, AliTriggerConfiguration* cfg)
+<span class="lineNum">     915 </span>            : {
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :   Int_t classIndex = cfg-&gt;GetClassIndexFromName(className);</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :   if (classIndex == -1) return 0;</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()==0) {</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :      if (CorrectScalersOverflow()==1) return 0;</span>
+<span class="lineNum">     920 </span>            :   }
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :   Int_t nent = fScalersRecordESD.GetEntriesFast();</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :   Double_t* time = new Double_t[nent];</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :   Double_t* etime = new Double_t[nent];</span>
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :   Double_t* ratio = new Double_t[nent];</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   Double_t* eratio = new Double_t[nent];</span>
+<span class="lineNum">     926 </span>            : 
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;nent-1;i++) {</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :      if (i&gt;0) time[i] = time[i-1]+GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i-1), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i))/2.+GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1))/2.;</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :      else time[0] = GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(0), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(1))/2.;</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :      etime[i] = GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1))/2.;</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :      if (!GetClassL2L0(ratio[i], eratio[i], (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1),  classIndex)) {ratio[i]=-1; eratio[i]=0.;}</span>
+<span class="lineNum">     932 </span>            :   }
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :   TGraphErrors* graph = new TGraphErrors(nent-1, time, ratio, etime, eratio);  </span>
+<span class="lineNum">     934 </span>            :   return graph;
+<a name="935"><span class="lineNum">     935 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     936 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     937 </span>            : TGraphErrors* AliTriggerRunScalers::GetGraphMu(AliTriggerConfiguration* cfg, const char* className, Bool_t colBCsFromFillScheme, Bool_t bkgCorr, Double_t triggerEff, Double_t errorEff)
+<span class="lineNum">     938 </span>            : {
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :   if (fScalersRecordESD.GetEntriesFast()==0) {</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :      if (CorrectScalersOverflow()==1) return 0;</span>
+<span class="lineNum">     941 </span>            :   }
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :   Int_t nent = fScalersRecordESD.GetEntriesFast();</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :   Double_t* time = new Double_t[nent];</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :   Double_t* etime = new Double_t[nent];</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :   Double_t* mu = new Double_t[nent];</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :   Double_t* emu = new Double_t[nent];</span>
+<span class="lineNum">     947 </span>            :   
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;nent-1;i++) {</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :      Double_t m=0.;</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :      Double_t err=0.;</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :      if (i!=0) time[i] = time[i-1]+GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i-1), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i))/2.+GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1))/2.;</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :      else time[0] = GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(0), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(1))/2.;</span>
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :      etime[i] = GetDeltaTime((AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1))/2.;</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :      if (GetMuFromClassScaler( m,err, className, (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i), (AliTriggerScalersRecordESD*)fScalersRecordESD.At(i+1), cfg, colBCsFromFillScheme, bkgCorr, triggerEff, errorEff)!=kFALSE) {mu[i]=m; emu[i]=err;}</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :      else {mu[i]=-1.; emu[i]=0.;}</span>
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :   TGraphErrors* graph = new TGraphErrors(nent-1, time, mu, etime, emu);  </span>
+<span class="lineNum">     958 </span>            :   return graph;
+<a name="959"><span class="lineNum">     959 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     960 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     961 </span>            : void AliTriggerRunScalers::Print( const Option_t* ) const
+<span class="lineNum">     962 </span>            : {
+<span class="lineNum">     963 </span>            :    // Print
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;Trigger Scalers Record per Run: &quot; &lt;&lt; endl;</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;  File version :&quot; &lt;&lt;  fVersion &lt;&lt; endl;            </span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;  Run Number :&quot; &lt;&lt;  fRunNumber &lt;&lt; endl;          </span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;  Number of Classes :&quot; &lt;&lt;  (Int_t)fnClasses &lt;&lt; endl;          </span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :   cout &lt;&lt; &quot;    Classes ID:&quot;;</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :   for( Int_t i=0; i&lt;fnClasses; ++i ){cout &lt;&lt; &quot;  &quot; &lt;&lt; (Int_t)fClassIndex[i]; }      </span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :   cout &lt;&lt; endl; </span>
+<span class="lineNum">     971 </span>            :     
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :   for( Int_t i=0; i&lt;fScalersRecord.GetEntriesFast(); ++i ) </span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :      ((AliTriggerScalersRecord*)fScalersRecord.At(i))-&gt;Print();</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     975 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

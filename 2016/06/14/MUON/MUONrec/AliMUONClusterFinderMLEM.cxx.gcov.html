@@ -1,0 +1,1880 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - MUON/MUONrec/AliMUONClusterFinderMLEM.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">MUON/MUONrec</a> - AliMUONClusterFinderMLEM.cxx<span style="font-size: 80%;"> (source / <a href="AliMUONClusterFinderMLEM.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">650</td>
+            <td class="headerCovTableEntry">898</td>
+            <td class="headerCovTableEntryLo">72.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntryMed">78.9 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      19 </span>            : /// \class AliMUONClusterFinderMLEM
+<span class="lineNum">      20 </span>            : /// 
+<span class="lineNum">      21 </span>            : /// Clusterizer class based on the Expectation-Maximization algorithm
+<span class="lineNum">      22 </span>            : ///
+<span class="lineNum">      23 </span>            : /// Pre-clustering is handled by AliMUONPreClusterFinder
+<span class="lineNum">      24 </span>            : /// From a precluster a pixel array is built, and from this pixel array
+<span class="lineNum">      25 </span>            : /// a list of clusters is output (using AliMUONClusterSplitterMLEM).
+<span class="lineNum">      26 </span>            : ///
+<span class="lineNum">      27 </span>            : /// \author Laurent Aphecetche (for the &quot;new&quot; C++ structure) and 
+<span class="lineNum">      28 </span>            : /// Alexander Zinchenko, JINR Dubna, for the hardcore of it ;-)
+<span class="lineNum">      29 </span>            : //-----------------------------------------------------------------------------
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;AliMUONClusterFinderMLEM.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliMUONCluster.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliMUONClusterSplitterMLEM.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliMUONVDigit.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliMUONPad.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliMUONPreClusterFinder.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliMpPad.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliMpVPadIterator.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliMpVSegmentation.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliRunLoader.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliMUONVDigitStore.h&quot;
+<span class="lineNum">      43 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;TH2.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;TMinuit.h&gt;
+<span class="lineNum">      46 </span>            : #include &lt;TCanvas.h&gt;
+<span class="lineNum">      47 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      48 </span>            : #include &quot;AliCodeTimer.h&quot;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : using std::endl;
+<a name="51"><span class="lineNum">      51 </span>            : using std::cout;</a>
+<span class="lineNum">      52 </span>            : /// \cond CLASSIMP
+<span class="lineNum">      53 </span><span class="lineCov">         18 : ClassImp(AliMUONClusterFinderMLEM)</span>
+<span class="lineNum">      54 </span>            : /// \endcond
+<a name="55"><span class="lineNum">      55 </span>            :  </a>
+<a name="56"><span class="lineNum">      56 </span>            : const Double_t AliMUONClusterFinderMLEM::fgkDistancePrecision = 1e-3; // (cm) used to check overlaps and so on</a>
+<span class="lineNum">      57 </span><span class="lineCov">         18 : const TVector2 AliMUONClusterFinderMLEM::fgkIncreaseSize(-AliMUONClusterFinderMLEM::fgkDistancePrecision,-AliMUONClusterFinderMLEM::fgkDistancePrecision);</span>
+<span class="lineNum">      58 </span><span class="lineCov">         18 : const TVector2 AliMUONClusterFinderMLEM::fgkDecreaseSize(AliMUONClusterFinderMLEM::fgkDistancePrecision,AliMUONClusterFinderMLEM::fgkDistancePrecision);</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : // Status flags for pads
+<span class="lineNum">      61 </span>            : const Int_t AliMUONClusterFinderMLEM::fgkZero = 0x0; ///&lt; pad &quot;basic&quot; state
+<span class="lineNum">      62 </span>            : const Int_t AliMUONClusterFinderMLEM::fgkMustKeep = 0x1; ///&lt; do not kill (for pixels)
+<span class="lineNum">      63 </span>            : const Int_t AliMUONClusterFinderMLEM::fgkUseForFit = 0x10; ///&lt; should be used for fit
+<span class="lineNum">      64 </span>            : const Int_t AliMUONClusterFinderMLEM::fgkOver = 0x100; ///&lt; processing is over
+<span class="lineNum">      65 </span>            : const Int_t AliMUONClusterFinderMLEM::fgkModified = 0x1000; ///&lt; modified pad charge 
+<span class="lineNum">      66 </span>            : const Int_t AliMUONClusterFinderMLEM::fgkCoupled = 0x10000; ///&lt; coupled pad  
+<a name="67"><span class="lineNum">      67 </span>            : </a>
+<span class="lineNum">      68 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      69 </span>            : AliMUONClusterFinderMLEM::AliMUONClusterFinderMLEM(Bool_t plot, AliMUONVClusterFinder* clusterFinder)
+<span class="lineNum">      70 </span><span class="lineCov">          2 :   : AliMUONVClusterFinder(),</span>
+<span class="lineNum">      71 </span><span class="lineCov">          2 : fPreClusterFinder(clusterFinder),</span>
+<span class="lineNum">      72 </span><span class="lineCov">          2 : fPreCluster(0x0),</span>
+<span class="lineNum">      73 </span><span class="lineCov">          2 : fClusterList(),</span>
+<span class="lineNum">      74 </span><span class="lineCov">          2 : fEventNumber(0),</span>
+<span class="lineNum">      75 </span><span class="lineCov">          2 : fDetElemId(-1),</span>
+<span class="lineNum">      76 </span><span class="lineCov">          2 : fClusterNumber(0),</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 : fHistMlem(0x0),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          2 : fHistAnode(0x0),</span>
+<span class="lineNum">      79 </span><span class="lineCov">          6 : fPixArray(new TObjArray(20)),</span>
+<span class="lineNum">      80 </span><span class="lineCov">          2 : fDebug(0),</span>
+<span class="lineNum">      81 </span><span class="lineCov">          2 : fPlot(plot),</span>
+<span class="lineNum">      82 </span><span class="lineCov">          2 : fSplitter(0x0),</span>
+<span class="lineNum">      83 </span><span class="lineCov">          2 : fNClusters(0),</span>
+<span class="lineNum">      84 </span><span class="lineCov">          2 : fNAddVirtualPads(0),</span>
+<span class="lineNum">      85 </span><span class="lineCov">          2 : fLowestPixelCharge(0),</span>
+<span class="lineNum">      86 </span><span class="lineCov">          2 : fLowestPadCharge(0),</span>
+<span class="lineNum">      87 </span><span class="lineCov">          2 : fLowestClusterCharge(0)</span>
+<span class="lineNum">      88 </span><span class="lineCov">          6 : {</span>
+<span class="lineNum">      89 </span>            :   /// Constructor
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">          2 :   fkSegmentation[1] = fkSegmentation[0] = 0x0; </span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineCov">          2 :   if (fPlot) fDebug = 1;</span>
+<span class="lineNum">      94 </span><span class="lineCov">          4 : }</span>
+<a name="95"><span class="lineNum">      95 </span>            : </a>
+<span class="lineNum">      96 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      97 </span>            : AliMUONClusterFinderMLEM::~AliMUONClusterFinderMLEM()
+<span class="lineNum">      98 </span><span class="lineCov">         12 : {</span>
+<span class="lineNum">      99 </span>            : /// Destructor
+<span class="lineNum">     100 </span><span class="lineCov">          6 :   delete fPixArray; fPixArray = 0;</span>
+<span class="lineNum">     101 </span>            : //  delete fDraw;
+<span class="lineNum">     102 </span><span class="lineCov">          4 :   delete fPreClusterFinder;</span>
+<span class="lineNum">     103 </span><span class="lineCov">          4 :   delete fSplitter;</span>
+<span class="lineNum">     104 </span><span class="lineCov">          6 :   AliInfo(Form(&quot;Total clusters %d AddVirtualPad needed %d&quot;,</span>
+<span class="lineNum">     105 </span>            :                fNClusters,fNAddVirtualPads));
+<span class="lineNum">     106 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     107 </span>            : 
+<a name="108"><span class="lineNum">     108 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     109 </span>            : Bool_t 
+<span class="lineNum">     110 </span>            : AliMUONClusterFinderMLEM::Prepare(Int_t detElemId,
+<span class="lineNum">     111 </span>            :                                   TObjArray* pads[2],
+<span class="lineNum">     112 </span>            :                                   const AliMpArea&amp; area,
+<span class="lineNum">     113 </span>            :                                   const AliMpVSegmentation* seg[2])
+<span class="lineNum">     114 </span>            : {
+<span class="lineNum">     115 </span>            :   /// Prepare for clustering
+<span class="lineNum">     116 </span>            : //  AliCodeTimerAuto(&quot;&quot;,0)
+<span class="lineNum">     117 </span>            :   
+<span class="lineNum">     118 </span><span class="lineCov">       1008 :   for ( Int_t i = 0; i &lt; 2; ++i )</span>
+<span class="lineNum">     119 </span>            :   {
+<span class="lineNum">     120 </span><span class="lineCov">        288 :     fkSegmentation[i] = seg[i];</span>
+<span class="lineNum">     121 </span>            :   }
+<span class="lineNum">     122 </span>            :   
+<span class="lineNum">     123 </span>            :   // Find out the DetElemId
+<span class="lineNum">     124 </span><span class="lineCov">        144 :   fDetElemId = detElemId;</span>
+<span class="lineNum">     125 </span>            :   
+<span class="lineNum">     126 </span><span class="lineCov">        286 :   delete fSplitter;</span>
+<span class="lineNum">     127 </span><span class="lineCov">        432 :   fSplitter = new AliMUONClusterSplitterMLEM(fDetElemId,</span>
+<span class="lineNum">     128 </span><span class="lineCov">        144 :                                              fPixArray,</span>
+<span class="lineNum">     129 </span><span class="lineCov">        144 :                                              fLowestPixelCharge,</span>
+<span class="lineNum">     130 </span><span class="lineCov">        144 :                                              fLowestPadCharge,</span>
+<span class="lineNum">     131 </span><span class="lineCov">        144 :                                              fLowestClusterCharge);</span>
+<span class="lineNum">     132 </span><span class="lineCov">        144 :   fSplitter-&gt;SetDebug(fDebug);</span>
+<span class="lineNum">     133 </span>            :     
+<span class="lineNum">     134 </span>            :   // find out current event number, and reset the cluster number
+<span class="lineNum">     135 </span><span class="lineCov">        144 :   AliRunLoader *runLoader = AliRunLoader::Instance();</span>
+<span class="lineNum">     136 </span><span class="lineCov">        432 :   fEventNumber = runLoader ? runLoader-&gt;GetEventNumber() : 0;</span>
+<span class="lineNum">     137 </span><span class="lineCov">        144 :   fClusterNumber = -1;</span>
+<span class="lineNum">     138 </span><span class="lineCov">        144 :   fClusterList.Delete();</span>
+<span class="lineNum">     139 </span><span class="lineCov">        144 :   fPixArray-&gt;Delete();</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">        432 :   AliDebug(3,Form(&quot;EVT %d DE %d&quot;,fEventNumber,fDetElemId));</span>
+<span class="lineNum">     142 </span>            :   
+<span class="lineNum">     143 </span><span class="lineCov">        288 :   if ( fPreClusterFinder-&gt;NeedSegmentation() )</span>
+<span class="lineNum">     144 </span>            :   {
+<span class="lineNum">     145 </span><span class="lineCov">        144 :     return fPreClusterFinder-&gt;Prepare(detElemId,pads,area,seg);</span>
+<span class="lineNum">     146 </span>            :   }
+<span class="lineNum">     147 </span>            :   else
+<span class="lineNum">     148 </span>            :   {
+<span class="lineNum">     149 </span><span class="lineCov">        144 :     return fPreClusterFinder-&gt;Prepare(detElemId,pads,area);</span>
+<span class="lineNum">     150 </span>            :   }
+<span class="lineNum">     151 </span><span class="lineCov">        144 : }</span>
+<span class="lineNum">     152 </span>            : 
+<a name="153"><span class="lineNum">     153 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     154 </span>            : AliMUONCluster* 
+<span class="lineNum">     155 </span>            : AliMUONClusterFinderMLEM::NextCluster()
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :   /// Return next cluster
+<span class="lineNum">     158 </span>            : //  AliCodeTimerAuto(&quot;&quot;,0)
+<span class="lineNum">     159 </span>            :   
+<span class="lineNum">     160 </span>            :   // if the list of clusters is not void, pick one from there
+<span class="lineNum">     161 </span>            :   TObject* o(0x0);
+<span class="lineNum">     162 </span>            :   
+<span class="lineNum">     163 </span>            :   // do we have clusters in our list ?
+<span class="lineNum">     164 </span><span class="lineCov">        944 :   if ( fClusterNumber &lt; fClusterList.GetLast() )</span>
+<span class="lineNum">     165 </span>            :   {
+<span class="lineNum">     166 </span><span class="lineCov">        164 :     o = fClusterList.At(++fClusterNumber);</span>
+<span class="lineNum">     167 </span><span class="lineCov">        164 :   }</span>
+<span class="lineNum">     168 </span>            :   
+<span class="lineNum">     169 </span><span class="lineCov">        636 :   if ( o != 0x0 ) return static_cast&lt;AliMUONCluster*&gt;(o);</span>
+<span class="lineNum">     170 </span>            :   
+<span class="lineNum">     171 </span>            :   //FIXME : at this point, must check whether we've used all the digits
+<span class="lineNum">     172 </span>            :   //from precluster : if not, let the preclustering know about those unused
+<span class="lineNum">     173 </span>            :   //digits, so it can reuse them
+<span class="lineNum">     174 </span>            :   
+<span class="lineNum">     175 </span>            :   // if the cluster list is exhausted, we need to go to the next
+<span class="lineNum">     176 </span>            :   // pre-cluster and treat it
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineCov">        308 :   fPreCluster = fPreClusterFinder-&gt;NextCluster();</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">        308 :   fPixArray-&gt;Delete();</span>
+<span class="lineNum">     181 </span><span class="lineCov">        308 :   fClusterList.Delete(); // reset the list of clusters for this pre-cluster</span>
+<span class="lineNum">     182 </span><span class="lineCov">        308 :   fClusterNumber = -1; //AZ</span>
+<span class="lineNum">     183 </span>            :     
+<span class="lineNum">     184 </span><span class="lineCov">        308 :   if (!fPreCluster)</span>
+<span class="lineNum">     185 </span>            :   {
+<span class="lineNum">     186 </span>            :     // we are done
+<span class="lineNum">     187 </span><span class="lineCov">        144 :     return 0x0;</span>
+<span class="lineNum">     188 </span>            :   }
+<span class="lineNum">     189 </span>            :     
+<span class="lineNum">     190 </span><span class="lineCov">        164 :   WorkOnPreCluster();</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :   // WorkOnPreCluster may have used only part of the pads, so we check that
+<span class="lineNum">     193 </span>            :   // now, and let the unused pads be reused by the preclustering...
+<span class="lineNum">     194 </span>            :   
+<span class="lineNum">     195 </span><span class="lineCov">        164 :   Int_t mult = fPreCluster-&gt;Multiplicity();</span>
+<span class="lineNum">     196 </span><span class="lineCov">       2976 :   for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     197 </span>            :   {
+<span class="lineNum">     198 </span><span class="lineCov">       1324 :     AliMUONPad* pad = fPreCluster-&gt;Pad(i);</span>
+<span class="lineNum">     199 </span><span class="lineCov">       1324 :     if ( !pad-&gt;IsUsed() )</span>
+<span class="lineNum">     200 </span>            :     {
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :       fPreClusterFinder-&gt;UsePad(*pad);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     203 </span>            :   }
+<span class="lineNum">     204 </span>            :   
+<span class="lineNum">     205 </span><span class="lineCov">        164 :   return NextCluster();</span>
+<span class="lineNum">     206 </span><span class="lineCov">        472 : }</span>
+<span class="lineNum">     207 </span>            : 
+<a name="208"><span class="lineNum">     208 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     209 </span>            : Bool_t
+<span class="lineNum">     210 </span>            : AliMUONClusterFinderMLEM::WorkOnPreCluster()
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :   /// Starting from a precluster, builds a pixel array, and then
+<span class="lineNum">     213 </span>            :   /// extract clusters from this array
+<span class="lineNum">     214 </span>            :   
+<span class="lineNum">     215 </span>            :   //  AliCodeTimerAuto(&quot;&quot;,0)  
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">        328 :   if (fDebug) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     cout &lt;&lt; &quot; *** Event # &quot; &lt;&lt; fEventNumber </span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :          &lt;&lt; &quot; det. elem.: &quot; &lt;&lt; fDetElemId &lt;&lt; endl;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     for (Int_t j = 0; j &lt; fPreCluster-&gt;Multiplicity(); ++j) {</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = fPreCluster-&gt;Pad(j);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :       printf(&quot; bbb %3d %1d %8.4f %8.4f %8.4f %8.4f %6.1f %3d %3d %2d %1d %1d \n&quot;,</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :              j, pad-&gt;Cathode(), pad-&gt;Coord(0), pad-&gt;Coord(1), pad-&gt;DX()*2, pad-&gt;DY()*2,</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :              pad-&gt;Charge(), pad-&gt;Ix(), pad-&gt;Iy(), pad-&gt;Status(), pad-&gt;IsReal(), pad-&gt;IsSaturated());</span>
+<span class="lineNum">     225 </span>            :     }
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineCov">        164 :   AliMUONCluster* cluster = CheckPrecluster(*fPreCluster);</span>
+<span class="lineNum">     229 </span><span class="lineCov">        164 :   if (!cluster) return kFALSE;</span>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineCov">        164 :   BuildPixArray(*cluster);</span>
+<span class="lineNum">     232 </span>            :   
+<span class="lineNum">     233 </span><span class="lineCov">        164 :   if ( fPixArray-&gt;GetLast() &lt; 0 )</span>
+<span class="lineNum">     234 </span>            :   {
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     AliDebug(1,&quot;No pixel for the above cluster&quot;);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     delete cluster;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     238 </span>            :   }
+<span class="lineNum">     239 </span>            :   
+<span class="lineNum">     240 </span>            :   // Use MLEM for cluster finder
+<span class="lineNum">     241 </span><span class="lineCov">        164 :   Int_t nMax = 1, localMax[100], maxPos[100];</span>
+<span class="lineNum">     242 </span><span class="lineCov">        164 :   Double_t maxVal[100];</span>
+<span class="lineNum">     243 </span>            :   
+<span class="lineNum">     244 </span><span class="lineCov">        164 :   Int_t iSimple = 0, nInX = -1, nInY;</span>
+<span class="lineNum">     245 </span>            :   
+<span class="lineNum">     246 </span><span class="lineCov">        164 :   PadsInXandY(*cluster,nInX, nInY);</span>
+<span class="lineNum">     247 </span>            :   
+<span class="lineNum">     248 </span><span class="lineCov">        164 :   if (nInX &lt; 4 &amp;&amp; nInY &lt; 4) </span>
+<span class="lineNum">     249 </span>            :   {
+<span class="lineNum">     250 </span>            :     iSimple = 1; // simple cluster
+<span class="lineNum">     251 </span><span class="lineCov">        122 :   }</span>
+<span class="lineNum">     252 </span>            :   else 
+<span class="lineNum">     253 </span>            :   {
+<span class="lineNum">     254 </span><span class="lineCov">         42 :     nMax = FindLocalMaxima(fPixArray, localMax, maxVal); // for small clusters just to tag pixels</span>
+<span class="lineNum">     255 </span><span class="lineCov">         42 :     if (nMax &gt; 1) {</span>
+<span class="lineNum">     256 </span><span class="lineCov">          2 :       if (cluster-&gt;Multiplicity() &lt;= 50) nMax = 1; // for small clusters </span>
+<span class="lineNum">     257 </span><span class="lineCov">          1 :       if (nMax &gt; 1) TMath::Sort(nMax, maxVal, maxPos, kTRUE); // in descending order</span>
+<span class="lineNum">     258 </span>            :     }
+<span class="lineNum">     259 </span>            :   }
+<span class="lineNum">     260 </span>            :   
+<span class="lineNum">     261 </span><span class="lineCov">        656 :   for (Int_t i = 0; i &lt; nMax; ++i) </span>
+<span class="lineNum">     262 </span>            :   {
+<span class="lineNum">     263 </span><span class="lineCov">        164 :     if (nMax &gt; 1) </span>
+<span class="lineNum">     264 </span>            :     {
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       FindCluster(*cluster,localMax, maxPos[i]);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineCov">        164 :     MainLoop(*cluster,iSimple);</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineCov">        164 :     if (i &lt; nMax-1) </span>
+<span class="lineNum">     271 </span>            :     {
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       Int_t mult = cluster-&gt;Multiplicity();</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       for (Int_t j = 0; j &lt; mult; ++j) </span>
+<span class="lineNum">     274 </span>            :       {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         AliMUONPad* pad = cluster-&gt;Pad(j);</span>
+<span class="lineNum">     276 </span>            :         //if ( pad-&gt;Status() == 0 ) continue; // pad charge was not modified
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         if ( pad-&gt;Status() != fgkOver ) continue; // pad was not used</span>
+<span class="lineNum">     278 </span>            :         //pad-&gt;SetStatus(0);
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         pad-&gt;SetStatus(fgkZero);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         pad-&gt;RevertCharge(); // use backup charge value</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     283 </span>            :   } // for (Int_t i=0; i&lt;nMax;
+<span class="lineNum">     284 </span><span class="lineCov">        328 :   delete fHistMlem;</span>
+<span class="lineNum">     285 </span><span class="lineCov">        206 :   delete fHistAnode;</span>
+<span class="lineNum">     286 </span><span class="lineCov">        164 :   fHistMlem = fHistAnode = 0x0;</span>
+<span class="lineNum">     287 </span><span class="lineCov">        328 :   delete cluster;</span>
+<span class="lineNum">     288 </span>            :   return kTRUE;
+<span class="lineNum">     289 </span><span class="lineCov">        328 : }</span>
+<span class="lineNum">     290 </span>            : 
+<a name="291"><span class="lineNum">     291 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     292 </span>            : Bool_t 
+<span class="lineNum">     293 </span>            : AliMUONClusterFinderMLEM::Overlap(const AliMUONPad&amp; pad, const AliMUONPad&amp; pixel)
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            :   /// Check if the pad and the pixel overlaps
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            :   // make a fake pad from the pixel
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   AliMUONPad tmp(pad.DetElemId(),pad.Cathode(),pad.Ix(),pad.Iy(),</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                  pixel.Coord(0),pixel.Coord(1),</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                  pixel.Size(0),pixel.Size(1),0);</span>
+<span class="lineNum">     301 </span>            :   
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   return AliMUONPad::AreOverlapping(pad,tmp,fgkDecreaseSize);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     304 </span>            : 
+<a name="305"><span class="lineNum">     305 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     306 </span>            : AliMUONCluster* 
+<span class="lineNum">     307 </span>            : AliMUONClusterFinderMLEM::CheckPrecluster(const AliMUONCluster&amp; origCluster)
+<span class="lineNum">     308 </span>            : {
+<span class="lineNum">     309 </span>            :   /// Check precluster in order to attempt to simplify it (mostly for
+<span class="lineNum">     310 </span>            :   /// two-cathode preclusters)
+<span class="lineNum">     311 </span>            :     
+<span class="lineNum">     312 </span><span class="lineCov">        328 :   AliCodeTimerAuto(&quot;&quot;,0)</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            :   // Disregard small clusters (leftovers from splitting or noise)
+<span class="lineNum">     315 </span><span class="lineCov">        656 :   if ((origCluster.Multiplicity()==1 || origCluster.Multiplicity()==2) &amp;&amp;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :       origCluster.Charge(0)+origCluster.Charge(1) &lt; fLowestClusterCharge )</span>
+<span class="lineNum">     317 </span>            :   { 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     return 0x0;</span>
+<span class="lineNum">     319 </span>            :   }
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineCov">        328 :   AliMUONCluster* cluster = new AliMUONCluster(origCluster);</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineCov">        820 :   AliDebug(2,&quot;Start of CheckPreCluster=&quot;);</span>
+<span class="lineNum">     324 </span>            :   //StdoutToAliDebug(2,cluster-&gt;Print(&quot;full&quot;));
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            :   AliMUONCluster* rv(0x0);
+<span class="lineNum">     327 </span>            :   
+<span class="lineNum">     328 </span><span class="lineCov">        656 :   if (cluster-&gt;Multiplicity(0) &amp;&amp; cluster-&gt;Multiplicity(1))</span>
+<span class="lineNum">     329 </span>            :   { 
+<span class="lineNum">     330 </span><span class="lineCov">        164 :     rv = CheckPreclusterTwoCathodes(cluster);</span>
+<span class="lineNum">     331 </span><span class="lineCov">        164 :   }</span>
+<span class="lineNum">     332 </span>            :   else
+<span class="lineNum">     333 </span>            :   {
+<span class="lineNum">     334 </span>            :     rv = cluster;
+<span class="lineNum">     335 </span>            :   }
+<span class="lineNum">     336 </span>            :   return rv;
+<span class="lineNum">     337 </span><span class="lineCov">        164 : }</span>
+<span class="lineNum">     338 </span>            : 
+<a name="339"><span class="lineNum">     339 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     340 </span>            : AliMUONCluster*
+<span class="lineNum">     341 </span>            : AliMUONClusterFinderMLEM::CheckPreclusterTwoCathodes(AliMUONCluster* cluster)
+<span class="lineNum">     342 </span>            : {
+<span class="lineNum">     343 </span>            :   /// Check two-cathode cluster
+<span class="lineNum">     344 </span>            :   
+<span class="lineNum">     345 </span><span class="lineCov">        328 :   Int_t npad = cluster-&gt;Multiplicity();</span>
+<span class="lineNum">     346 </span><span class="lineCov">        164 :   Int_t* flags = new Int_t[npad];</span>
+<span class="lineNum">     347 </span><span class="lineCov">       2976 :   for (Int_t j = 0; j &lt; npad; ++j) flags[j] = 0;</span>
+<span class="lineNum">     348 </span>            :   
+<span class="lineNum">     349 </span>            :   // Check pad overlaps
+<span class="lineNum">     350 </span><span class="lineCov">       2976 :   for ( Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">     351 </span>            :   {
+<span class="lineNum">     352 </span><span class="lineCov">       1324 :     AliMUONPad* padi = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     353 </span><span class="lineCov">       2000 :     if ( padi-&gt;Cathode() != 0 ) continue;</span>
+<span class="lineNum">     354 </span><span class="lineCov">       9408 :     for (Int_t j = i+1; j &lt; npad; ++j) </span>
+<span class="lineNum">     355 </span>            :     {
+<span class="lineNum">     356 </span><span class="lineCov">       4056 :       AliMUONPad* padj = cluster-&gt;Pad(j);</span>
+<span class="lineNum">     357 </span><span class="lineCov">       5214 :       if ( padj-&gt;Cathode() != 1 ) continue;</span>
+<span class="lineNum">     358 </span><span class="lineCov">       4188 :       if ( !AliMUONPad::AreOverlapping(*padi,*padj,fgkDecreaseSize) ) continue;</span>
+<span class="lineNum">     359 </span><span class="lineCov">       1608 :       flags[i] = flags[j] = 1; // mark overlapped pads</span>
+<span class="lineNum">     360 </span><span class="lineCov">       1608 :     } </span>
+<span class="lineNum">     361 </span><span class="lineCov">        648 :   } </span>
+<span class="lineNum">     362 </span>            :   
+<span class="lineNum">     363 </span>            :   // Check if all pads overlap
+<span class="lineNum">     364 </span>            :   Int_t nFlags=0;
+<span class="lineNum">     365 </span><span class="lineCov">       2976 :   for (Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">     366 </span>            :   {
+<span class="lineNum">     367 </span><span class="lineCov">       1324 :     if (!flags[i]) ++nFlags;</span>
+<span class="lineNum">     368 </span>            :   }
+<span class="lineNum">     369 </span>            :   
+<span class="lineNum">     370 </span><span class="lineCov">        164 :   if (nFlags &gt; 0) </span>
+<span class="lineNum">     371 </span>            :   {
+<span class="lineNum">     372 </span>            :     // not all pads overlap.
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     if (fDebug) cout &lt;&lt; &quot; nFlags: &quot; &lt;&lt; nFlags &lt;&lt; endl;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     TObjArray toBeRemoved;</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     for (Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">     376 </span>            :     {
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :       if (flags[i]) continue;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :       Int_t cath = pad-&gt;Cathode();</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :       Int_t cath1 = TMath::Even(cath);</span>
+<span class="lineNum">     381 </span>            :       // Check for edge effect (missing pads on the _other_ cathode)
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :       AliMpPad mpPad =</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :       fkSegmentation[cath1]-&gt;PadByPosition(pad-&gt;Position().X(),</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                                            pad-&gt;Position().Y(),kFALSE);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :       if (!mpPad.IsValid()) continue;</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :       if (nFlags == 1 &amp;&amp; pad-&gt;Charge() &lt; fLowestPadCharge) continue; </span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       AliDebug(2,Form(&quot;Releasing the following pad : de,cath,ix,iy %d,%d,%d,%d charge %e&quot;,</span>
+<span class="lineNum">     388 </span>            :                       fDetElemId,pad-&gt;Cathode(),pad-&gt;Ix(),pad-&gt;Iy(),pad-&gt;Charge()));
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :       toBeRemoved.AddLast(pad);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :       fPreCluster-&gt;Pad(i)-&gt;Release();</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     Int_t nRemove = toBeRemoved.GetEntriesFast();</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; nRemove; ++i )</span>
+<span class="lineNum">     394 </span>            :     {
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :       cluster-&gt;RemovePad(static_cast&lt;AliMUONPad*&gt;(toBeRemoved.UncheckedAt(i)));</span>
+<span class="lineNum">     396 </span>            :     }
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     398 </span>            :   
+<span class="lineNum">     399 </span>            :   // Check correlations of cathode charges
+<span class="lineNum">     400 </span><span class="lineCov">        328 :   if ( !cluster-&gt;IsSaturated() &amp;&amp; cluster-&gt;ChargeAsymmetry() &gt; 1 )</span>
+<span class="lineNum">     401 </span>            :   {
+<span class="lineNum">     402 </span>            :     // big difference
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     Int_t cathode = cluster-&gt;MaxRawChargeCathode();</span>
+<span class="lineNum">     404 </span>            :     Int_t imin(-1);
+<span class="lineNum">     405 </span>            :     Int_t imax(-1);
+<span class="lineNum">     406 </span>            :     Double_t cmax(0);
+<span class="lineNum">     407 </span>            :     Double_t cmin(1E9);
+<span class="lineNum">     408 </span>            :     
+<span class="lineNum">     409 </span>            :     // get min and max pad charges on the cathode opposite to the 
+<span class="lineNum">     410 </span>            :     // max pad (given by MaxRawChargeCathode())
+<span class="lineNum">     411 </span>            :     //
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     Int_t mult = cluster-&gt;Multiplicity();</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     414 </span>            :     {
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Cathode() != cathode || !pad-&gt;IsReal() )</span>
+<span class="lineNum">     417 </span>            :       {
+<span class="lineNum">     418 </span>            :         // only consider pads in the opposite cathode, and
+<span class="lineNum">     419 </span>            :         // only consider real pads (i.e. exclude the virtual ones)
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     421 </span>            :       }
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Charge() &lt; cmin )</span>
+<span class="lineNum">     423 </span>            :       {
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         cmin = pad-&gt;Charge();</span>
+<span class="lineNum">     425 </span>            :         imin = i;
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         if (imax &lt; 0) {</span>
+<span class="lineNum">     427 </span>            :           imax = imin;
+<span class="lineNum">     428 </span>            :           cmax = cmin;
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     430 </span>            :       }
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :       else if ( pad-&gt;Charge() &gt; cmax )</span>
+<span class="lineNum">     432 </span>            :       {
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         cmax = pad-&gt;Charge();</span>
+<span class="lineNum">     434 </span>            :         imax = i;
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     AliDebug(2,Form(&quot;Pad imin,imax %d,%d cmin,cmax %e,%e&quot;,</span>
+<span class="lineNum">     438 </span>            :                     imin,imax,cmin,cmax));
+<span class="lineNum">     439 </span>            :     //
+<span class="lineNum">     440 </span>            :     // arrange pads according to their distance to the max, normalized
+<span class="lineNum">     441 </span>            :     // to the pad size
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     Double_t* dist = new Double_t[mult];</span>
+<span class="lineNum">     443 </span>            :     Double_t dxMin(1E9);
+<span class="lineNum">     444 </span>            :     Double_t dyMin(1E9);
+<span class="lineNum">     445 </span>            :     Double_t dmin(0);
+<span class="lineNum">     446 </span>            :     
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     AliMUONPad* padmax = cluster-&gt;Pad(imax);</span>
+<span class="lineNum">     448 </span>            :     
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     450 </span>            :     {
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       dist[i] = 0.0;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :       if ( i == imax) continue;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(i);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Cathode() != cathode || !pad-&gt;IsReal() ) continue;</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :       Double_t dx = (pad-&gt;X()-padmax-&gt;X())/padmax-&gt;DX()/2.0;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :       Double_t dy = (pad-&gt;Y()-padmax-&gt;Y())/padmax-&gt;DY()/2.0;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :       dist[i] = TMath::Sqrt(dx*dx+dy*dy);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :       if ( i == imin )</span>
+<span class="lineNum">     459 </span>            :       {
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         dmin = dist[i] + 1E-3; // distance to the pad with minimum charge</span>
+<span class="lineNum">     461 </span>            :         dxMin = dx;
+<span class="lineNum">     462 </span>            :         dyMin = dy;
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :       }      </span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     465 </span>            :     
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     TMath::Sort(mult,dist,flags,kFALSE); // in ascending order</span>
+<span class="lineNum">     467 </span>            :     Double_t xmax(-1), distPrev(999);
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     TObjArray toBeRemoved;</span>
+<span class="lineNum">     469 </span>            :     
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; mult; ++i )</span>
+<span class="lineNum">     471 </span>            :     {
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       Int_t indx = flags[i];</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster-&gt;Pad(indx);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Cathode() != cathode || !pad-&gt;IsReal() ) continue;</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       if ( dist[indx] &gt; dmin )</span>
+<span class="lineNum">     476 </span>            :       {
+<span class="lineNum">     477 </span>            :         // farther than the minimum pad
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :         Double_t dx = (pad-&gt;X()-padmax-&gt;X())/padmax-&gt;DX()/2.0;</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         Double_t dy = (pad-&gt;Y()-padmax-&gt;Y())/padmax-&gt;DY()/2.0;</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         dx *= dxMin;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :         dy *= dyMin;</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :         if (dx &gt;= 0 &amp;&amp; dy &gt;= 0) continue;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dx) &gt; TMath::Abs(dy) &amp;&amp; dx &gt;= 0) continue;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dy) &gt; TMath::Abs(dx) &amp;&amp; dy &gt;= 0) continue;        </span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :       if (dist[indx] &gt; distPrev + 1) break; // overstepping empty pads</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :       if ( pad-&gt;Charge() &lt;= cmax || TMath::Abs(dist[indx]-xmax) &lt; 1E-3 )</span>
+<span class="lineNum">     488 </span>            :       {
+<span class="lineNum">     489 </span>            :         // release pad
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         if (TMath::Abs(dist[indx]-xmax) &lt; 1.e-3) </span>
+<span class="lineNum">     491 </span>            :         {
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :           cmax = TMath::Max(pad-&gt;Charge(),cmax);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     494 </span>            :         else
+<span class="lineNum">     495 </span>            :         {
+<span class="lineNum">     496 </span>            :           cmax = pad-&gt;Charge();
+<span class="lineNum">     497 </span>            :         }
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         xmax = dist[indx];</span>
+<span class="lineNum">     499 </span>            :         distPrev = dist[indx];
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         AliDebug(2,Form(&quot;Releasing the following pad : de,cath,ix,iy %d,%d,%d,%d charge %e&quot;,</span>
+<span class="lineNum">     501 </span>            :                         fDetElemId,pad-&gt;Cathode(),pad-&gt;Ix(),pad-&gt;Iy(),
+<span class="lineNum">     502 </span>            :                         pad-&gt;Charge()));
+<span class="lineNum">     503 </span>            :   
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         toBeRemoved.AddLast(pad);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         fPreCluster-&gt;Pad(indx)-&gt;Release();</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     Int_t nRemove = toBeRemoved.GetEntriesFast();</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     for ( Int_t i = 0; i &lt; nRemove; ++i )</span>
+<span class="lineNum">     510 </span>            :     {
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :       cluster-&gt;RemovePad(static_cast&lt;AliMUONPad*&gt;(toBeRemoved.UncheckedAt(i)));</span>
+<span class="lineNum">     512 </span>            :     }    
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     delete[] dist;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     515 </span>            :   
+<span class="lineNum">     516 </span><span class="lineCov">        328 :   delete[] flags;</span>
+<span class="lineNum">     517 </span>            :   
+<span class="lineNum">     518 </span><span class="lineCov">        492 :   AliDebug(2,&quot;End of CheckPreClusterTwoCathodes=&quot;);</span>
+<span class="lineNum">     519 </span>            :   //StdoutToAliDebug(2,cluster-&gt;Print(&quot;full&quot;));
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineCov">        164 :   return cluster;    </span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     523 </span>            : 
+<a name="524"><span class="lineNum">     524 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     525 </span>            : void
+<span class="lineNum">     526 </span>            : AliMUONClusterFinderMLEM::CheckOverlaps()
+<span class="lineNum">     527 </span>            : {
+<span class="lineNum">     528 </span>            :   /// For debug only : check if some pixels overlap...
+<span class="lineNum">     529 </span>            :   
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   Int_t nPix = fPixArray-&gt;GetLast()+1;</span>
+<span class="lineNum">     531 </span>            :   Int_t dummy(0);
+<span class="lineNum">     532 </span>            :   
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt; nPix; ++i )</span>
+<span class="lineNum">     534 </span>            :   {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     AliMUONPad* pixelI = Pixel(i);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     AliMUONPad pi(dummy,dummy,dummy,dummy,</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                   pixelI-&gt;Coord(0),pixelI-&gt;Coord(1),</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                   pixelI-&gt;Size(0),pixelI-&gt;Size(1),0.0);</span>
+<span class="lineNum">     539 </span>            :     
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     for ( Int_t j = i+1; j &lt; nPix; ++j )</span>
+<span class="lineNum">     541 </span>            :     {
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :       AliMUONPad* pixelJ = Pixel(j);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       AliMUONPad pj(dummy,dummy,dummy,dummy,</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                     pixelJ-&gt;Coord(0),pixelJ-&gt;Coord(1),</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :                     pixelJ-&gt;Size(0),pixelJ-&gt;Size(1),0.0);  </span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :       AliMpArea area;</span>
+<span class="lineNum">     547 </span>            :       
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :       if ( AliMUONPad::AreOverlapping(pi,pj,fgkDecreaseSize,area) )</span>
+<span class="lineNum">     549 </span>            :       {
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         AliInfo(Form(&quot;The following 2 pixels (%d and %d) overlap !&quot;,i,j));</span>
+<span class="lineNum">     551 </span>            :         /*
+<span class="lineNum">     552 </span>            :         StdoutToAliInfo(pixelI-&gt;Print();
+<span class="lineNum">     553 </span>            :                         cout &lt;&lt; &quot; Surface = &quot; &lt;&lt; pixelI-&gt;Size(0)*pixelI-&gt;Size(1)*4 &lt;&lt; endl;
+<span class="lineNum">     554 </span>            :                         pixelJ-&gt;Print();
+<span class="lineNum">     555 </span>            :                         cout &lt;&lt; &quot; Surface = &quot; &lt;&lt; pixelJ-&gt;Size(0)*pixelJ-&gt;Size(1)*4 &lt;&lt; endl;
+<span class="lineNum">     556 </span>            :                         cout &lt;&lt; &quot; Area surface = &quot; &lt;&lt; area.GetDimensionX()*area.GetDimensionY()*4 &lt;&lt; endl;
+<span class="lineNum">     557 </span>            :                         cout &lt;&lt; &quot;-------&quot; &lt;&lt; endl;
+<span class="lineNum">     558 </span>            :                         );
+<span class="lineNum">     559 </span>            :         */        
+<span class="lineNum">     560 </span>            :       }
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     }    </span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 : }</span>
+<a name="564"><span class="lineNum">     564 </span>            : </a>
+<span class="lineNum">     565 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     566 </span>            : void AliMUONClusterFinderMLEM::BuildPixArray(AliMUONCluster&amp; cluster)
+<span class="lineNum">     567 </span>            : {
+<span class="lineNum">     568 </span>            :   /// Build pixel array for MLEM method
+<span class="lineNum">     569 </span>            :   
+<span class="lineNum">     570 </span><span class="lineCov">        328 :   Int_t npad = cluster.Multiplicity();</span>
+<span class="lineNum">     571 </span><span class="lineCov">        164 :   if (npad&lt;=0) </span>
+<span class="lineNum">     572 </span>            :   {
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     AliWarning(&quot;Got no pad at all ?!&quot;);</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     575 </span>            :   
+<span class="lineNum">     576 </span><span class="lineCov">        164 :   fPixArray-&gt;Delete();</span>
+<span class="lineNum">     577 </span><span class="lineCov">        164 :   BuildPixArrayOneCathode(cluster);</span>
+<span class="lineNum">     578 </span>            :   
+<span class="lineNum">     579 </span><span class="lineCov">        164 :   Int_t nPix = fPixArray-&gt;GetLast()+1;</span>
+<span class="lineNum">     580 </span>            :   
+<span class="lineNum">     581 </span>            : //  AliDebug(2,Form(&quot;nPix after BuildPixArray=%d&quot;,nPix));
+<span class="lineNum">     582 </span>            :   
+<span class="lineNum">     583 </span><span class="lineCov">        164 :   if ( nPix &gt; npad ) </span>
+<span class="lineNum">     584 </span>            :   {
+<span class="lineNum">     585 </span>            : //    AliDebug(2,Form(&quot;Will trim number of pixels to number of pads&quot;));
+<span class="lineNum">     586 </span>            :     
+<span class="lineNum">     587 </span>            :     // Too many pixels - sort and remove pixels with the lowest signal
+<span class="lineNum">     588 </span><span class="lineCov">         52 :     fPixArray-&gt;Sort();</span>
+<span class="lineNum">     589 </span><span class="lineCov">        316 :     for ( Int_t i = npad; i &lt; nPix; ++i ) </span>
+<span class="lineNum">     590 </span>            :     {
+<span class="lineNum">     591 </span><span class="lineCov">        106 :       RemovePixel(i);</span>
+<span class="lineNum">     592 </span>            :     }
+<span class="lineNum">     593 </span><span class="lineCov">         52 :     fPixArray-&gt;Compress();</span>
+<span class="lineNum">     594 </span><span class="lineCov">         52 :   } // if (nPix &gt; npad)</span>
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            : //  StdoutToAliDebug(2,cout &lt;&lt; &quot;End of BuildPixelArray:&quot; &lt;&lt; endl;
+<span class="lineNum">     597 </span>            : //                   fPixArray-&gt;Print(););
+<span class="lineNum">     598 </span>            :   //CheckOverlaps();//FIXME : this is for debug only. Remove it.
+<span class="lineNum">     599 </span><span class="lineCov">        164 : }</span>
+<a name="600"><span class="lineNum">     600 </span>            : </a>
+<span class="lineNum">     601 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     602 </span>            : void AliMUONClusterFinderMLEM::BuildPixArrayOneCathode(AliMUONCluster&amp; cluster)
+<span class="lineNum">     603 </span>            : {
+<span class="lineNum">     604 </span>            :   /// Build the pixel array
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span>            : //  AliDebug(2,Form(&quot;cluster.Multiplicity=%d&quot;,cluster.Multiplicity()));
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineCov">        328 :   TVector2 dim = cluster.MinPadDimensions (-1, kFALSE);</span>
+<span class="lineNum">     609 </span><span class="lineCov">        164 :   Double_t width[2] = {dim.X(), dim.Y()}, xy0[2]={99999,99999};</span>
+<span class="lineNum">     610 </span><span class="lineCov">        164 :   Int_t found[2] = {0,0}, mult = cluster.Multiplicity();</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineCov">       1264 :   for ( Int_t i = 0; i &lt; mult; ++i) {</span>
+<span class="lineNum">     613 </span><span class="lineCov">        632 :     AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">     614 </span><span class="lineCov">       3792 :     for (Int_t j = 0; j &lt; 2; ++j) {</span>
+<span class="lineNum">     615 </span><span class="lineCov">       2856 :       if (found[j] == 0 &amp;&amp; TMath::Abs(pad-&gt;Size(j)-width[j]) &lt; fgkDistancePrecision) { </span>
+<span class="lineNum">     616 </span><span class="lineCov">        656 :         xy0[j] = pad-&gt;Coord(j);</span>
+<span class="lineNum">     617 </span><span class="lineCov">        328 :         found[j] = 1;</span>
+<span class="lineNum">     618 </span><span class="lineCov">        328 :       }</span>
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span><span class="lineCov">       1194 :     if (found[0] &amp;&amp; found[1]) break;</span>
+<span class="lineNum">     621 </span><span class="lineCov">        468 :   }</span>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineCov">        164 :   Double_t min[2], max[2];</span>
+<span class="lineNum">     624 </span>            :   Int_t cath0 = 0, cath1 = 1;
+<span class="lineNum">     625 </span><span class="lineCov">        328 :   if (cluster.Multiplicity(0) == 0) cath0 = 1;</span>
+<span class="lineNum">     626 </span><span class="lineCov">        328 :   else if (cluster.Multiplicity(1) == 0) cath1 = 0;</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span><span class="lineCov">        164 :   Double_t leftDownX, leftDownY;</span>
+<span class="lineNum">     630 </span><span class="lineCov">        492 :   cluster.Area(cath0).LeftDownCorner(leftDownX, leftDownY);</span>
+<span class="lineNum">     631 </span><span class="lineCov">        164 :   Double_t rightUpX, rightUpY;</span>
+<span class="lineNum">     632 </span><span class="lineCov">        492 :   cluster.Area(cath0).RightUpCorner(rightUpX, rightUpY);</span>
+<span class="lineNum">     633 </span><span class="lineCov">        164 :   min[0] = leftDownX;</span>
+<span class="lineNum">     634 </span><span class="lineCov">        164 :   min[1] = leftDownY;</span>
+<span class="lineNum">     635 </span><span class="lineCov">        164 :   max[0] = rightUpX;</span>
+<span class="lineNum">     636 </span><span class="lineCov">        164 :   max[1] = rightUpY;;</span>
+<span class="lineNum">     637 </span><span class="lineCov">        164 :   if (cath1 != cath0) {</span>
+<span class="lineNum">     638 </span><span class="lineCov">        492 :     cluster.Area(cath1).LeftDownCorner(leftDownX, leftDownY);</span>
+<span class="lineNum">     639 </span><span class="lineCov">        492 :     cluster.Area(cath1).RightUpCorner(rightUpX, rightUpY);</span>
+<span class="lineNum">     640 </span><span class="lineCov">        164 :     min[0] = TMath::Max (min[0], leftDownX);</span>
+<span class="lineNum">     641 </span><span class="lineCov">        164 :     min[1] = TMath::Max (min[1], leftDownY);</span>
+<span class="lineNum">     642 </span><span class="lineCov">        164 :     max[0] = TMath::Min (max[0], rightUpX);</span>
+<span class="lineNum">     643 </span><span class="lineCov">        164 :     max[1] = TMath::Min (max[1], rightUpY);</span>
+<span class="lineNum">     644 </span><span class="lineCov">        164 :   }</span>
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span>            :   // Adjust limits
+<span class="lineNum">     647 </span>            :   //width[0] /= 2; width[1] /= 2; // just for check
+<span class="lineNum">     648 </span><span class="lineCov">        164 :   Int_t nbins[2]={0,0};</span>
+<span class="lineNum">     649 </span><span class="lineCov">        984 :   for (Int_t i = 0; i &lt; 2; ++i) {</span>
+<span class="lineNum">     650 </span><span class="lineCov">        328 :     Double_t dist = (min[i] - xy0[i]) / width[i] / 2;</span>
+<span class="lineNum">     651 </span><span class="lineCov">        347 :     if (TMath::Abs(dist) &lt; 1.e-6) dist = -1.e-6;</span>
+<span class="lineNum">     652 </span><span class="lineCov">        656 :     min[i] = xy0[i] + (TMath::Nint(dist-TMath::Sign(1.e-6,dist)) </span>
+<span class="lineNum">     653 </span><span class="lineCov">        328 :                        + TMath::Sign(0.5,dist)) * width[i] * 2;</span>
+<span class="lineNum">     654 </span><span class="lineCov">        328 :     nbins[i] = TMath::Nint ((max[i] - min[i]) / width[i] / 2);</span>
+<span class="lineNum">     655 </span><span class="lineCov">        328 :     if (nbins[i] == 0) ++nbins[i];</span>
+<span class="lineNum">     656 </span><span class="lineCov">        328 :     max[i] = min[i] + nbins[i] * width[i] * 2;</span>
+<span class="lineNum">     657 </span>            :     //cout &lt;&lt; dist &lt;&lt; &quot; &quot; &lt;&lt; min[i] &lt;&lt; &quot; &quot; &lt;&lt; max[i] &lt;&lt; &quot; &quot; &lt;&lt; nbins[i] &lt;&lt; endl;
+<span class="lineNum">     658 </span>            :   }
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span>            :   // Book histogram
+<span class="lineNum">     661 </span><span class="lineCov">        328 :   TH2D *hist1 = new TH2D (&quot;Grid&quot;, &quot;&quot;, nbins[0], min[0], max[0], nbins[1], min[1], max[1]);</span>
+<span class="lineNum">     662 </span><span class="lineCov">        328 :   TH2D *hist2 = new TH2D (&quot;Entries&quot;, &quot;&quot;, nbins[0], min[0], max[0], nbins[1], min[1], max[1]);</span>
+<span class="lineNum">     663 </span><span class="lineCov">        164 :   TAxis *xaxis = hist1-&gt;GetXaxis();</span>
+<span class="lineNum">     664 </span><span class="lineCov">        164 :   TAxis *yaxis = hist1-&gt;GetYaxis();</span>
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span>            :   // Fill histogram
+<span class="lineNum">     667 </span><span class="lineCov">       2976 :   for ( Int_t i = 0; i &lt; mult; ++i) {</span>
+<span class="lineNum">     668 </span><span class="lineCov">       1324 :     AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">     669 </span><span class="lineCov">       1324 :     Int_t ix0 = xaxis-&gt;FindBin(pad-&gt;X());</span>
+<span class="lineNum">     670 </span><span class="lineCov">       1324 :     Int_t iy0 = yaxis-&gt;FindBin(pad-&gt;Y());</span>
+<span class="lineNum">     671 </span><span class="lineCov">       1324 :     PadOverHist(0, ix0, iy0, pad, hist1, hist2);</span>
+<span class="lineNum">     672 </span>            :   }
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span>            :   // Store pixels
+<span class="lineNum">     675 </span><span class="lineCov">       1108 :   for (Int_t i = 1; i &lt;= nbins[0]; ++i) {</span>
+<span class="lineNum">     676 </span><span class="lineCov">        390 :     Double_t x = xaxis-&gt;GetBinCenter(i);</span>
+<span class="lineNum">     677 </span><span class="lineCov">       3226 :     for (Int_t j = 1; j &lt;= nbins[1]; ++j) {</span>
+<span class="lineNum">     678 </span><span class="lineCov">       3669 :       if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(i,j)) &lt; 0.1) continue;</span>
+<span class="lineNum">     679 </span>            :       //if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(i,j)) &lt; 1.1 &amp;&amp; cluster.Multiplicity(0) &amp;&amp; 
+<span class="lineNum">     680 </span>            :       //  cluster.Multiplicity(1)) continue;
+<span class="lineNum">     681 </span><span class="lineCov">       1219 :       if (cath0 != cath1) {</span>
+<span class="lineNum">     682 </span>            :         // Two-sided cluster
+<span class="lineNum">     683 </span><span class="lineCov">       2438 :         Double_t cont = hist2-&gt;GetBinContent(hist2-&gt;GetBin(i,j));</span>
+<span class="lineNum">     684 </span><span class="lineCov">       1255 :         if (cont &lt; 999.) continue;</span>
+<span class="lineNum">     685 </span><span class="lineCov">       1250 :         if (cont-Int_t(cont/1000.)*1000. &lt; 0.5) continue;</span>
+<span class="lineNum">     686 </span><span class="lineCov">       1116 :       }</span>
+<span class="lineNum">     687 </span><span class="lineCov">       1116 :       Double_t y = yaxis-&gt;GetBinCenter(j);</span>
+<span class="lineNum">     688 </span><span class="lineCov">       2232 :       Double_t charge = hist1-&gt;GetBinContent(hist1-&gt;GetBin(i,j));</span>
+<span class="lineNum">     689 </span><span class="lineCov">       2232 :       AliMUONPad* pixPtr = new AliMUONPad(x, y, width[0], width[1], charge);</span>
+<span class="lineNum">     690 </span><span class="lineCov">       1116 :       fPixArray-&gt;Add(pixPtr);</span>
+<span class="lineNum">     691 </span><span class="lineCov">       1116 :     }  </span>
+<span class="lineNum">     692 </span>            :   }
+<span class="lineNum">     693 </span>            :   //*
+<span class="lineNum">     694 </span><span class="lineCov">        328 :   if (fPixArray-&gt;GetEntriesFast() == 1) {</span>
+<span class="lineNum">     695 </span>            :     // Split pixel into 2
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     AliMUONPad* pixPtr = static_cast&lt;AliMUONPad*&gt; (fPixArray-&gt;UncheckedAt(0));</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     pixPtr-&gt;SetSize(0,width[0]/2.);</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     pixPtr-&gt;Shift(0,-width[0]/4.);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     pixPtr = new AliMUONPad(pixPtr-&gt;X()+width[0], pixPtr-&gt;Y(), width[0]/2., width[1], pixPtr-&gt;Charge());</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :     fPixArray-&gt;Add(pixPtr);</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     702 </span>            :   //*/
+<span class="lineNum">     703 </span>            :   //fPixArray-&gt;Print();
+<span class="lineNum">     704 </span><span class="lineCov">        328 :   delete hist1;</span>
+<span class="lineNum">     705 </span><span class="lineCov">        328 :   delete hist2;</span>
+<span class="lineNum">     706 </span><span class="lineCov">        164 : }</span>
+<a name="707"><span class="lineNum">     707 </span>            : </a>
+<span class="lineNum">     708 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     709 </span>            : void AliMUONClusterFinderMLEM::PadOverHist(Int_t idir, Int_t ix0, Int_t iy0, AliMUONPad *pad,
+<span class="lineNum">     710 </span>            :                                            TH2D *hist1, TH2D *hist2)
+<span class="lineNum">     711 </span>            : {
+<span class="lineNum">     712 </span>            :   /// &quot;Span&quot; pad over histogram in the direction idir
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineCov">      13804 :   TAxis *axis = idir == 0 ? hist1-&gt;GetXaxis() : hist1-&gt;GetYaxis();</span>
+<span class="lineNum">     715 </span><span class="lineCov">       3451 :   Int_t nbins = axis-&gt;GetNbins(), cath = pad-&gt;Cathode();</span>
+<span class="lineNum">     716 </span><span class="lineCov">       3451 :   Double_t bin = axis-&gt;GetBinWidth(1), amask = TMath::Power(1000.,cath*1.);</span>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineCov">       3451 :   Int_t nbinPad = (Int_t)(pad-&gt;Size(idir)/bin*2+fgkDistancePrecision) + 1; // number of bins covered by pad</span>
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span><span class="lineCov">      15104 :   for (Int_t i = 0; i &lt; nbinPad; ++i) {</span>
+<span class="lineNum">     721 </span><span class="lineCov">      22251 :     Int_t ixy = idir == 0 ? ix0 + i : iy0 + i;</span>
+<span class="lineNum">     722 </span><span class="lineCov">       9106 :     if (ixy &gt; nbins) break;</span>
+<span class="lineNum">     723 </span><span class="lineCov">       5728 :     Double_t lowEdge = axis-&gt;GetBinLowEdge(ixy);</span>
+<span class="lineNum">     724 </span><span class="lineCov">       7400 :     if (lowEdge + fgkDistancePrecision &gt; pad-&gt;Coord(idir) + pad-&gt;Size(idir)) break;</span>
+<span class="lineNum">     725 </span><span class="lineCov">       5643 :     if (idir == 0) PadOverHist(1, ixy, iy0, pad, hist1, hist2); // span in the other direction</span>
+<span class="lineNum">     726 </span>            :     else {
+<span class="lineNum">     727 </span>            :       // Fill histogram
+<span class="lineNum">     728 </span><span class="lineCov">       2469 :       Double_t cont = pad-&gt;Charge();</span>
+<span class="lineNum">     729 </span><span class="lineCov">       2469 :       if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy)) &gt; 0.1) </span>
+<span class="lineNum">     730 </span><span class="lineCov">       1114 :         cont = TMath::Min (hist1-&gt;GetBinContent(hist1-&gt;GetBin(ix0, ixy)), cont);</span>
+<span class="lineNum">     731 </span><span class="lineCov">       2469 :       hist1-&gt;SetBinContent(hist1-&gt;GetBin(ix0, ixy), cont);</span>
+<span class="lineNum">     732 </span>            :       //hist2-&gt;SetBinContent(hist2-&gt;GetBin(ix0, ixy), hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy))+1);
+<span class="lineNum">     733 </span><span class="lineCov">       2469 :       hist2-&gt;SetBinContent(hist2-&gt;GetBin(ix0, ixy), hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy))+amask);</span>
+<span class="lineNum">     734 </span>            :     }
+<span class="lineNum">     735 </span><span class="lineCov">       4056 :   }</span>
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span><span class="lineCov">       9513 :   for (Int_t i = -1; i &gt; -nbinPad; --i) {</span>
+<span class="lineNum">     738 </span><span class="lineCov">      12825 :     Int_t ixy = idir == 0 ? ix0 + i : iy0 + i;</span>
+<span class="lineNum">     739 </span><span class="lineCov">       5772 :     if (ixy &lt; 1) break;</span>
+<span class="lineNum">     740 </span><span class="lineCov">       2778 :     Double_t upEdge = axis-&gt;GetBinUpEdge(ixy);</span>
+<span class="lineNum">     741 </span><span class="lineCov">       4411 :     if (upEdge - fgkDistancePrecision &lt; pad-&gt;Coord(idir) - pad-&gt;Size(idir)) break;</span>
+<span class="lineNum">     742 </span><span class="lineCov">       1685 :     if (idir == 0) PadOverHist(1, ixy, iy0, pad, hist1, hist2); // span in the other direction</span>
+<span class="lineNum">     743 </span>            :     else {
+<span class="lineNum">     744 </span>            :       // Fill histogram
+<span class="lineNum">     745 </span><span class="lineCov">        605 :       Double_t cont = pad-&gt;Charge();</span>
+<span class="lineNum">     746 </span><span class="lineCov">        605 :       if (hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy)) &gt; 0.1) </span>
+<span class="lineNum">     747 </span><span class="lineCov">        430 :         cont = TMath::Min (hist1-&gt;GetBinContent(hist1-&gt;GetBin(ix0, ixy)), cont);</span>
+<span class="lineNum">     748 </span><span class="lineCov">        605 :       hist1-&gt;SetBinContent(hist1-&gt;GetBin(ix0, ixy), cont);</span>
+<span class="lineNum">     749 </span>            :       //hist2-&gt;SetBinContent(hist1-&gt;GetBin(ix0, ixy), hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy))+1);
+<span class="lineNum">     750 </span><span class="lineCov">        605 :       hist2-&gt;SetBinContent(hist2-&gt;GetBin(ix0, ixy), hist2-&gt;GetBinContent(hist2-&gt;GetBin(ix0, ixy))+amask);</span>
+<span class="lineNum">     751 </span>            :     }
+<span class="lineNum">     752 </span><span class="lineCov">       1145 :   }</span>
+<span class="lineNum">     753 </span><span class="lineCov">       3451 : }</span>
+<span class="lineNum">     754 </span>            : 
+<a name="755"><span class="lineNum">     755 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     756 </span>            : void
+<span class="lineNum">     757 </span>            : AliMUONClusterFinderMLEM::Plot(const char* /*basename*/)
+<span class="lineNum">     758 </span>            : {
+<span class="lineNum">     759 </span>            :   /// Make a plot and save it as png
+<span class="lineNum">     760 </span>            :   
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :   return; //AZ</span>
+<span class="lineNum">     762 </span>            : //  if (!fPlot) return;
+<span class="lineNum">     763 </span>            : //  
+<span class="lineNum">     764 </span>            : //  TCanvas* c = new TCanvas(&quot;MLEM&quot;,&quot;MLEM&quot;,800,600);
+<span class="lineNum">     765 </span>            : //  c-&gt;Draw();
+<span class="lineNum">     766 </span>            : //  Draw();
+<span class="lineNum">     767 </span>            : //  c-&gt;Modified();
+<span class="lineNum">     768 </span>            : //  c-&gt;Update();
+<span class="lineNum">     769 </span>            : //  c-&gt;Print(Form(&quot;%s.EVT%d.DE%d.CLU%d.png&quot;,basename,fEventNumber,
+<span class="lineNum">     770 </span>            : //                fDetElemId,fClusterNumber));
+<span class="lineNum">     771 </span>            : }
+<span class="lineNum">     772 </span>            : 
+<a name="773"><span class="lineNum">     773 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     774 </span>            : void
+<span class="lineNum">     775 </span>            : AliMUONClusterFinderMLEM::ComputeCoefficients(AliMUONCluster&amp; cluster,
+<span class="lineNum">     776 </span>            :                                               Double_t* coef,
+<span class="lineNum">     777 </span>            :                                               Double_t* probi)
+<span class="lineNum">     778 </span>            : {
+<span class="lineNum">     779 </span>            :   /// Compute coefficients needed for MLEM algorithm
+<span class="lineNum">     780 </span>            :   
+<span class="lineNum">     781 </span><span class="lineCov">        664 :   Int_t npadTot = cluster.Multiplicity();</span>
+<span class="lineNum">     782 </span><span class="lineCov">        332 :   Int_t nPix = fPixArray-&gt;GetLast()+1;</span>
+<span class="lineNum">     783 </span>            :   
+<span class="lineNum">     784 </span>            :   //memset(probi,0,nPix*sizeof(Double_t));
+<span class="lineNum">     785 </span><span class="lineCov">      55034 :   for (Int_t j = 0; j &lt; npadTot*nPix; ++j) coef[j] = 0.;</span>
+<span class="lineNum">     786 </span><span class="lineCov">       5890 :   for (Int_t j = 0; j &lt; nPix; ++j) probi[j] = 0.;</span>
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span><span class="lineCov">        332 :   Int_t mult = cluster.Multiplicity();</span>
+<span class="lineNum">     789 </span><span class="lineCov">       7140 :   for ( Int_t j = 0; j &lt; mult; ++j ) </span>
+<span class="lineNum">     790 </span>            :   {
+<span class="lineNum">     791 </span><span class="lineCov">       3238 :     AliMUONPad* pad = cluster.Pad(j);</span>
+<span class="lineNum">     792 </span><span class="lineCov">       3238 :     Int_t indx = j*nPix;</span>
+<span class="lineNum">     793 </span>            :   
+<span class="lineNum">     794 </span><span class="lineCov">      60846 :     for ( Int_t ipix = 0; ipix &lt; nPix; ++ipix ) </span>
+<span class="lineNum">     795 </span>            :     {
+<span class="lineNum">     796 </span><span class="lineCov">      27185 :       Int_t indx1 = indx + ipix;</span>
+<span class="lineNum">     797 </span>            :       //if (pad-&gt;Status() &lt; 0) 
+<span class="lineNum">     798 </span><span class="lineCov">      27185 :       if (pad-&gt;Status() != fgkZero) </span>
+<span class="lineNum">     799 </span>            :       {   
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :         coef[indx1] = 0; </span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :         continue; </span>
+<span class="lineNum">     802 </span>            :       }
+<span class="lineNum">     803 </span><span class="lineCov">      27185 :       AliMUONPad* pixPtr = Pixel(ipix);</span>
+<span class="lineNum">     804 </span>            :       // coef is the charge (given by Mathieson integral) on pad, assuming
+<span class="lineNum">     805 </span>            :       // the Mathieson is center at pixel.
+<span class="lineNum">     806 </span><span class="lineCov">      27185 :       coef[indx1] = fSplitter-&gt;ChargeIntegration(pixPtr-&gt;Coord(0), pixPtr-&gt;Coord(1), *pad);  </span>
+<span class="lineNum">     807 </span>            : //      AliDebug(2,Form(&quot;pad=(%d,%d,%e,%e,%e,%e) pix=(%e,%e,%e,%e) coef %e&quot;,
+<span class="lineNum">     808 </span>            : //                      pad-&gt;Ix(),pad-&gt;Iy(),
+<span class="lineNum">     809 </span>            : //                      pad-&gt;X(),pad-&gt;Y(),
+<span class="lineNum">     810 </span>            : //                      pad-&gt;DX(),pad-&gt;DY(),
+<span class="lineNum">     811 </span>            : //                      pixPtr-&gt;Coord(0),pixPtr-&gt;Coord(1), 
+<span class="lineNum">     812 </span>            : //                      pixPtr-&gt;Size(0),pixPtr-&gt;Size(1),
+<span class="lineNum">     813 </span>            : //                      coef[indx1]));
+<span class="lineNum">     814 </span>            :       
+<span class="lineNum">     815 </span><span class="lineCov">      27185 :       probi[ipix] += coef[indx1];</span>
+<span class="lineNum">     816 </span><span class="lineCov">      27185 :     } </span>
+<span class="lineNum">     817 </span>            :   } 
+<span class="lineNum">     818 </span><span class="lineCov">        332 : }</span>
+<a name="819"><span class="lineNum">     819 </span>            : </a>
+<span class="lineNum">     820 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     821 </span>            : Bool_t AliMUONClusterFinderMLEM::MainLoop(AliMUONCluster&amp; cluster, Int_t iSimple)
+<span class="lineNum">     822 </span>            : {
+<span class="lineNum">     823 </span>            :   /// Repeat MLEM algorithm until pixel size becomes sufficiently small
+<span class="lineNum">     824 </span>            :   
+<span class="lineNum">     825 </span>            :   //  AliCodeTimerAuto(&quot;&quot;,0)
+<span class="lineNum">     826 </span>            :   
+<span class="lineNum">     827 </span><span class="lineCov">        328 :   Int_t nPix = fPixArray-&gt;GetLast()+1;</span>
+<span class="lineNum">     828 </span>            : 
+<span class="lineNum">     829 </span><span class="lineCov">        492 :   AliDebug(2,Form(&quot;nPix=%d iSimple=%d, precluster=&quot;,nPix,iSimple));</span>
+<span class="lineNum">     830 </span>            :   //StdoutToAliDebug(2,cluster.Print(&quot;full&quot;););
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span><span class="lineCov">        164 :   if ( nPix &lt; 0 )</span>
+<span class="lineNum">     833 </span>            :   {
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :     AliDebug(1,&quot;No pixels, why am I here then ?&quot;);</span>
+<span class="lineNum">     835 </span>            :   }
+<span class="lineNum">     836 </span>            :   
+<span class="lineNum">     837 </span><span class="lineCov">        164 :   AddVirtualPad(cluster); // add virtual pads if necessary</span>
+<span class="lineNum">     838 </span>            :   
+<span class="lineNum">     839 </span><span class="lineCov">        164 :   Int_t npadTot = cluster.Multiplicity();</span>
+<span class="lineNum">     840 </span>            :   Int_t npadOK = 0;
+<span class="lineNum">     841 </span><span class="lineCov">       3188 :   for (Int_t i = 0; i &lt; npadTot; ++i) </span>
+<span class="lineNum">     842 </span>            :   {
+<span class="lineNum">     843 </span>            :     //if (cluster.Pad(i)-&gt;Status() == 0) ++npadOK;
+<span class="lineNum">     844 </span><span class="lineCov">       2860 :     if (cluster.Pad(i)-&gt;Status() == fgkZero) ++npadOK;</span>
+<span class="lineNum">     845 </span>            :   }
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            :   Double_t* coef(0x0);
+<span class="lineNum">     848 </span>            :   Double_t* probi(0x0);
+<span class="lineNum">     849 </span>            :   Int_t lc(0); // loop counter
+<span class="lineNum">     850 </span>            :   
+<span class="lineNum">     851 </span>            :   //Plot(&quot;mlem.start&quot;);
+<span class="lineNum">     852 </span><span class="lineCov">        164 :   AliMUONPad* pixPtr = Pixel(0);</span>
+<span class="lineNum">     853 </span><span class="lineCov">        164 :   Double_t xylim[4] = {pixPtr-&gt;X(), -pixPtr-&gt;X(), pixPtr-&gt;Y(), -pixPtr-&gt;Y()};</span>
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span><span class="lineCov">        164 :   while (1) </span>
+<span class="lineNum">     856 </span>            :   {
+<span class="lineNum">     857 </span><span class="lineCov">        332 :     ++lc;</span>
+<span class="lineNum">     858 </span><span class="lineCov">        500 :     delete fHistMlem;</span>
+<span class="lineNum">     859 </span><span class="lineCov">        332 :     fHistMlem = 0x0;</span>
+<span class="lineNum">     860 </span>            :     
+<span class="lineNum">     861 </span><span class="lineCov">        996 :     AliDebug(2,Form(&quot;lc %d nPix %d(%d) npadTot %d npadOK %d&quot;,lc,nPix,fPixArray-&gt;GetLast()+1,npadTot,npadOK));</span>
+<span class="lineNum">     862 </span><span class="lineCov">        996 :     AliDebug(2,Form(&quot;EVT%d PixArray=&quot;,fEventNumber));</span>
+<span class="lineNum">     863 </span>            :     //StdoutToAliDebug(2,fPixArray-&gt;Print(&quot;full&quot;));
+<span class="lineNum">     864 </span>            :         
+<span class="lineNum">     865 </span><span class="lineCov">        332 :     coef = new Double_t [npadTot*nPix];</span>
+<span class="lineNum">     866 </span><span class="lineCov">        332 :     probi = new Double_t [nPix];</span>
+<span class="lineNum">     867 </span>            : 
+<span class="lineNum">     868 </span>            :     // Calculate coefficients and pixel visibilities
+<span class="lineNum">     869 </span><span class="lineCov">        332 :     ComputeCoefficients(cluster,coef,probi);</span>
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineCov">       5890 :     for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) </span>
+<span class="lineNum">     872 </span>            :     {
+<span class="lineNum">     873 </span><span class="lineCov">       2613 :       if (probi[ipix] &lt; 0.01) </span>
+<span class="lineNum">     874 </span>            :       {
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :         AliMUONPad* pixel = Pixel(ipix);</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :         AliDebug(2,Form(&quot;Setting the following pixel to invisible as its probi&lt;0.01:&quot;));</span>
+<span class="lineNum">     877 </span>            :         //StdoutToAliDebug(2,cout &lt;&lt; Form(&quot; -- ipix %3d --- &quot;); pixel-&gt;Print(););
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :         pixel-&gt;SetCharge(0); // &quot;invisible&quot; pixel</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     880 </span>            :     }
+<span class="lineNum">     881 </span>            :     
+<span class="lineNum">     882 </span>            :     // MLEM algorithm
+<span class="lineNum">     883 </span><span class="lineCov">        332 :     Mlem(cluster,coef, probi, 15);</span>
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span>            :     // Find histogram limits for the 1'st pass only - for others computed below
+<span class="lineNum">     886 </span><span class="lineCov">        332 :     if (lc == 1) {</span>
+<span class="lineNum">     887 </span><span class="lineCov">       2020 :       for ( Int_t ipix = 1; ipix &lt; nPix; ++ipix ) </span>
+<span class="lineNum">     888 </span>            :         {
+<span class="lineNum">     889 </span><span class="lineCov">        846 :           pixPtr = Pixel(ipix);</span>
+<span class="lineNum">     890 </span><span class="lineCov">       5076 :           for ( Int_t i = 0; i &lt; 2; ++i ) </span>
+<span class="lineNum">     891 </span>            :             {
+<span class="lineNum">     892 </span><span class="lineCov">       1692 :               Int_t indx = i * 2;</span>
+<span class="lineNum">     893 </span><span class="lineCov">       1814 :               if (pixPtr-&gt;Coord(i) &lt; xylim[indx]) xylim[indx] = pixPtr-&gt;Coord(i); </span>
+<span class="lineNum">     894 </span><span class="lineCov">       2000 :               else if (-pixPtr-&gt;Coord(i) &lt; xylim[indx+1]) xylim[indx+1] = -pixPtr-&gt;Coord(i); </span>
+<span class="lineNum">     895 </span>            :             }
+<span class="lineNum">     896 </span>            :         }
+<span class="lineNum">     897 </span><span class="lineCov">        332 :     } else pixPtr = Pixel(0);</span>
+<span class="lineNum">     898 </span>            : 
+<span class="lineNum">     899 </span><span class="lineCov">       3320 :     for (Int_t i = 0; i &lt; 4; i++) </span>
+<span class="lineNum">     900 </span>            :     {
+<span class="lineNum">     901 </span><span class="lineCov">       1328 :       xylim[i] -= pixPtr-&gt;Size(i/2); </span>
+<span class="lineNum">     902 </span>            :     }
+<span class="lineNum">     903 </span>            :     
+<span class="lineNum">     904 </span><span class="lineCov">        332 :     Int_t nx = TMath::Nint ((-xylim[1]-xylim[0])/pixPtr-&gt;Size(0)/2);</span>
+<span class="lineNum">     905 </span><span class="lineCov">        332 :     Int_t ny = TMath::Nint ((-xylim[3]-xylim[2])/pixPtr-&gt;Size(1)/2);</span>
+<span class="lineNum">     906 </span>            : 
+<span class="lineNum">     907 </span>            :     //StdoutToAliDebug(2,cout &lt;&lt; &quot;pixel used for nx,ny computation : &quot;; pixPtr-&gt;Print(););
+<span class="lineNum">     908 </span><span class="lineCov">        996 :     AliDebug(2,Form(&quot;lc %d pixPtr size = %e,%e nx,ny=%d,%d xylim=%e,%e,%e,%e&quot;,</span>
+<span class="lineNum">     909 </span>            :                     lc,pixPtr-&gt;Size(0),pixPtr-&gt;Size(1),nx,ny,
+<span class="lineNum">     910 </span>            :                     xylim[0],-xylim[1],xylim[2],-xylim[3]
+<span class="lineNum">     911 </span>            :                     ));
+<span class="lineNum">     912 </span>            :     
+<span class="lineNum">     913 </span><span class="lineCov">        996 :     AliDebug(2,Form(&quot;LowestPadCharge=%e&quot;,fLowestPadCharge));</span>
+<span class="lineNum">     914 </span>            :     
+<span class="lineNum">     915 </span><span class="lineCov">        332 :     delete fHistMlem;</span>
+<span class="lineNum">     916 </span>            :     
+<span class="lineNum">     917 </span><span class="lineCov">        664 :     fHistMlem = new TH2D(&quot;mlem&quot;,&quot;mlem&quot;,nx,xylim[0],-xylim[1],ny,xylim[2],-xylim[3]);</span>
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span><span class="lineCov">       5890 :     for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) </span>
+<span class="lineNum">     920 </span>            :     {
+<span class="lineNum">     921 </span><span class="lineCov">       2613 :       AliMUONPad* pixPtr2 = Pixel(ipix);</span>
+<span class="lineNum">     922 </span><span class="lineCov">       2613 :       fHistMlem-&gt;Fill(pixPtr2-&gt;Coord(0),pixPtr2-&gt;Coord(1),pixPtr2-&gt;Charge());</span>
+<span class="lineNum">     923 </span>            :     }
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span>            :     // Check if the total charge of pixels is too low
+<span class="lineNum">     926 </span>            :     Double_t qTot = 0;
+<span class="lineNum">     927 </span><span class="lineCov">       5890 :     for ( Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">     928 </span>            :     {
+<span class="lineNum">     929 </span><span class="lineCov">       2613 :       qTot += Pixel(i)-&gt;Charge();</span>
+<span class="lineNum">     930 </span>            :     }
+<span class="lineNum">     931 </span>            :     
+<span class="lineNum">     932 </span><span class="lineCov">        664 :     if ( qTot &lt; 1.e-4 || ( npadOK &lt; 3 &amp;&amp; qTot &lt; fLowestClusterCharge ) )</span>
+<span class="lineNum">     933 </span>            :     {
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :       AliDebug(1,Form(&quot;Deleting the above cluster (charge %e too low, npadOK=%d)&quot;,qTot,npadOK));</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :       delete [] coef; </span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :       delete [] probi; </span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :       fPixArray-&gt;Delete(); </span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :       for ( Int_t i = 0; i &lt; npadTot; ++i) </span>
+<span class="lineNum">     939 </span>            :       {
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :         AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">     941 </span>            :         //if ( pad-&gt;Status() == 0) pad-&gt;SetStatus(-1);
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :         if ( pad-&gt;Status() == fgkZero) pad-&gt;SetStatus(fgkOver);</span>
+<span class="lineNum">     943 </span>            :       }
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :       return kFALSE; </span>
+<span class="lineNum">     945 </span>            :     }
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span><span class="lineCov">        332 :     if (iSimple) </span>
+<span class="lineNum">     948 </span>            :     {
+<span class="lineNum">     949 </span>            :       // Simple cluster - skip further passes thru EM-procedure
+<span class="lineNum">     950 </span><span class="lineCov">        122 :       Simple(cluster);</span>
+<span class="lineNum">     951 </span><span class="lineCov">        244 :       delete [] coef; </span>
+<span class="lineNum">     952 </span><span class="lineCov">        244 :       delete [] probi; </span>
+<span class="lineNum">     953 </span><span class="lineCov">        122 :       fPixArray-&gt;Delete(); </span>
+<span class="lineNum">     954 </span><span class="lineCov">        122 :       return kTRUE;</span>
+<span class="lineNum">     955 </span>            :     }
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span>            :     // Calculate position of the center-of-gravity around the maximum pixel
+<span class="lineNum">     958 </span><span class="lineCov">        210 :     Double_t xyCOG[2];</span>
+<span class="lineNum">     959 </span><span class="lineCov">        210 :     FindCOG(xyCOG);</span>
+<span class="lineNum">     960 </span>            : 
+<span class="lineNum">     961 </span><span class="lineCov">        252 :     if (TMath::Min(pixPtr-&gt;Size(0),pixPtr-&gt;Size(1)) &lt; 0.07 &amp;&amp; </span>
+<span class="lineNum">     962 </span><span class="lineCov">         84 :         pixPtr-&gt;Size(0) &gt; pixPtr-&gt;Size(1)) break;</span>
+<span class="lineNum">     963 </span>            : 
+<span class="lineNum">     964 </span>            :     // Sort pixels according to the charge
+<span class="lineNum">     965 </span><span class="lineCov">        168 :     MaskPeaks(1); // mask local maxima</span>
+<span class="lineNum">     966 </span><span class="lineCov">        168 :     fPixArray-&gt;Sort();</span>
+<span class="lineNum">     967 </span><span class="lineCov">        168 :     MaskPeaks(0); // unmask local maxima</span>
+<span class="lineNum">     968 </span><span class="lineCov">        168 :     Double_t pixMin = 0.01*Pixel(0)-&gt;Charge();</span>
+<span class="lineNum">     969 </span><span class="lineCov">        168 :     pixMin = TMath::Min(pixMin,100*fLowestPixelCharge);</span>
+<span class="lineNum">     970 </span>            : 
+<span class="lineNum">     971 </span>            :     // Decrease pixel size and shift pixels to make them centered at 
+<span class="lineNum">     972 </span>            :     // the maximum one
+<span class="lineNum">     973 </span><span class="lineCov">        168 :     Int_t indx = (pixPtr-&gt;Size(0)&gt;pixPtr-&gt;Size(1)) ? 0 : 1;</span>
+<span class="lineNum">     974 </span>            :     Int_t ix(1);
+<span class="lineNum">     975 </span>            :     Double_t width = 0;
+<span class="lineNum">     976 </span><span class="lineCov">        168 :     Double_t shift[2] = { 0.0, 0.0 };</span>
+<span class="lineNum">     977 </span><span class="lineCov">       1680 :     for (Int_t i = 0; i &lt; 4; ++i) xylim[i] = 999;</span>
+<span class="lineNum">     978 </span>            :     Int_t nPix1 = nPix; 
+<span class="lineNum">     979 </span>            :     nPix = 0;
+<span class="lineNum">     980 </span><span class="lineCov">       3222 :     for (Int_t ipix = 0; ipix &lt; nPix1; ++ipix) </span>
+<span class="lineNum">     981 </span>            :     {
+<span class="lineNum">     982 </span><span class="lineCov">       1443 :       AliMUONPad* pixPtr2 = Pixel(ipix);</span>
+<span class="lineNum">     983 </span><span class="lineCov">       1730 :       if ( nPix &gt;= npadOK  // too many pixels already</span>
+<span class="lineNum">     984 </span><span class="lineCov">       1443 :            ||</span>
+<span class="lineNum">     985 </span><span class="lineCov">       1312 :            ((pixPtr2-&gt;Charge() &lt; pixMin) &amp;&amp; (pixPtr2-&gt;Status() != fgkMustKeep)) // too low charge</span>
+<span class="lineNum">     986 </span>            :            ) 
+<span class="lineNum">     987 </span>            :       { 
+<span class="lineNum">     988 </span><span class="lineCov">        631 :         RemovePixel(ipix);</span>
+<span class="lineNum">     989 </span><span class="lineCov">        631 :         continue;</span>
+<span class="lineNum">     990 </span>            :       }
+<span class="lineNum">     991 </span><span class="lineCov">       4872 :       for (Int_t i = 0; i &lt; 2; ++i) </span>
+<span class="lineNum">     992 </span>            :       {
+<span class="lineNum">     993 </span><span class="lineCov">       1624 :         if (!i) </span>
+<span class="lineNum">     994 </span>            :         {
+<span class="lineNum">     995 </span><span class="lineCov">        812 :           pixPtr2-&gt;SetCharge(fLowestPadCharge);</span>
+<span class="lineNum">     996 </span><span class="lineCov">        812 :           pixPtr2-&gt;SetSize(indx, pixPtr2-&gt;Size(indx)/2);</span>
+<span class="lineNum">     997 </span><span class="lineCov">        812 :           width = -pixPtr2-&gt;Size(indx);</span>
+<span class="lineNum">     998 </span><span class="lineCov">        812 :           pixPtr2-&gt;Shift(indx, width);</span>
+<span class="lineNum">     999 </span>            :           // Shift pixel position
+<span class="lineNum">    1000 </span><span class="lineCov">        812 :           if (ix) </span>
+<span class="lineNum">    1001 </span>            :           {
+<span class="lineNum">    1002 </span>            :             ix = 0;
+<span class="lineNum">    1003 </span><span class="lineCov">       1008 :             for (Int_t j = 0; j &lt; 2; ++j) </span>
+<span class="lineNum">    1004 </span>            :             {
+<span class="lineNum">    1005 </span><span class="lineCov">        336 :               shift[j] = pixPtr2-&gt;Coord(j) - xyCOG[j];</span>
+<span class="lineNum">    1006 </span><span class="lineCov">        336 :               shift[j] -= ((Int_t)(shift[j]/pixPtr2-&gt;Size(j)/2))*pixPtr2-&gt;Size(j)*2;</span>
+<span class="lineNum">    1007 </span>            :             }
+<span class="lineNum">    1008 </span><span class="lineCov">        168 :           } // if (ix)</span>
+<span class="lineNum">    1009 </span><span class="lineCov">        812 :           pixPtr2-&gt;Shift(0, -shift[0]);</span>
+<span class="lineNum">    1010 </span><span class="lineCov">        812 :           pixPtr2-&gt;Shift(1, -shift[1]);</span>
+<span class="lineNum">    1011 </span><span class="lineCov">        812 :           ++nPix;</span>
+<span class="lineNum">    1012 </span><span class="lineCov">        812 :         } </span>
+<span class="lineNum">    1013 </span><span class="lineCov">        812 :         else if (nPix &lt; npadOK)</span>
+<span class="lineNum">    1014 </span>            :         {
+<span class="lineNum">    1015 </span><span class="lineCov">        739 :           pixPtr2 = new AliMUONPad(*pixPtr2);</span>
+<span class="lineNum">    1016 </span><span class="lineCov">        739 :           pixPtr2-&gt;Shift(indx, -2*width);</span>
+<span class="lineNum">    1017 </span><span class="lineCov">        739 :           pixPtr2-&gt;SetStatus(fgkZero);</span>
+<span class="lineNum">    1018 </span><span class="lineCov">        739 :           fPixArray-&gt;Add(pixPtr2);</span>
+<span class="lineNum">    1019 </span><span class="lineCov">        739 :           ++nPix;</span>
+<span class="lineNum">    1020 </span>            :         } 
+<span class="lineNum">    1021 </span>            :         else continue; // skip adjustment of histo limits
+<span class="lineNum">    1022 </span><span class="lineCov">      15510 :         for (Int_t j = 0; j &lt; 4; ++j) </span>
+<span class="lineNum">    1023 </span>            :         {
+<span class="lineNum">    1024 </span><span class="lineCov">       6204 :           xylim[j] = TMath::Min (xylim[j], (j%2 ? -1 : 1)*pixPtr2-&gt;Coord(j/2));</span>
+<span class="lineNum">    1025 </span>            :         }
+<span class="lineNum">    1026 </span><span class="lineCov">       1551 :       } // for (Int_t i=0; i&lt;2;</span>
+<span class="lineNum">    1027 </span><span class="lineCov">        812 :     } // for (Int_t ipix=0;</span>
+<span class="lineNum">    1028 </span>            :     
+<span class="lineNum">    1029 </span><span class="lineCov">        168 :     fPixArray-&gt;Compress();</span>
+<span class="lineNum">    1030 </span>            : 
+<span class="lineNum">    1031 </span><span class="lineCov">        504 :     AliDebug(2,Form(&quot;After shift:&quot;));</span>
+<span class="lineNum">    1032 </span>            :     //StdoutToAliDebug(2,fPixArray-&gt;Print(&quot;&quot;,&quot;full&quot;););
+<span class="lineNum">    1033 </span>            :     //Plot(Form(&quot;mlem.lc%d&quot;,lc+1));
+<span class="lineNum">    1034 </span>            :     
+<span class="lineNum">    1035 </span><span class="lineCov">        504 :     AliDebug(2,Form(&quot; xyCOG=%9.6f %9.6f xylim=%9.6f,%9.6f,%9.6f,%9.6f&quot;,</span>
+<span class="lineNum">    1036 </span>            :                     xyCOG[0],xyCOG[1],
+<span class="lineNum">    1037 </span>            :                     xylim[0],xylim[1],
+<span class="lineNum">    1038 </span>            :                     xylim[2],xylim[3]));
+<span class="lineNum">    1039 </span>            : 
+<span class="lineNum">    1040 </span><span class="lineCov">        168 :     if (nPix &lt; npadOK)</span>
+<span class="lineNum">    1041 </span>            :     {
+<span class="lineNum">    1042 </span><span class="lineCov">         59 :       AliMUONPad* pixPtr2 = Pixel(0);</span>
+<span class="lineNum">    1043 </span>            :       // add pixels if the maximum is at the limit of pixel area:
+<span class="lineNum">    1044 </span>            :       // start from Y-direction
+<span class="lineNum">    1045 </span>            :       Int_t j = 0;
+<span class="lineNum">    1046 </span><span class="lineCov">        590 :       for (Int_t i = 3; i &gt; -1; --i) </span>
+<span class="lineNum">    1047 </span>            :       {
+<span class="lineNum">    1048 </span><span class="lineCov">        465 :         if (nPix &lt; npadOK &amp;&amp; </span>
+<span class="lineNum">    1049 </span><span class="lineCov">        229 :             TMath::Abs((i%2 ? -1 : 1)*xylim[i]-xyCOG[i/2]) &lt; pixPtr2-&gt;Size(i/2)) </span>
+<span class="lineNum">    1050 </span>            :         {
+<span class="lineNum">    1051 </span>            :           //AliMUONPad* p = static_cast&lt;AliMUONPad*&gt;(pixPtr-&gt;Clone());
+<span class="lineNum">    1052 </span><span class="lineCov">         52 :           AliMUONPad* p = new AliMUONPad(*pixPtr2);</span>
+<span class="lineNum">    1053 </span><span class="lineCov">         52 :           p-&gt;SetCoord(i/2, xyCOG[i/2]+(i%2 ? 2:-2)*pixPtr2-&gt;Size(i/2));</span>
+<span class="lineNum">    1054 </span><span class="lineCov">         52 :           xylim[i] = p-&gt;Coord(i/2) * (i%2 ? -1 : 1); // update histo limits</span>
+<span class="lineNum">    1055 </span><span class="lineCov">         52 :           j = TMath::Even (i/2);</span>
+<span class="lineNum">    1056 </span><span class="lineCov">         52 :           p-&gt;SetCoord(j, xyCOG[j]);</span>
+<span class="lineNum">    1057 </span><span class="lineCov">        156 :           AliDebug(2,Form(&quot;Adding pixel on the edge (i=%d) &quot;,i));</span>
+<span class="lineNum">    1058 </span>            :           //StdoutToAliDebug(2,cout &lt;&lt; &quot; ---- &quot;; 
+<span class="lineNum">    1059 </span>            :           //               p-&gt;Print(&quot;corners&quot;););
+<span class="lineNum">    1060 </span><span class="lineCov">         52 :           fPixArray-&gt;Add(p);</span>
+<span class="lineNum">    1061 </span><span class="lineCov">         52 :           ++nPix;</span>
+<span class="lineNum">    1062 </span><span class="lineCov">         52 :         }</span>
+<span class="lineNum">    1063 </span>            :       }
+<span class="lineNum">    1064 </span><span class="lineCov">         59 :     } </span>
+<span class="lineNum">    1065 </span><span class="lineCov">        168 :     nPix = fPixArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1066 </span><span class="lineCov">        336 :     delete [] coef; </span>
+<span class="lineNum">    1067 </span><span class="lineCov">        336 :     delete [] probi; </span>
+<span class="lineNum">    1068 </span><span class="lineCov">        378 :   } // while (1)</span>
+<span class="lineNum">    1069 </span>            : 
+<span class="lineNum">    1070 </span><span class="lineCov">        126 :   AliDebug(2,Form(&quot;At the end of while loop nPix=%d : &quot;,fPixArray-&gt;GetLast()+1));</span>
+<span class="lineNum">    1071 </span>            :   //StdoutToAliDebug(2,fPixArray-&gt;Print(&quot;&quot;,&quot;full&quot;););
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span>            :   // remove pixels with low signal or low visibility
+<span class="lineNum">    1074 </span>            :   // Cuts are empirical !!!
+<span class="lineNum">    1075 </span><span class="lineCov">         42 :   Double_t thresh = TMath::Max (fHistMlem-&gt;GetMaximum()/100.,2.0*fLowestPixelCharge);</span>
+<span class="lineNum">    1076 </span><span class="lineCov">         42 :   thresh = TMath::Min (thresh,100.0*fLowestPixelCharge);</span>
+<span class="lineNum">    1077 </span>            :   Double_t charge = 0;
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span>            :   // Mark pixels which should be removed
+<span class="lineNum">    1080 </span><span class="lineCov">        988 :   for (Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">    1081 </span>            :   {
+<span class="lineNum">    1082 </span><span class="lineCov">        452 :     AliMUONPad* pixPtr2 = Pixel(i);</span>
+<span class="lineNum">    1083 </span><span class="lineCov">        452 :     charge = pixPtr2-&gt;Charge();</span>
+<span class="lineNum">    1084 </span><span class="lineCov">        452 :     if (charge &lt; thresh) </span>
+<span class="lineNum">    1085 </span>            :     {
+<span class="lineNum">    1086 </span><span class="lineCov">         45 :       pixPtr2-&gt;SetCharge(-charge);</span>
+<span class="lineNum">    1087 </span><span class="lineCov">         45 :     }</span>
+<span class="lineNum">    1088 </span>            :   }
+<span class="lineNum">    1089 </span>            : 
+<span class="lineNum">    1090 </span>            :   // Move charge of removed pixels to their nearest neighbour (to keep total charge the same)
+<span class="lineNum">    1091 </span>            :   Int_t near = 0;
+<span class="lineNum">    1092 </span><span class="lineCov">        988 :   for (Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">    1093 </span>            :   {
+<span class="lineNum">    1094 </span><span class="lineCov">        452 :     AliMUONPad* pixPtr2 = Pixel(i);</span>
+<span class="lineNum">    1095 </span><span class="lineCov">        452 :     charge = pixPtr2-&gt;Charge();</span>
+<span class="lineNum">    1096 </span><span class="lineCov">        859 :     if (charge &gt; 0) continue;</span>
+<span class="lineNum">    1097 </span><span class="lineCov">         45 :     near = FindNearest(pixPtr2);</span>
+<span class="lineNum">    1098 </span><span class="lineCov">         45 :     pixPtr2-&gt;SetCharge(0);</span>
+<span class="lineNum">    1099 </span><span class="lineCov">         45 :     probi[i] = 0; // make it &quot;invisible&quot;</span>
+<span class="lineNum">    1100 </span><span class="lineCov">         45 :     AliMUONPad* pnear = Pixel(near);</span>
+<span class="lineNum">    1101 </span><span class="lineCov">         45 :     pnear-&gt;SetCharge(pnear-&gt;Charge() + (-charge));</span>
+<span class="lineNum">    1102 </span><span class="lineCov">         45 :   }</span>
+<span class="lineNum">    1103 </span><span class="lineCov">         42 :   Mlem(cluster,coef,probi,2);</span>
+<span class="lineNum">    1104 </span>            :   
+<span class="lineNum">    1105 </span><span class="lineCov">        126 :   AliDebug(2,Form(&quot;Before splitting nPix=%d EVT %d DE %d&quot;,fPixArray-&gt;GetLast()+1,fEventNumber,fDetElemId));</span>
+<span class="lineNum">    1106 </span>            :   //StdoutToAliDebug(2,fPixArray-&gt;Print(&quot;&quot;,&quot;full&quot;););
+<span class="lineNum">    1107 </span>            :   //Plot(&quot;mlem.beforesplit&quot;);
+<span class="lineNum">    1108 </span>            :   
+<span class="lineNum">    1109 </span>            :   // Update histogram
+<span class="lineNum">    1110 </span><span class="lineCov">        988 :   for (Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">    1111 </span>            :   {
+<span class="lineNum">    1112 </span><span class="lineCov">        452 :     AliMUONPad* pixPtr2 = Pixel(i);</span>
+<span class="lineNum">    1113 </span><span class="lineCov">        452 :     Int_t ix = fHistMlem-&gt;GetXaxis()-&gt;FindBin(pixPtr2-&gt;Coord(0));</span>
+<span class="lineNum">    1114 </span><span class="lineCov">        452 :     Int_t iy = fHistMlem-&gt;GetYaxis()-&gt;FindBin(pixPtr2-&gt;Coord(1));</span>
+<span class="lineNum">    1115 </span><span class="lineCov">        452 :     fHistMlem-&gt;SetBinContent(ix, iy, pixPtr2-&gt;Charge());</span>
+<span class="lineNum">    1116 </span>            :   }
+<span class="lineNum">    1117 </span>            : 
+<span class="lineNum">    1118 </span>            :   // Try to split into clusters
+<span class="lineNum">    1119 </span>            :   Bool_t ok = kTRUE;
+<span class="lineNum">    1120 </span><span class="lineCov">         42 :   if (fHistMlem-&gt;GetSum() &lt; 2.0*fLowestPixelCharge) </span>
+<span class="lineNum">    1121 </span>            :   {
+<span class="lineNum">    1122 </span>            :     ok = kFALSE;
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1124 </span>            :   else 
+<span class="lineNum">    1125 </span>            :   {
+<span class="lineNum">    1126 </span><span class="lineCov">         42 :     fSplitter-&gt;Split(cluster,fHistMlem,coef,fClusterList);</span>
+<span class="lineNum">    1127 </span>            :   }
+<span class="lineNum">    1128 </span>            :   
+<span class="lineNum">    1129 </span><span class="lineCov">         84 :   delete [] coef; </span>
+<span class="lineNum">    1130 </span><span class="lineCov">         84 :   delete [] probi; </span>
+<span class="lineNum">    1131 </span><span class="lineCov">         42 :   fPixArray-&gt;Delete(); </span>
+<span class="lineNum">    1132 </span>            :   
+<span class="lineNum">    1133 </span><span class="lineCov">         42 :   return ok;</span>
+<span class="lineNum">    1134 </span><span class="lineCov">        164 : }</span>
+<a name="1135"><span class="lineNum">    1135 </span>            : </a>
+<span class="lineNum">    1136 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1137 </span>            : void AliMUONClusterFinderMLEM::MaskPeaks(Int_t mask)
+<span class="lineNum">    1138 </span>            : {
+<span class="lineNum">    1139 </span>            :   /// Mask/unmask pixels corresponding to local maxima (add/subtract 10000 to their charge
+<span class="lineNum">    1140 </span>            :   /// - to avoid loosing low charge pixels after sorting)
+<span class="lineNum">    1141 </span>            : 
+<span class="lineNum">    1142 </span><span class="lineCov">       6780 :   for (Int_t i = 0; i &lt; fPixArray-&gt;GetEntriesFast(); ++i) {</span>
+<span class="lineNum">    1143 </span><span class="lineCov">       2886 :     AliMUONPad* pix = Pixel(i);</span>
+<span class="lineNum">    1144 </span><span class="lineCov">       2886 :     if (pix-&gt;Status() == fgkMustKeep) {</span>
+<span class="lineNum">    1145 </span><span class="lineCov">        957 :       if (mask == 1) pix-&gt;SetCharge(pix-&gt;Charge()+10000.);</span>
+<span class="lineNum">    1146 </span><span class="lineCov">        319 :       else pix-&gt;SetCharge(pix-&gt;Charge()-10000.);</span>
+<span class="lineNum">    1147 </span>            :     }
+<span class="lineNum">    1148 </span>            :   }
+<span class="lineNum">    1149 </span><span class="lineCov">        336 : }</span>
+<a name="1150"><span class="lineNum">    1150 </span>            : </a>
+<span class="lineNum">    1151 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1152 </span>            : void AliMUONClusterFinderMLEM::Mlem(AliMUONCluster&amp; cluster, 
+<span class="lineNum">    1153 </span>            :                                     const Double_t* coef, Double_t* probi, 
+<span class="lineNum">    1154 </span>            :                                     Int_t nIter)
+<span class="lineNum">    1155 </span>            : {
+<span class="lineNum">    1156 </span>            :   /// Use MLEM to find pixel charges
+<span class="lineNum">    1157 </span>            :   
+<span class="lineNum">    1158 </span><span class="lineCov">        748 :   Int_t nPix = fPixArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1159 </span>            : 
+<span class="lineNum">    1160 </span><span class="lineCov">        374 :   Int_t npad = cluster.Multiplicity();</span>
+<span class="lineNum">    1161 </span>            : 
+<span class="lineNum">    1162 </span><span class="lineCov">        374 :   Double_t* probi1 = new Double_t[nPix];</span>
+<span class="lineNum">    1163 </span><span class="lineCov">        374 :   Double_t probMax = TMath::MaxElement(nPix,probi);</span>
+<span class="lineNum">    1164 </span>            :   
+<span class="lineNum">    1165 </span><span class="lineCov">      11250 :   for (Int_t iter = 0; iter &lt; nIter; ++iter) </span>
+<span class="lineNum">    1166 </span>            :   {
+<span class="lineNum">    1167 </span>            :     // Do iterations
+<span class="lineNum">    1168 </span><span class="lineCov">      90326 :     for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) </span>
+<span class="lineNum">    1169 </span>            :     {
+<span class="lineNum">    1170 </span><span class="lineCov">      40099 :       Pixel(ipix)-&gt;SetChargeBackup(0);</span>
+<span class="lineNum">    1171 </span>            :       // Correct each pixel
+<span class="lineNum">    1172 </span><span class="lineCov">      40099 :       probi1[ipix] = 0;</span>
+<span class="lineNum">    1173 </span><span class="lineCov">      40099 :       if (probi[ipix] &lt; 0.01) continue; // skip &quot;invisible&quot; pixel</span>
+<span class="lineNum">    1174 </span>            :       Double_t sum = 0;
+<span class="lineNum">    1175 </span><span class="lineCov">      40009 :       probi1[ipix] = probMax;</span>
+<span class="lineNum">    1176 </span><span class="lineCov">     914276 :       for (Int_t j = 0; j &lt; npad; ++j) </span>
+<span class="lineNum">    1177 </span>            :       {
+<span class="lineNum">    1178 </span><span class="lineCov">     417129 :         AliMUONPad* pad = cluster.Pad(j);</span>
+<span class="lineNum">    1179 </span>            :         //if (pad-&gt;Status() &lt; 0) continue; 
+<span class="lineNum">    1180 </span><span class="lineCov">     417129 :         if (pad-&gt;Status() != fgkZero) continue; </span>
+<span class="lineNum">    1181 </span>            :         Double_t sum1 = 0;
+<span class="lineNum">    1182 </span><span class="lineCov">     417129 :         Int_t indx1 = j*nPix;</span>
+<span class="lineNum">    1183 </span><span class="lineCov">     417129 :         Int_t indx = indx1 + ipix;</span>
+<span class="lineNum">    1184 </span>            :         // Calculate expectation
+<span class="lineNum">    1185 </span><span class="lineCov">    8742000 :         for (Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">    1186 </span>            :         {
+<span class="lineNum">    1187 </span><span class="lineCov">    3953871 :           sum1 += Pixel(i)-&gt;Charge()*coef[indx1+i];</span>
+<span class="lineNum">    1188 </span>            :           //cout &lt;&lt; i &lt;&lt; &quot; &quot; &lt;&lt; Pixel(i)-&gt;Charge() &lt;&lt; &quot; &quot; &lt;&lt; coef[indx1+i] &lt;&lt; endl;
+<span class="lineNum">    1189 </span>            :         } 
+<span class="lineNum">    1190 </span><span class="lineCov">     417129 :         if ( pad-&gt;IsSaturated() &amp;&amp; sum1 &gt; pad-&gt;Charge() ) </span>
+<span class="lineNum">    1191 </span>            :         { 
+<span class="lineNum">    1192 </span>            :           // correct for pad charge overflows
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :           probi1[ipix] -= coef[indx]; </span>
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :           continue; </span>
+<span class="lineNum">    1195 </span>            :           //sum1 = pad-&gt;Charge();
+<span class="lineNum">    1196 </span>            :         } 
+<span class="lineNum">    1197 </span>            : 
+<span class="lineNum">    1198 </span><span class="lineCov">     834258 :         if (sum1 &gt; 1.e-6) sum += pad-&gt;Charge()*coef[indx]/sum1;</span>
+<span class="lineNum">    1199 </span><span class="lineCov">     417129 :       } // for (Int_t j=0;</span>
+<span class="lineNum">    1200 </span><span class="lineCov">      40009 :       AliMUONPad* pixPtr = Pixel(ipix);</span>
+<span class="lineNum">    1201 </span><span class="lineCov">      40009 :       if (probi1[ipix] &gt; 1.e-6) </span>
+<span class="lineNum">    1202 </span>            :       {
+<span class="lineNum">    1203 </span>            :         //AZ pixPtr-&gt;SetCharge(pixPtr-&gt;Charge()*sum/probi1[ipix]);
+<span class="lineNum">    1204 </span><span class="lineCov">      40009 :         pixPtr-&gt;SetChargeBackup(pixPtr-&gt;Charge()*sum/probi1[ipix]);</span>
+<span class="lineNum">    1205 </span><span class="lineCov">      40009 :       }</span>
+<span class="lineNum">    1206 </span>            :       //cout &lt;&lt; &quot; xxx &quot; &lt;&lt; ipix &lt;&lt; &quot; &quot; &lt;&lt; pixPtr-&gt;Charge() &lt;&lt; &quot; &quot; &lt;&lt; pixPtr-&gt;ChargeBackup() &lt;&lt; &quot; &quot; &lt;&lt; sum &lt;&lt; &quot; &quot; &lt;&lt; probi1[ipix] &lt;&lt; endl;
+<span class="lineNum">    1207 </span><span class="lineCov">      40009 :     } // for (Int_t ipix=0;</span>
+<span class="lineNum">    1208 </span>            :     Double_t qTot = 0;
+<span class="lineNum">    1209 </span><span class="lineCov">      90326 :     for (Int_t i = 0; i &lt; nPix; ++i) {</span>
+<span class="lineNum">    1210 </span><span class="lineCov">      40099 :       AliMUONPad* pixPtr = Pixel(i);</span>
+<span class="lineNum">    1211 </span><span class="lineCov">      40099 :       pixPtr-&gt;RevertCharge();</span>
+<span class="lineNum">    1212 </span><span class="lineCov">      40099 :       qTot += pixPtr-&gt;Charge();</span>
+<span class="lineNum">    1213 </span>            :     }
+<span class="lineNum">    1214 </span><span class="lineCov">       5064 :     if (qTot &lt; 1.e-6) {</span>
+<span class="lineNum">    1215 </span>            :       // Can happen in clusters with large number of overflows - speeding up 
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :       delete [] probi1;</span>
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">    1218 </span>            :     }
+<span class="lineNum">    1219 </span><span class="lineCov">       5064 :   } // for (Int_t iter=0;</span>
+<span class="lineNum">    1220 </span><span class="lineCov">        748 :   delete [] probi1;</span>
+<span class="lineNum">    1221 </span><span class="lineCov">        748 : }</span>
+<a name="1222"><span class="lineNum">    1222 </span>            : </a>
+<span class="lineNum">    1223 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1224 </span>            : void AliMUONClusterFinderMLEM::FindCOG(Double_t *xyc)
+<span class="lineNum">    1225 </span>            : {
+<span class="lineNum">    1226 </span>            :   /// Calculate position of the center-of-gravity around the maximum pixel
+<span class="lineNum">    1227 </span>            : 
+<span class="lineNum">    1228 </span><span class="lineCov">        420 :   Int_t ixmax, iymax, ix, nsumx=0, nsumy=0, nsum=0;</span>
+<span class="lineNum">    1229 </span>            :   Int_t i1 = -9, j1 = -9;
+<span class="lineNum">    1230 </span><span class="lineCov">        210 :   fHistMlem-&gt;GetMaximumBin(ixmax,iymax,ix);</span>
+<span class="lineNum">    1231 </span><span class="lineCov">        210 :   Int_t nx = fHistMlem-&gt;GetNbinsX();</span>
+<span class="lineNum">    1232 </span><span class="lineCov">        210 :   Int_t ny = fHistMlem-&gt;GetNbinsY();</span>
+<span class="lineNum">    1233 </span><span class="lineCov">        210 :   Double_t thresh = fHistMlem-&gt;GetMaximum()/10;</span>
+<span class="lineNum">    1234 </span>            :   Double_t x, y, cont, xq=0, yq=0, qq=0;
+<span class="lineNum">    1235 </span>            :   
+<span class="lineNum">    1236 </span><span class="lineCov">        210 :   Int_t ie = TMath::Min(ny,iymax+1), je = TMath::Min(nx,ixmax+1);</span>
+<span class="lineNum">    1237 </span><span class="lineCov">       1576 :   for (Int_t i = TMath::Max(1,iymax-1); i &lt;= ie; ++i) {</span>
+<span class="lineNum">    1238 </span><span class="lineCov">        578 :     y = fHistMlem-&gt;GetYaxis()-&gt;GetBinCenter(i);</span>
+<span class="lineNum">    1239 </span><span class="lineCov">       4408 :     for (Int_t j = TMath::Max(1,ixmax-1); j &lt;= je; ++j) {</span>
+<span class="lineNum">    1240 </span><span class="lineCov">       1626 :       cont = fHistMlem-&gt;GetBinContent(fHistMlem-&gt;GetBin(j,i));</span>
+<span class="lineNum">    1241 </span><span class="lineCov">       1626 :       if (cont &lt; thresh) continue;</span>
+<span class="lineNum">    1242 </span><span class="lineCov">       1212 :       if (i != i1) {i1 = i; nsumy++;}</span>
+<span class="lineNum">    1243 </span><span class="lineCov">       1479 :       if (j != j1) {j1 = j; nsumx++;}</span>
+<span class="lineNum">    1244 </span><span class="lineCov">        776 :       x = fHistMlem-&gt;GetXaxis()-&gt;GetBinCenter(j);</span>
+<span class="lineNum">    1245 </span><span class="lineCov">        776 :       xq += x*cont;</span>
+<span class="lineNum">    1246 </span><span class="lineCov">        776 :       yq += y*cont;</span>
+<span class="lineNum">    1247 </span><span class="lineCov">        776 :       qq += cont;</span>
+<span class="lineNum">    1248 </span><span class="lineCov">        776 :       nsum++;</span>
+<span class="lineNum">    1249 </span><span class="lineCov">        776 :     }</span>
+<span class="lineNum">    1250 </span>            :   }
+<span class="lineNum">    1251 </span>            :   
+<span class="lineNum">    1252 </span>            :   Double_t cmax = 0;
+<span class="lineNum">    1253 </span>            :   Int_t i2 = 0, j2 = 0;
+<span class="lineNum">    1254 </span>            :   x = y = 0;
+<span class="lineNum">    1255 </span><span class="lineCov">        210 :   if (nsumy == 1) {</span>
+<span class="lineNum">    1256 </span>            :     // one bin in Y - add one more (with the largest signal)
+<span class="lineNum">    1257 </span><span class="lineCov">        428 :     for (Int_t i = TMath::Max(1,iymax-1); i &lt;= ie; ++i) {</span>
+<span class="lineNum">    1258 </span><span class="lineCov">        156 :       if (i == iymax) continue;</span>
+<span class="lineNum">    1259 </span><span class="lineCov">        744 :       for (Int_t j = TMath::Max(1,ixmax-1); j &lt;= je; ++j) {</span>
+<span class="lineNum">    1260 </span><span class="lineCov">        274 :         cont = fHistMlem-&gt;GetBinContent(fHistMlem-&gt;GetBin(j,i));</span>
+<span class="lineNum">    1261 </span><span class="lineCov">        274 :         if (cont &gt; cmax) {</span>
+<span class="lineNum">    1262 </span>            :           cmax = cont;
+<span class="lineNum">    1263 </span><span class="lineCov">        102 :           x = fHistMlem-&gt;GetXaxis()-&gt;GetBinCenter(j);</span>
+<span class="lineNum">    1264 </span><span class="lineCov">        102 :           y = fHistMlem-&gt;GetYaxis()-&gt;GetBinCenter(i);</span>
+<span class="lineNum">    1265 </span>            :           i2 = i;
+<span class="lineNum">    1266 </span>            :           j2 = j;
+<span class="lineNum">    1267 </span><span class="lineCov">        102 :         }</span>
+<span class="lineNum">    1268 </span>            :       }
+<span class="lineNum">    1269 </span><span class="lineCov">         98 :     }</span>
+<span class="lineNum">    1270 </span><span class="lineCov">         58 :     xq += x*cmax;</span>
+<span class="lineNum">    1271 </span><span class="lineCov">         58 :     yq += y*cmax;</span>
+<span class="lineNum">    1272 </span><span class="lineCov">         58 :     qq += cmax;</span>
+<span class="lineNum">    1273 </span><span class="lineCov">        116 :     if (i2 != i1) nsumy++;</span>
+<span class="lineNum">    1274 </span><span class="lineCov">         86 :     if (j2 != j1) nsumx++;</span>
+<span class="lineNum">    1275 </span><span class="lineCov">         58 :     nsum++;</span>
+<span class="lineNum">    1276 </span><span class="lineCov">         58 :   } // if (nsumy == 1)</span>
+<span class="lineNum">    1277 </span>            :   
+<span class="lineNum">    1278 </span><span class="lineCov">        210 :   if (nsumx == 1) {</span>
+<span class="lineNum">    1279 </span>            :     // one bin in X - add one more (with the largest signal)
+<span class="lineNum">    1280 </span>            :     cmax = x = y = 0;
+<span class="lineNum">    1281 </span><span class="lineCov">        372 :     for (Int_t j = TMath::Max(1,ixmax-1); j &lt;= je; ++j) {</span>
+<span class="lineNum">    1282 </span><span class="lineCov">        136 :       if (j == ixmax) continue;</span>
+<span class="lineNum">    1283 </span><span class="lineCov">        676 :       for (Int_t i = TMath::Max(1,iymax-1); i &lt;= ie; ++i) {</span>
+<span class="lineNum">    1284 </span><span class="lineCov">        252 :         cont = fHistMlem-&gt;GetBinContent(fHistMlem-&gt;GetBin(j,i));</span>
+<span class="lineNum">    1285 </span><span class="lineCov">        252 :         if (cont &gt; cmax) {</span>
+<span class="lineNum">    1286 </span>            :           cmax = cont;
+<span class="lineNum">    1287 </span><span class="lineCov">        107 :           x = fHistMlem-&gt;GetXaxis()-&gt;GetBinCenter(j);</span>
+<span class="lineNum">    1288 </span><span class="lineCov">        107 :           y = fHistMlem-&gt;GetYaxis()-&gt;GetBinCenter(i);</span>
+<span class="lineNum">    1289 </span>            :           i2 = i;
+<span class="lineNum">    1290 </span>            :           j2 = j;
+<span class="lineNum">    1291 </span><span class="lineCov">        107 :         }</span>
+<span class="lineNum">    1292 </span>            :       }
+<span class="lineNum">    1293 </span><span class="lineCov">         86 :     }</span>
+<span class="lineNum">    1294 </span><span class="lineCov">         50 :     xq += x*cmax;</span>
+<span class="lineNum">    1295 </span><span class="lineCov">         50 :     yq += y*cmax;</span>
+<span class="lineNum">    1296 </span><span class="lineCov">         50 :     qq += cmax;</span>
+<span class="lineNum">    1297 </span><span class="lineCov">         74 :     if (i2 != i1) nsumy++;</span>
+<span class="lineNum">    1298 </span><span class="lineCov">        100 :     if (j2 != j1) nsumx++;</span>
+<span class="lineNum">    1299 </span>            :     nsum++;
+<span class="lineNum">    1300 </span><span class="lineCov">         50 :   } // if (nsumx == 1)</span>
+<span class="lineNum">    1301 </span>            :   
+<span class="lineNum">    1302 </span><span class="lineCov">        210 :   xyc[0] = xq/qq; xyc[1] = yq/qq;</span>
+<span class="lineNum">    1303 </span><span class="lineCov">        630 :   AliDebug(2,Form(&quot;x,y COG = %e,%e&quot;,xyc[0],xyc[1]));</span>
+<span class="lineNum">    1304 </span><span class="lineCov">        210 : }</span>
+<a name="1305"><span class="lineNum">    1305 </span>            : </a>
+<span class="lineNum">    1306 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1307 </span>            : Int_t AliMUONClusterFinderMLEM::FindNearest(const AliMUONPad *pixPtr0)
+<span class="lineNum">    1308 </span>            : {
+<span class="lineNum">    1309 </span>            : /// Find the pixel nearest to the given one
+<span class="lineNum">    1310 </span>            : /// (algorithm may be not very efficient)
+<span class="lineNum">    1311 </span>            : 
+<span class="lineNum">    1312 </span><span class="lineCov">         90 :   Int_t nPix = fPixArray-&gt;GetEntriesFast(), imin = 0;</span>
+<span class="lineNum">    1313 </span>            :   Double_t rmin = 99999, dx = 0, dy = 0, r = 0;
+<span class="lineNum">    1314 </span><span class="lineCov">         45 :   Double_t xc = pixPtr0-&gt;Coord(0), yc = pixPtr0-&gt;Coord(1);</span>
+<span class="lineNum">    1315 </span>            :   AliMUONPad *pixPtr;
+<span class="lineNum">    1316 </span>            : 
+<span class="lineNum">    1317 </span><span class="lineCov">       1256 :   for (Int_t i = 0; i &lt; nPix; ++i) {</span>
+<span class="lineNum">    1318 </span><span class="lineCov">        583 :     pixPtr = (AliMUONPad*) fPixArray-&gt;UncheckedAt(i);</span>
+<span class="lineNum">    1319 </span><span class="lineCov">       1121 :     if (pixPtr == pixPtr0 || pixPtr-&gt;Charge() &lt; fLowestPixelCharge) continue;</span>
+<span class="lineNum">    1320 </span><span class="lineCov">        486 :     dx = (xc - pixPtr-&gt;Coord(0)) / pixPtr-&gt;Size(0);</span>
+<span class="lineNum">    1321 </span><span class="lineCov">        486 :     dy = (yc - pixPtr-&gt;Coord(1)) / pixPtr-&gt;Size(1);</span>
+<span class="lineNum">    1322 </span><span class="lineCov">        486 :     r = dx *dx + dy * dy;</span>
+<span class="lineNum">    1323 </span><span class="lineCov">        608 :     if (r &lt; rmin) { rmin = r; imin = i; }</span>
+<span class="lineNum">    1324 </span>            :   }
+<span class="lineNum">    1325 </span><span class="lineCov">         45 :   return imin;</span>
+<span class="lineNum">    1326 </span>            : }
+<span class="lineNum">    1327 </span>            : 
+<a name="1328"><span class="lineNum">    1328 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1329 </span>            : void
+<span class="lineNum">    1330 </span>            : AliMUONClusterFinderMLEM::Paint(Option_t*)
+<span class="lineNum">    1331 </span>            : {
+<span class="lineNum">    1332 </span>            :   /// Paint cluster and pixels
+<span class="lineNum">    1333 </span>            :   
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :   AliMpArea area(fPreCluster-&gt;Area());</span>
+<span class="lineNum">    1335 </span>            :   
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :   gPad-&gt;Range(area.LeftBorder(),area.DownBorder(),area.RightBorder(),area.UpBorder());</span>
+<span class="lineNum">    1337 </span>            : 
+<span class="lineNum">    1338 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetFillStyle(1001);</span>
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetFillColor(3);    </span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetLineColor(3);</span>
+<span class="lineNum">    1341 </span>            :   
+<span class="lineNum">    1342 </span>            :   Double_t s(1.0);
+<span class="lineNum">    1343 </span>            :   
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt;= fPixArray-&gt;GetLast(); ++i)</span>
+<span class="lineNum">    1345 </span>            :   {
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :     AliMUONPad* pixel = Pixel(i);</span>
+<span class="lineNum">    1347 </span>            : 
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :     gPad-&gt;PaintBox(pixel-&gt;Coord(0)-pixel-&gt;Size(0)*s,</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :                    pixel-&gt;Coord(1)-pixel-&gt;Size(1)*s,</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :                    pixel-&gt;Coord(0)+pixel-&gt;Size(0)*s,</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :                    pixel-&gt;Coord(1)+pixel-&gt;Size(1)*s);</span>
+<span class="lineNum">    1352 </span>            : 
+<span class="lineNum">    1353 </span>            : //    for ( Int_t sign = -1; sign &lt; 2; sign +=2 )
+<span class="lineNum">    1354 </span>            : //    {
+<span class="lineNum">    1355 </span>            : //      gPad-&gt;PaintLine(pixel-&gt;Coord(0) - pixel-&gt;Size(0),
+<span class="lineNum">    1356 </span>            : //                      pixel-&gt;Coord(1) + sign*pixel-&gt;Size(1),
+<span class="lineNum">    1357 </span>            : //                      pixel-&gt;Coord(0) + pixel-&gt;Size(0),
+<span class="lineNum">    1358 </span>            : //                      pixel-&gt;Coord(1) - sign*pixel-&gt;Size(1)
+<span class="lineNum">    1359 </span>            : //                    );
+<span class="lineNum">    1360 </span>            : //    }
+<span class="lineNum">    1361 </span>            :   }      
+<span class="lineNum">    1362 </span>            : 
+<span class="lineNum">    1363 </span>            : 
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetFillStyle(0);</span>
+<span class="lineNum">    1365 </span>            :   
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :   fPreCluster-&gt;Paint();</span>
+<span class="lineNum">    1367 </span>            : 
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetLineColor(1);</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetLineWidth(2);</span>
+<span class="lineNum">    1370 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetFillStyle(0);</span>
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetTextColor(1);</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :   gVirtualX-&gt;SetTextAlign(22);</span>
+<span class="lineNum">    1373 </span>            :   
+<span class="lineNum">    1374 </span><span class="lineNoCov">          0 :   for ( Int_t i = 0; i &lt;= fPixArray-&gt;GetLast(); ++i)</span>
+<span class="lineNum">    1375 </span>            :   {
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :     AliMUONPad* pixel = Pixel(i);</span>
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :     gPad-&gt;PaintBox(pixel-&gt;Coord(0)-pixel-&gt;Size(0),</span>
+<span class="lineNum">    1378 </span><span class="lineNoCov">          0 :                    pixel-&gt;Coord(1)-pixel-&gt;Size(1),</span>
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :                    pixel-&gt;Coord(0)+pixel-&gt;Size(0),</span>
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :                    pixel-&gt;Coord(1)+pixel-&gt;Size(1));    </span>
+<span class="lineNum">    1381 </span><span class="lineNoCov">          0 :     gVirtualX-&gt;SetTextSize(pixel-&gt;Size(0)*60);</span>
+<span class="lineNum">    1382 </span>            : 
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :     gPad-&gt;PaintText(pixel-&gt;Coord(0),pixel-&gt;Coord(1),Form(&quot;%d&quot;,(Int_t)(pixel-&gt;Charge())));</span>
+<span class="lineNum">    1384 </span>            :   }  
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 : }</span>
+<a name="1386"><span class="lineNum">    1386 </span>            : </a>
+<span class="lineNum">    1387 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1388 </span>            : Int_t AliMUONClusterFinderMLEM::FindLocalMaxima(TObjArray *pixArray, Int_t *localMax, Double_t *maxVal)
+<span class="lineNum">    1389 </span>            : {
+<span class="lineNum">    1390 </span>            : /// Find local maxima in pixel space for large preclusters in order to
+<span class="lineNum">    1391 </span>            : /// try to split them into smaller pieces (to speed up the MLEM procedure)
+<span class="lineNum">    1392 </span>            : /// or to find additional fitting seeds if clusters were not completely resolved  
+<span class="lineNum">    1393 </span>            : 
+<span class="lineNum">    1394 </span><span class="lineCov">        168 :   AliDebug(1,Form(&quot;nPix=%d&quot;,pixArray-&gt;GetLast()+1));</span>
+<span class="lineNum">    1395 </span>            : 
+<span class="lineNum">    1396 </span><span class="lineCov">         42 :   Double_t xylim[4] = {999, 999, 999, 999};</span>
+<span class="lineNum">    1397 </span>            : 
+<span class="lineNum">    1398 </span><span class="lineCov">         42 :   Int_t nPix = pixArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1399 </span>            :   
+<span class="lineNum">    1400 </span><span class="lineCov">         42 :   if ( nPix &lt;= 0 ) return 0;</span>
+<span class="lineNum">    1401 </span>            :   
+<span class="lineNum">    1402 </span>            :   AliMUONPad *pixPtr = 0;
+<span class="lineNum">    1403 </span><span class="lineCov">        668 :   for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) {</span>
+<span class="lineNum">    1404 </span><span class="lineCov">        292 :     pixPtr = (AliMUONPad*) pixArray-&gt;UncheckedAt(ipix);</span>
+<span class="lineNum">    1405 </span><span class="lineCov">       2920 :     for (Int_t i = 0; i &lt; 4; ++i) </span>
+<span class="lineNum">    1406 </span><span class="lineCov">       1168 :          xylim[i] = TMath::Min (xylim[i], (i%2 ? -1 : 1)*pixPtr-&gt;Coord(i/2));</span>
+<span class="lineNum">    1407 </span>            :   }
+<span class="lineNum">    1408 </span><span class="lineCov">        420 :   for (Int_t i = 0; i &lt; 4; ++i) xylim[i] -= pixPtr-&gt;Size(i/2); </span>
+<span class="lineNum">    1409 </span>            : 
+<span class="lineNum">    1410 </span><span class="lineCov">         42 :   Int_t nx = TMath::Nint ((-xylim[1]-xylim[0])/pixPtr-&gt;Size(0)/2);</span>
+<span class="lineNum">    1411 </span><span class="lineCov">         42 :   Int_t ny = TMath::Nint ((-xylim[3]-xylim[2])/pixPtr-&gt;Size(1)/2);</span>
+<span class="lineNum">    1412 </span><span class="lineCov">        126 :   if (pixArray == fPixArray) fHistAnode = new TH2D(&quot;anode&quot;,&quot;anode&quot;,nx,xylim[0],-xylim[1],ny,xylim[2],-xylim[3]);</span>
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :   else fHistAnode = new TH2D(&quot;anode1&quot;,&quot;anode1&quot;,nx,xylim[0],-xylim[1],ny,xylim[2],-xylim[3]);</span>
+<span class="lineNum">    1414 </span><span class="lineCov">        668 :   for (Int_t ipix = 0; ipix &lt; nPix; ++ipix) {</span>
+<span class="lineNum">    1415 </span><span class="lineCov">        292 :     pixPtr = (AliMUONPad*) pixArray-&gt;UncheckedAt(ipix);</span>
+<span class="lineNum">    1416 </span><span class="lineCov">        292 :     fHistAnode-&gt;Fill(pixPtr-&gt;Coord(0), pixPtr-&gt;Coord(1), pixPtr-&gt;Charge());</span>
+<span class="lineNum">    1417 </span>            :   }
+<span class="lineNum">    1418 </span>            : //  if (fDraw &amp;&amp; pixArray == fPixArray) fDraw-&gt;DrawHist(&quot;c2&quot;, hist);
+<span class="lineNum">    1419 </span>            : 
+<span class="lineNum">    1420 </span><span class="lineCov">         42 :   Int_t nMax = 0, indx, nxy = ny * nx;</span>
+<span class="lineNum">    1421 </span><span class="lineCov">         42 :   Int_t *isLocalMax = new Int_t[nxy];</span>
+<span class="lineNum">    1422 </span><span class="lineCov">        818 :   for (Int_t i = 0; i &lt; nxy; ++i) isLocalMax[i] = 0; </span>
+<span class="lineNum">    1423 </span>            : 
+<span class="lineNum">    1424 </span><span class="lineCov">        380 :   for (Int_t i = 1; i &lt;= ny; ++i) {</span>
+<span class="lineNum">    1425 </span><span class="lineCov">        148 :     indx = (i-1) * nx;</span>
+<span class="lineNum">    1426 </span><span class="lineCov">       1030 :     for (Int_t j = 1; j &lt;= nx; ++j) {</span>
+<span class="lineNum">    1427 </span><span class="lineCov">        367 :       if (fHistAnode-&gt;GetBinContent(fHistAnode-&gt;GetBin(j,i)) &lt; fLowestPixelCharge) continue;</span>
+<span class="lineNum">    1428 </span>            :       //if (isLocalMax[indx+j-1] &lt; 0) continue;
+<span class="lineNum">    1429 </span><span class="lineCov">        292 :       if (isLocalMax[indx+j-1] != 0) continue;</span>
+<span class="lineNum">    1430 </span><span class="lineCov">        133 :       FlagLocalMax(fHistAnode, i, j, isLocalMax);</span>
+<span class="lineNum">    1431 </span><span class="lineCov">        133 :     }</span>
+<span class="lineNum">    1432 </span>            :   }
+<span class="lineNum">    1433 </span>            : 
+<span class="lineNum">    1434 </span><span class="lineCov">        422 :   for (Int_t i = 1; i &lt;= ny; ++i) {</span>
+<span class="lineNum">    1435 </span><span class="lineCov">        148 :     indx = (i-1) * nx;</span>
+<span class="lineNum">    1436 </span><span class="lineCov">       1178 :     for (Int_t j = 1; j &lt;= nx; ++j) {</span>
+<span class="lineNum">    1437 </span><span class="lineCov">        367 :       if (isLocalMax[indx+j-1] &gt; 0) { </span>
+<span class="lineNum">    1438 </span><span class="lineCov">         43 :         localMax[nMax] = indx + j - 1; </span>
+<span class="lineNum">    1439 </span><span class="lineCov">         43 :         maxVal[nMax++] = fHistAnode-&gt;GetBinContent(fHistAnode-&gt;GetBin(j,i));</span>
+<span class="lineNum">    1440 </span><span class="lineCov">         43 :         ((AliMUONPad*)fSplitter-&gt;BinToPix(fHistAnode, j, i))-&gt;SetStatus(fgkMustKeep);</span>
+<span class="lineNum">    1441 </span><span class="lineCov">         43 :         if (nMax &gt; 99) break;</span>
+<span class="lineNum">    1442 </span>            :       }
+<span class="lineNum">    1443 </span>            :     }
+<span class="lineNum">    1444 </span><span class="lineCov">        148 :     if (nMax &gt; 99) {</span>
+<span class="lineNum">    1445 </span><span class="lineNoCov">          0 :       AliError(&quot; Too many local maxima !!!&quot;);</span>
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">    1447 </span>            :     }
+<span class="lineNum">    1448 </span>            :   }
+<span class="lineNum">    1449 </span><span class="lineCov">         42 :   if (fDebug) cout &lt;&lt; &quot; Local max: &quot; &lt;&lt; nMax &lt;&lt; endl;</span>
+<span class="lineNum">    1450 </span><span class="lineCov">         84 :   delete [] isLocalMax; </span>
+<span class="lineNum">    1451 </span>            :   return nMax;
+<span class="lineNum">    1452 </span><span class="lineCov">         42 : }</span>
+<a name="1453"><span class="lineNum">    1453 </span>            : </a>
+<span class="lineNum">    1454 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1455 </span>            : void AliMUONClusterFinderMLEM::FlagLocalMax(TH2D *hist, Int_t i, Int_t j, Int_t *isLocalMax)
+<span class="lineNum">    1456 </span>            : {
+<span class="lineNum">    1457 </span>            : /// Flag pixels (whether or not local maxima)
+<span class="lineNum">    1458 </span>            : 
+<span class="lineNum">    1459 </span><span class="lineCov">        322 :   Int_t nx = hist-&gt;GetNbinsX();</span>
+<span class="lineNum">    1460 </span><span class="lineCov">        161 :   Int_t ny = hist-&gt;GetNbinsY();</span>
+<span class="lineNum">    1461 </span><span class="lineCov">        161 :   Int_t cont = TMath::Nint (hist-&gt;GetBinContent(hist-&gt;GetBin(j,i)));</span>
+<span class="lineNum">    1462 </span><span class="lineCov">        161 :   Int_t cont1 = 0, indx = (i-1)*nx+j-1, indx1 = 0, indx2 = 0;</span>
+<span class="lineNum">    1463 </span>            : 
+<span class="lineNum">    1464 </span><span class="lineCov">        161 :   Int_t ie = i + 2, je = j + 2;</span>
+<span class="lineNum">    1465 </span><span class="lineCov">        931 :   for (Int_t i1 = i-1; i1 &lt; ie; ++i1) {</span>
+<span class="lineNum">    1466 </span><span class="lineCov">        730 :     if (i1 &lt; 1 || i1 &gt; ny) continue;</span>
+<span class="lineNum">    1467 </span><span class="lineCov">        331 :     indx1 = (i1 - 1) * nx;</span>
+<span class="lineNum">    1468 </span><span class="lineCov">       2427 :     for (Int_t j1 = j-1; j1 &lt; je; ++j1) {</span>
+<span class="lineNum">    1469 </span><span class="lineCov">       1662 :       if (j1 &lt; 1 || j1 &gt; nx) continue;</span>
+<span class="lineNum">    1470 </span><span class="lineCov">       1040 :       if (i == i1 &amp;&amp; j == j1) continue;</span>
+<span class="lineNum">    1471 </span><span class="lineCov">        562 :       indx2 = indx1 + j1 - 1;</span>
+<span class="lineNum">    1472 </span><span class="lineCov">        562 :       cont1 = TMath::Nint (hist-&gt;GetBinContent(hist-&gt;GetBin(j1,i1)));</span>
+<span class="lineNum">    1473 </span><span class="lineCov">        652 :       if (cont &lt; cont1) { isLocalMax[indx] = -1; return; }</span>
+<span class="lineNum">    1474 </span><span class="lineCov">        874 :       else if (cont &gt; cont1) isLocalMax[indx2] = -1;</span>
+<span class="lineNum">    1475 </span>            :       else { // the same charge
+<span class="lineNum">    1476 </span><span class="lineCov">         70 :         isLocalMax[indx] = 1; </span>
+<span class="lineNum">    1477 </span><span class="lineCov">         70 :         if (isLocalMax[indx2] == 0) {</span>
+<span class="lineNum">    1478 </span><span class="lineCov">         28 :           FlagLocalMax(hist, i1, j1, isLocalMax);</span>
+<span class="lineNum">    1479 </span><span class="lineCov">         54 :           if (isLocalMax[indx2] &lt; 0) { isLocalMax[indx] = -1; return; }</span>
+<span class="lineNum">    1480 </span><span class="lineCov">          2 :           else isLocalMax[indx2] = -1;</span>
+<span class="lineNum">    1481 </span><span class="lineCov">          2 :         }</span>
+<span class="lineNum">    1482 </span>            :       } 
+<span class="lineNum">    1483 </span>            :     }
+<span class="lineNum">    1484 </span>            :   }
+<span class="lineNum">    1485 </span><span class="lineCov">         45 :   isLocalMax[indx] = 1; // local maximum</span>
+<span class="lineNum">    1486 </span><span class="lineCov">        206 : }</span>
+<a name="1487"><span class="lineNum">    1487 </span>            : </a>
+<span class="lineNum">    1488 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1489 </span>            : void AliMUONClusterFinderMLEM::FindCluster(AliMUONCluster&amp; cluster, 
+<span class="lineNum">    1490 </span>            :                                            const Int_t *localMax, Int_t iMax)
+<span class="lineNum">    1491 </span>            : {
+<span class="lineNum">    1492 </span>            : /// Find pixel cluster around local maximum \a iMax and pick up pads
+<span class="lineNum">    1493 </span>            : /// overlapping with it
+<span class="lineNum">    1494 </span>            : 
+<span class="lineNum">    1495 </span>            :   /* Just for check
+<span class="lineNum">    1496 </span>            :   TCanvas* c = new TCanvas(&quot;Anode&quot;,&quot;Anode&quot;,800,600);
+<span class="lineNum">    1497 </span>            :   c-&gt;cd();
+<span class="lineNum">    1498 </span>            :   hist-&gt;Draw(&quot;lego1Fb&quot;); // debug
+<span class="lineNum">    1499 </span>            :   c-&gt;Update();
+<span class="lineNum">    1500 </span>            :   Int_t tmp;
+<span class="lineNum">    1501 </span>            :   cin &gt;&gt; tmp;
+<span class="lineNum">    1502 </span>            :   */
+<span class="lineNum">    1503 </span><span class="lineNoCov">          0 :   Int_t nx = fHistAnode-&gt;GetNbinsX();</span>
+<span class="lineNum">    1504 </span><span class="lineNoCov">          0 :   Int_t ny = fHistAnode-&gt;GetNbinsY();</span>
+<span class="lineNum">    1505 </span><span class="lineNoCov">          0 :   Int_t ic = localMax[iMax] / nx + 1;</span>
+<span class="lineNum">    1506 </span><span class="lineNoCov">          0 :   Int_t jc = localMax[iMax] % nx + 1;</span>
+<span class="lineNum">    1507 </span><span class="lineNoCov">          0 :   Int_t nxy = ny * nx;</span>
+<span class="lineNum">    1508 </span><span class="lineNoCov">          0 :   Bool_t *used = new Bool_t[nxy];</span>
+<span class="lineNum">    1509 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; nxy; ++i) used[i] = kFALSE; </span>
+<span class="lineNum">    1510 </span>            : 
+<span class="lineNum">    1511 </span>            :   // Drop all pixels from the array - pick up only the ones from the cluster
+<span class="lineNum">    1512 </span><span class="lineNoCov">          0 :   fPixArray-&gt;Delete();</span>
+<span class="lineNum">    1513 </span>            : 
+<span class="lineNum">    1514 </span><span class="lineNoCov">          0 :   Double_t wx = fHistAnode-&gt;GetXaxis()-&gt;GetBinWidth(1)/2; </span>
+<span class="lineNum">    1515 </span><span class="lineNoCov">          0 :   Double_t wy = fHistAnode-&gt;GetYaxis()-&gt;GetBinWidth(1)/2;  </span>
+<span class="lineNum">    1516 </span><span class="lineNoCov">          0 :   Double_t yc = fHistAnode-&gt;GetYaxis()-&gt;GetBinCenter(ic);</span>
+<span class="lineNum">    1517 </span><span class="lineNoCov">          0 :   Double_t xc = fHistAnode-&gt;GetXaxis()-&gt;GetBinCenter(jc);</span>
+<span class="lineNum">    1518 </span><span class="lineNoCov">          0 :   Double_t cont = fHistAnode-&gt;GetBinContent( fHistAnode-&gt;GetBin(jc,ic));</span>
+<span class="lineNum">    1519 </span><span class="lineNoCov">          0 :   fPixArray-&gt;Add(new AliMUONPad (xc, yc, wx, wy, cont));</span>
+<span class="lineNum">    1520 </span><span class="lineNoCov">          0 :   used[(ic-1)*nx+jc-1] = kTRUE;</span>
+<span class="lineNum">    1521 </span><span class="lineNoCov">          0 :   AddBinSimple(fHistAnode, ic, jc);</span>
+<span class="lineNum">    1522 </span>            :   //fSplitter-&gt;AddBin(hist, ic, jc, 1, used, (TObjArray*)0); // recursive call
+<span class="lineNum">    1523 </span>            : 
+<span class="lineNum">    1524 </span><span class="lineNoCov">          0 :   Int_t nPix = fPixArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1525 </span><span class="lineNoCov">          0 :   Int_t npad = cluster.Multiplicity();</span>
+<span class="lineNum">    1526 </span>            :   
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">    1528 </span>            :   {
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 :     AliMUONPad* pixPtr = Pixel(i);</span>
+<span class="lineNum">    1530 </span><span class="lineNoCov">          0 :     pixPtr-&gt;SetSize(0,wx);</span>
+<span class="lineNum">    1531 </span><span class="lineNoCov">          0 :     pixPtr-&gt;SetSize(1,wy);</span>
+<span class="lineNum">    1532 </span>            :   }
+<span class="lineNum">    1533 </span>            : 
+<span class="lineNum">    1534 </span>            :   // Pick up pads which overlap with found pixels
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; npad; ++i) </span>
+<span class="lineNum">    1536 </span>            :   {
+<span class="lineNum">    1537 </span>            :     //cluster.Pad(i)-&gt;SetStatus(-1);
+<span class="lineNum">    1538 </span><span class="lineNoCov">          0 :     cluster.Pad(i)-&gt;SetStatus(fgkOver); // just the dirty trick</span>
+<span class="lineNum">    1539 </span>            :   }
+<span class="lineNum">    1540 </span>            :   
+<span class="lineNum">    1541 </span><span class="lineNoCov">          0 :   for (Int_t i = 0; i &lt; nPix; ++i) </span>
+<span class="lineNum">    1542 </span>            :   {
+<span class="lineNum">    1543 </span><span class="lineNoCov">          0 :     AliMUONPad* pixPtr = Pixel(i);</span>
+<span class="lineNum">    1544 </span><span class="lineNoCov">          0 :     for (Int_t j = 0; j &lt; npad; ++j) </span>
+<span class="lineNum">    1545 </span>            :     {
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :       AliMUONPad* pad = cluster.Pad(j);</span>
+<span class="lineNum">    1547 </span>            :       //if (pad-&gt;Status() == 0) continue;
+<span class="lineNum">    1548 </span><span class="lineNoCov">          0 :       if (pad-&gt;Status() == fgkZero) continue;</span>
+<span class="lineNum">    1549 </span><span class="lineNoCov">          0 :       if ( Overlap(*pad,*pixPtr) )</span>
+<span class="lineNum">    1550 </span>            :       {
+<span class="lineNum">    1551 </span>            :         //pad-&gt;SetStatus(0);
+<span class="lineNum">    1552 </span><span class="lineNoCov">          0 :         pad-&gt;SetStatus(fgkZero);</span>
+<span class="lineNum">    1553 </span><span class="lineNoCov">          0 :         if (fDebug) { cout &lt;&lt; j &lt;&lt; &quot; &quot;; pad-&gt;Print(&quot;full&quot;); }</span>
+<span class="lineNum">    1554 </span>            :       }
+<span class="lineNum">    1555 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1556 </span>            :   }
+<span class="lineNum">    1557 </span>            : 
+<span class="lineNum">    1558 </span><span class="lineNoCov">          0 :   delete [] used;</span>
+<span class="lineNum">    1559 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1560 </span>            : 
+<a name="1561"><span class="lineNum">    1561 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1562 </span>            : void 
+<span class="lineNum">    1563 </span>            : AliMUONClusterFinderMLEM::AddBinSimple(TH2D *hist, Int_t ic, Int_t jc)
+<span class="lineNum">    1564 </span>            : {
+<span class="lineNum">    1565 </span>            :   /// Add adjacent bins (+-1 in X and Y) to the cluster
+<span class="lineNum">    1566 </span>            :   
+<span class="lineNum">    1567 </span><span class="lineNoCov">          0 :   Int_t nx = hist-&gt;GetNbinsX();</span>
+<span class="lineNum">    1568 </span><span class="lineNoCov">          0 :   Int_t ny = hist-&gt;GetNbinsY();</span>
+<span class="lineNum">    1569 </span><span class="lineNoCov">          0 :   Double_t cont1, cont = hist-&gt;GetBinContent(hist-&gt;GetBin(jc,ic));</span>
+<span class="lineNum">    1570 </span>            :   AliMUONPad *pixPtr = 0;
+<span class="lineNum">    1571 </span>            :   
+<span class="lineNum">    1572 </span><span class="lineNoCov">          0 :   Int_t ie = TMath::Min(ic+1,ny), je = TMath::Min(jc+1,nx);</span>
+<span class="lineNum">    1573 </span><span class="lineNoCov">          0 :   for (Int_t i = TMath::Max(ic-1,1); i &lt;= ie; ++i) {</span>
+<span class="lineNum">    1574 </span><span class="lineNoCov">          0 :     for (Int_t j = TMath::Max(jc-1,1); j &lt;= je; ++j) {</span>
+<span class="lineNum">    1575 </span><span class="lineNoCov">          0 :       cont1 = hist-&gt;GetBinContent(hist-&gt;GetBin(j,i));</span>
+<span class="lineNum">    1576 </span><span class="lineNoCov">          0 :       if (cont1 &gt; cont) continue;</span>
+<span class="lineNum">    1577 </span><span class="lineNoCov">          0 :       if (cont1 &lt; fLowestPixelCharge) continue;</span>
+<span class="lineNum">    1578 </span><span class="lineNoCov">          0 :       pixPtr = new AliMUONPad (hist-&gt;GetXaxis()-&gt;GetBinCenter(j), </span>
+<span class="lineNum">    1579 </span><span class="lineNoCov">          0 :                                hist-&gt;GetYaxis()-&gt;GetBinCenter(i), 0, 0, cont1);</span>
+<span class="lineNum">    1580 </span><span class="lineNoCov">          0 :       fPixArray-&gt;Add(pixPtr);</span>
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1582 </span>            :   }
+<span class="lineNum">    1583 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1584 </span>            : 
+<a name="1585"><span class="lineNum">    1585 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1586 </span>            : AliMUONClusterFinderMLEM&amp;  
+<span class="lineNum">    1587 </span>            : AliMUONClusterFinderMLEM::operator=(const AliMUONClusterFinderMLEM&amp; rhs)
+<span class="lineNum">    1588 </span>            : {
+<span class="lineNum">    1589 </span>            : /// Protected assignement operator
+<span class="lineNum">    1590 </span>            : 
+<span class="lineNum">    1591 </span><span class="lineNoCov">          0 :   if (this == &amp;rhs) return *this;</span>
+<span class="lineNum">    1592 </span>            : 
+<span class="lineNum">    1593 </span><span class="lineNoCov">          0 :   AliFatal(&quot;Not implemented.&quot;);</span>
+<span class="lineNum">    1594 </span>            :     
+<span class="lineNum">    1595 </span><span class="lineNoCov">          0 :   return *this;  </span>
+<span class="lineNum">    1596 </span><span class="lineNoCov">          0 : }    </span>
+<a name="1597"><span class="lineNum">    1597 </span>            : </a>
+<span class="lineNum">    1598 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1599 </span>            : void AliMUONClusterFinderMLEM::AddVirtualPad(AliMUONCluster&amp; cluster)
+<span class="lineNum">    1600 </span>            : {
+<span class="lineNum">    1601 </span>            :   /// Add virtual pad (with small charge) to improve fit for clusters
+<span class="lineNum">    1602 </span>            :   /// with number of pads == 2 per direction
+<span class="lineNum">    1603 </span>            :   
+<span class="lineNum">    1604 </span>            :   // Find out non-bending and bending planes
+<span class="lineNum">    1605 </span><span class="lineCov">        328 :   Int_t nonb[2] = {1, 0}; // non-bending and bending cathodes</span>
+<span class="lineNum">    1606 </span>            : 
+<span class="lineNum">    1607 </span><span class="lineCov">        164 :   TVector2 dim0 = cluster.MinPadDimensions(0, 0, kTRUE);</span>
+<span class="lineNum">    1608 </span><span class="lineCov">        164 :   TVector2 dim1 = cluster.MinPadDimensions(1, 0, kTRUE);</span>
+<span class="lineNum">    1609 </span><span class="lineCov">        164 :   if (dim0.X() &lt; dim1.X() - fgkDistancePrecision) {</span>
+<span class="lineNum">    1610 </span><span class="lineCov">         72 :     nonb[0] = 0;</span>
+<span class="lineNum">    1611 </span><span class="lineCov">         72 :     nonb[1] = 1;</span>
+<span class="lineNum">    1612 </span><span class="lineCov">         72 :   } </span>
+<span class="lineNum">    1613 </span>            : 
+<span class="lineNum">    1614 </span>            :   Bool_t same = kFALSE;
+<span class="lineNum">    1615 </span><span class="lineCov">        192 :   if (TMath::Abs(dim0.Y()-dim1.Y()) &lt; fgkDistancePrecision) same = kTRUE; // the same pad size on both planes </span>
+<span class="lineNum">    1616 </span>            : 
+<span class="lineNum">    1617 </span>            :   Long_t cn;
+<span class="lineNum">    1618 </span><span class="lineCov">        164 :   Bool_t check[2] = {kFALSE, kFALSE};</span>
+<span class="lineNum">    1619 </span>            :   Int_t nxy[2];
+<span class="lineNum">    1620 </span>            :   nxy[0] = nxy[1] = 0;
+<span class="lineNum">    1621 </span><span class="lineCov">        984 :   for (Int_t inb = 0; inb &lt; 2; ++inb) {</span>
+<span class="lineNum">    1622 </span><span class="lineCov">        328 :     cn = cluster.NofPads(nonb[inb], 0, kTRUE);</span>
+<span class="lineNum">    1623 </span><span class="lineCov">        750 :     if (inb == 0 &amp;&amp; AliMp::PairFirst(cn) == 2) check[inb] = kTRUE; // check non-bending plane</span>
+<span class="lineNum">    1624 </span><span class="lineCov">        570 :     else if (inb == 1 &amp;&amp; AliMp::PairSecond(cn) == 2) check[inb] = kTRUE; // check bending plane</span>
+<span class="lineNum">    1625 </span><span class="lineCov">        328 :     if (same) {</span>
+<span class="lineNum">    1626 </span><span class="lineCov">        112 :       nxy[0] = TMath::Max (nxy[0], AliMp::PairFirst(cn));</span>
+<span class="lineNum">    1627 </span><span class="lineCov">        112 :       nxy[1] = TMath::Max (nxy[1], AliMp::PairSecond(cn));</span>
+<span class="lineNum">    1628 </span><span class="lineCov">         84 :       if (inb == 0 &amp;&amp; nxy[0] &lt; 2) nonb[inb] = !nonb[inb];</span>
+<span class="lineNum">    1629 </span><span class="lineCov">        112 :       else if (inb == 1 &amp;&amp; AliMp::PairSecond(cn) &lt; 2) nonb[inb] = !nonb[inb];</span>
+<span class="lineNum">    1630 </span>            :     }
+<span class="lineNum">    1631 </span>            :   }
+<span class="lineNum">    1632 </span><span class="lineCov">        164 :   if (same) {</span>
+<span class="lineNum">    1633 </span><span class="lineCov">         52 :     if (nxy[0] &gt; 2) check[0] = kFALSE;</span>
+<span class="lineNum">    1634 </span><span class="lineCov">         56 :     if (nxy[1] &gt; 2) check[1] = kFALSE;</span>
+<span class="lineNum">    1635 </span>            :   }
+<span class="lineNum">    1636 </span><span class="lineCov">        332 :   if (!check[0] &amp;&amp; !check[1]) return;</span>
+<span class="lineNum">    1637 </span>            : 
+<span class="lineNum">    1638 </span><span class="lineCov">        480 :   for (Int_t inb = 0; inb &lt; 2; ++inb) {</span>
+<span class="lineNum">    1639 </span><span class="lineCov">        160 :     if (!check[inb]) continue;</span>
+<span class="lineNum">    1640 </span>            : 
+<span class="lineNum">    1641 </span>            :     // Find pads with maximum and next to maximum charges 
+<span class="lineNum">    1642 </span><span class="lineCov">         86 :     Int_t maxPads[2] = {-1, -1};</span>
+<span class="lineNum">    1643 </span><span class="lineCov">         86 :     Double_t amax[2] = {0};</span>
+<span class="lineNum">    1644 </span><span class="lineCov">         86 :     Int_t mult = cluster.Multiplicity();</span>
+<span class="lineNum">    1645 </span><span class="lineCov">       1308 :     for (Int_t j = 0; j &lt; mult; ++j) {</span>
+<span class="lineNum">    1646 </span><span class="lineCov">        568 :       AliMUONPad *pad = cluster.Pad(j);</span>
+<span class="lineNum">    1647 </span><span class="lineCov">        890 :       if (pad-&gt;Cathode() != nonb[inb]) continue;</span>
+<span class="lineNum">    1648 </span><span class="lineCov">        779 :       for (Int_t j2 = 0; j2 &lt; 2; ++j2) {</span>
+<span class="lineNum">    1649 </span><span class="lineCov">        340 :         if (pad-&gt;Charge() &gt; amax[j2]) {</span>
+<span class="lineNum">    1650 </span><span class="lineCov">        365 :           if (j2 == 0) { amax[1] = amax[0]; maxPads[1] = maxPads[0]; }</span>
+<span class="lineNum">    1651 </span><span class="lineCov">        213 :           amax[j2] = pad-&gt;Charge();</span>
+<span class="lineNum">    1652 </span><span class="lineCov">        213 :           maxPads[j2] = j;</span>
+<span class="lineNum">    1653 </span><span class="lineCov">        213 :           break;</span>
+<span class="lineNum">    1654 </span>            :         }
+<span class="lineNum">    1655 </span>            :       }
+<span class="lineNum">    1656 </span><span class="lineCov">        246 :     }</span>
+<span class="lineNum">    1657 </span>            : 
+<span class="lineNum">    1658 </span>            :     // Find min and max dimensions of the cluster
+<span class="lineNum">    1659 </span>            :     Double_t limits[2] = {9999, -9999};
+<span class="lineNum">    1660 </span><span class="lineCov">       1308 :     for (Int_t j = 0; j &lt; mult; ++j) {</span>
+<span class="lineNum">    1661 </span><span class="lineCov">        568 :       AliMUONPad *pad = cluster.Pad(j);</span>
+<span class="lineNum">    1662 </span><span class="lineCov">        890 :       if (pad-&gt;Cathode() != nonb[inb]) continue;</span>
+<span class="lineNum">    1663 </span><span class="lineCov">        702 :       if (pad-&gt;Coord(inb) &lt; limits[0]) limits[0] = pad-&gt;Coord(inb);</span>
+<span class="lineNum">    1664 </span><span class="lineCov">        802 :       if (pad-&gt;Coord(inb) &gt; limits[1]) limits[1] = pad-&gt;Coord(inb);</span>
+<span class="lineNum">    1665 </span><span class="lineCov">        246 :     }</span>
+<span class="lineNum">    1666 </span>            : 
+<span class="lineNum">    1667 </span>            :     // Loop over max and next to max pads
+<span class="lineNum">    1668 </span>            :     Bool_t add = kFALSE;
+<span class="lineNum">    1669 </span>            :     Int_t idirAdd = 0;
+<span class="lineNum">    1670 </span><span class="lineCov">        410 :     for (Int_t j = 0; j &lt; 2; ++j) {</span>
+<span class="lineNum">    1671 </span><span class="lineCov">        172 :       if (j == 1) {</span>
+<span class="lineNum">    1672 </span><span class="lineCov">         86 :         if (maxPads[j] &lt; 0) continue;</span>
+<span class="lineNum">    1673 </span><span class="lineCov">         88 :         if (!add) break; </span>
+<span class="lineNum">    1674 </span><span class="lineCov">        138 :         if (amax[1] / amax[0] &lt; 0.5) break;</span>
+<span class="lineNum">    1675 </span>            :       }
+<span class="lineNum">    1676 </span>            :       // Check if pad at the cluster limit
+<span class="lineNum">    1677 </span><span class="lineCov">        116 :       AliMUONPad *pad = cluster.Pad(maxPads[j]);</span>
+<span class="lineNum">    1678 </span>            :       Int_t idir = 0;
+<span class="lineNum">    1679 </span><span class="lineCov">        294 :       if (TMath::Abs(pad-&gt;Coord(inb)-limits[0]) &lt; fgkDistancePrecision) idir = -1;</span>
+<span class="lineNum">    1680 </span><span class="lineCov">        108 :       else if (TMath::Abs(pad-&gt;Coord(inb)-limits[1]) &lt; fgkDistancePrecision) idir = 1;</span>
+<span class="lineNum">    1681 </span>            :       else {
+<span class="lineNum">    1682 </span>            :         //cout &lt;&lt; &quot; *** Pad not at the cluster limit: &quot; &lt;&lt; j &lt;&lt; endl;
+<span class="lineNum">    1683 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1684 </span>            :       }
+<span class="lineNum">    1685 </span><span class="lineCov">        154 :       if (j == 1 &amp;&amp; idir == idirAdd) break; // this pad has been already added</span>
+<span class="lineNum">    1686 </span>            : 
+<span class="lineNum">    1687 </span>            :       // Add pad (if it exists)
+<span class="lineNum">    1688 </span><span class="lineCov">        108 :       TVector2 pos;</span>
+<span class="lineNum">    1689 </span><span class="lineCov">        304 :       if (inb == 0) pos.Set (pad-&gt;X() + idir * (pad-&gt;DX()+fgkDistancePrecision), pad-&gt;Y());</span>
+<span class="lineNum">    1690 </span><span class="lineCov">         20 :       else pos.Set (pad-&gt;X(), pad-&gt;Y() + idir * (pad-&gt;DY()+fgkDistancePrecision));</span>
+<span class="lineNum">    1691 </span>            :       //AliMpPad mppad = fkSegmentation[nonb[inb]]-&gt;PadByPosition(pos,kTRUE);
+<span class="lineNum">    1692 </span><span class="lineCov">        108 :       AliMpPad mppad = fkSegmentation[nonb[inb]]-&gt;PadByPosition(pos.X(), pos.Y(),kFALSE);</span>
+<span class="lineNum">    1693 </span><span class="lineCov">        110 :       if (!mppad.IsValid()) continue; // non-existing pad</span>
+<span class="lineNum">    1694 </span><span class="lineCov">        318 :       AliMUONPad muonPad(fDetElemId, nonb[inb], mppad.GetIx(), mppad.GetIy(), </span>
+<span class="lineNum">    1695 </span><span class="lineCov">        106 :                          mppad.GetPositionX(), mppad.GetPositionY(), </span>
+<span class="lineNum">    1696 </span><span class="lineCov">        106 :                          mppad.GetDimensionX(), mppad.GetDimensionY(), 0);</span>
+<span class="lineNum">    1697 </span><span class="lineCov">        204 :       if (inb == 0) muonPad.SetCharge(TMath::Min (amax[j]/100, fLowestPadCharge));</span>
+<span class="lineNum">    1698 </span>            :       //else muonPad.SetCharge(TMath::Min (amax[j]/15, fgkZeroSuppression));
+<span class="lineNum">    1699 </span><span class="lineCov">          8 :       else muonPad.SetCharge(TMath::Min (amax[j]/15, fLowestPadCharge));</span>
+<span class="lineNum">    1700 </span><span class="lineCov">        112 :       if (muonPad.Charge() &lt; 2.0*fLowestPixelCharge) muonPad.SetCharge(2.0*fLowestPixelCharge);</span>
+<span class="lineNum">    1701 </span><span class="lineCov">        106 :       muonPad.SetReal(kFALSE);</span>
+<span class="lineNum">    1702 </span><span class="lineCov">        106 :       if (fDebug) printf(&quot; ***** Add virtual pad in %d direction ***** %f %f %f %3d %3d %f %f \n&quot;,</span>
+<span class="lineNum">    1703 </span><span class="lineNoCov">          0 :                          inb, muonPad.Charge(), muonPad.X(), muonPad.Y(), muonPad.Ix(), </span>
+<span class="lineNum">    1704 </span><span class="lineNoCov">          0 :                          muonPad.Iy(), muonPad.DX(), muonPad.DY());</span>
+<span class="lineNum">    1705 </span><span class="lineCov">        106 :       cluster.AddPad(muonPad); // add pad to the cluster</span>
+<span class="lineNum">    1706 </span>            :       add = kTRUE;
+<span class="lineNum">    1707 </span>            :       idirAdd = idir;
+<span class="lineNum">    1708 </span><span class="lineCov">        214 :     }</span>
+<span class="lineNum">    1709 </span><span class="lineCov">         86 :   }</span>
+<span class="lineNum">    1710 </span><span class="lineCov">        244 : }</span>
+<a name="1711"><span class="lineNum">    1711 </span>            : </a>
+<span class="lineNum">    1712 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1713 </span>            : void AliMUONClusterFinderMLEM::PadsInXandY(AliMUONCluster&amp; cluster,
+<span class="lineNum">    1714 </span>            :                                            Int_t &amp;nInX, Int_t &amp;nInY) const
+<span class="lineNum">    1715 </span>            : {
+<span class="lineNum">    1716 </span>            :   /// Find number of pads in X and Y-directions (excluding virtual ones and
+<span class="lineNum">    1717 </span>            :   /// overflows)
+<span class="lineNum">    1718 </span>            : 
+<span class="lineNum">    1719 </span>            :   //Int_t statusToTest = 1;
+<span class="lineNum">    1720 </span>            :   Int_t statusToTest = fgkUseForFit;
+<span class="lineNum">    1721 </span>            :   
+<span class="lineNum">    1722 </span>            :   //if ( nInX &lt; 0 ) statusToTest = 0;
+<span class="lineNum">    1723 </span><span class="lineCov">        328 :   if ( nInX &lt; 0 ) statusToTest = fgkZero;</span>
+<span class="lineNum">    1724 </span>            :        
+<span class="lineNum">    1725 </span>            :   Bool_t mustMatch(kTRUE);
+<span class="lineNum">    1726 </span>            : 
+<span class="lineNum">    1727 </span><span class="lineCov">        164 :   Long_t cn = cluster.NofPads(statusToTest,mustMatch);</span>
+<span class="lineNum">    1728 </span>            :   
+<span class="lineNum">    1729 </span><span class="lineCov">        164 :   nInX = AliMp::PairFirst(cn);</span>
+<span class="lineNum">    1730 </span><span class="lineCov">        164 :   nInY = AliMp::PairSecond(cn);</span>
+<span class="lineNum">    1731 </span><span class="lineCov">        164 : }</span>
+<a name="1732"><span class="lineNum">    1732 </span>            : </a>
+<span class="lineNum">    1733 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1734 </span>            : void AliMUONClusterFinderMLEM::RemovePixel(Int_t i)
+<span class="lineNum">    1735 </span>            : {
+<span class="lineNum">    1736 </span>            :   /// Remove pixel at index i
+<span class="lineNum">    1737 </span><span class="lineCov">       1474 :   AliMUONPad* pixPtr = Pixel(i);</span>
+<span class="lineNum">    1738 </span><span class="lineCov">        737 :   fPixArray-&gt;RemoveAt(i); </span>
+<span class="lineNum">    1739 </span><span class="lineCov">       1474 :   delete pixPtr;</span>
+<span class="lineNum">    1740 </span><span class="lineCov">        737 : }</span>
+<a name="1741"><span class="lineNum">    1741 </span>            : </a>
+<span class="lineNum">    1742 </span>            : //_____________________________________________________________________________
+<span class="lineNum">    1743 </span>            : void AliMUONClusterFinderMLEM::Simple(AliMUONCluster&amp; cluster)
+<span class="lineNum">    1744 </span>            : {
+<span class="lineNum">    1745 </span>            : /// Process simple cluster (small number of pads) without EM-procedure
+<span class="lineNum">    1746 </span>            : 
+<span class="lineNum">    1747 </span><span class="lineCov">        244 :   Int_t nForFit = 1, clustFit[1] = {0};</span>
+<span class="lineNum">    1748 </span><span class="lineCov">        122 :   Double_t parOk[3] = {0.}; </span>
+<span class="lineNum">    1749 </span><span class="lineCov">        122 :   TObjArray *clusters[1]; </span>
+<span class="lineNum">    1750 </span><span class="lineCov">        122 :   clusters[0] = fPixArray;</span>
+<span class="lineNum">    1751 </span>            : 
+<span class="lineNum">    1752 </span><span class="lineCov">        366 :   AliDebug(1,Form(&quot;nPix=%d&quot;,fPixArray-&gt;GetLast()+1));</span>
+<span class="lineNum">    1753 </span>            : 
+<span class="lineNum">    1754 </span><span class="lineCov">        122 :   Int_t mult = cluster.Multiplicity();</span>
+<span class="lineNum">    1755 </span><span class="lineCov">       2200 :   for (Int_t i = 0; i &lt; mult; ++i) </span>
+<span class="lineNum">    1756 </span>            :   {
+<span class="lineNum">    1757 </span><span class="lineCov">        978 :     AliMUONPad* pad = cluster.Pad(i);</span>
+<span class="lineNum">    1758 </span>            :     /*
+<span class="lineNum">    1759 </span>            :     if ( pad-&gt;IsSaturated()) 
+<span class="lineNum">    1760 </span>            :     {
+<span class="lineNum">    1761 </span>            :       pad-&gt;SetStatus(-9);
+<span class="lineNum">    1762 </span>            :     }
+<span class="lineNum">    1763 </span>            :     else 
+<span class="lineNum">    1764 </span>            :     {
+<span class="lineNum">    1765 </span>            :       pad-&gt;SetStatus(1);
+<span class="lineNum">    1766 </span>            :     }
+<span class="lineNum">    1767 </span>            :     */
+<span class="lineNum">    1768 </span><span class="lineCov">       1956 :     if (!pad-&gt;IsSaturated()) pad-&gt;SetStatus(fgkUseForFit);</span>
+<span class="lineNum">    1769 </span>            :   }
+<span class="lineNum">    1770 </span><span class="lineCov">        122 :   fSplitter-&gt;Fit(cluster,1, nForFit, clustFit, clusters, parOk, fClusterList, fHistMlem);</span>
+<span class="lineNum">    1771 </span><span class="lineCov">        122 : }</span>
+<span class="lineNum">    1772 </span>            : 
+<a name="1773"><span class="lineNum">    1773 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1774 </span>            : AliMUONPad* 
+<span class="lineNum">    1775 </span>            : AliMUONClusterFinderMLEM::Pixel(Int_t i) const
+<span class="lineNum">    1776 </span>            : {
+<span class="lineNum">    1777 </span>            :   /// Returns pixel at index i
+<span class="lineNum">    1778 </span><span class="lineCov">    8228722 :   return static_cast&lt;AliMUONPad*&gt;(fPixArray-&gt;UncheckedAt(i));</span>
+<span class="lineNum">    1779 </span>            : }
+<span class="lineNum">    1780 </span>            : 
+<a name="1781"><span class="lineNum">    1781 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1782 </span>            : void 
+<span class="lineNum">    1783 </span>            : AliMUONClusterFinderMLEM::Print(Option_t* what) const
+<span class="lineNum">    1784 </span>            : {
+<span class="lineNum">    1785 </span>            :   /// printout
+<span class="lineNum">    1786 </span><span class="lineNoCov">          0 :   TString swhat(what);</span>
+<span class="lineNum">    1787 </span><span class="lineNoCov">          0 :   swhat.ToLower();</span>
+<span class="lineNum">    1788 </span><span class="lineNoCov">          0 :   if ( swhat.Contains(&quot;precluster&quot;) )</span>
+<span class="lineNum">    1789 </span>            :   {
+<span class="lineNum">    1790 </span><span class="lineNoCov">          0 :     if ( fPreCluster) fPreCluster-&gt;Print();</span>
+<span class="lineNum">    1791 </span>            :   }
+<span class="lineNum">    1792 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1793 </span>            : 
+<a name="1794"><span class="lineNum">    1794 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">    1795 </span>            : void 
+<span class="lineNum">    1796 </span>            : AliMUONClusterFinderMLEM::SetChargeHints(Double_t lowestPadCharge, Double_t lowestClusterCharge)
+<span class="lineNum">    1797 </span>            : {
+<span class="lineNum">    1798 </span>            :   /// Set some thresholds we use later on in the algorithm
+<span class="lineNum">    1799 </span><span class="lineCov">        288 :   fLowestPadCharge=lowestPadCharge;</span>
+<span class="lineNum">    1800 </span><span class="lineCov">        144 :   fLowestClusterCharge=lowestClusterCharge;</span>
+<span class="lineNum">    1801 </span><span class="lineCov">        144 :   fLowestPixelCharge=fLowestPadCharge/12.0; </span>
+<span class="lineNum">    1802 </span><span class="lineCov">        144 : }</span>
+<span class="lineNum">    1803 </span>            : 
+<span class="lineNum">    1804 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

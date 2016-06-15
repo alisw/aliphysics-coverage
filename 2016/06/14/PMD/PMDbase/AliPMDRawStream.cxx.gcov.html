@@ -1,0 +1,831 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - PMD/PMDbase/AliPMDRawStream.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">PMD/PMDbase</a> - AliPMDRawStream.cxx<span style="font-size: 80%;"> (source / <a href="AliPMDRawStream.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">249</td>
+            <td class="headerCovTableEntry">311</td>
+            <td class="headerCovTableEntryMed">80.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">72.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      19 </span>            : ///
+<span class="lineNum">      20 </span>            : /// This class provides access to PMD digits in raw data.
+<span class="lineNum">      21 </span>            : ///
+<span class="lineNum">      22 </span>            : /// It loops over all PMD digits in the raw data given by the AliRawReader.
+<span class="lineNum">      23 </span>            : /// The Next method goes to the next digit. If there are no digits left
+<span class="lineNum">      24 </span>            : /// it returns kFALSE.
+<span class="lineNum">      25 </span>            : /// Several getters provide information about the current digit.
+<span class="lineNum">      26 </span>            : ///
+<span class="lineNum">      27 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;Riostream.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;TString.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;TSystem.h&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliPMDBlockHeader.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliPMDDspHeader.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliPMDPatchBusHeader.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliPMDddldata.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliPMDRawStream.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliPMDMappingData.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliRawReader.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliCDBStorage.h&quot;
+<a name="44"><span class="lineNum">      44 </span>            : #include &quot;AliCDBEntry.h&quot;</a>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">         12 : ClassImp(AliPMDRawStream)</span>
+<span class="lineNum">      47 </span>            : 
+<a name="48"><span class="lineNum">      48 </span>            : </a>
+<span class="lineNum">      49 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      50 </span><span class="lineCov">          4 : AliPMDRawStream::AliPMDRawStream(AliRawReader* rawReader) :</span>
+<span class="lineNum">      51 </span><span class="lineCov">          4 :     fRawReader(rawReader),</span>
+<span class="lineNum">      52 </span><span class="lineCov">          4 :     fData(NULL),</span>
+<span class="lineNum">      53 </span><span class="lineCov">          4 :     fPosition(-1),</span>
+<span class="lineNum">      54 </span><span class="lineCov">          8 :     fMapData(GetMappingData())</span>
+<span class="lineNum">      55 </span><span class="lineCov">         20 : {</span>
+<span class="lineNum">      56 </span>            : // create an object to read PMD raw digits
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineCov">          4 :   fRawReader-&gt;Reset();</span>
+<span class="lineNum">      59 </span><span class="lineCov">          4 :   fRawReader-&gt;Select(&quot;PMD&quot;);</span>
+<span class="lineNum">      60 </span><span class="lineCov">          8 : }</span>
+<a name="61"><span class="lineNum">      61 </span>            : </a>
+<span class="lineNum">      62 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      63 </span>            : AliPMDRawStream::AliPMDRawStream(const AliPMDRawStream&amp; stream) :
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   TObject(stream),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   fRawReader(NULL),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   fData(NULL),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   fPosition(-1),</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   fMapData(GetMappingData())</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      70 </span>            : // copy constructor
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   AliFatal(&quot;Copy constructor not implemented&quot;);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : }</span>
+<a name="74"><span class="lineNum">      74 </span>            : </a>
+<span class="lineNum">      75 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      76 </span>            : AliPMDRawStream&amp; AliPMDRawStream::operator = (const AliPMDRawStream&amp; 
+<span class="lineNum">      77 </span>            :                                               /* stream */)
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            : // assignment operator
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   AliFatal(&quot;operator = assignment operator not implemented&quot;);</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">      83 </span>            : }
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<span class="lineNum">      85 </span>            : //_____________________________________________________________________________
+<span class="lineNum">      86 </span>            : AliPMDRawStream::~AliPMDRawStream()
+<span class="lineNum">      87 </span><span class="lineCov">          8 : {</span>
+<span class="lineNum">      88 </span>            : // destructor
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">         12 : }</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : 
+<a name="93"><span class="lineNum">      93 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : Int_t AliPMDRawStream::DdlData(TObjArray *pmdddlcont)
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span>            :   // read the next raw digit
+<span class="lineNum">      98 </span>            :   // returns kFALSE if there is no digit left
+<span class="lineNum">      99 </span>            :   
+<span class="lineNum">     100 </span>            :   Int_t iddl = -1;
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :   AliPMDddldata *pmdddldata;
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineCov">         44 :   if (!fRawReader-&gt;ReadHeader()) return -1;</span>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineCov">         16 :   iddl           = fRawReader-&gt;GetDDLID();</span>
+<span class="lineNum">     107 </span><span class="lineCov">         16 :   Int_t dataSize = fRawReader-&gt;GetDataSize();</span>
+<span class="lineNum">     108 </span><span class="lineCov">         16 :   Int_t totaldataword = dataSize/4;</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">         16 :   if (dataSize &lt;= 0) return -1;</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            :   UInt_t data = 0;
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :  // PMD raw data does not contain CDH
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineCov">         16 :   if (!fRawReader-&gt;ReadNextData(fData))</span>
+<span class="lineNum">     117 </span>            :     {
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :       return kFALSE;</span>
+<span class="lineNum">     119 </span>            :     }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineCov">         16 :   fPosition = 0;</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :   Int_t ibus = 0;
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :   const Int_t kNPatchBus = 51;
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">         16 :   Int_t moduleNo[kNPatchBus], mcmperBus[kNPatchBus];</span>
+<span class="lineNum">     129 </span><span class="lineCov">         16 :   Int_t startRowBus[kNPatchBus], endRowBus[kNPatchBus];</span>
+<span class="lineNum">     130 </span><span class="lineCov">         16 :   Int_t startColBus[kNPatchBus], endColBus[kNPatchBus];</span>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineCov">       1664 :   for (ibus = 0; ibus &lt; kNPatchBus; ibus++)</span>
+<span class="lineNum">     133 </span>            :     {
+<span class="lineNum">     134 </span><span class="lineCov">        816 :       moduleNo[ibus]    = -1;</span>
+<span class="lineNum">     135 </span><span class="lineCov">        816 :       mcmperBus[ibus]   = -1;</span>
+<span class="lineNum">     136 </span><span class="lineCov">        816 :       startRowBus[ibus] = -1;</span>
+<span class="lineNum">     137 </span><span class="lineCov">        816 :       endRowBus[ibus]   = -1;</span>
+<span class="lineNum">     138 </span><span class="lineCov">        816 :       startColBus[ibus] = -1;</span>
+<span class="lineNum">     139 </span><span class="lineCov">        816 :       endColBus[ibus]   = -1;</span>
+<span class="lineNum">     140 </span>            :     }
+<span class="lineNum">     141 </span>            :   
+<span class="lineNum">     142 </span><span class="lineCov">         16 :   if (iddl == 0)</span>
+<span class="lineNum">     143 </span>            :     {
+<span class="lineNum">     144 </span><span class="lineCov">          8 :       Ddl0Mapping(moduleNo, mcmperBus, startRowBus, </span>
+<span class="lineNum">     145 </span><span class="lineCov">          4 :                   endRowBus, startColBus, endColBus);</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     148 </span><span class="lineCov">         12 :   else if (iddl == 1)</span>
+<span class="lineNum">     149 </span>            :     {
+<span class="lineNum">     150 </span><span class="lineCov">          8 :       Ddl1Mapping(moduleNo, mcmperBus, startRowBus, </span>
+<span class="lineNum">     151 </span><span class="lineCov">          4 :                   endRowBus, startColBus, endColBus);</span>
+<span class="lineNum">     152 </span>            :       
+<span class="lineNum">     153 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     154 </span><span class="lineCov">          8 :   else if (iddl == 2)</span>
+<span class="lineNum">     155 </span>            :     {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :       Ddl2Mapping(moduleNo, mcmperBus, startRowBus, </span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                   endRowBus, startColBus, endColBus);</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     159 </span><span class="lineCov">          8 :   else if (iddl == 3)</span>
+<span class="lineNum">     160 </span>            :     {
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :       Ddl3Mapping(moduleNo, mcmperBus, startRowBus, </span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                   endRowBus, startColBus, endColBus);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     164 </span><span class="lineCov">          8 :   else if (iddl == 4)</span>
+<span class="lineNum">     165 </span>            :     {
+<span class="lineNum">     166 </span><span class="lineCov">          8 :       Ddl4Mapping(moduleNo, mcmperBus, startRowBus, </span>
+<span class="lineNum">     167 </span><span class="lineCov">          4 :                   endRowBus, startColBus, endColBus);</span>
+<span class="lineNum">     168 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     169 </span><span class="lineCov">          4 :   else if (iddl == 5)</span>
+<span class="lineNum">     170 </span>            :     {
+<span class="lineNum">     171 </span><span class="lineCov">          8 :       Ddl5Mapping(moduleNo, mcmperBus, startRowBus, </span>
+<span class="lineNum">     172 </span><span class="lineCov">          4 :                   endRowBus, startColBus, endColBus);</span>
+<span class="lineNum">     173 </span><span class="lineCov">          4 :   }</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">         16 :   AliPMDBlockHeader    blockHeader;</span>
+<span class="lineNum">     177 </span><span class="lineCov">         16 :   AliPMDDspHeader      dspHeader;</span>
+<span class="lineNum">     178 </span><span class="lineCov">         16 :   AliPMDPatchBusHeader pbusHeader;</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">         16 :   const Int_t kblHLen   = blockHeader.GetHeaderLength();</span>
+<span class="lineNum">     181 </span><span class="lineCov">         16 :   const Int_t kdspHLen  = dspHeader.GetHeaderLength();</span>
+<span class="lineNum">     182 </span><span class="lineCov">         16 :   const Int_t kpbusHLen = pbusHeader.GetHeaderLength();</span>
+<span class="lineNum">     183 </span>            :   
+<span class="lineNum">     184 </span>            :   Int_t parity = 0;
+<span class="lineNum">     185 </span><span class="lineCov">         16 :   Int_t idet = 0, ismn = 0;</span>
+<span class="lineNum">     186 </span><span class="lineCov">         16 :   Int_t irow = -1;</span>
+<span class="lineNum">     187 </span><span class="lineCov">         16 :   Int_t icol = -1;</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineCov">         16 :   Int_t blHeaderWord[8]={0};</span>
+<span class="lineNum">     190 </span><span class="lineCov">         16 :   Int_t dspHeaderWord[10]={0};</span>
+<span class="lineNum">     191 </span><span class="lineCov">         16 :   Int_t pbusHeaderWord[4]={0};</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :   Int_t blRawDataLength  = 0;
+<span class="lineNum">     194 </span>            :   Int_t dspRawDataLength = 0;
+<span class="lineNum">     195 </span>            :   Int_t iwordddl         = 2;
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineCov">         64 :   for (Int_t iblock = 0; iblock &lt; 2; iblock++)</span>
+<span class="lineNum">     200 </span>            :     {
+<span class="lineNum">     201 </span><span class="lineCov">        576 :       for (Int_t i = 0; i &lt; kblHLen; i++)</span>
+<span class="lineNum">     202 </span>            :         {
+<span class="lineNum">     203 </span><span class="lineCov">        256 :             iwordddl++;</span>
+<span class="lineNum">     204 </span><span class="lineCov">        512 :             blHeaderWord[i] = (Int_t) GetNextWord();</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineCov">         32 :       blockHeader.SetHeader(blHeaderWord);</span>
+<span class="lineNum">     208 </span><span class="lineCov">         32 :       blRawDataLength = blockHeader.GetRawDataLength();</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineCov">         32 :       if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :       Int_t iwordblk = 0;
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">        320 :       for (Int_t idsp = 0; idsp &lt; 5; idsp++)</span>
+<span class="lineNum">     215 </span>            :         {
+<span class="lineNum">     216 </span><span class="lineCov">       3520 :           for (Int_t i = 0; i &lt; kdspHLen; i++)</span>
+<span class="lineNum">     217 </span>            :             {
+<span class="lineNum">     218 </span><span class="lineCov">       1600 :                 iwordddl++;</span>
+<span class="lineNum">     219 </span><span class="lineCov">       1600 :                 iwordblk++;</span>
+<span class="lineNum">     220 </span><span class="lineCov">       3200 :                 dspHeaderWord[i] = (Int_t) GetNextWord();</span>
+<span class="lineNum">     221 </span>            :             }
+<span class="lineNum">     222 </span><span class="lineCov">        160 :           dspHeader.SetHeader(dspHeaderWord);</span>
+<span class="lineNum">     223 </span><span class="lineCov">        160 :           dspRawDataLength = dspHeader.GetRawDataLength();</span>
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span><span class="lineCov">        160 :           if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            :           Int_t iworddsp = 0;
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">       1600 :           for (ibus = 0; ibus &lt; 5; ibus++)</span>
+<span class="lineNum">     230 </span>            :             {
+<span class="lineNum">     231 </span><span class="lineCov">       8000 :               for (Int_t i = 0; i &lt; kpbusHLen; i++)</span>
+<span class="lineNum">     232 </span>            :                 {
+<span class="lineNum">     233 </span><span class="lineCov">       3200 :                     iwordddl++;</span>
+<span class="lineNum">     234 </span><span class="lineCov">       3200 :                     iwordblk++;</span>
+<span class="lineNum">     235 </span><span class="lineCov">       3200 :                     iworddsp++;</span>
+<span class="lineNum">     236 </span><span class="lineCov">       6400 :                     pbusHeaderWord[i] = (Int_t) GetNextWord();</span>
+<span class="lineNum">     237 </span>            :                 }
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineCov">        800 :               pbusHeader.SetHeader(pbusHeaderWord);</span>
+<span class="lineNum">     240 </span><span class="lineCov">        800 :               Int_t rawdatalength = pbusHeader.GetRawDataLength();</span>
+<span class="lineNum">     241 </span><span class="lineCov">        800 :               Int_t pbusid = pbusHeader.GetPatchBusId();</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineCov">        800 :               if (pbusid &lt; 0 || pbusid &gt; 50) return -1;</span>
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineCov">        800 :               Int_t imodule = moduleNo[pbusid];</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">        814 :               if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineCov">       2718 :               for (Int_t iword = 0; iword &lt; rawdatalength; iword++)</span>
+<span class="lineNum">     250 </span>            :                 {
+<span class="lineNum">     251 </span><span class="lineCov">        180 :                     iwordddl++;</span>
+<span class="lineNum">     252 </span><span class="lineCov">        180 :                     iwordblk++;</span>
+<span class="lineNum">     253 </span><span class="lineCov">        180 :                     iworddsp++;</span>
+<span class="lineNum">     254 </span>            :                     data = 0;
+<span class="lineNum">     255 </span><span class="lineCov">        180 :                     data = GetNextWord();</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">        180 :                   Int_t isig =  data &amp; 0x0FFF;</span>
+<span class="lineNum">     258 </span><span class="lineCov">        180 :                   Int_t ich  = (data &gt;&gt; 12) &amp; 0x003F;</span>
+<span class="lineNum">     259 </span><span class="lineCov">        180 :                   Int_t imcm = (data &gt;&gt; 18) &amp; 0x07FF;</span>
+<span class="lineNum">     260 </span><span class="lineCov">        180 :                   Int_t ibit = (data &gt;&gt; 31) &amp; 0x0001;</span>
+<span class="lineNum">     261 </span><span class="lineCov">        180 :                   if (imcm == 0)</span>
+<span class="lineNum">     262 </span>            :                     {
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                       AliWarning(Form(&quot;FEE address WRONG:: Module %d Patch Bus %d MCM %d&quot;,imodule,pbusid,imcm));</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :                       return -1;</span>
+<span class="lineNum">     265 </span>            :                     }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineCov">        180 :                   parity = ComputeParity(data);</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineCov">        180 :                   if (ibit != parity)</span>
+<span class="lineNum">     270 </span>            :                     {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                       AliWarning(Form(&quot;Parity Error:: Patch Bus %d Module %d&quot;,pbusid,imodule));</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                       fRawReader-&gt;AddMajorErrorLog(kParityError);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                       return -1;</span>
+<span class="lineNum">     274 </span>            :                     }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">        180 :                   ConvertDDL2SMN(iddl, imodule, ismn, idet);</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineCov">        180 :                   GetRowCol(imodule, pbusid, imcm, ich, </span>
+<span class="lineNum">     279 </span><span class="lineCov">        180 :                             startRowBus, endRowBus,</span>
+<span class="lineNum">     280 </span><span class="lineCov">        180 :                             startColBus, endColBus,</span>
+<span class="lineNum">     281 </span>            :                             irow, icol);
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">        180 :                   TransformH2S(ismn, irow, icol);</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineCov">        360 :                   pmdddldata = new AliPMDddldata();</span>
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetDetector(idet);</span>
+<span class="lineNum">     289 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetSMN(ismn);</span>
+<span class="lineNum">     290 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetModule(imodule);</span>
+<span class="lineNum">     291 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetPatchBusId(pbusid);</span>
+<span class="lineNum">     292 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetMCM(imcm);</span>
+<span class="lineNum">     293 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetChannel(ich);</span>
+<span class="lineNum">     294 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetRow(irow);</span>
+<span class="lineNum">     295 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetColumn(icol);</span>
+<span class="lineNum">     296 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetSignal(isig);</span>
+<span class="lineNum">     297 </span><span class="lineCov">        180 :                   pmdddldata-&gt;SetParityBit(ibit);</span>
+<span class="lineNum">     298 </span>            :                   
+<span class="lineNum">     299 </span><span class="lineCov">        180 :                   pmdddlcont-&gt;Add(pmdddldata);</span>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span><span class="lineCov">        180 :                 } // data word loop</span>
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineCov">        786 :               if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineCov">        786 :               if (dspHeader.GetPaddingWord() == 1)</span>
+<span class="lineNum">     307 </span>            :               {
+<span class="lineNum">     308 </span><span class="lineCov">        168 :                   if (iworddsp == dspRawDataLength-1) break; // raw data</span>
+<span class="lineNum">     309 </span>            :               }
+<span class="lineNum">     310 </span>            :               else
+<span class="lineNum">     311 </span>            :               {
+<span class="lineNum">     312 </span><span class="lineCov">        764 :                   if (iworddsp == dspRawDataLength) break; // raw data</span>
+<span class="lineNum">     313 </span>            :               }
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineCov">        640 :             } // patch bus loop</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            : //SKP added break next line (Reqd. if only one patch Bus)
+<span class="lineNum">     319 </span><span class="lineCov">        174 :           if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineCov">        146 :           if (dspHeader.GetPaddingWord() == 1)</span>
+<span class="lineNum">     322 </span>            :           {
+<span class="lineNum">     323 </span><span class="lineCov">         28 :               iwordddl++;</span>
+<span class="lineNum">     324 </span><span class="lineCov">         28 :               iwordblk++;</span>
+<span class="lineNum">     325 </span>            :               iworddsp++;
+<span class="lineNum">     326 </span><span class="lineCov">         28 :               data = GetNextWord();</span>
+<span class="lineNum">     327 </span><span class="lineCov">         28 :           }</span>
+<span class="lineNum">     328 </span><span class="lineCov">        148 :           if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineCov">        160 :           if (iwordblk == blRawDataLength) break; // for raw data</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineCov">        128 :         } // end of DSP</span>
+<span class="lineNum">     334 </span>            : //SKP added break next line (Reqd. if only one patch Bus)
+<span class="lineNum">     335 </span><span class="lineCov">         48 :           if (iwordddl == totaldataword) break;</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">         16 :     } // end of BLOCK</span>
+<span class="lineNum">     338 </span>            :  
+<span class="lineNum">     339 </span><span class="lineCov">         16 :  return iddl;</span>
+<a name="340"><span class="lineNum">     340 </span><span class="lineCov">         36 : }</span></a>
+<span class="lineNum">     341 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     342 </span>            : void AliPMDRawStream::GetRowCol(Int_t imodule, Int_t pbusid,
+<span class="lineNum">     343 </span>            :                                 UInt_t mcmno, UInt_t chno,
+<span class="lineNum">     344 </span>            :                                 Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     345 </span>            :                                 Int_t startColBus[], Int_t endColBus[],
+<span class="lineNum">     346 </span>            :                                 Int_t &amp;row, Int_t &amp;col) const
+<span class="lineNum">     347 </span>            : {
+<span class="lineNum">     348 </span>            :   // decode: ddlno, patchbusid, mcmno, chno -&gt; um, row, col
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineCov">        360 :   UInt_t iCh[64];</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            :   static const UInt_t kChDdl01[64] = { 9, 6, 5, 10, 1, 2, 0, 3,
+<span class="lineNum">     353 </span>            :                                        13, 7, 4, 11, 8, 14, 12, 15,
+<span class="lineNum">     354 </span>            :                                        16, 19, 17, 23, 20, 27, 24, 18,
+<span class="lineNum">     355 </span>            :                                        28, 31, 29, 30, 21, 26, 25, 22,
+<span class="lineNum">     356 </span>            :                                        41, 38, 37, 42, 33, 34, 32, 35,
+<span class="lineNum">     357 </span>            :                                        45, 39, 36, 43, 40, 46, 44, 47,
+<span class="lineNum">     358 </span>            :                                        48, 51, 49, 55, 52, 59, 56, 50,
+<span class="lineNum">     359 </span>            :                                        60, 63, 61, 62, 53, 58, 57, 54 };
+<span class="lineNum">     360 </span>            :     
+<span class="lineNum">     361 </span>            :   static const UInt_t kChDdl23[64] = { 54, 57, 58, 53, 62, 61, 63, 60,
+<span class="lineNum">     362 </span>            :                                        50, 56, 59, 52, 55, 49, 51, 48,
+<span class="lineNum">     363 </span>            :                                        47, 44, 46, 40, 43, 36, 39, 45,
+<span class="lineNum">     364 </span>            :                                        35, 32, 34, 33, 42, 37, 38, 41,
+<span class="lineNum">     365 </span>            :                                        22, 25, 26, 21, 30, 29, 31, 28,
+<span class="lineNum">     366 </span>            :                                        18, 24, 27, 20, 23, 17, 19, 16,
+<span class="lineNum">     367 </span>            :                                        15, 12, 14, 8, 11, 4, 7, 13,
+<span class="lineNum">     368 </span>            :                                        3, 0, 2, 1, 10, 5, 6, 9 };
+<span class="lineNum">     369 </span>            :   
+<span class="lineNum">     370 </span>            :   static const UInt_t kChDdl41[64] = { 53, 58, 57, 54, 61, 62, 60, 63,
+<span class="lineNum">     371 </span>            :                                        49, 59, 56, 55, 52, 50, 48, 51,
+<span class="lineNum">     372 </span>            :                                        44, 47, 45, 43, 40, 39, 36, 46,
+<span class="lineNum">     373 </span>            :                                        32, 35, 33, 34, 41, 38, 37, 42,
+<span class="lineNum">     374 </span>            :                                        21, 26, 25, 22, 29, 30, 28, 31,
+<span class="lineNum">     375 </span>            :                                        17, 27, 24, 23, 20, 18, 16, 19,
+<span class="lineNum">     376 </span>            :                                        12, 15, 13, 11, 8, 7, 4, 14,
+<span class="lineNum">     377 </span>            :                                        0, 3, 1, 2, 9, 6, 5, 10 };
+<span class="lineNum">     378 </span>            :   
+<span class="lineNum">     379 </span>            :   static const UInt_t kChDdl42[64] = { 10, 5, 6, 9, 2, 1, 3, 0,
+<span class="lineNum">     380 </span>            :                                        14, 4, 7, 8, 11, 13, 15, 12,
+<span class="lineNum">     381 </span>            :                                        19, 16, 18, 20, 23, 24, 27, 17,
+<span class="lineNum">     382 </span>            :                                        31, 28, 30, 29, 22, 25, 26, 21,
+<span class="lineNum">     383 </span>            :                                        42, 37, 38, 41, 34, 33, 35, 32,
+<span class="lineNum">     384 </span>            :                                        46, 36, 39, 40, 43, 45, 47, 44,
+<span class="lineNum">     385 </span>            :                                        51, 48, 50, 52, 55, 56, 59, 49,
+<span class="lineNum">     386 </span>            :                                        63, 60, 62, 61, 54, 57, 58, 53 };
+<span class="lineNum">     387 </span>            :   
+<span class="lineNum">     388 </span>            :   static const UInt_t kChDdl51[64] = { 10, 5, 6, 9, 2, 1, 3, 0,
+<span class="lineNum">     389 </span>            :                                        14, 4, 7, 8, 11, 13, 15, 12,
+<span class="lineNum">     390 </span>            :                                        19, 16, 18, 20, 23, 24, 27, 17,
+<span class="lineNum">     391 </span>            :                                        31, 28, 30, 29, 22, 25, 26, 21,
+<span class="lineNum">     392 </span>            :                                        42, 37, 38, 41, 34, 33, 35, 32,
+<span class="lineNum">     393 </span>            :                                        46, 36, 39, 40, 43, 45, 47, 44,
+<span class="lineNum">     394 </span>            :                                        51, 48, 50, 52, 55, 56, 59, 49,
+<span class="lineNum">     395 </span>            :                                        63, 60, 62, 61, 54, 57, 58, 53 };
+<span class="lineNum">     396 </span>            :   
+<span class="lineNum">     397 </span>            :   static const UInt_t kChDdl52[64] = { 53, 58, 57, 54, 61, 62, 60, 63,
+<span class="lineNum">     398 </span>            :                                        49, 59, 56, 55, 52, 50, 48, 51,
+<span class="lineNum">     399 </span>            :                                        44, 47, 45, 43, 40, 39, 36, 46,
+<span class="lineNum">     400 </span>            :                                        32, 35, 33, 34, 41, 38, 37, 42,
+<span class="lineNum">     401 </span>            :                                        21, 26, 25, 22, 29, 30, 28, 31,
+<span class="lineNum">     402 </span>            :                                        17, 27, 24, 23, 20, 18, 16, 19,
+<span class="lineNum">     403 </span>            :                                        12, 15, 13, 11, 8, 7, 4, 14,
+<span class="lineNum">     404 </span>            :                                        0, 3, 1, 2, 9, 6, 5, 10 };
+<span class="lineNum">     405 </span>            :   
+<span class="lineNum">     406 </span><span class="lineCov">      23400 :   for (Int_t i = 0; i &lt; 64; i++)</span>
+<span class="lineNum">     407 </span>            :     {
+<span class="lineNum">     408 </span><span class="lineCov">      16896 :       if(imodule &lt; 6)                    iCh[i] = kChDdl01[i];</span>
+<span class="lineNum">     409 </span><span class="lineCov">      12096 :       if(imodule &gt;= 6 &amp;&amp; imodule &lt;= 11)  iCh[i] = kChDdl01[i];</span>
+<span class="lineNum">     410 </span><span class="lineCov">      11840 :       if(imodule &gt;= 12 &amp;&amp; imodule &lt;= 17) iCh[i] = kChDdl23[i];</span>
+<span class="lineNum">     411 </span><span class="lineCov">      12928 :       if(imodule &gt;= 18 &amp;&amp; imodule &lt;= 23) iCh[i] = kChDdl23[i];</span>
+<span class="lineNum">     412 </span><span class="lineCov">      13696 :       if(imodule &gt;= 24 &amp;&amp; imodule &lt;= 29) iCh[i] = kChDdl41[i];</span>
+<span class="lineNum">     413 </span><span class="lineCov">      11520 :       if(imodule &gt;= 42 &amp;&amp; imodule &lt;= 47) iCh[i] = kChDdl42[i];</span>
+<span class="lineNum">     414 </span><span class="lineCov">      12416 :       if(imodule &gt;= 36 &amp;&amp; imodule &lt;= 41) iCh[i] = kChDdl51[i];</span>
+<span class="lineNum">     415 </span><span class="lineCov">      12288 :       if(imodule &gt;= 30 &amp;&amp; imodule &lt;= 35) iCh[i] = kChDdl52[i];</span>
+<span class="lineNum">     416 </span>            :     }
+<span class="lineNum">     417 </span>            :   
+<span class="lineNum">     418 </span>            :   
+<span class="lineNum">     419 </span><span class="lineCov">        180 :   Int_t rowcol  = iCh[chno];</span>
+<span class="lineNum">     420 </span><span class="lineCov">        180 :   Int_t irownew = rowcol/4;</span>
+<span class="lineNum">     421 </span><span class="lineCov">        180 :   Int_t icolnew = rowcol%4;</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineCov">        180 :   if (imodule &lt; 6 )</span>
+<span class="lineNum">     425 </span>            :     {
+<span class="lineNum">     426 </span><span class="lineCov">         84 :       row = startRowBus[pbusid] + irownew;</span>
+<span class="lineNum">     427 </span><span class="lineCov">         84 :       col = startColBus[pbusid] + (mcmno-1)*4 + icolnew;</span>
+<span class="lineNum">     428 </span><span class="lineCov">         84 :     }</span>
+<span class="lineNum">     429 </span><span class="lineCov">         96 :   else if (imodule &gt;= 6 &amp;&amp; imodule &lt; 12)</span>
+<span class="lineNum">     430 </span>            :     {
+<span class="lineNum">     431 </span><span class="lineCov">          9 :       row = endRowBus[pbusid] - (15 - irownew);</span>
+<span class="lineNum">     432 </span><span class="lineCov">          9 :       col = startColBus[pbusid] + (mcmno-1)*4 + icolnew;</span>
+<span class="lineNum">     433 </span>            :       
+<span class="lineNum">     434 </span><span class="lineCov">          9 :     }</span>
+<span class="lineNum">     435 </span><span class="lineCov">         87 :   else if (imodule &gt;= 12 &amp;&amp; imodule &lt; 18 )</span>
+<span class="lineNum">     436 </span>            :     {
+<span class="lineNum">     437 </span><span class="lineCov">          5 :       row = startRowBus[pbusid] + irownew;</span>
+<span class="lineNum">     438 </span><span class="lineCov">          5 :       col = endColBus[pbusid] - (mcmno-1)*4 - (3 - icolnew);</span>
+<span class="lineNum">     439 </span><span class="lineCov">          5 :     }</span>
+<span class="lineNum">     440 </span><span class="lineCov">         82 :   else if (imodule &gt;= 18 &amp;&amp; imodule &lt; 24)</span>
+<span class="lineNum">     441 </span>            :     {
+<span class="lineNum">     442 </span><span class="lineCov">         22 :       row = endRowBus[pbusid] - (15 - irownew);</span>
+<span class="lineNum">     443 </span><span class="lineCov">         22 :       col = endColBus[pbusid] - (mcmno-1)*4 - (3 - icolnew);</span>
+<span class="lineNum">     444 </span><span class="lineCov">         22 :     }</span>
+<span class="lineNum">     445 </span><span class="lineCov">         60 :   else if (imodule &gt;= 24 &amp;&amp; imodule &lt; 30)</span>
+<span class="lineNum">     446 </span>            :     {
+<span class="lineNum">     447 </span><span class="lineCov">         34 :       Int_t rowdiff = endRowBus[pbusid] - startRowBus[pbusid];</span>
+<span class="lineNum">     448 </span><span class="lineCov">         34 :       if(rowdiff &gt; 16)</span>
+<span class="lineNum">     449 </span>            :         {
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :           if (mcmno &lt;= 12)</span>
+<span class="lineNum">     451 </span>            :             {
+<span class="lineNum">     452 </span>            :               // Add 16 to skip the 1st 15 rows
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :               row = startRowBus[pbusid] + irownew + 16;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :               col = startColBus[pbusid] + (mcmno-1)*4 + icolnew;</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :           else if(mcmno &gt; 12)</span>
+<span class="lineNum">     457 </span>            :             {
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :               row = startRowBus[pbusid] + irownew;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :               col = startColBus[pbusid] + (mcmno-12-1)*4 + icolnew;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     461 </span>            :         }
+<span class="lineNum">     462 </span><span class="lineCov">         34 :       else if (rowdiff &lt; 16)</span>
+<span class="lineNum">     463 </span>            :         {
+<span class="lineNum">     464 </span><span class="lineCov">         34 :           row = startRowBus[pbusid] + irownew;</span>
+<span class="lineNum">     465 </span><span class="lineCov">         34 :           col = startColBus[pbusid] + (mcmno-1)*4 + icolnew;</span>
+<span class="lineNum">     466 </span><span class="lineCov">         34 :         }</span>
+<span class="lineNum">     467 </span><span class="lineCov">         34 :     }</span>
+<span class="lineNum">     468 </span><span class="lineCov">         26 :   else if (imodule &gt;= 42 &amp;&amp; imodule &lt; 48)</span>
+<span class="lineNum">     469 </span>            :     {
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :       Int_t rowdiff = endRowBus[pbusid] - startRowBus[pbusid];</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       if (mcmno &lt;= 12)</span>
+<span class="lineNum">     473 </span>            :         {
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :           col = endColBus[pbusid] - (mcmno-1)*4 - (3 - icolnew); </span>
+<span class="lineNum">     475 </span>            :           
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :           if(rowdiff &gt; 16)</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :             row = endRowBus[pbusid] - (15 - irownew) - 16 ;</span>
+<span class="lineNum">     478 </span>            :           else
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :             row = endRowBus[pbusid] - (15 - irownew) ;</span>
+<span class="lineNum">     480 </span>            :         }
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :       else if(mcmno &gt; 12)</span>
+<span class="lineNum">     482 </span>            :         {
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :           row = endRowBus[pbusid] - (15 - irownew)  ;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :           col = endColBus[pbusid] - (mcmno - 12 - 1)*4 - (3 - icolnew);</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineCov">         26 :   else if (imodule &gt;= 30 &amp;&amp; imodule &lt; 36)</span>
+<span class="lineNum">     491 </span>            :     {
+<span class="lineNum">     492 </span><span class="lineCov">         24 :       if (mcmno &gt; 12)</span>
+<span class="lineNum">     493 </span>            :         {
+<span class="lineNum">     494 </span>            :           // Subtract 16 to skip the 1st 15 rows
+<span class="lineNum">     495 </span><span class="lineCov">         12 :           row = endRowBus[pbusid] - 16 -(15 - irownew);</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :           col = startColBus[pbusid] + (mcmno-12 -1)*4 + icolnew;</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     498 </span>            :       else
+<span class="lineNum">     499 </span>            :         {
+<span class="lineNum">     500 </span><span class="lineCov">         12 :           row = endRowBus[pbusid]  - (15 - irownew) ;</span>
+<span class="lineNum">     501 </span><span class="lineCov">         12 :           col = startColBus[pbusid] + (mcmno -1)*4 + icolnew;</span>
+<span class="lineNum">     502 </span>            :         }
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            :     }
+<span class="lineNum">     505 </span>            :       
+<span class="lineNum">     506 </span><span class="lineCov">         14 :   else if (imodule &gt;= 36 &amp;&amp; imodule &lt; 42)</span>
+<span class="lineNum">     507 </span>            :     {
+<span class="lineNum">     508 </span><span class="lineCov">         28 :       if(mcmno &gt; 12)</span>
+<span class="lineNum">     509 </span>            :         {
+<span class="lineNum">     510 </span>            :           // Add 16 to skip the 1st 15 rows
+<span class="lineNum">     511 </span><span class="lineCov">         14 :           row = startRowBus[pbusid] + irownew + 16;</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :           col = endColBus[pbusid] - (mcmno - 12 - 1)*4 - (3 - icolnew);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     514 </span>            :       else 
+<span class="lineNum">     515 </span>            :         {
+<span class="lineNum">     516 </span><span class="lineCov">         14 :           row = startRowBus[pbusid] + irownew ;</span>
+<span class="lineNum">     517 </span><span class="lineCov">         14 :           col = endColBus[pbusid] - (mcmno - 1)*4 - (3 - icolnew); </span>
+<span class="lineNum">     518 </span>            :         }
+<span class="lineNum">     519 </span>            :     }
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span>            : 
+<a name="522"><span class="lineNum">     522 </span><span class="lineCov">        180 : }</span></a>
+<span class="lineNum">     523 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     524 </span>            : void AliPMDRawStream::ConvertDDL2SMN(Int_t iddl, Int_t imodule,
+<span class="lineNum">     525 </span>            :                                      Int_t &amp;smn, Int_t &amp;detector) const
+<span class="lineNum">     526 </span>            : {
+<span class="lineNum">     527 </span>            :   // This converts the DDL number (0 to 5), Module Number (0-47)
+<span class="lineNum">     528 </span>            :   // to Serial module number in one detector (SMN : 0-23) and
+<span class="lineNum">     529 </span>            :   // detector number (0:PRE plane, 1:CPV plane)
+<span class="lineNum">     530 </span><span class="lineCov">        360 :   if (iddl &lt; 4)</span>
+<span class="lineNum">     531 </span>            :     {
+<span class="lineNum">     532 </span><span class="lineCov">        120 :       smn = imodule;</span>
+<span class="lineNum">     533 </span><span class="lineCov">        120 :       detector = 0;</span>
+<span class="lineNum">     534 </span><span class="lineCov">        120 :     }</span>
+<span class="lineNum">     535 </span>            :   else
+<span class="lineNum">     536 </span>            :     {
+<span class="lineNum">     537 </span><span class="lineCov">         60 :       smn = imodule - 24;</span>
+<span class="lineNum">     538 </span><span class="lineCov">         60 :       detector = 1;</span>
+<span class="lineNum">     539 </span>            :     }
+<span class="lineNum">     540 </span><span class="lineCov">        180 : }</span>
+<a name="541"><span class="lineNum">     541 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span>            : void AliPMDRawStream::TransformH2S(Int_t smn, Int_t &amp;row, Int_t &amp;col) const
+<span class="lineNum">     544 </span>            : {
+<span class="lineNum">     545 </span>            :   // This does the transformation of the hardware coordinate to
+<span class="lineNum">     546 </span>            :   // software 
+<span class="lineNum">     547 </span>            :   // i.e., For SuperModule 0 &amp;1, instead of 96x48(hardware),
+<span class="lineNum">     548 </span>            :   // it is 48x96 (software)
+<span class="lineNum">     549 </span>            :   // For Supermodule 3 &amp; 4, 48x96
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span>            :   Int_t irownew  = 0;
+<span class="lineNum">     552 </span>            :   Int_t icolnew  = 0;
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span><span class="lineCov">        360 :   if(smn &lt; 12)</span>
+<span class="lineNum">     555 </span>            :     {
+<span class="lineNum">     556 </span><span class="lineCov">        139 :       irownew = col;</span>
+<span class="lineNum">     557 </span><span class="lineCov">        139 :       icolnew = row;</span>
+<span class="lineNum">     558 </span><span class="lineCov">        139 :     }</span>
+<span class="lineNum">     559 </span><span class="lineCov">         41 :   else if(smn &gt;= 12 &amp;&amp; smn &lt; 24)</span>
+<span class="lineNum">     560 </span>            :     {
+<span class="lineNum">     561 </span><span class="lineCov">         41 :       irownew = row;</span>
+<span class="lineNum">     562 </span><span class="lineCov">         41 :       icolnew = col;</span>
+<span class="lineNum">     563 </span><span class="lineCov">         41 :     }</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineCov">        180 :   row = irownew;</span>
+<span class="lineNum">     566 </span><span class="lineCov">        180 :   col = icolnew;</span>
+<a name="567"><span class="lineNum">     567 </span><span class="lineCov">        180 : }</span></a>
+<span class="lineNum">     568 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     569 </span>            : Int_t AliPMDRawStream::ComputeParity(UInt_t data)
+<span class="lineNum">     570 </span>            : {
+<span class="lineNum">     571 </span>            : // Calculate the parity bit
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            :   Int_t count = 0;
+<span class="lineNum">     574 </span><span class="lineCov">      10980 :   for(Int_t j = 0; j&lt;29; j++)</span>
+<span class="lineNum">     575 </span>            :     {
+<span class="lineNum">     576 </span><span class="lineCov">       6833 :       if (data &amp; 0x01 ) count++;</span>
+<span class="lineNum">     577 </span><span class="lineCov">       5220 :       data &gt;&gt;= 1;</span>
+<span class="lineNum">     578 </span>            :     }
+<span class="lineNum">     579 </span>            :   
+<span class="lineNum">     580 </span><span class="lineCov">        180 :   Int_t parity = count%2;</span>
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span><span class="lineCov">        180 :   return parity;</span>
+<span class="lineNum">     583 </span>            : }
+<a name="584"><span class="lineNum">     584 </span>            : </a>
+<span class="lineNum">     585 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     586 </span>            : UInt_t AliPMDRawStream::GetNextWord()
+<span class="lineNum">     587 </span>            : {
+<span class="lineNum">     588 </span>            :     // Returns the next 32 bit word
+<span class="lineNum">     589 </span>            :     // inside the raw data payload.
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineCov">      15792 :     if (!fData || fPosition &lt; 0) AliFatal(&quot;Raw data payload buffer is not yet initialized !&quot;);</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            :     UInt_t word = 0;
+<span class="lineNum">     594 </span><span class="lineCov">       5264 :     word |= fData[fPosition++];</span>
+<span class="lineNum">     595 </span><span class="lineCov">       5264 :     word |= fData[fPosition++] &lt;&lt; 8;</span>
+<span class="lineNum">     596 </span><span class="lineCov">       5264 :     word |= fData[fPosition++] &lt;&lt; 16;</span>
+<span class="lineNum">     597 </span><span class="lineCov">       5264 :     word |= fData[fPosition++] &lt;&lt; 24;</span>
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span><span class="lineCov">       5264 :     return word;</span>
+<span class="lineNum">     600 </span>            : }
+<a name="601"><span class="lineNum">     601 </span>            : </a>
+<span class="lineNum">     602 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     603 </span>            : void AliPMDRawStream::Ddl0Mapping(Int_t moduleNo[],    Int_t mcmperBus[],
+<span class="lineNum">     604 </span>            :                                   Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     605 </span>            :                                   Int_t startColBus[], Int_t endColBus[])
+<span class="lineNum">     606 </span>            : {
+<span class="lineNum">     607 </span>            :   // DDL0 Mapping 
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span>            :   Int_t iddl = 0;
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span><span class="lineCov">        412 :   for(Int_t ibus = 1; ibus &lt; 51; ibus++)</span>
+<span class="lineNum">     612 </span>            :     {
+<span class="lineNum">     613 </span><span class="lineCov">        200 :       moduleNo[ibus]     = fMapData-&gt;GetModuleNo(iddl,ibus);</span>
+<span class="lineNum">     614 </span><span class="lineCov">        200 :       mcmperBus[ibus]    = fMapData-&gt;GetMcmperBus(iddl,ibus);</span>
+<span class="lineNum">     615 </span><span class="lineCov">        200 :       startRowBus[ibus]  = fMapData-&gt;GetStartRowBus(iddl,ibus);</span>
+<span class="lineNum">     616 </span><span class="lineCov">        200 :       startColBus[ibus]  = fMapData-&gt;GetStartColBus(iddl,ibus);</span>
+<span class="lineNum">     617 </span><span class="lineCov">        200 :       endRowBus[ibus]    = fMapData-&gt;GetEndRowBus(iddl,ibus);</span>
+<span class="lineNum">     618 </span><span class="lineCov">        200 :       endColBus[ibus]    = fMapData-&gt;GetEndColBus(iddl,ibus);</span>
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineCov">          4 : }</span>
+<a name="622"><span class="lineNum">     622 </span>            : </a>
+<span class="lineNum">     623 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     624 </span>            : void AliPMDRawStream::Ddl1Mapping(Int_t moduleNo[],    Int_t mcmperBus[],
+<span class="lineNum">     625 </span>            :                                   Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     626 </span>            :                                   Int_t startColBus[], Int_t endColBus[])
+<span class="lineNum">     627 </span>            : {
+<span class="lineNum">     628 </span>            :   // DDL1 Mapping 
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span>            :   Int_t iddl = 1;
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span><span class="lineCov">        412 :   for(Int_t ibus = 1; ibus &lt; 51; ibus++)</span>
+<span class="lineNum">     633 </span>            :     {
+<span class="lineNum">     634 </span><span class="lineCov">        200 :       moduleNo[ibus]     = fMapData-&gt;GetModuleNo(iddl,ibus);</span>
+<span class="lineNum">     635 </span><span class="lineCov">        200 :       mcmperBus[ibus]    = fMapData-&gt;GetMcmperBus(iddl,ibus);</span>
+<span class="lineNum">     636 </span><span class="lineCov">        200 :       startRowBus[ibus]  = fMapData-&gt;GetStartRowBus(iddl,ibus);</span>
+<span class="lineNum">     637 </span><span class="lineCov">        200 :       startColBus[ibus]  = fMapData-&gt;GetStartColBus(iddl,ibus);</span>
+<span class="lineNum">     638 </span><span class="lineCov">        200 :       endRowBus[ibus]    = fMapData-&gt;GetEndRowBus(iddl,ibus);</span>
+<span class="lineNum">     639 </span><span class="lineCov">        200 :       endColBus[ibus]    = fMapData-&gt;GetEndColBus(iddl,ibus);</span>
+<span class="lineNum">     640 </span>            :           
+<span class="lineNum">     641 </span>            :     }
+<span class="lineNum">     642 </span>            : 
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineCov">          4 : }</span>
+<a name="645"><span class="lineNum">     645 </span>            : </a>
+<span class="lineNum">     646 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     647 </span>            : void AliPMDRawStream::Ddl2Mapping(Int_t moduleNo[],    Int_t mcmperBus[],
+<span class="lineNum">     648 </span>            :                                   Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     649 </span>            :                                   Int_t startColBus[], Int_t endColBus[])
+<span class="lineNum">     650 </span>            : {
+<span class="lineNum">     651 </span>            :   // DDL2 Mapping 
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            :   Int_t iddl = 2;
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :   for(Int_t ibus = 1; ibus &lt; 51; ibus++)</span>
+<span class="lineNum">     656 </span>            :     {
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :       moduleNo[ibus]     = fMapData-&gt;GetModuleNo(iddl,ibus);</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :       mcmperBus[ibus]    = fMapData-&gt;GetMcmperBus(iddl,ibus);</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :       startRowBus[ibus]  = fMapData-&gt;GetStartRowBus(iddl,ibus);</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :       startColBus[ibus]  = fMapData-&gt;GetStartColBus(iddl,ibus);</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :       endRowBus[ibus]    = fMapData-&gt;GetEndRowBus(iddl,ibus);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :       endColBus[ibus]    = fMapData-&gt;GetEndColBus(iddl,ibus);</span>
+<span class="lineNum">     663 </span>            :           
+<span class="lineNum">     664 </span>            :     }
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 : }</span>
+<a name="667"><span class="lineNum">     667 </span>            : </a>
+<span class="lineNum">     668 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     669 </span>            : void AliPMDRawStream::Ddl3Mapping(Int_t moduleNo[],    Int_t mcmperBus[],
+<span class="lineNum">     670 </span>            :                                   Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     671 </span>            :                                   Int_t startColBus[], Int_t endColBus[])
+<span class="lineNum">     672 </span>            : {
+<span class="lineNum">     673 </span>            :   // DDL3 Mapping 
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span>            :   Int_t iddl = 3;
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :   for(Int_t ibus = 1; ibus &lt; 51; ibus++)</span>
+<span class="lineNum">     678 </span>            :     {
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :       moduleNo[ibus]     = fMapData-&gt;GetModuleNo(iddl,ibus);</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :       mcmperBus[ibus]    = fMapData-&gt;GetMcmperBus(iddl,ibus);</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :       startRowBus[ibus]  = fMapData-&gt;GetStartRowBus(iddl,ibus);</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :       startColBus[ibus]  = fMapData-&gt;GetStartColBus(iddl,ibus);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :       endRowBus[ibus]    = fMapData-&gt;GetEndRowBus(iddl,ibus);</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :       endColBus[ibus]    = fMapData-&gt;GetEndColBus(iddl,ibus);</span>
+<span class="lineNum">     685 </span>            :           
+<span class="lineNum">     686 </span>            :     }
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 : }</span>
+<a name="689"><span class="lineNum">     689 </span>            : </a>
+<span class="lineNum">     690 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     691 </span>            : void AliPMDRawStream::Ddl4Mapping(Int_t moduleNo[],    Int_t mcmperBus[],
+<span class="lineNum">     692 </span>            :                                   Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     693 </span>            :                                   Int_t startColBus[], Int_t endColBus[])
+<span class="lineNum">     694 </span>            : {
+<span class="lineNum">     695 </span>            :   // DDL4 Mapping 
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span>            :   Int_t iddl = 4;
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineCov">        412 :   for(Int_t ibus = 1; ibus &lt; 51; ibus++)</span>
+<span class="lineNum">     700 </span>            :     {
+<span class="lineNum">     701 </span><span class="lineCov">        200 :       moduleNo[ibus]     = fMapData-&gt;GetModuleNo(iddl,ibus);</span>
+<span class="lineNum">     702 </span><span class="lineCov">        200 :       mcmperBus[ibus]    = fMapData-&gt;GetMcmperBus(iddl,ibus);</span>
+<span class="lineNum">     703 </span><span class="lineCov">        200 :       startRowBus[ibus]  = fMapData-&gt;GetStartRowBus(iddl,ibus);</span>
+<span class="lineNum">     704 </span><span class="lineCov">        200 :       startColBus[ibus]  = fMapData-&gt;GetStartColBus(iddl,ibus);</span>
+<span class="lineNum">     705 </span><span class="lineCov">        200 :       endRowBus[ibus]    = fMapData-&gt;GetEndRowBus(iddl,ibus);</span>
+<span class="lineNum">     706 </span><span class="lineCov">        200 :       endColBus[ibus]    = fMapData-&gt;GetEndColBus(iddl,ibus);</span>
+<span class="lineNum">     707 </span>            :           
+<span class="lineNum">     708 </span>            :     }
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span>            :   
+<span class="lineNum">     711 </span><span class="lineCov">          4 : }</span>
+<a name="712"><span class="lineNum">     712 </span>            : </a>
+<span class="lineNum">     713 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     714 </span>            : void AliPMDRawStream::Ddl5Mapping(Int_t moduleNo[],    Int_t mcmperBus[],
+<span class="lineNum">     715 </span>            :                                   Int_t startRowBus[], Int_t endRowBus[],
+<span class="lineNum">     716 </span>            :                                   Int_t startColBus[], Int_t endColBus[])
+<span class="lineNum">     717 </span>            : {
+<span class="lineNum">     718 </span>            :   // DDL5 Mapping 
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span>            :   Int_t iddl = 5;
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineCov">        412 :   for(Int_t ibus = 1; ibus &lt; 51; ibus++)</span>
+<span class="lineNum">     723 </span>            :     {
+<span class="lineNum">     724 </span><span class="lineCov">        200 :       moduleNo[ibus]     = fMapData-&gt;GetModuleNo(iddl,ibus);</span>
+<span class="lineNum">     725 </span><span class="lineCov">        200 :       mcmperBus[ibus]    = fMapData-&gt;GetMcmperBus(iddl,ibus);</span>
+<span class="lineNum">     726 </span><span class="lineCov">        200 :       startRowBus[ibus]  = fMapData-&gt;GetStartRowBus(iddl,ibus);</span>
+<span class="lineNum">     727 </span><span class="lineCov">        200 :       startColBus[ibus]  = fMapData-&gt;GetStartColBus(iddl,ibus);</span>
+<span class="lineNum">     728 </span><span class="lineCov">        200 :       endRowBus[ibus]    = fMapData-&gt;GetEndRowBus(iddl,ibus);</span>
+<span class="lineNum">     729 </span><span class="lineCov">        200 :       endColBus[ibus]    = fMapData-&gt;GetEndColBus(iddl,ibus);</span>
+<span class="lineNum">     730 </span>            :           
+<span class="lineNum">     731 </span>            :     }
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span><span class="lineCov">          4 : }</span>
+<a name="734"><span class="lineNum">     734 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span>            : AliPMDMappingData* AliPMDRawStream::GetMappingData() const
+<span class="lineNum">     737 </span>            : {
+<span class="lineNum">     738 </span>            :   // Fetching the mapping data from CDB
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span><span class="lineCov">         12 :   AliCDBEntry  *entry = AliCDBManager::Instance()-&gt;Get(&quot;PMD/Calib/Mapping&quot;);</span>
+<span class="lineNum">     741 </span>            :   
+<span class="lineNum">     742 </span><span class="lineCov">          4 :   if(!entry) AliFatal(&quot;Mapping object retrieval failed!&quot;);</span>
+<span class="lineNum">     743 </span>            :   
+<span class="lineNum">     744 </span>            :   AliPMDMappingData *mapdata=0;
+<span class="lineNum">     745 </span><span class="lineCov">          8 :   if (entry) mapdata = (AliPMDMappingData*) entry-&gt;GetObject();</span>
+<span class="lineNum">     746 </span>            :   
+<span class="lineNum">     747 </span><span class="lineCov">          4 :   if (!mapdata)  AliFatal(&quot;No Mapping data from CDB !&quot;);</span>
+<span class="lineNum">     748 </span>            :   
+<span class="lineNum">     749 </span><span class="lineCov">          4 :   return mapdata;</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     755 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

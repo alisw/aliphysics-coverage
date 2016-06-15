@@ -1,0 +1,961 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - PYTHIA8/pythia8210dev/src/ResonanceDecays.cc</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">PYTHIA8/pythia8210dev/src</a> - ResonanceDecays.cc<span style="font-size: 80%;"> (source / <a href="ResonanceDecays.cc.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">514</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // ResonanceDecays.cc is a part of the PYTHIA event generator.</a>
+<span class="lineNum">       2 </span>            : // Copyright (C) 2015 Torbjorn Sjostrand.
+<span class="lineNum">       3 </span>            : // PYTHIA is licenced under the GNU GPL version 2, see COPYING for details.
+<span class="lineNum">       4 </span>            : // Please respect the MCnet Guidelines, see GUIDELINES for details.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : // Function definitions (not found in the header) for
+<span class="lineNum">       7 </span>            : // the ResonanceDecays class.
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : #include &quot;Pythia8/ResonanceDecays.h&quot;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : namespace Pythia8 {
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : //==========================================================================
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : // The ResonanceDecays class.
+<span class="lineNum">      16 </span>            : // Do all resonance decays sequentially.
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : // Constants: could be changed here if desired, but normally should not.
+<span class="lineNum">      21 </span>            : // These are of technical nature, as described for each.
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : // Number of tries to pick a decay channel.
+<span class="lineNum">      24 </span>            : const int    ResonanceDecays::NTRYCHANNEL = 10;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : // Number of tries to pick a set of daughter masses.
+<span class="lineNum">      27 </span>            : const int    ResonanceDecays::NTRYMASSES  = 10000;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : // Mass above threshold for allowed decays.
+<span class="lineNum">      30 </span>            : const double ResonanceDecays::MSAFETY     = 0.1;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : // When constrainted kinematics cut high-mass tail of Breit-Wigner.
+<span class="lineNum">      33 </span>            : const double ResonanceDecays::WIDTHCUT    = 5.;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : // Small number (relative to 1) to protect against roundoff errors.
+<span class="lineNum">      36 </span>            : const double ResonanceDecays::TINY        = 1e-10;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : // Forbid small Breit-Wigner mass range, as mapped onto atan range.
+<span class="lineNum">      39 </span>            : const double ResonanceDecays::TINYBWRANGE = 1e-8;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : // These numbers are hardwired empirical parameters,
+<span class="lineNum">      42 </span>            : // intended to speed up the M-generator.
+<span class="lineNum">      43 </span>            : const double ResonanceDecays::WTCORRECTION[11] = { 1., 1., 1.,
+<span class="lineNum">      44 </span>            :   2., 5., 15., 60., 250., 1250., 7000., 50000. };
+<span class="lineNum">      45 </span>            : 
+<a name="46"><span class="lineNum">      46 </span>            : //--------------------------------------------------------------------------</a>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : bool ResonanceDecays::next( Event&amp; process, int iDecNow) {
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            :   // Loop over all entries to find resonances that should decay.
+<span class="lineNum">      51 </span>            :   // (Except for iDecNow &gt; 0, where only it will be handled.)
+<span class="lineNum">      52 </span>            :   int iDec = iDecNow;
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     Particle&amp; decayer = process[iDec];</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     if (decayer.isFinal() &amp;&amp; decayer.canDecay() &amp;&amp; decayer.mayDecay()</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     &amp;&amp; decayer.isResonance() ) {</span>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :       // Fill the decaying particle in slot 0 of arrays.
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :       id0    = decayer.id();</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :       m0     = decayer.m();</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :       idProd.resize(0);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :       mProd.resize(0);</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :       idProd.push_back( id0 );</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :       mProd.push_back( m0 );</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :       // Mother flavour - relevant for gamma*/Z0 mixing. (Not always??)
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :       int idIn = process[decayer.mother1()].id();</span>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :       // Prepare decay selection.
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :       if (!decayer.particleDataEntry().preparePick(id0, m0, idIn)) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         ostringstream osWarn;</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         osWarn &lt;&lt; &quot;for id = &quot; &lt;&lt; id0;</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         infoPtr-&gt;errorMsg(&quot;Error in ResonanceDecays::next:&quot;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :           &quot; no open decay channel&quot;, osWarn.str());</span>
+<span class="lineNum">      75 </span>            :         return false;
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :       // Pick a decay channel; allow up to ten tries.
+<span class="lineNum">      79 </span>            :       bool foundChannel = false;
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :       for (int iTryChannel = 0; iTryChannel &lt; NTRYCHANNEL; ++iTryChannel) {</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            :         // Pick decay channel. Find multiplicity.
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         DecayChannel&amp; channel = decayer.particleDataEntry().pickChannel();</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         mult = channel.multiplicity();</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :         // Read out flavours.
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         idProd.resize(1);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         int idNow;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :           idNow = channel.product(i - 1);</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :           if (id0 &lt; 0 &amp;&amp; particleDataPtr-&gt;hasAnti(idNow)) idNow = -idNow;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :           idProd.push_back( idNow);</span>
+<span class="lineNum">      93 </span>            :         }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :         // Pick masses. Pick new channel if fail.
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         if (!pickMasses()) continue;</span>
+<span class="lineNum">      97 </span>            :         foundChannel = true;
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            :       // Failed to find acceptable decays.
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :       if (!foundChannel) {</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         ostringstream osWarn;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         osWarn &lt;&lt; &quot;for id = &quot; &lt;&lt; id0;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         infoPtr-&gt;errorMsg(&quot;Error in ResonanceDecays::next:&quot;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :           &quot; failed to find workable decay channel&quot;, osWarn.str());</span>
+<span class="lineNum">     107 </span>            :         return false;
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :       // Select colours in decay.
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :       if (!pickColours(iDec, process)) return false;</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :       // Select four-momenta in decay, boosted to lab frame.
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       pProd.resize(0);</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :       pProd.push_back( decayer.p() );</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       if (!pickKinematics()) return false;</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            :       // Append decay products to the process event record. Set lifetimes.
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :       int iFirst = process.size();</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :           process.append( idProd[i], 23, iDec, 0, 0, 0, cols[i], acols[i],</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             pProd[i], mProd[i], m0);</span>
+<span class="lineNum">     123 </span>            :         }
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :       int iLast = process.size() - 1;</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :       // Set decay vertex when this is displaced.
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :       if (process[iDec].hasVertex() || process[iDec].tau() &gt; 0.) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         Vec4 vDec = process[iDec].vDec();</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :         for (int i = iFirst; i &lt;= iLast; ++i) process[i].vProd( vDec );</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            :       // Set lifetime of daughters.
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :       for (int i = iFirst; i &lt;= iLast; ++i)</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         process[i].tau( process[i].tau0() * rndmPtr-&gt;exp() );</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :       // Modify mother status and daughters.
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :       decayer.status(-22);</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :       decayer.daughters(iFirst, iLast);</span>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :     // End of loop over all entries.
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   } while (iDecNow == 0 &amp;&amp; ++iDec &lt; process.size());</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :   // Done.
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     150 </span>            : 
+<a name="151"><span class="lineNum">     151 </span>            : // Select masses of decay products.</a>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : bool ResonanceDecays::pickMasses() {
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :   // Arrays with properties of particles. Fill with dummy values for mother.
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   vector&lt;bool&gt;   useBW;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   vector&lt;double&gt; m0BW, mMinBW, mMaxBW, widthBW;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   double mMother  = mProd[0];</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   double m2Mother = mMother * mMother;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   useBW.push_back( false );</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   m0BW.push_back( mMother );</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   mMinBW.push_back( mMother );</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   mMaxBW.push_back( mMother );</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   widthBW.push_back( 0. );</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            :   // Loop throught products for masses and widths. Set nominal mass.
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   bool   useBWNow;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   double m0Now, mMinNow, mMaxNow, widthNow;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     useBWNow  = particleDataPtr-&gt;useBreitWigner( idProd[i] );</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     m0Now     = particleDataPtr-&gt;m0( idProd[i] );</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     mMinNow   = particleDataPtr-&gt;m0Min( idProd[i] );</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     mMaxNow   = particleDataPtr-&gt;m0Max( idProd[i] );</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     if (useBWNow &amp;&amp; mMaxNow &lt; mMinNow) mMaxNow = mMother;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     widthNow  = particleDataPtr-&gt;mWidth( idProd[i] );</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     useBW.push_back( useBWNow );</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     m0BW.push_back( m0Now );</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     mMinBW.push_back( mMinNow );</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     mMaxBW.push_back( mMaxNow );</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     widthBW.push_back( widthNow );</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     mProd.push_back( m0Now );</span>
+<span class="lineNum">     182 </span>            :   }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :   // Find number of Breit-Wigners and summed (minimal) masses.
+<span class="lineNum">     185 </span>            :   int    nBW     = 0;
+<span class="lineNum">     186 </span>            :   double mSum    = 0.;
+<span class="lineNum">     187 </span>            :   double mSumMin = 0.;
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     if (useBW[i]) ++nBW;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     mSum        += max( m0BW[i], mMinBW[i]);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     mSumMin     += mMinBW[i];</span>
+<span class="lineNum">     192 </span>            :   }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :   // If sum of minimal masses above mother mass then give up.
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   if (mSumMin + MSAFETY &gt; mMother) return false;</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :   // If sum of masses below and no Breit-Wigners then done.
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   if (mSum + 0.5 * MSAFETY &lt; mMother &amp;&amp; nBW == 0) return true;</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            :   // Else if below then retry Breit-Wigners, with simple treshold.
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   if (mSum + MSAFETY &lt; mMother) {</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     double wtMax = 2. * sqrtpos(1. - mSum*mSum / m2Mother);</span>
+<span class="lineNum">     203 </span>            :     double wt;
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     for (int iTryMasses = 0; iTryMasses &lt;= NTRYMASSES; ++ iTryMasses) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       if (iTryMasses == NTRYMASSES) return false;</span>
+<span class="lineNum">     206 </span>            :       mSum = 0.;
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :       for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         if (useBW[i])  mProd[i] = particleDataPtr-&gt;mSel( idProd[i] );</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         mSum += mProd[i];</span>
+<span class="lineNum">     210 </span>            :       }
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       wt = (mSum + 0.5 * MSAFETY &lt; mMother)</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :          ? sqrtpos(1. - mSum*mSum / m2Mother) : 0.;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       if (wt &gt; rndmPtr-&gt;flat() * wtMax) break;</span>
+<span class="lineNum">     214 </span>            :     }
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     216 </span>            :   }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :   // From now on some particles will have to be forced off shell.
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :   // Order Breit-Wigners in decreasing widths. Sum of other masses.
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   vector&lt;int&gt; iBW;</span>
+<span class="lineNum">     222 </span>            :   double mSum0 = 0.;
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     if (useBW[i]) iBW.push_back(i);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     else          mSum0 += mProd[i];</span>
+<span class="lineNum">     226 </span>            :   }
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   for (int i = 1; i &lt; nBW; ++i) {</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     for (int j = i - 1; j &gt;= 0; --j) {</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :       if (widthBW[iBW[j+1]] &gt; widthBW[iBW[j]]) swap (iBW[j+1], iBW[j]);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :       else break;</span>
+<span class="lineNum">     231 </span>            :     }
+<span class="lineNum">     232 </span>            :   }
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :   // Do all but broadest two in increasing-width order. Includes only one.
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   if (nBW != 2) {</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     int iMin = (nBW == 1) ? 0 : 2;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     for (int i = nBW - 1; i &gt;= iMin; --i) {</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :       int iBWi = iBW[i];</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :       // Find allowed mass range of current resonance.
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       double mMax    = mMother - mSum0 - MSAFETY;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :       if (nBW  != 1) for (int j = 0; j &lt; i; ++j) mMax -= mMinBW[iBW[j]];</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :       mMax           = min( mMaxBW[iBWi], mMax );</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       double mMin    = min( mMinBW[iBWi], mMax - MSAFETY);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :       if (mMin &lt; 0.) return false;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :       // Parameters for Breit-Wigner choice, with constrained mass range.
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       double m2Nom   = pow2( m0BW[iBWi] );</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :       double m2Max   = mMax * mMax;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :       double m2Min   = mMin * mMin;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       double mmWid   = m0BW[iBWi] * widthBW[iBWi];</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :       double atanMin = atan( (m2Min - m2Nom) / mmWid );</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       double atanMax = atan( (m2Max - m2Nom) / mmWid );</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       double atanDif = atanMax - atanMin;</span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :       // Fail if too narrow mass range; e.g. out in tail of Breit-Wigner.
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       if (atanDif &lt; TINYBWRANGE) return false;</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :       // Retry mass according to Breit-Wigner, with simple threshold factor.
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :       double mr1     = mSum0*mSum0 / m2Mother;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :       double mr2     = m2Min / m2Mother;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       double wtMax   = sqrtpos( pow2(1. - mr1 - mr2) - 4. * mr1 * mr2 );</span>
+<span class="lineNum">     263 </span>            :       double m2Now, wt;
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       for (int iTryMasses = 0; iTryMasses &lt;= NTRYMASSES; ++ iTryMasses) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         if (iTryMasses == NTRYMASSES) return false;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         m2Now = m2Nom + mmWid * tan(atanMin + rndmPtr-&gt;flat() * atanDif);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         mr2   = m2Now / m2Mother;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         wt    = sqrtpos( pow2(1. - mr1 - mr2) - 4. * mr1 * mr2 );</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         if (wt &gt; rndmPtr-&gt;flat() * wtMax) break;</span>
+<span class="lineNum">     270 </span>            :       }
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            :       // Prepare to iterate for more. Done for one Breit-Wigner.
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :       mProd[iBWi] = sqrt(m2Now);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       mSum0        += mProd[iBWi];</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     if (nBW == 1) return true;</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            :   // Left to do two broadest Breit-Wigners correlated, i.e. more realistic.
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   int iBW1        = iBW[0];</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :   int iBW2        = iBW[1];</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   int idMother    = abs(idProd[0]);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   int idDau1      = abs(idProd[iBW1]);</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   int idDau2      = abs(idProd[iBW2]);</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            :   // In some cases known phase-space behaviour; else simple beta factor.
+<span class="lineNum">     287 </span>            :   int psMode      = 1 ;
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   if ( (idMother == 25 || idMother == 35) &amp;&amp; idDau1 &lt; 19</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     &amp;&amp; idDau2 == idDau1 ) psMode = 3;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   if ( (idMother == 25 || idMother == 35 )</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     &amp;&amp; (idDau1 == 23 || idDau1 == 24) &amp;&amp; idDau2 == idDau1 ) psMode = 5;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   if ( idMother == 36</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     &amp;&amp; (idDau1 == 23 || idDau1 == 24) &amp;&amp; idDau2 == idDau1 ) psMode = 6;</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :   // Find allowed mass ranges. Ensure that they are not closed.
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :   double mRem     = mMother - mSum0 - MSAFETY;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :   double mMax1    = min( mMaxBW[iBW1], mRem - mMinBW[iBW2] );</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   double mMin1    = min( mMinBW[iBW1], mMax1 - MSAFETY);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :   double mMax2    = min( mMaxBW[iBW2], mRem - mMinBW[iBW1] );</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   double mMin2    = min( mMinBW[iBW2], mMax2 - MSAFETY);</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :   // At least one range must extend below half remaining mass.
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   if (mMin1 + mMin2 &gt; mRem) return false;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   double mMid     = 0.5 * mRem;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   bool   hasMid1  = (mMin1 &lt; mMid);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   bool   hasMid2  = (mMin2 &lt; mMid);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   if (!hasMid1 &amp;&amp; !hasMid2) return false;</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            :   // Parameters for Breit-Wigner choice, with constrained mass range.
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :   double m2Nom1   = pow2( m0BW[iBW1] );</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :   double m2Max1   = mMax1 * mMax1;</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   double m2Min1   = mMin1 * mMin1;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   double m2Mid1   = min( mMid * mMid, m2Max1);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   double mmWid1   = m0BW[iBW1] * widthBW[iBW1];</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   double atanMin1 = atan( (m2Min1 - m2Nom1) / mmWid1 );</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   double atanMax1 = atan( (m2Max1 - m2Nom1) / mmWid1 );</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :   double atanMid1 = (hasMid1) ? atan( (m2Mid1 - m2Nom1) / mmWid1 ) : 0.;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   double m2Nom2   = pow2( m0BW[iBW2] );</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   double m2Max2   = mMax2 * mMax2;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   double m2Min2   = mMin2 * mMin2;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   double m2Mid2   = min( mMid * mMid, m2Max2);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   double mmWid2   = m0BW[iBW2] * widthBW[iBW2];</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   double atanMin2 = atan( (m2Min2 - m2Nom2) / mmWid2 );</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   double atanMax2 = atan( (m2Max2 - m2Nom2) / mmWid2 );</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :   double atanMid2 = (hasMid2) ? atan( (m2Mid2 - m2Nom2) / mmWid2 ) : 0.;</span>
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            :   // Relative weight to pick either below half remaining mass.
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   double probLow1 = (hasMid1) ? 1. : 0.;</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   if (hasMid1 &amp;&amp; hasMid2) {</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     double intLow1 = (atanMid1 - atanMin1) * (atanMax2 - atanMin2);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     double intLow2 = (atanMax1 - atanMin1) * (atanMid2 - atanMin2);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     probLow1 = intLow1 / (intLow1 + intLow2);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :   // Maximum matrix element times phase space weight.
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   double m2Rem    = mRem * mRem;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   double mr1      = m2Min1 / m2Rem;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :   double mr2      = m2Min2 / m2Rem;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :   double psMax    = sqrtpos( pow2(1. - mr1 - mr2) - 4. * mr1 * mr2 );</span>
+<span class="lineNum">     340 </span>            :   double wtMax   = 1.;
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :   if      (psMode == 1) wtMax = psMax;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   else if (psMode == 2) wtMax = psMax * psMax;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   else if (psMode == 3) wtMax = pow3(psMax);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :   else if (psMode == 5) wtMax = psMax</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     * (pow2(1. - mr1 - mr2) + 8. * mr1 * mr2);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :   else if (psMode == 6) wtMax = pow3(psMax);</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :   // Retry mass according to Breit-Wigners, with simple threshold factor.
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   double atanDif1, atanDif2, m2Now1, m2Now2, mNow1, mNow2, ps, wt;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   for (int iTryMasses = 0; iTryMasses &lt;= NTRYMASSES; ++ iTryMasses) {</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     if (iTryMasses == NTRYMASSES) return false;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :     // Pick either below half remaining mass.
+<span class="lineNum">     354 </span>            :     bool pickLow1 = false;
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     if (rndmPtr-&gt;flat() &lt; probLow1) {</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :       atanDif1 = atanMid1 - atanMin1;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :       atanDif2 = atanMax2 - atanMin2;</span>
+<span class="lineNum">     358 </span>            :       pickLow1 = true;
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       atanDif1 = atanMax1 - atanMin1;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :       atanDif2 = atanMid2 - atanMin2;</span>
+<span class="lineNum">     362 </span>            :     }
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     m2Now1 = m2Nom1 + mmWid1 * tan(atanMin1 + rndmPtr-&gt;flat() * atanDif1);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     m2Now2 = m2Nom2 + mmWid2 * tan(atanMin2 + rndmPtr-&gt;flat() * atanDif2);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     mNow1  = sqrt(m2Now1);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     mNow2  = sqrt(m2Now2);</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     // Check that intended mass ordering is fulfilled.
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     bool rejectRegion = (pickLow1) ? (mNow1 &gt; mNow2) : (mNow2 &gt; mNow1);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     if (rejectRegion) continue;</span>
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :     // Threshold weight.
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     mr1    = m2Now1 / m2Rem;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     mr2    = m2Now2 / m2Rem;</span>
+<span class="lineNum">     375 </span>            :     wt     = 0.;
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     if (mNow1 + mNow2 + MSAFETY &lt; mMother) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :       ps   = sqrtpos( pow2(1. - mr1 - mr2) - 4. * mr1 * mr2 );</span>
+<span class="lineNum">     378 </span>            :       wt   = 1.;
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :       if      (psMode == 1) wt = ps;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :       else if (psMode == 2) wt = ps * ps;</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :       else if (psMode == 3) wt = pow3(ps);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :       else if (psMode == 5) wt = ps</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         * (pow2(1. - mr1 - mr2) + 8. * mr1 * mr2);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       else if (psMode == 6) wt = pow3(ps)*mr1*mr2;</span>
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     if (wt &gt; rndmPtr-&gt;flat() * wtMax) break;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   mProd[iBW1] = mNow1;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   mProd[iBW2] = mNow2;</span>
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span>            :   // Done.
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     397 </span>            : 
+<a name="398"><span class="lineNum">     398 </span>            : // Select colours of decay products.</a>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            : bool ResonanceDecays::pickColours(int iDec, Event&amp; process) {
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            :   // Reset or create arrays with colour info.
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   cols.resize(0);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   acols.resize(0);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   vector&lt;int&gt; iTriplet, iAtriplet, iOctet, iDipCol, iDipAcol;</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            :   // Mother colours already known.
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   int col0     = process[iDec].col();</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   int acol0    = process[iDec].acol();</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   int colType0 = process[iDec].colType();</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   cols.push_back(  col0);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :   acols.push_back(acol0);</span>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            :   // Loop through all daughters.
+<span class="lineNum">     415 </span>            :   int colTypeNow;
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   for (int i = 1; i &lt;= mult; ++i) {</span>
+<span class="lineNum">     417 </span>            :     // Daughter colours initially empty, so that all is set for singlet.
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     cols.push_back(0);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     acols.push_back(0);</span>
+<span class="lineNum">     420 </span>            :     // Find character (singlet, triplet, antitriplet, octet) of daughters.
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     colTypeNow = particleDataPtr-&gt;colType( idProd[i] );</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     if      (colTypeNow ==  0);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     else if (colTypeNow ==  1) iTriplet.push_back(i);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     else if (colTypeNow == -1) iAtriplet.push_back(i);</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     else if (colTypeNow ==  2) iOctet.push_back(i);</span>
+<span class="lineNum">     426 </span>            :     // Add two entries for sextets;
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     else if (colTypeNow ==  3) {</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       iTriplet.push_back(i);</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :       iTriplet.push_back(i);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     } else if (colTypeNow == -3) {</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :       iAtriplet.push_back(i);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :       iAtriplet.push_back(i);</span>
+<span class="lineNum">     433 </span>            :     } else {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :       infoPtr-&gt;errorMsg(&quot;Error in ResonanceDecays::pickColours:&quot;</span>
+<span class="lineNum">     435 </span>            :         &quot; unknown colour type encountered&quot;);
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :       return false;</span>
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span>            :   }
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span>            :   // Check excess of colours and anticolours in final over initial state.
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :   int nCol = iTriplet.size();</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   if (colType0 == 1 || colType0 == 2) nCol -= 1;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   else if (colType0 == 3) nCol -= 2;</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   int nAcol = iAtriplet.size();</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :   if (colType0 == -1 || colType0 == 2) nAcol -= 1;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :   else if (colType0 == -3) nAcol -= 2;</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            :   // If net creation of three colours then find junction kind:
+<span class="lineNum">     449 </span>            :   // mother is 1 = singlet, triplet, or sextet (no incoming RPV tags)
+<span class="lineNum">     450 </span>            :   //           3 = antitriplet, octet, or antisextet (acol0 = incoming RPV tag)
+<span class="lineNum">     451 </span>            :   //           5 = not applicable to decays (needs two incoming RPV tags)
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   if (nCol - nAcol == 3) {</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     int kindJun = (colType0 == 0 || colType0 == 1 || colType0 == 3) ? 1 : 3;</span>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span>            :     // Set colours in three junction legs and store junction.
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     int colJun[3];</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     colJun[0] = (kindJun == 1) ? process.nextColTag() : acol0;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     colJun[1] = process.nextColTag();</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     colJun[2] = process.nextColTag();</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     process.appendJunction( kindJun, colJun[0], colJun[1], colJun[2]);</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :     // Loop over three legs. Remove an incoming anticolour on first leg.
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     for (int leg = 0; leg &lt; 3; ++leg) {</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :       if (leg == 0 &amp;&amp; kindJun != 1) acol0 = 0;</span>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            :       // Pick final-state triplets to carry these new colours.
+<span class="lineNum">     467 </span>            :       else {
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         int pickT    = (iTriplet.size() == 1) ? 0</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :           : int( TINY + rndmPtr-&gt;flat() * (iTriplet.size() - TINY) );</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         int iPickT   = iTriplet[pickT];</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         cols[iPickT] = colJun[leg];</span>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            :         // Remove matched triplet and store new colour dipole ends.
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         iTriplet[pickT] = iTriplet.back();</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         iTriplet.pop_back();</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :         iDipCol.push_back(iPickT);</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :         iDipAcol.push_back(0);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     479 </span>            :     }
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            :     // Update colour counter. Done with junction.
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     nCol -= 3;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            :   // If net creation of three anticolours then find antijunction kind:
+<span class="lineNum">     486 </span>            :   // mother is 2 = singlet, antitriplet, or antisextet (no incoming RPV tags)
+<span class="lineNum">     487 </span>            :   //           4 = triplet, octet, or sextet (col0 = incoming RPV tag)
+<span class="lineNum">     488 </span>            :   //           6 = not applicable to decays (needs two incoming RPV tags)
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   if (nAcol - nCol == 3) {</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     int kindJun = (colType0 == 0 || colType0 == -1 || colType0 == -3) ? 2 : 4;</span>
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :     // Set anticolours in three antijunction legs and store antijunction.
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     int acolJun[3];</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     acolJun[0] = (kindJun == 2) ? process.nextColTag() : col0;</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     acolJun[1] = process.nextColTag();</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     acolJun[2] = process.nextColTag();</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     process.appendJunction( kindJun, acolJun[0], acolJun[1], acolJun[2]);</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :     // Loop over three legs. Remove an incoming colour on first leg.
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     for (int leg = 0; leg &lt; 3; ++leg) {</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :       if (leg == 0 &amp;&amp; kindJun != 2) col0 = 0;</span>
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            :       // Pick final-state antitriplets to carry these new anticolours.
+<span class="lineNum">     504 </span>            :       else {
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         int pickA     = (iAtriplet.size() == 1) ? 0</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :           : int( TINY + rndmPtr-&gt;flat() * (iAtriplet.size() - TINY) );</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         int iPickA    = iAtriplet[pickA];</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         acols[iPickA] = acolJun[leg];</span>
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            :         // Remove matched antitriplet and store new colour dipole ends.
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :         iAtriplet[pickA] = iAtriplet.back();</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         iAtriplet.pop_back();</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         iDipCol.push_back(0);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         iDipAcol.push_back(iPickA);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     516 </span>            :     }
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span>            :     // Update anticolour counter. Done with antijunction.
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     nAcol -= 3;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            :   // If colours and anticolours do not match now then unphysical.
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   if (nCol != nAcol) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     infoPtr-&gt;errorMsg(&quot;Error in ResonanceDecays::pickColours:&quot;</span>
+<span class="lineNum">     525 </span>            :       &quot; inconsistent colour tags&quot;);
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     527 </span>            :   }
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            :   // Pick final-state triplet (if any) to carry initial colour.
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   if (col0 &gt; 0 &amp;&amp; iTriplet.size() &gt; 0) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     int pickT    = (iTriplet.size() == 1) ? 0</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :       : int( TINY + rndmPtr-&gt;flat() * (iTriplet.size() - TINY) );</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     int iPickT = iTriplet[pickT];</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     cols[iPickT] = col0;</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span>            :     // Remove matched triplet and store new colour dipole ends.
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     col0 = 0;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     iTriplet[pickT] = iTriplet.back();</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     iTriplet.pop_back();</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     iDipCol.push_back(iPickT);</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     iDipAcol.push_back(0);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :   // Pick final-state antitriplet (if any) to carry initial anticolour.
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :   if (acol0 &gt; 0 &amp;&amp; iAtriplet.size() &gt; 0) {</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     int pickA = (iAtriplet.size() == 1) ? 0</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :       : int( TINY + rndmPtr-&gt;flat() * (iAtriplet.size() - TINY) );</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     int iPickA = iAtriplet[pickA];</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     acols[iPickA] = acol0;</span>
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span>            :     // Remove matched antitriplet and store new colour dipole ends.
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     acol0 = 0;</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     iAtriplet[pickA] = iAtriplet.back();</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     iAtriplet.pop_back();</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     iDipCol.push_back(0);</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     iDipAcol.push_back(iPickA);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            :   // Sextets: second final-state triplet (if any)
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   if (acol0 &lt; 0 &amp;&amp; iTriplet.size() &gt; 0) {</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     int pickT = (iTriplet.size() == 1) ? 0</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :       : int( TINY + rndmPtr-&gt;flat() * (iTriplet.size() - TINY) );</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     int iPickT = iTriplet[pickT];</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     cols[iPickT] = -acol0;</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :     // Remove matched antitriplet and store new colour dipole ends.
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     acol0 = 0;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     iTriplet[pickT] = iTriplet.back();</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     iTriplet.pop_back();</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     iDipCol.push_back(iPickT);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     iDipAcol.push_back(0);</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :   // Sextets: second final-state antitriplet (if any)
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :   if (col0 &lt; 0 &amp;&amp; iAtriplet.size() &gt; 0) {</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     int pickA    = (iAtriplet.size() == 1) ? 0</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :       : int( TINY + rndmPtr-&gt;flat() * (iAtriplet.size() - TINY) );</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     int iPickA = iAtriplet[pickA];</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     acols[iPickA] = -col0;</span>
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span>            :     // Remove matched triplet and store new colour dipole ends.
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     col0 = 0;</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     iAtriplet[pickA] = iAtriplet.back();</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     iAtriplet.pop_back();</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :     iDipCol.push_back(0);</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     iDipAcol.push_back(iPickA);</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span>            :   // Error checks that amount of leftover colours and anticolours match.
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :   if ( (iTriplet.size() != iAtriplet.size())</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     || (col0 != 0 &amp;&amp; acol0 == 0) || (col0 == 0 &amp;&amp; acol0 != 0) ) {</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     infoPtr-&gt;errorMsg(&quot;Error in ResonanceDecays::pickColours:&quot;</span>
+<span class="lineNum">     593 </span>            :       &quot; inconsistent colour tags&quot;);
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     595 </span>            :   }
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span>            :   // Match triplets to antitriplets in the final state.
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :   for (int pickT = 0; pickT &lt; int(iTriplet.size()); ++pickT) {</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     int iPickT = iTriplet[pickT];</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     int pickA  = (iAtriplet.size() == 1) ? 0</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :       : int( TINY + rndmPtr-&gt;flat() * (iAtriplet.size() - TINY) );</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     int iPickA = iAtriplet[pickA];</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            :     // Connect pair with new colour tag.
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     cols[iPickT]  = process.nextColTag();</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :     acols[iPickA] = cols[iPickT];</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span>            :     // Remove matched antitriplet and store new colour dipole ends.
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     iAtriplet[pickT] = iAtriplet.back();</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :     iAtriplet.pop_back();</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :     iDipCol.push_back(iPickT);</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     iDipAcol.push_back(iPickA);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            :   // If no octets are around then matching is done.
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   if (col0 == 0 &amp;&amp; acol0 == 0 &amp;&amp; iOctet.size() == 0) return true;</span>
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span>            :   // If initial-state octet remains then store as (first!) new dipole.
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   if (col0 != 0) {</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     iDipCol.push_back(0);</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     iDipAcol.push_back(0);</span>
+<span class="lineNum">     622 </span>            :   }
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span>            :   // Now attach all final-state octets at random to existing dipoles.
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; int(iOctet.size()); ++i) {</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :     int iOct = iOctet[i];</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            :     // If no dipole then start new one. (Happens for singlet -&gt; octets.)
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     if (iDipCol.size() == 0) {</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :       cols[iOct]  = process.nextColTag();</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :       acols[iOct] = cols[iOct] ;</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :       iDipCol.push_back(iOct);</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :       iDipAcol.push_back(iOct);</span>
+<span class="lineNum">     634 </span>            :     }
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            :     // Else attach to existing dipole picked at random.
+<span class="lineNum">     637 </span>            :     else {
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :       int pickDip = (iDipCol.size() == 1) ? 0</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :         : int( TINY + rndmPtr-&gt;flat() * (iDipCol.size() - TINY) );</span>
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            :       // Case with dipole in initial state: reattach existing colours.
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :       if (iDipCol[pickDip] == 0 &amp;&amp; iDipAcol[pickDip] == 0) {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :         cols[iOct]        = col0;</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :         acols[iOct]       = acol0;</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :         iDipAcol[pickDip] = iOct;</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         iDipCol.push_back(iOct);</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :         iDipAcol.push_back(0);</span>
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span>            :       // Case with dipole from colour in initial state: also new colour.
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :       } else if (iDipAcol[pickDip] == 0) {</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         int iPickCol      = iDipCol[pickDip];</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :         cols[iOct]        = cols[iPickCol];</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :         acols[iOct]       = process.nextColTag();</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :         cols[iPickCol]    = acols[iOct];</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :         iDipCol[pickDip]  = iOct;</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :         iDipCol.push_back(iPickCol);</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :         iDipAcol.push_back(iOct);</span>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span>            :       // Remaining cases with dipole from anticolour in initial state
+<span class="lineNum">     660 </span>            :       // or dipole inside final state: also new colour.
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :         int iPickAcol     = iDipAcol[pickDip];</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :         acols[iOct]       = acols[iPickAcol];</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :         cols[iOct]        = process.nextColTag();</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :         acols[iPickAcol]  = cols[iOct];</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :         iDipAcol[pickDip] = iOct;</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :         iDipCol.push_back(iOct);</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :         iDipAcol.push_back(iPickAcol);</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     670 </span>            :     }
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span>            :   // Must now have at least two dipoles (no 1 -&gt; 8 or 8 -&gt; 1).
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :   if (iDipCol.size() &lt; 2) {</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     infoPtr-&gt;errorMsg(&quot;Error in ResonanceDecays::pickColours:&quot;</span>
+<span class="lineNum">     676 </span>            :       &quot; inconsistent colour tags&quot;);
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     678 </span>            :   }
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span>            :   // Done.
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :   return true;</span>
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span>            : //--------------------------------------------------------------------------
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span>            : // Select decay products momenta isotropically in phase space.
+<a name="688"><span class="lineNum">     688 </span>            : // Process-dependent angular distributions may be imposed in SigmaProcess.</a>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            : bool ResonanceDecays::pickKinematics() {
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span>            :   // Description of two-body decays as simple special case.
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   if (mult == 2) {</span>
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span>            :     // Masses.
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     m0          = mProd[0];</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     double m1   = mProd[1];</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     double m2   = mProd[2];</span>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            :     // Energies and absolute momentum in the rest frame.
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     double e1   = 0.5 * (m0*m0 + m1*m1 - m2*m2) / m0;</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     double e2   = 0.5 * (m0*m0 + m2*m2 - m1*m1) / m0;</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :     double pAbs = 0.5 * sqrtpos( (m0 - m1 - m2) * (m0 + m1 + m2)</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :       * (m0 + m1 - m2) * (m0 - m1 + m2) ) / m0;</span>
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            :     // Pick isotropic angles to give three-momentum.
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :     double cosTheta = 2. * rndmPtr-&gt;flat() - 1.;</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     double sinTheta = sqrt(1. - cosTheta*cosTheta);</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     double phi      = 2. * M_PI * rndmPtr-&gt;flat();</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     double pX       = pAbs * sinTheta * cos(phi);</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     double pY       = pAbs * sinTheta * sin(phi);</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     double pZ       = pAbs * cosTheta;</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            :     // Fill four-momenta in mother rest frame and then boost to lab frame.
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     pProd.push_back( Vec4(  pX,  pY,  pZ, e1) );</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     pProd.push_back( Vec4( -pX, -pY, -pZ, e2) );</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     pProd[1].bst( pProd[0] );</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     pProd[2].bst( pProd[0] );</span>
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span>            :     // Done for two-body decay.
+<span class="lineNum">     721 </span>            :     return true;
+<span class="lineNum">     722 </span>            :   }
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span>            :   // Description of three-body decays as semi-simple special case.
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   if (mult == 3) {</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            :     // Masses.
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :     m0             = mProd[0];</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     double m1      = mProd[1];</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :     double m2      = mProd[2];</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     double m3      = mProd[3];</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     double mDiff   = m0 - (m1 + m2 + m3);</span>
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span>            :     // Kinematical limits for 2+3 mass. Maximum phase-space weight.
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     double m23Min  = m2 + m3;</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     double m23Max  = m0 - m1;</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     double p1Max   = 0.5 * sqrtpos( (m0 - m1 - m23Min) * (m0 + m1 + m23Min)</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :       * (m0 + m1 - m23Min) * (m0 - m1 + m23Min) ) / m0;</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :     double p23Max  = 0.5 * sqrtpos( (m23Max - m2 - m3) * (m23Max + m2 + m3)</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :       * (m23Max + m2 - m3) * (m23Max - m2 + m3) ) / m23Max;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     double wtPSmax = 0.5 * p1Max * p23Max;</span>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span>            :     // Pick an intermediate mass m23 flat in the allowed range.
+<span class="lineNum">     744 </span>            :     double wtPS, m23, p1Abs, p23Abs;
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     do {</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :       m23 = m23Min + rndmPtr-&gt;flat() * mDiff;</span>
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span>            :       // Translate into relative momenta and find phase-space weight.
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :       p1Abs  = 0.5 * sqrtpos( (m0 - m1 - m23) * (m0 + m1 + m23)</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :         * (m0 + m1 - m23) * (m0 - m1 + m23) ) / m0;</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :       p23Abs = 0.5 * sqrtpos( (m23 - m2 - m3) * (m23 + m2 + m3)</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :         * (m23 + m2 - m3) * (m23 - m2 + m3) ) / m23;</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :       wtPS   = p1Abs * p23Abs;</span>
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span>            :     // If rejected, try again with new invariant masses.
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     } while ( wtPS &lt; rndmPtr-&gt;flat() * wtPSmax );</span>
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span>            :     // Set up m23 -&gt; m2 + m3 isotropic in its rest frame.
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     double cosTheta = 2. * rndmPtr-&gt;flat() - 1.;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     double sinTheta = sqrt(1. - cosTheta*cosTheta);</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     double phi      = 2. * M_PI * rndmPtr-&gt;flat();</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     double pX       = p23Abs * sinTheta * cos(phi);</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     double pY       = p23Abs * sinTheta * sin(phi);</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     double pZ       = p23Abs * cosTheta;</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     double e2       = sqrt( m2*m2 + p23Abs*p23Abs);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     double e3       = sqrt( m3*m3 + p23Abs*p23Abs);</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     Vec4 p2(  pX,  pY,  pZ, e2);</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     Vec4 p3( -pX, -pY, -pZ, e3);</span>
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span>            :     // Set up 0 -&gt; 1 + 23 isotropic in its rest frame.
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     cosTheta        = 2. * rndmPtr-&gt;flat() - 1.;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     sinTheta        = sqrt(1. - cosTheta*cosTheta);</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :     phi             = 2. * M_PI * rndmPtr-&gt;flat();</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     pX              = p1Abs * sinTheta * cos(phi);</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     pY              = p1Abs * sinTheta * sin(phi);</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     pZ              = p1Abs * cosTheta;</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     double e1       = sqrt( m1*m1 + p1Abs*p1Abs);</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     double e23      = sqrt( m23*m23 + p1Abs*p1Abs);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     pProd.push_back( Vec4( pX, pY, pZ, e1) );</span>
+<span class="lineNum">     780 </span>            : 
+<span class="lineNum">     781 </span>            :     // Boost 2 + 3 to the 0 rest frame and then boost to lab frame.
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     Vec4 p23( -pX, -pY, -pZ, e23);</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     p2.bst( p23 );</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     p3.bst( p23 );</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :     pProd.push_back( p2 );</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :     pProd.push_back( p3 );</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :     pProd[1].bst( pProd[0] );</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     pProd[2].bst( pProd[0] );</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     pProd[3].bst( pProd[0] );</span>
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span>            :     // Done for three-body decay.
+<span class="lineNum">     792 </span>            :     return true;
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span>            :   // Do a multibody decay using the M-generator algorithm.
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            :   // Mother and sum daughter masses.
+<span class="lineNum">     798 </span>            :   m0             = mProd[0];
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :   double mSum    = mProd[1];</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :   for (int i = 2; i &lt;= mult; ++i) mSum += mProd[i];</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :   double mDiff   = m0 - mSum;</span>
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span>            :   // Begin setup of intermediate invariant masses.
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   vector&lt;double&gt; mInv;</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt;= mult; ++i) mInv.push_back( mProd[i]);</span>
+<span class="lineNum">     806 </span>            : 
+<span class="lineNum">     807 </span>            :   // Calculate the maximum weight in the decay.
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :   double wtPSmax = 1. / WTCORRECTION[mult];</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   double mMax    = mDiff + mProd[mult];</span>
+<span class="lineNum">     810 </span>            :   double mMin    = 0.;
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   for (int i = mult - 1; i &gt; 0; --i) {</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     mMax        += mProd[i];</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     mMin        += mProd[i+1];</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :     double mNow  = mProd[i];</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     wtPSmax *= 0.5 * sqrtpos( (mMax - mMin - mNow) * (mMax + mMin + mNow)</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :     * (mMax + mMin - mNow) * (mMax - mMin + mNow) ) / mMax;</span>
+<span class="lineNum">     817 </span>            :   }
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span>            :   // Begin loop to find the set of intermediate invariant masses.
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :   vector&lt;double&gt; rndmOrd;</span>
+<span class="lineNum">     821 </span>            :   double wtPS;
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">     823 </span>            :     wtPS  = 1.;
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span>            :     // Find and order random numbers in descending order.
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :     rndmOrd.resize(0);</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     rndmOrd.push_back(1.);</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :     for (int i = 1; i &lt; mult - 1; ++i) {</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :       double rndm = rndmPtr-&gt;flat();</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :       rndmOrd.push_back(rndm);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :       for (int j = i - 1; j &gt; 0; --j) {</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         if (rndm &gt; rndmOrd[j]) swap( rndmOrd[j], rndmOrd[j+1] );</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         else break;</span>
+<span class="lineNum">     834 </span>            :       }
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :     rndmOrd.push_back(0.);</span>
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span>            :     // Translate into intermediate masses and find weight.
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :     for (int i = mult - 1; i &gt; 0; --i) {</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :       mInv[i] = mInv[i+1] + mProd[i] + (rndmOrd[i-1] - rndmOrd[i]) * mDiff;</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :       wtPS   *= 0.5 * sqrtpos( (mInv[i] - mInv[i+1] - mProd[i])</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :         * (mInv[i] + mInv[i+1] + mProd[i]) * (mInv[i] + mInv[i+1] - mProd[i])</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :         * (mInv[i] - mInv[i+1] + mProd[i]) ) / mInv[i];</span>
+<span class="lineNum">     844 </span>            :     }
+<span class="lineNum">     845 </span>            : 
+<span class="lineNum">     846 </span>            :   // If rejected, try again with new invariant masses.
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :   } while ( wtPS &lt; rndmPtr-&gt;flat() * wtPSmax );</span>
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span>            :   // Perform two-particle decays in the respective rest frame.
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   vector&lt;Vec4&gt; pInv;</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :   pInv.resize(mult + 1);</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   for (int i = 1; i &lt; mult; ++i) {</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :     double pAbs = 0.5 * sqrtpos( (mInv[i] - mInv[i+1] - mProd[i])</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :       * (mInv[i] + mInv[i+1] + mProd[i]) * (mInv[i] + mInv[i+1] - mProd[i])</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :       * (mInv[i] - mInv[i+1] + mProd[i]) ) / mInv[i];</span>
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span>            :     // Isotropic angles give three-momentum.
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :     double cosTheta = 2. * rndmPtr-&gt;flat() - 1.;</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :     double sinTheta = sqrt(1. - cosTheta*cosTheta);</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :     double phi      = 2. * M_PI * rndmPtr-&gt;flat();</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :     double pX       = pAbs * sinTheta * cos(phi);</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :     double pY       = pAbs * sinTheta * sin(phi);</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     double pZ       = pAbs * cosTheta;</span>
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span>            :     // Calculate energies, fill four-momenta.
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :     double eHad     = sqrt( mProd[i]*mProd[i] + pAbs*pAbs);</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :     double eInv     = sqrt( mInv[i+1]*mInv[i+1] + pAbs*pAbs);</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :     pProd.push_back( Vec4( pX, pY, pZ, eHad) );</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :     pInv[i+1].p( -pX, -pY, -pZ, eInv);</span>
+<span class="lineNum">     870 </span>            :   }
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :   pProd.push_back( pInv[mult] );</span>
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span>            :   // Boost decay products to the mother rest frame and on to lab frame.
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :   pInv[1] = pProd[0];</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :   for (int iFrame = mult - 1; iFrame &gt; 0; --iFrame)</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     for (int i = iFrame; i &lt;= mult; ++i) pProd[i].bst(pInv[iFrame]);</span>
+<span class="lineNum">     877 </span>            : 
+<span class="lineNum">     878 </span>            :   // Done for multibody decay.
+<span class="lineNum">     879 </span>            :   return true;
+<span class="lineNum">     880 </span>            : 
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span>            : //==========================================================================
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span>            : } // end namespace Pythia8
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

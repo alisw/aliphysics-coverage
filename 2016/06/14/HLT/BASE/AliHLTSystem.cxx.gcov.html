@@ -1,0 +1,1829 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/BASE/AliHLTSystem.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">HLT/BASE</a> - AliHLTSystem.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTSystem.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">147</td>
+            <td class="headerCovTableEntry">925</td>
+            <td class="headerCovTableEntryLo">15.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : //**************************************************************************
+<span class="lineNum">       3 </span>            : //* This file is property of and copyright by the                          * 
+<span class="lineNum">       4 </span>            : //* ALICE Experiment at CERN, All rights reserved.                         *
+<span class="lineNum">       5 </span>            : //*                                                                        *
+<span class="lineNum">       6 </span>            : //* Primary Authors: Matthias Richter &lt;Matthias.Richter@ift.uib.no&gt;        *
+<span class="lineNum">       7 </span>            : //*                  for The ALICE HLT Project.                            *
+<span class="lineNum">       8 </span>            : //*                                                                        *
+<span class="lineNum">       9 </span>            : //* Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      10 </span>            : //* documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      11 </span>            : //* without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      12 </span>            : //* copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      13 </span>            : //* appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      14 </span>            : //* about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      15 </span>            : //* provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      16 </span>            : //**************************************************************************
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : /// @file   AliHLTSystem.cxx
+<span class="lineNum">      19 </span>            : /// @author Matthias Richter
+<span class="lineNum">      20 </span>            : /// @date   
+<span class="lineNum">      21 </span>            : /// @brief  Implementation of HLT module management.
+<span class="lineNum">      22 </span>            : ///
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      25 </span>            : #include &quot;AliHLTStdIncludes.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliHLTSystem.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliHLTComponentHandler.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliHLTComponent.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliHLTConfiguration.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliHLTConfigurationHandler.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliHLTOnlineConfiguration.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliHLTTask.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliHLTModuleAgent.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliHLTOfflineInterface.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliHLTDataSource.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliHLTOUT.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliHLTOUTHandler.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliHLTOUTTask.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliHLTControlTask.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliHLTDataBuffer.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliHLTMisc.h&quot;
+<span class="lineNum">      42 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;TObjString.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;TStopwatch.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;TList.h&gt;
+<span class="lineNum">      46 </span>            : //#include &lt;TSystem.h&gt;
+<span class="lineNum">      47 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      48 </span>            : //#include &lt;TInterpreter.h&gt;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /** HLT default component libraries */
+<span class="lineNum">      51 </span>            : const char* AliHLTSystem::fgkHLTDefaultLibs[]= {
+<span class="lineNum">      52 </span>            :   &quot;libAliHLTUtil.so&quot;, 
+<span class="lineNum">      53 </span>            :   &quot;libAliHLTRCU.so&quot;, 
+<span class="lineNum">      54 </span>            :   &quot;libAliHLTTPC.so&quot;, 
+<span class="lineNum">      55 </span>            :   //  &quot;libAliHLTSample.so&quot;,
+<span class="lineNum">      56 </span>            :   &quot;libAliHLTCalo.so&quot;,
+<span class="lineNum">      57 </span>            :   &quot;libAliHLTEMCAL.so&quot;,
+<span class="lineNum">      58 </span>            :   &quot;libAliHLTPHOS.so&quot;,
+<span class="lineNum">      59 </span>            :   &quot;libAliHLTMUON.so&quot;,
+<span class="lineNum">      60 </span>            :   &quot;libAliHLTTRD.so&quot;,
+<span class="lineNum">      61 </span>            :   &quot;libAliHLTITS.so&quot;,
+<span class="lineNum">      62 </span>            :   &quot;libAliHLTVZERO.so&quot;,
+<span class="lineNum">      63 </span>            :   &quot;libAliHLTZDC.so&quot;,
+<span class="lineNum">      64 </span>            :   &quot;libAliHLTGlobal.so&quot;,
+<span class="lineNum">      65 </span>            :   &quot;libAliHLTTrigger.so&quot;,
+<span class="lineNum">      66 </span>            :   NULL
+<span class="lineNum">      67 </span>            : };
+<a name="68"><span class="lineNum">      68 </span>            : </a>
+<span class="lineNum">      69 </span>            : /** ROOT macro for the implementation of ROOT specific class methods */
+<a name="70"><span class="lineNum">      70 </span><span class="lineCov">        126 : ClassImp(AliHLTSystem)</span></a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">          3 : AliHLTSystem::AliHLTSystem(AliHLTComponentLogSeverity loglevel, const char* name,</span>
+<span class="lineNum">      73 </span>            :                            AliHLTComponentHandler* pCompHandler,
+<span class="lineNum">      74 </span>            :                            AliHLTConfigurationHandler* pConfHandler
+<span class="lineNum">      75 </span>            :                            )
+<span class="lineNum">      76 </span><span class="lineCov">          9 :   : fpComponentHandler(pCompHandler==NULL?AliHLTComponentHandler::CreateHandler():pCompHandler)</span>
+<span class="lineNum">      77 </span><span class="lineCov">          9 :   , fpConfigurationHandler(pConfHandler==NULL?AliHLTConfigurationHandler::CreateHandler():pConfHandler),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          3 :   fTaskList(),</span>
+<span class="lineNum">      79 </span><span class="lineCov">          3 :   fState(0),</span>
+<span class="lineNum">      80 </span><span class="lineCov">          3 :   fChains(),</span>
+<span class="lineNum">      81 </span><span class="lineCov">          9 :   fStopwatches(new TObjArray),</span>
+<span class="lineNum">      82 </span><span class="lineCov">          3 :   fEventCount(-1),</span>
+<span class="lineNum">      83 </span><span class="lineCov">          3 :   fGoodEvents(-1),</span>
+<span class="lineNum">      84 </span><span class="lineCov">          3 :   fpChainHandlers(NULL),</span>
+<span class="lineNum">      85 </span><span class="lineCov">          3 :   fpEsdHandlers(NULL),</span>
+<span class="lineNum">      86 </span><span class="lineCov">          3 :   fpProprietaryHandlers(NULL),</span>
+<span class="lineNum">      87 </span><span class="lineCov">          3 :   fpHLTOUTTask(NULL),</span>
+<span class="lineNum">      88 </span><span class="lineCov">          3 :   fpHLTOUT(NULL),</span>
+<span class="lineNum">      89 </span><span class="lineCov">          3 :   fHLTOUTUse(0),</span>
+<span class="lineNum">      90 </span><span class="lineCov">          3 :   fpHLTInput(NULL),</span>
+<span class="lineNum">      91 </span><span class="lineCov">          3 :   fHLTInputUse(0),</span>
+<span class="lineNum">      92 </span><span class="lineCov">          3 :   fpControlTask(NULL),</span>
+<span class="lineNum">      93 </span><span class="lineCov">          3 :   fName(name)</span>
+<span class="lineNum">      94 </span><span class="lineCov">          3 :   , fConfigurationString()</span>
+<span class="lineNum">      95 </span><span class="lineCov">          3 :   , fECSParams()</span>
+<span class="lineNum">      96 </span><span class="lineCov">          3 :   , fUseHLTOUTComponentTypeGlobal(true)</span>
+<span class="lineNum">      97 </span><span class="lineCov">          3 :   , fDetMask(0)</span>
+<span class="lineNum">      98 </span><span class="lineCov">         15 : {</span>
+<span class="lineNum">      99 </span>            :   // see header file for class documentation
+<span class="lineNum">     100 </span>            :   // or
+<span class="lineNum">     101 </span>            :   // refer to README to build package
+<span class="lineNum">     102 </span>            :   // or
+<span class="lineNum">     103 </span>            :   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineCov">          3 :   if (fgNofInstances++&gt;0) {</span>
+<span class="lineNum">     106 </span>            :     // July 2008: multiple instances are now allowed
+<span class="lineNum">     107 </span>            :     // AliHLTSystem is used in multiple instances for the kChain HLTOUT handler
+<span class="lineNum">     108 </span>            :     //HLTWarning(&quot;multiple instances of AliHLTSystem, you should not use more than one at a time&quot;);
+<span class="lineNum">     109 </span>            :   }
+<span class="lineNum">     110 </span><span class="lineCov">          3 :   SetGlobalLoggingLevel(loglevel);</span>
+<span class="lineNum">     111 </span><span class="lineCov">          3 :   SetFrameworkLog(loglevel);</span>
+<span class="lineNum">     112 </span><span class="lineCov">          3 :   if (fpComponentHandler) {</span>
+<span class="lineNum">     113 </span><span class="lineCov">          3 :     AliHLTAnalysisEnvironment env;</span>
+<span class="lineNum">     114 </span><span class="lineCov">          3 :     memset(&amp;env, 0, sizeof(AliHLTAnalysisEnvironment));</span>
+<span class="lineNum">     115 </span><span class="lineCov">          3 :     env.fStructSize=sizeof(AliHLTAnalysisEnvironment);</span>
+<span class="lineNum">     116 </span><span class="lineCov">          3 :     env.fAllocMemoryFunc=AliHLTSystem::AllocMemory;</span>
+<span class="lineNum">     117 </span><span class="lineCov">          3 :     env.fGetEventDoneDataFunc=AliHLTSystem::AllocEventDoneData;</span>
+<span class="lineNum">     118 </span><span class="lineCov">          3 :     env.fLoggingFunc=NULL;</span>
+<span class="lineNum">     119 </span><span class="lineCov">          3 :     fpComponentHandler-&gt;SetEnvironment(&amp;env);</span>
+<span class="lineNum">     120 </span><span class="lineCov">          3 :     InitAliLogFunc(fpComponentHandler);</span>
+<span class="lineNum">     121 </span><span class="lineCov">          3 :     if (fgNofInstances==1) {</span>
+<span class="lineNum">     122 </span><span class="lineCov">          3 :     fpComponentHandler-&gt;AnnounceVersion();</span>
+<span class="lineNum">     123 </span>            :     }
+<span class="lineNum">     124 </span><span class="lineCov">          3 :   } else {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     HLTFatal(&quot;can not create Component Handler&quot;);</span>
+<span class="lineNum">     126 </span>            :   }
+<span class="lineNum">     127 </span><span class="lineCov">          3 :   if (fpConfigurationHandler==NULL) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     HLTFatal(&quot;can not create Configuration Handler&quot;);</span>
+<span class="lineNum">     129 </span>            :   }
+<a name="130"><span class="lineNum">     130 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : AliHLTSystem::~AliHLTSystem()
+<span class="lineNum">     133 </span><span class="lineCov">         18 : {</span>
+<span class="lineNum">     134 </span>            :   // see header file for class documentation
+<span class="lineNum">     135 </span><span class="lineCov">          3 :   fgNofInstances--;</span>
+<span class="lineNum">     136 </span><span class="lineCov">          3 :   CleanupHLTOUTHandlers();</span>
+<span class="lineNum">     137 </span><span class="lineCov">          3 :   CleanTaskList();</span>
+<span class="lineNum">     138 </span><span class="lineCov">          3 :   if (fpConfigurationHandler) {</span>
+<span class="lineNum">     139 </span><span class="lineCov">          3 :     fpConfigurationHandler-&gt;Destroy();</span>
+<span class="lineNum">     140 </span>            :   }
+<span class="lineNum">     141 </span><span class="lineCov">          3 :   fpConfigurationHandler=NULL;</span>
+<span class="lineNum">     142 </span>            :   
+<span class="lineNum">     143 </span><span class="lineCov">          3 :   if (fpComponentHandler) {</span>
+<span class="lineNum">     144 </span><span class="lineCov">          3 :     fpComponentHandler-&gt;Destroy();</span>
+<span class="lineNum">     145 </span>            :   }
+<span class="lineNum">     146 </span><span class="lineCov">          3 :   fpComponentHandler=NULL;</span>
+<span class="lineNum">     147 </span><span class="lineCov">          6 :   delete fStopwatches;</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            :   // note: fpHLTOUTTask and fpControlTask are deleted by
+<span class="lineNum">     150 </span>            :   // CleanTaskList
+<span class="lineNum">     151 </span><span class="lineCov">          9 : }</span>
+<span class="lineNum">     152 </span>            : 
+<a name="153"><span class="lineNum">     153 </span>            : int AliHLTSystem::fgNofInstances=0;</a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : int AliHLTSystem::BuildTaskList(const char* id)
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :   // see header file for class documentation
+<span class="lineNum">     158 </span>            :   int iResult=0;
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   if (id) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (fpConfigurationHandler) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :       AliHLTConfiguration* pConf=fpConfigurationHandler-&gt;FindConfiguration(id);</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :       if (pConf) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         iResult=BuildTaskList(pConf);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         HLTError(&quot;unknown configuration \&quot;%s\&quot;&quot;, id);</span>
+<span class="lineNum">     166 </span>            :         iResult=-EEXIST;
+<span class="lineNum">     167 </span>            :       }
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     169 </span>            :       iResult=-EFAULT;
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            :   } else {
+<span class="lineNum">     172 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     173 </span>            :   }
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="175"><span class="lineNum">     175 </span>            : }</a>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : int AliHLTSystem::BuildTaskList(AliHLTConfiguration* pConf)
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span>            :   // see header file for class documentation
+<span class="lineNum">     180 </span>            :   int iResult=0;
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   if (pConf) {</span>
+<span class="lineNum">     182 </span>            :     AliHLTTask* pTask=NULL;
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     if ((pTask=FindTask(pConf-&gt;GetName()))!=NULL) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :       if (pTask-&gt;GetConf()!=pConf) {</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         HLTError(&quot;configuration mismatch, there is already a task with configuration name \&quot;%s\&quot;, but it is different. Most likely configuration %p is not registered properly&quot;, pConf-&gt;GetName(), pConf);</span>
+<span class="lineNum">     186 </span>            :         iResult=-EEXIST;
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     188 </span>            :       // task for this configuration exists, terminate
+<span class="lineNum">     189 </span>            :       pTask=NULL;
+<span class="lineNum">     190 </span>            :     // check first if the configuration has all sources resolved, try to extract otherwise
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     } else if (pConf-&gt;SourcesResolved()!=1 &amp;&amp; pConf-&gt;ExtractSources(fpConfigurationHandler)!=1) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         HLTError(&quot;configuration \&quot;%s\&quot; has unresolved sources, aborting ...&quot;, pConf-&gt;GetName());</span>
+<span class="lineNum">     193 </span>            :         iResult=-ENOLINK;
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :       pTask=new AliHLTTask(pConf);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :       if (pTask==NULL) {</span>
+<span class="lineNum">     197 </span>            :         iResult=-ENOMEM;
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         pTask-&gt;SetLocalLoggingLevel(GetLocalLoggingLevel());</span>
+<span class="lineNum">     200 </span>            :       }
+<span class="lineNum">     201 </span>            :     }
+<span class="lineNum">     202 </span>            :     static int iterationLevel=0;
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     if (pTask &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     204 </span>            :       // check for circular dependencies
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :       if ((iResult=pConf-&gt;FollowDependency(pConf-&gt;GetName()))&gt;0) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         HLTError(&quot;detected circular dependency for configuration \&quot;%s\&quot;&quot;, pTask-&gt;GetName());</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         pTask-&gt;PrintDependencyTree(pTask-&gt;GetName(), 1/*use the configuration list*/);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         HLTError(&quot;aborted ...&quot;);</span>
+<span class="lineNum">     209 </span>            :         iResult=-ELOOP;
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       if (iResult&gt;=0) {</span>
+<span class="lineNum">     212 </span>            :         // check whether all dependencies are already in the task list
+<span class="lineNum">     213 </span>            :         // create the missing ones
+<span class="lineNum">     214 </span>            :         // this step is an iterative process which calls this function again for the missing
+<span class="lineNum">     215 </span>            :         // configurations, in order to avoid the currently processed task to be created
+<span class="lineNum">     216 </span>            :         // again it is added to the list temporarily and removed afterwards
+<span class="lineNum">     217 </span>            :         // This is of high importance to preserve the order of the tasks. Furthermore, the
+<span class="lineNum">     218 </span>            :         // InsertTask method has to be used in order to set all the cross links right 
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         fTaskList.Add(pTask);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         AliHLTConfiguration* pDep=pConf-&gt;GetFirstSource();</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         while (pDep!=NULL &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     222 </span>            :           HLTDebug(&quot;iteration %d: checking dependency %s (%p)&quot;, iterationLevel, pDep-&gt;GetName(), pDep);
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :           if (FindTask(pDep-&gt;GetName())==NULL) {</span>
+<span class="lineNum">     224 </span>            :             HLTDebug(&quot;iteration %d: building task list for configuration %s (%p)&quot;, iterationLevel, pDep-&gt;GetName(), pDep);
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             iterationLevel++;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             iResult=BuildTaskList(pDep);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             iterationLevel--;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :           pDep=pConf-&gt;GetNextSource();</span>
+<span class="lineNum">     230 </span>            :         }
+<span class="lineNum">     231 </span>            :         // remove the temporarily added task
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         fTaskList.Remove(pTask);</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :         // insert the task and set the cross-links
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         if (iResult&gt;=0) {</span>
+<span class="lineNum">     236 </span>            :           HLTDebug(&quot;iteration %d: inserting task %s (%p)&quot;, iterationLevel, pTask-&gt;GetName(), pTask);
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :           iResult=InsertTask(pTask);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         delete pTask;</span>
+<span class="lineNum">     241 </span>            :         pTask=NULL;
+<span class="lineNum">     242 </span>            :       }
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     245 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     246 </span>            :   }
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="248"><span class="lineNum">     248 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            : int AliHLTSystem::CleanTaskList()
+<span class="lineNum">     251 </span>            : {
+<span class="lineNum">     252 </span>            :   // see header file for class documentation
+<span class="lineNum">     253 </span>            :   int iResult=0;
+<span class="lineNum">     254 </span><span class="lineCov">          6 :   fpHLTOUTTask=NULL;</span>
+<span class="lineNum">     255 </span><span class="lineCov">          3 :   fpControlTask=NULL;</span>
+<span class="lineNum">     256 </span>            :   TObjLink* lnk=NULL;
+<span class="lineNum">     257 </span><span class="lineCov">          6 :   while ((lnk=fTaskList.LastLink())!=NULL) {</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     delete (lnk-&gt;GetObject());</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     fTaskList.Remove(lnk);</span>
+<span class="lineNum">     260 </span>            :   }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineCov">          3 :   return iResult;</span>
+<a name="263"><span class="lineNum">     263 </span>            : }</a>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            : int AliHLTSystem::InsertTask(AliHLTTask* pTask)
+<span class="lineNum">     266 </span>            : {
+<span class="lineNum">     267 </span>            :   // see header file for class documentation
+<span class="lineNum">     268 </span>            :   int iResult=0;
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   if (fpControlTask==NULL) {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     fpControlTask=new AliHLTControlTask;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     if (!fpControlTask) return -ENOMEM;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     fTaskList.AddFirst(fpControlTask);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     274 </span>            :   TObjLink *controlLnk=NULL;
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   TObjLink *lnk = fTaskList.FirstLink();</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   assert(!lnk || lnk-&gt;GetObject()==fpControlTask || fpControlTask==NULL);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   if (lnk &amp;&amp; lnk-&gt;GetObject()==fpControlTask) {</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     if (pTask-&gt;GetConf() &amp;&amp; pTask-&gt;GetConf()-&gt;GetFirstSource()==NULL) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :       pTask-&gt;SetDependency(fpControlTask);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :       fpControlTask-&gt;SetTarget(pTask);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     282 </span>            :     controlLnk=lnk;
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     lnk=lnk-&gt;Next();</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   if ((iResult=pTask-&gt;CheckDependencies())&lt;=0)</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     lnk=NULL;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   while (lnk &amp;&amp; iResult&gt;0) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     AliHLTTask* pCurr = (AliHLTTask*)lnk-&gt;GetObject();</span>
+<span class="lineNum">     289 </span>            :     //HLTDebug(&quot;checking  \&quot;%s\&quot;&quot;, pCurr-&gt;GetName());
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     iResult=pTask-&gt;Depends(pCurr);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     if (iResult&gt;0) {</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       iResult=pTask-&gt;SetDependency(pCurr);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :       pCurr-&gt;SetTarget(pTask);</span>
+<span class="lineNum">     294 </span>            :       HLTDebug(&quot;set dependency  \&quot;%s\&quot; for configuration \&quot;%s\&quot;&quot;, pCurr-&gt;GetName(), pTask-&gt;GetName());
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     if (pCurr-&gt;Depends(pTask)) {</span>
+<span class="lineNum">     297 </span>            :       // circular dependency
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :       HLTError(&quot;circular dependency: can not resolve dependencies for configuration \&quot;%s\&quot;&quot;, pTask-&gt;GetName());</span>
+<span class="lineNum">     299 </span>            :       iResult=-ELOOP;
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     } else if ((iResult=pTask-&gt;CheckDependencies())&gt;0) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :       lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     303 </span>            :   }
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :   if (iResult==0) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :       if (lnk) {</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         fTaskList.AddAfter(lnk, pTask);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :       } else if (controlLnk) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         fTaskList.AddAfter(controlLnk, pTask);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         fTaskList.AddFirst(pTask);</span>
+<span class="lineNum">     311 </span>            :       }
+<span class="lineNum">     312 </span>            :       HLTDebug(&quot;task \&quot;%s\&quot; (%p) inserted (size %d)&quot;, pTask-&gt;GetName(), pTask, sizeof(AliHLTTask));
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   } else if (iResult&gt;0) {</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     HLTError(&quot;can not resolve dependencies for configuration \&quot;%s\&quot; (%d unresolved)&quot;, pTask-&gt;GetName(), iResult);</span>
+<span class="lineNum">     315 </span>            :     iResult=-ENOLINK;
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     317 </span>            :   return iResult;
+<a name="318"><span class="lineNum">     318 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : AliHLTTask* AliHLTSystem::FindTask(const char* id)
+<span class="lineNum">     321 </span>            : {
+<span class="lineNum">     322 </span>            :   // see header file for class documentation
+<span class="lineNum">     323 </span>            :   AliHLTTask* pTask=NULL;
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   if (id) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     pTask=dynamic_cast&lt;AliHLTTask*&gt;(fTaskList.FindObject(id)); </span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :   return pTask;</span>
+<a name="328"><span class="lineNum">     328 </span>            : }</a>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            : void AliHLTSystem::PrintTaskList()
+<span class="lineNum">     331 </span>            : {
+<span class="lineNum">     332 </span>            :   // see header file for class documentation
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   HLTLogKeyword(&quot;task list&quot;);</span>
+<span class="lineNum">     334 </span>            :   TObjLink *lnk = NULL;
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   HLTMessage(&quot;Task List&quot;);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :   lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :   while (lnk) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :       HLTMessage(&quot;  %s - status:&quot;, obj-&gt;GetName());</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :       pTask-&gt;PrintStatus();</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     344 </span>            :     }
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     346 </span>            :   }
+<a name="347"><span class="lineNum">     347 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : int AliHLTSystem::Run(Int_t iNofEvents, int bStop, AliHLTUInt64_t trgMask,
+<span class="lineNum">     350 </span>            :                       AliHLTUInt32_t timestamp, AliHLTUInt32_t eventtype,
+<span class="lineNum">     351 </span>            :                       AliHLTUInt32_t participatingDetectors)
+<span class="lineNum">     352 </span>            : {
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :   return Run(iNofEvents, bStop, AliHLTTriggerMask_t(trgMask), </span>
+<span class="lineNum">     354 </span>            :              timestamp, eventtype, participatingDetectors);
+<a name="355"><span class="lineNum">     355 </span>            : }</a>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            : int AliHLTSystem::Run(Int_t iNofEvents, int bStop, AliHLTTriggerMask_t trgMask,
+<span class="lineNum">     358 </span>            :                       AliHLTUInt32_t timestamp, AliHLTUInt32_t eventtype,
+<span class="lineNum">     359 </span>            :                       AliHLTUInt32_t participatingDetectors)
+<span class="lineNum">     360 </span>            : {
+<span class="lineNum">     361 </span>            :   // see header file for class documentation
+<span class="lineNum">     362 </span>            :   int iResult=0;
+<span class="lineNum">     363 </span>            :   int iCount=0;
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :   SetStatusFlags(kRunning);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :   if (fEventCount&gt;=0 || (iResult=InitTasks())&gt;=0) {</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     if (fEventCount&gt;=0 || (iResult=StartTasks())&gt;=0) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :       if (fEventCount==0) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         InitBenchmarking(fStopwatches);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     370 </span>            :         // Matthias Oct 11 2008 this is a bug
+<span class="lineNum">     371 </span>            :         // By resuming the stopwatches at this point, all continued counting, but the
+<span class="lineNum">     372 </span>            :         // starting and stopping is controlled by the AliHLTStopwatchGuard
+<span class="lineNum">     373 </span>            :         //ResumeBenchmarking(fStopwatches);    
+<span class="lineNum">     374 </span>            :       }
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :       for (int i=fEventCount; i&lt;fEventCount+iNofEvents &amp;&amp; iResult&gt;=0; i++) {</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         if (fpHLTOUTTask) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :           if (iNofEvents&gt;1 &amp;&amp; i==fEventCount) {</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :             HLTWarning(&quot;can not add more than one event to the HLTOUT, skipping all but last block&quot;);</span>
+<span class="lineNum">     379 </span>            :           }
+<span class="lineNum">     380 </span>            :           // reset and prepare for new data
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :           fpHLTOUTTask-&gt;Reset();</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         if (eventtype == 0) {</span>
+<span class="lineNum">     384 </span>            :           eventtype = gkAliEventTypeData;
+<span class="lineNum">     385 </span>            :           participatingDetectors = 0x0;
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         if ((iResult=ProcessTasks(i, trgMask, timestamp, eventtype, participatingDetectors))&gt;=0) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :           fGoodEvents++;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :           iCount++;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     391 </span>            :           // TODO: define different running modes to either ignore errors in
+<span class="lineNum">     392 </span>            :           // event processing or not
+<span class="lineNum">     393 </span>            :           // currently ignored 
+<span class="lineNum">     394 </span>            :           iResult=0;
+<span class="lineNum">     395 </span>            :         }
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         AliHLTDataBuffer::SetGlobalEventCount(iCount);</span>
+<span class="lineNum">     397 </span>            :       }
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :       fEventCount+=iNofEvents;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :       if (bStop) StopTasks();</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :       else PauseBenchmarking(fStopwatches);</span>
+<span class="lineNum">     401 </span>            :     }
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     if (bStop) DeinitTasks();</span>
+<span class="lineNum">     403 </span>            :   }
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0) {</span>
+<span class="lineNum">     405 </span>            :     iResult=iCount;
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   } else  if (iResult==-126 /*ENOKEY*/) {</span>
+<span class="lineNum">     407 </span>            :     iResult=0; // do not propagate the error
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   ClearStatusFlags(kRunning);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   AliHLTDataBuffer::PrintStatistics();</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="412"><span class="lineNum">     412 </span>            : }</a>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            : int AliHLTSystem::InitTasks()
+<span class="lineNum">     415 </span>            : {
+<span class="lineNum">     416 </span>            :   // see header file for class documentation
+<span class="lineNum">     417 </span>            :   int iResult=0;
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :   if (lnk==NULL) {</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     HLTInfo(&quot;Task list is empty, skipping HLT&quot;);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     return -126 /*ENOKEY*/;</span>
+<span class="lineNum">     423 </span>            :   }
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   while (lnk &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       iResult=pTask-&gt;Init(NULL, fpComponentHandler);</span>
+<span class="lineNum">     429 </span>            : //       ProcInfo_t ProcInfo;
+<span class="lineNum">     430 </span>            : //       gSystem-&gt;GetProcInfo(&amp;ProcInfo);
+<span class="lineNum">     431 </span>            : //       HLTInfo(&quot;task %s initialized (%d), current memory usage %d %d&quot;, pTask-&gt;GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     433 </span>            :     }
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     435 </span>            :   }
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :   if (iResult&lt;0) {</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     HLTError(&quot;can not initialize task list, error %d&quot;, iResult);</span>
+<span class="lineNum">     438 </span>            :   }
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="441"><span class="lineNum">     441 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            : int AliHLTSystem::InitBenchmarking(TObjArray* pStopwatches)
+<span class="lineNum">     444 </span>            : {
+<span class="lineNum">     445 </span>            :   // see header file for class documentation
+<span class="lineNum">     446 </span>            :   int iResult=0;
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   if (pStopwatches==NULL) return 0;</span>
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;(int)AliHLTComponent::kSWTypeCount; i++) {</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     TStopwatch* pStopwatch= new TStopwatch;</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     if (pStopwatch) {</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :       pStopwatch-&gt;Reset();</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       pStopwatches-&gt;AddAt(pStopwatch, i);</span>
+<span class="lineNum">     454 </span>            :     } else {
+<span class="lineNum">     455 </span>            :       iResult=-ENOMEM;
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     457 </span>            :     }
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   while (lnk &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     465 </span>            :       AliHLTComponent* pComp=NULL;
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :       if (iResult&gt;=0 &amp;&amp; (pComp=pTask-&gt;GetComponent())!=NULL) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         switch (pComp-&gt;GetComponentType()) {</span>
+<span class="lineNum">     468 </span>            :         case AliHLTComponent::kProcessor:
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :           pComp-&gt;SetStopwatches(pStopwatches);</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     471 </span>            :         case AliHLTComponent::kSource:
+<span class="lineNum">     472 </span>            :           {
+<span class="lineNum">     473 </span>            :             // this switch determines whether the time consumption of the
+<span class="lineNum">     474 </span>            :             // AliHLTComponent base methods should be counted to the input
+<span class="lineNum">     475 </span>            :             // stopwatch or base stopwatch.
+<span class="lineNum">     476 </span>            :             //int inputBase=(int)AliHLTComponent::kSWBase;
+<span class="lineNum">     477 </span>            :             int inputBase=(int)AliHLTComponent::kSWInput;
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :             pComp-&gt;SetStopwatch(pStopwatches-&gt;At(inputBase), AliHLTComponent::kSWBase);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :             pComp-&gt;SetStopwatch(pStopwatches-&gt;At((int)AliHLTComponent::kSWInput), AliHLTComponent::kSWDA);</span>
+<span class="lineNum">     480 </span>            :           }
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     482 </span>            :         case AliHLTComponent::kSink:
+<span class="lineNum">     483 </span>            :           {
+<span class="lineNum">     484 </span>            :             // this switch determines whether the time consumption of the
+<span class="lineNum">     485 </span>            :             // AliHLTComponent base methods should be counted to the output
+<span class="lineNum">     486 </span>            :             // stopwatch or base stopwatch.
+<span class="lineNum">     487 </span>            :             //int outputBase=(int)AliHLTComponent::kSWBase;
+<span class="lineNum">     488 </span>            :             int outputBase=(int)AliHLTComponent::kSWOutput;
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :             pComp-&gt;SetStopwatch(pStopwatches-&gt;At(outputBase), AliHLTComponent::kSWBase);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :             pComp-&gt;SetStopwatch(pStopwatches-&gt;At((int)AliHLTComponent::kSWOutput), AliHLTComponent::kSWDA);</span>
+<span class="lineNum">     491 </span>            :           }
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     493 </span>            :         default:
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :           HLTWarning(&quot;unknown component type %d&quot;, (int)pComp-&gt;GetComponentType());</span>
+<span class="lineNum">     495 </span>            :         }
+<span class="lineNum">     496 </span>            :       }
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     498 </span>            :     }
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     500 </span>            :   }
+<span class="lineNum">     501 </span>            :   return iResult;
+<a name="502"><span class="lineNum">     502 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            : int AliHLTSystem::PauseBenchmarking(TObjArray* pStopwatches) const
+<span class="lineNum">     505 </span>            : {
+<span class="lineNum">     506 </span>            :   // see header file for class documentation
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   if (pStopwatches==NULL) return 0;</span>
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;(int)AliHLTComponent::kSWTypeCount; i++) {</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     if (!pStopwatches-&gt;At(i)) continue;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     TStopwatch* pSw=dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(i));</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     if (pSw) pSw-&gt;Stop();</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="515"><span class="lineNum">     515 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            : int AliHLTSystem::ResumeBenchmarking(TObjArray* pStopwatches) const
+<span class="lineNum">     518 </span>            : {
+<span class="lineNum">     519 </span>            :   // see header file for class documentation
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :   if (pStopwatches==NULL) return 0;</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;(int)AliHLTComponent::kSWTypeCount; i++) {</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     if (!pStopwatches-&gt;At(i)) continue;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     TStopwatch* pSw=dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(i));</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     if (pSw) pSw-&gt;Continue();</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="528"><span class="lineNum">     528 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span>            : int AliHLTSystem::PrintBenchmarking(TObjArray* pStopwatches, int bClean) const
+<span class="lineNum">     531 </span>            : {
+<span class="lineNum">     532 </span>            :   // see header file for class documentation
+<span class="lineNum">     533 </span>            :   int iInitialized=1;
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   if (pStopwatches==NULL) return 0;</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   for (int i=0; i&lt;(int)AliHLTComponent::kSWTypeCount; i++) {</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     if (!dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(i))) {</span>
+<span class="lineNum">     538 </span>            :       iInitialized=0;
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     540 </span>            :     }
+<span class="lineNum">     541 </span>            :   }
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :   if (iInitialized!=0) {</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     HLTImportant(&quot;HLT statistics:\n&quot;</span>
+<span class="lineNum">     545 </span>            :             &quot;    base:              R:%.3fs C:%.3fs\n&quot;
+<span class="lineNum">     546 </span>            :             &quot;    input:             R:%.3fs C:%.3fs\n&quot;
+<span class="lineNum">     547 </span>            :             &quot;    output:            R:%.3fs C:%.3fs\n&quot;
+<span class="lineNum">     548 </span>            :             &quot;    event processing : R:%.3fs C:%.3fs&quot;
+<span class="lineNum">     549 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWBase))-&gt;RealTime()
+<span class="lineNum">     550 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWBase))-&gt;CpuTime()
+<span class="lineNum">     551 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWInput))-&gt;RealTime()
+<span class="lineNum">     552 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWInput))-&gt;CpuTime()
+<span class="lineNum">     553 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWOutput))-&gt;RealTime()
+<span class="lineNum">     554 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWOutput))-&gt;CpuTime()
+<span class="lineNum">     555 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWDA))-&gt;RealTime()
+<span class="lineNum">     556 </span>            :             , dynamic_cast&lt;TStopwatch*&gt;(pStopwatches-&gt;At(AliHLTComponent::kSWDA))-&gt;CpuTime()
+<span class="lineNum">     557 </span>            :             );
+<span class="lineNum">     558 </span>            :   }
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   if (bClean) {</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     for (int i=0; i&lt;(int)AliHLTComponent::kSWTypeCount; i++) {</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :       TObject* pObj=pStopwatches-&gt;RemoveAt(i);</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :       if (pObj) delete pObj;</span>
+<span class="lineNum">     564 </span>            :     }
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="567"><span class="lineNum">     567 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            : int AliHLTSystem::StartTasks()
+<span class="lineNum">     570 </span>            : {
+<span class="lineNum">     571 </span>            :   // see header file for class documentation
+<span class="lineNum">     572 </span>            :   int iResult=0;
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :   while (lnk &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :       iResult=pTask-&gt;StartRun();</span>
+<span class="lineNum">     579 </span>            : //       ProcInfo_t ProcInfo;
+<span class="lineNum">     580 </span>            : //       gSystem-&gt;GetProcInfo(&amp;ProcInfo);
+<span class="lineNum">     581 </span>            : //       HLTInfo(&quot;task %s started (%d), current memory usage %d %d&quot;, pTask-&gt;GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     583 </span>            :     }
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     585 </span>            :   }
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :   if (iResult&lt;0) {</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :     HLTError(&quot;can not start task list, error %d&quot;, iResult);</span>
+<span class="lineNum">     588 </span>            :   } else {
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     SetStatusFlags(kStarted);</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :     fEventCount=0;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     fGoodEvents=0;</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     if ((iResult=SendControlEvent(kAliHLTDataTypeSOR))&lt;0) {</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :       HLTError(&quot;can not send SOR event: error %d&quot;, iResult);</span>
+<span class="lineNum">     594 </span>            :     }
+<span class="lineNum">     595 </span>            :   }
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="597"><span class="lineNum">     597 </span>            : }</a>
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span>            : int AliHLTSystem::ProcessTasks(Int_t eventNo, AliHLTTriggerMask_t trgMask,
+<span class="lineNum">     600 </span>            :           AliHLTUInt32_t timestamp, AliHLTUInt32_t eventtype,
+<span class="lineNum">     601 </span>            :           AliHLTUInt32_t participatingDetectors)
+<span class="lineNum">     602 </span>            : {
+<span class="lineNum">     603 </span>            :   // see header file for class documentation
+<span class="lineNum">     604 </span>            :   int iResult=0;
+<span class="lineNum">     605 </span>            :   HLTDebug(&quot;processing event no %d&quot;, eventNo);
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   while (lnk) {</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :       if (iResult&gt;=0) {</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :       iResult=pTask-&gt;ProcessTask(eventNo, eventtype, trgMask, timestamp, participatingDetectors);</span>
+<span class="lineNum">     613 </span>            : //       ProcInfo_t ProcInfo;
+<span class="lineNum">     614 </span>            : //       gSystem-&gt;GetProcInfo(&amp;ProcInfo);
+<span class="lineNum">     615 </span>            : //       HLTInfo(&quot;task %s processed (%d), current memory usage %d %d&quot;, pTask-&gt;GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :         pTask-&gt;SubscribeSourcesAndSkip();</span>
+<span class="lineNum">     618 </span>            :       }
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     620 </span>            :     }
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     622 </span>            :   }
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0) {</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     HLTImportant(&quot;Event %d successfully finished (%d)&quot;, eventNo, iResult);</span>
+<span class="lineNum">     626 </span>            :     iResult=0;
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :     HLTError(&quot;Processing of event %d failed (%d)&quot;, eventNo, iResult);</span>
+<span class="lineNum">     629 </span>            :   }
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="632"><span class="lineNum">     632 </span>            : }</a>
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span>            : int AliHLTSystem::StopTasks()
+<span class="lineNum">     635 </span>            : {
+<span class="lineNum">     636 </span>            :   // see header file for class documentation
+<span class="lineNum">     637 </span>            :   int iResult=0;
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :   if ((iResult=SendControlEvent(kAliHLTDataTypeEOR))&lt;0) {</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     HLTError(&quot;can not send EOR event&quot;);</span>
+<span class="lineNum">     640 </span>            :   }
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span>            :   // cleanup blocks from the last event. This is a bit awkward. All output
+<span class="lineNum">     643 </span>            :   // blocks from the chains need to be stored in the HLTOUT task. Though,
+<span class="lineNum">     644 </span>            :   // we do not know, whether HLTOUT is going to be processed or not.
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :   if (fpHLTOUTTask)</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     fpHLTOUTTask-&gt;Reset();</span>
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :   while (lnk) {</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :       int locResult=pTask-&gt;EndRun();</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :       if (iResult&gt;=0 &amp;&amp; locResult&lt;0) iResult=locResult;</span>
+<span class="lineNum">     655 </span>            : //       ProcInfo_t ProcInfo;
+<span class="lineNum">     656 </span>            : //       gSystem-&gt;GetProcInfo(&amp;ProcInfo);
+<span class="lineNum">     657 </span>            : //       HLTInfo(&quot;task %s stopped (%d), current memory usage %d %d&quot;, pTask-&gt;GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     659 </span>            :     }
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     661 </span>            :   }
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   PrintBenchmarking(fStopwatches, 1 /*clean*/);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   if (fEventCount!=fGoodEvents) {</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     HLTError(&quot;%d out of %d event(s) failed&quot;, fEventCount-fGoodEvents, fEventCount);</span>
+<span class="lineNum">     665 </span>            :   }
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   ClearStatusFlags(kStarted);</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="668"><span class="lineNum">     668 </span>            : }</a>
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            : int AliHLTSystem::SendControlEvent(AliHLTComponentDataType dt)
+<span class="lineNum">     671 </span>            : {
+<span class="lineNum">     672 </span>            :   // see header file for class documentation
+<span class="lineNum">     673 </span>            :   int iResult=0;
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   AliHLTComponentBlockDataList controlBlocks;</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :   AliHLTComponentBlockData bd;</span>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            :   // run decriptor block of type kAliHLTDataTypeSOR/kAliHLTDataTypeEOR 
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :   AliHLTComponent::FillBlockData(bd);</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   AliHLTRunDesc runDesc;</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :   memset(&amp;runDesc, 0, sizeof(AliHLTRunDesc));</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :   runDesc.fStructSize=sizeof(AliHLTRunDesc);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :   runDesc.fRunNo=AliHLTMisc::Instance().GetCDBRunNo();</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :   bd.fPtr=&amp;runDesc;</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :   bd.fSize=sizeof(AliHLTRunDesc);</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :   bd.fDataType=dt;</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   bd.fSpecification=kAliHLTVoidDataSpec;</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   controlBlocks.push_back(bd);</span>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            :   // ECS parameter of type kAliHLTDataTypeECSParam
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   if (fECSParams.IsNull())</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     fECSParams=&quot;CTP_TRIGGER_CLASS=00:DUMMY-TRIGGER-ALL:00-01-02-03-04-05-06-07-08-09-10-11-12-13-14-15-16-17&quot;;</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   AliHLTComponent::FillBlockData(bd);</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :   bd.fPtr=(void*)fECSParams.Data();</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   bd.fSize=fECSParams.Length()+1;</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :   bd.fDataType=kAliHLTDataTypeECSParam;</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   bd.fSpecification=kAliHLTVoidDataSpec;</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :   controlBlocks.push_back(bd);  </span>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :   AliHLTControlTask::AliHLTControlEventGuard g(fpControlTask, controlBlocks);</span>
+<span class="lineNum">     701 </span>            :   HLTDebug(&quot;sending event %s, run descriptor %p&quot;, AliHLTComponent::DataType2Text(dt).c_str(), &amp;runDesc);
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.FirstLink();</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :   while (lnk &amp;&amp; iResult&gt;=0) {</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     707 </span>            :       AliHLTUInt32_t eventType=gkAliEventTypeUnknown;
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :       if (dt==kAliHLTDataTypeSOR) eventType=gkAliEventTypeStartOfRun;</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :       else if (dt==kAliHLTDataTypeEOR) eventType=gkAliEventTypeEndOfRun;</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :       else HLTWarning(&quot;unknown control event %s&quot;, AliHLTComponent::DataType2Text(dt).c_str());</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :       iResult=pTask-&gt;ProcessTask(-1, eventType, 0, 0);</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     713 </span>            :     }
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Next();</span>
+<span class="lineNum">     715 </span>            :   }
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :   // control events are not supposed to go into the HLTOUT
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :   if (fpHLTOUTTask)</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     fpHLTOUTTask-&gt;Reset();</span>
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span>            :   HLTDebug(&quot;event %s done (%d)&quot;, AliHLTComponent::DataType2Text(dt).c_str(), iResult);
+<span class="lineNum">     722 </span>            :   return iResult;
+<a name="723"><span class="lineNum">     723 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span>            : int AliHLTSystem::DeinitTasks()
+<span class="lineNum">     726 </span>            : {
+<span class="lineNum">     727 </span>            :   // see header file for class documentation
+<span class="lineNum">     728 </span>            :   int iResult=0;
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :   TObjLink *lnk=fTaskList.LastLink();</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :   while (lnk) {</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     TObject* obj=lnk-&gt;GetObject();</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     if (obj) {</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :       AliHLTTask* pTask=(AliHLTTask*)obj;</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :       int localRes=pTask-&gt;Deinit();</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :       if (iResult&gt;=0) iResult=localRes;</span>
+<span class="lineNum">     736 </span>            : //       ProcInfo_t ProcInfo;
+<span class="lineNum">     737 </span>            : //       gSystem-&gt;GetProcInfo(&amp;ProcInfo);
+<span class="lineNum">     738 </span>            : //       HLTInfo(&quot;task %s cleaned (%d), current memory usage %d %d&quot;, pTask-&gt;GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     740 </span>            :     }
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     lnk = lnk-&gt;Prev();</span>
+<span class="lineNum">     742 </span>            :   }
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :   fEventCount=-1;</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :   fGoodEvents=-1;</span>
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="747"><span class="lineNum">     747 </span>            : }</a>
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span>            : int AliHLTSystem::CleanupHLTOUTHandlers()
+<span class="lineNum">     750 </span>            : {
+<span class="lineNum">     751 </span>            :   // see header file for class documentation
+<span class="lineNum">     752 </span><span class="lineCov">          6 :   if (fpChainHandlers) {</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     AliHLTOUT::AliHLTOUTHandlerListEntryVector* pHandlers=reinterpret_cast&lt;AliHLTOUT::AliHLTOUTHandlerListEntryVector*&gt;(fpChainHandlers);</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :     fpChainHandlers=NULL;</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     if (pHandlers) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :       AliHLTOUT::InvalidateBlocks(*pHandlers);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :       AliHLTOUT::RemoveEmptyDuplicateHandlers(*pHandlers);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     assert(pHandlers-&gt;size()==0);</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     delete pHandlers;</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineCov">          3 :   if (fpEsdHandlers) {</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     AliHLTOUT::AliHLTOUTHandlerListEntryVector* pHandlers=reinterpret_cast&lt;AliHLTOUT::AliHLTOUTHandlerListEntryVector*&gt;(fpEsdHandlers);</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     fpEsdHandlers=NULL;</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     if (pHandlers) {</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :       AliHLTOUT::InvalidateBlocks(*pHandlers);</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :       AliHLTOUT::RemoveEmptyDuplicateHandlers(*pHandlers);</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :     assert(pHandlers-&gt;size()==0);</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     delete pHandlers;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineCov">          3 :   if (fpProprietaryHandlers) {</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     AliHLTOUT::AliHLTOUTHandlerListEntryVector* pHandlers=reinterpret_cast&lt;AliHLTOUT::AliHLTOUTHandlerListEntryVector*&gt;(fpProprietaryHandlers);</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     fpProprietaryHandlers=NULL;</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     if (pHandlers) {</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :       AliHLTOUT::InvalidateBlocks(*pHandlers);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :       AliHLTOUT::RemoveEmptyDuplicateHandlers(*pHandlers);</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     assert(pHandlers-&gt;size()==0);</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     delete pHandlers;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     784 </span><span class="lineCov">          3 :   return 0;</span>
+<a name="785"><span class="lineNum">     785 </span>            : }</a>
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span>            : void* AliHLTSystem::AllocMemory( void* /*param*/, unsigned long size )
+<span class="lineNum">     788 </span>            : {
+<span class="lineNum">     789 </span>            :   // see header file for class documentation
+<span class="lineNum">     790 </span>            :   void* p=NULL;
+<span class="lineNum">     791 </span>            :   try {
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :     p=(void*)new char[size];</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     794 </span>            :   catch (...) {
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     AliHLTLogging log;</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     log.LoggingVarargs(kHLTLogError, &quot;AliHLTSystem&quot; , &quot;AllocMemory&quot; , __FILE__ , __LINE__ , &quot;exeption during memory allocation&quot; );</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :   return p;</span>
+<a name="799"><span class="lineNum">     799 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span>            : int AliHLTSystem::AllocEventDoneData( void* /*param*/, AliHLTEventID_t /*eventID*/, unsigned long size, AliHLTComponentEventDoneData** edd )
+<span class="lineNum">     802 </span>            : {
+<span class="lineNum">     803 </span>            :   // see header file for class documentation
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   unsigned long blocksize=sizeof(AliHLTComponentEventDoneData)+size;</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :   void* block=AllocMemory(NULL, blocksize);</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   if (!block) return -ENOMEM;</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :   memset(block, 0, blocksize);</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :   *edd=reinterpret_cast&lt;AliHLTComponentEventDoneData*&gt;(block);</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :   (*edd)-&gt;fStructSize=sizeof(AliHLTComponentEventDoneData);</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :   (*edd)-&gt;fDataSize=size;</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   (*edd)-&gt;fData=reinterpret_cast&lt;AliHLTUInt8_t*&gt;(block)+sizeof(AliHLTComponentEventDoneData);</span>
+<span class="lineNum">     812 </span>            :   
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="814"><span class="lineNum">     814 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     815 </span>            : 
+<span class="lineNum">     816 </span>            : int AliHLTSystem::Reconstruct(int nofEvents, AliRunLoader* runLoader, 
+<span class="lineNum">     817 </span>            :                               AliRawReader* rawReader)
+<span class="lineNum">     818 </span>            : {
+<span class="lineNum">     819 </span>            :   // see header file for class documentation
+<span class="lineNum">     820 </span>            :   int iResult=0;
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :   if (runLoader || rawReader || nofEvents==0) {</span>
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :     if (nofEvents&gt;0) {HLTInfo(&quot;Run Loader %p, Raw Reader %p , %d event(s)&quot;, runLoader, rawReader, nofEvents);}</span>
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :     if (CheckStatus(kReady)) {</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :       if (nofEvents==0) {</span>
+<span class="lineNum">     825 </span>            :         // special case to close the reconstruction
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :         if (!CheckStatus(kError)) {</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :         StopTasks();</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         DeinitTasks();</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         CleanupHLTOUTHandlers();</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     831 </span>            :       } else {
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :       if ((iResult=AliHLTOfflineInterface::SetParamsToComponents(runLoader, rawReader))&gt;=0) {</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         AliHLTTriggerMask_t trgMask=0x1;</span>
+<span class="lineNum">     834 </span>            :         AliHLTUInt32_t timestamp=kMaxUInt;
+<span class="lineNum">     835 </span>            :         AliHLTUInt32_t eventtype=0;
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :         if (runLoader==NULL) {</span>
+<span class="lineNum">     837 </span>            :           // this is a quick workaround for the case of simulation
+<span class="lineNum">     838 </span>            :           // the trigger framework is still under development, secondly, AliHLTSimulation
+<span class="lineNum">     839 </span>            :           // does not yet add the emulated ECS parameters, so no CTP trigger is known in the HLT
+<span class="lineNum">     840 </span>            :           // AliHLTTask will initialize one dummy CTP trigger class with bit 0, that's why the
+<span class="lineNum">     841 </span>            :           // default trigger mask is 0x1
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :           trgMask=AliHLTMisc::Instance().GetTriggerMask(rawReader);</span>
+<span class="lineNum">     843 </span>            : 
+<span class="lineNum">     844 </span>            :           // get the timestamp and type of the event from the raw reader
+<span class="lineNum">     845 </span>            :           // this is currently only meaningfull for reconstruction (runloader==NULL)
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :           timestamp=AliHLTMisc::Instance().GetTimeStamp(rawReader);</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :           eventtype=AliHLTMisc::Instance().GetEventType(rawReader);</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     849 </span>            :         // the system always remains started after event processing, a specific
+<span class="lineNum">     850 </span>            :         // call with nofEvents==0 is needed to execute the stop sequence
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         if ((iResult=Run(nofEvents, 0, trgMask, timestamp, eventtype))&lt;0) SetStatusFlags(kError);</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     853 </span>            :       }
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span>            :       // add the current HLTOUT task to the collection
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :       if (fpHLTOUTTask) {</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :         AliHLTOUT* pTask=dynamic_cast&lt;AliHLTOUT*&gt;(fpHLTOUTTask);</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :         if (pTask &amp;&amp; (iResult=pTask-&gt;Init())&gt;=0) {</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :           if (pTask-&gt;GetNofDataBlocks()&gt;0) {</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :             AliHLTOUT* pHLTOUT=RequestHLTOUT();</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :             if (pHLTOUT) {</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :               pHLTOUT-&gt;AddSubCollection(pTask);</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :               ReleaseHLTOUT(pHLTOUT);</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :             } else {</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :               HLTWarning(&quot;no HLTOUT instance available, output blocks of the chain are ignored&quot;);</span>
+<span class="lineNum">     866 </span>            :             }
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     868 </span>            :         } else {
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :           HLTWarning(&quot;can not initialize HLTOUT sub collection %s for reconstruction chain (%d), data blocks are lost&quot;, pTask?fpHLTOUTTask-&gt;GetName():&quot;nil&quot;, iResult);</span>
+<span class="lineNum">     870 </span>            :           iResult=0;
+<span class="lineNum">     871 </span>            :         }
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     873 </span>            :     } else {
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :       HLTError(&quot;wrong state %#x, required flags %#x&quot;, GetStatusFlags(), kReady);</span>
+<span class="lineNum">     875 </span>            :     }
+<span class="lineNum">     876 </span>            :   } else {
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :     HLTError(&quot;missing RunLoader (%p)/RawReader (%p) instance&quot;, runLoader, rawReader);</span>
+<span class="lineNum">     878 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     879 </span>            :   }
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="881"><span class="lineNum">     881 </span>            : }</a>
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span>            : int AliHLTSystem::FillESD(int eventNo, AliRunLoader* runLoader, AliESDEvent* esd)
+<span class="lineNum">     884 </span>            : {
+<span class="lineNum">     885 </span>            :   // see header file for class documentation
+<span class="lineNum">     886 </span>            :   int iResult=0;
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :   if (runLoader || esd) {</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     HLTInfo(&quot;Event %d: Run Loader %p, ESD %p&quot;, eventNo, runLoader, esd);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :     iResult=AliHLTOfflineInterface::FillComponentESDs(eventNo, runLoader, esd);</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     HLTError(&quot;missing run loader/ESD instance(s)&quot;);</span>
+<span class="lineNum">     892 </span>            :     iResult=-EINVAL;
+<span class="lineNum">     893 </span>            :   }
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="895"><span class="lineNum">     895 </span>            : }</a>
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span>            : int AliHLTSystem::ProcessHLTOUT(AliHLTOUT* pHLTOUT, AliESDEvent* esd)
+<span class="lineNum">     898 </span>            : {
+<span class="lineNum">     899 </span>            :   // see header file for class documentation
+<span class="lineNum">     900 </span>            :   int iResult=0;
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :   if (!pHLTOUT) return -EINVAL;</span>
+<span class="lineNum">     902 </span>            :   HLTDebug(&quot;processing %d HLT data blocks&quot;, pHLTOUT-&gt;GetNofDataBlocks());
+<span class="lineNum">     903 </span>            : 
+<span class="lineNum">     904 </span>            :   //
+<span class="lineNum">     905 </span>            :   // process all kChain handlers first
+<span class="lineNum">     906 </span>            :   //
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :   if ((iResult=ProcessHLTOUTkChain(pHLTOUT))&lt;0) {</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :     HLTWarning(&quot;Processing of kChain-type data blocks failed with error code %d&quot;, iResult);</span>
+<span class="lineNum">     909 </span>            :     iResult=0;
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :   } </span>
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :   if (!fpEsdHandlers)</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :     fpEsdHandlers=new AliHLTOUT::AliHLTOUTHandlerListEntryVector;</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :   if (!fpProprietaryHandlers)</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :     fpProprietaryHandlers=new AliHLTOUT::AliHLTOUTHandlerListEntryVector;</span>
+<span class="lineNum">     916 </span>            : 
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :   AliHLTOUT::AliHLTOUTHandlerListEntryVector* pEsdHandlers=reinterpret_cast&lt;AliHLTOUT::AliHLTOUTHandlerListEntryVector*&gt;(fpEsdHandlers);</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :   AliHLTOUT::AliHLTOUTHandlerListEntryVector* pProprietaryHandlers=reinterpret_cast&lt;AliHLTOUT::AliHLTOUTHandlerListEntryVector*&gt;(fpProprietaryHandlers);</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :   if (!pEsdHandlers || !pProprietaryHandlers) return -ENOMEM;</span>
+<span class="lineNum">     920 </span>            : 
+<span class="lineNum">     921 </span>            :   // invalidate all blocks
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :   AliHLTOUT::InvalidateBlocks(*pEsdHandlers);</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :   AliHLTOUT::InvalidateBlocks(*pProprietaryHandlers);</span>
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   AliHLTComponentDataTypeList esdBlocks;</span>
+<span class="lineNum">     926 </span>            : 
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :   for (iResult=pHLTOUT-&gt;SelectFirstDataBlock();</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :        iResult&gt;=0;</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :        iResult=pHLTOUT-&gt;SelectNextDataBlock()) {</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :     AliHLTComponentDataType dt=kAliHLTVoidDataType;</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :     AliHLTUInt32_t spec=kAliHLTVoidDataSpec;</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :     pHLTOUT-&gt;GetDataBlockDescription(dt, spec);</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :     AliHLTOUTHandler* pHandler=pHLTOUT-&gt;GetHandler();</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :     AliHLTModuleAgent::AliHLTOUTHandlerType handlerType=pHLTOUT-&gt;GetDataBlockHandlerType();</span>
+<span class="lineNum">     935 </span>            : 
+<span class="lineNum">     936 </span>            :     // default handling for ESD data blocks does not require an explicite handler
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     if (!pHandler &amp;&amp; (dt==kAliHLTDataTypeESDObject || dt==kAliHLTDataTypeESDTree)) {</span>
+<span class="lineNum">     938 </span>            :       handlerType=AliHLTModuleAgent::kEsd;
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     940 </span>            :     const char* pMsg=&quot;invalid&quot;;
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     switch (handlerType) {</span>
+<span class="lineNum">     942 </span>            :     case AliHLTModuleAgent::kEsd:
+<span class="lineNum">     943 </span>            :       {
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :         if (pHandler) {</span>
+<span class="lineNum">     945 </span>            :           // schedule for later processing
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :           pHLTOUT-&gt;InsertHandler(*pEsdHandlers, pHLTOUT-&gt;GetDataBlockHandlerDesc());</span>
+<span class="lineNum">     947 </span>            :         } else {
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :           AliHLTComponentDataTypeList::iterator element=esdBlocks.begin();</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :           for (; element!=esdBlocks.end(); element++) {</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :             if (*element==dt) {</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :               HLTWarning(&quot;multiple ESDs of identical data type %s, please add appropriate handler to merge ESDs&quot;, AliHLTComponent::DataType2Text(dt).c_str());</span>
+<span class="lineNum">     952 </span>            :               break;
+<span class="lineNum">     953 </span>            :             }
+<span class="lineNum">     954 </span>            :           }
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :           if (element==esdBlocks.end()) esdBlocks.push_back(dt);</span>
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span>            :           // write directly
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :           const AliHLTUInt8_t* pBuffer=NULL;</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :           AliHLTUInt32_t size=0;</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :           if (pHLTOUT-&gt;GetDataBuffer(pBuffer, size)&gt;=0) {</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :             pHLTOUT-&gt;WriteESD(pBuffer, size, dt, esd);</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :             pHLTOUT-&gt;ReleaseDataBuffer(pBuffer);</span>
+<span class="lineNum">     963 </span>            :           }
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :           pHLTOUT-&gt;MarkDataBlockProcessed();</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     966 </span>            :       }
+<span class="lineNum">     967 </span>            :       break;
+<span class="lineNum">     968 </span>            :     case AliHLTModuleAgent::kRawReader:
+<span class="lineNum">     969 </span>            :       // handled in the AliRawReaderHLT
+<span class="lineNum">     970 </span>            :       break;
+<span class="lineNum">     971 </span>            :     case AliHLTModuleAgent::kRawStream:
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;HLTOUT handler type 'kRawStream' not yet implemented: agent %s, data type %s, specification %#x&quot;,</span>
+<span class="lineNum">     973 </span>            :                  pHLTOUT-&gt;GetAgent()?pHLTOUT-&gt;GetAgent()-&gt;GetModuleId():&quot;&lt;invalid&gt;&quot;,
+<span class="lineNum">     974 </span>            :                  AliHLTComponent::DataType2Text(dt).c_str(), spec);
+<span class="lineNum">     975 </span>            :       break;
+<span class="lineNum">     976 </span>            :     case AliHLTModuleAgent::kChain:
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;HLTOUT handler type 'kChain' has already been processed: agent %s, data type %s, specification %#x\n&quot;</span>
+<span class="lineNum">     978 </span>            :                  &quot;New block of this type added by the chain? Skipping data block ...&quot;,
+<span class="lineNum">     979 </span>            :                  pHLTOUT-&gt;GetAgent()?pHLTOUT-&gt;GetAgent()-&gt;GetModuleId():&quot;&lt;invalid&gt;&quot;,
+<span class="lineNum">     980 </span>            :                  AliHLTComponent::DataType2Text(dt).c_str(), spec);
+<span class="lineNum">     981 </span>            :       break;
+<span class="lineNum">     982 </span>            :     case AliHLTModuleAgent::kProprietary:
+<span class="lineNum">     983 </span>            :       HLTDebug(&quot;processing proprietary data: agent %s, data type %s, specification %#x&quot;,
+<span class="lineNum">     984 </span>            :                  pHLTOUT-&gt;GetAgent()?pHLTOUT-&gt;GetAgent()-&gt;GetModuleId():&quot;&lt;invalid&gt;&quot;,
+<span class="lineNum">     985 </span>            :                  AliHLTComponent::DataType2Text(dt).c_str(), spec);
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :       if (pHandler) {</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :         AliHLTOUT::AliHLTOUTLockGuard g(pHLTOUT);</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :         int res=pHandler-&gt;ProcessData(pHLTOUT);</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :         if (res&lt;0) {</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :           HLTWarning(&quot;processing proprietary data failed (%d): agent %s, data type %s, specification %#x&quot;,</span>
+<span class="lineNum">     991 </span>            :                      res, pHLTOUT-&gt;GetAgent()?pHLTOUT-&gt;GetAgent()-&gt;GetModuleId():&quot;&lt;invalid&gt;&quot;,
+<span class="lineNum">     992 </span>            :                      AliHLTComponent::DataType2Text(dt).c_str(), spec);
+<span class="lineNum">     993 </span>            :         }
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     995 </span>            :       break;
+<span class="lineNum">     996 </span>            :     case AliHLTModuleAgent::kUnknownOutput:
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :       pMsg=&quot;unknown&quot;;</span>
+<span class="lineNum">     998 </span>            :       // fall trough intended
+<span class="lineNum">     999 </span>            :     default:
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;%s handler type: agent %s, data type %s, specification %#x, ... skipping data block&quot;,</span>
+<span class="lineNum">    1001 </span>            :                  pMsg, pHLTOUT-&gt;GetAgent()?pHLTOUT-&gt;GetAgent()-&gt;GetModuleId():&quot;&lt;invalid&gt;&quot;,
+<span class="lineNum">    1002 </span>            :                  AliHLTComponent::DataType2Text(dt).c_str(), spec);
+<span class="lineNum">    1003 </span>            :     }
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1005 </span>            :   // TODO: the return value of SelectFirst/NextDataBlock must be
+<span class="lineNum">    1006 </span>            :   // changed in order to avoid this check
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :   if (iResult==-ENOENT) iResult=0;</span>
+<span class="lineNum">    1008 </span>            : 
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :   AliHLTOUT::AliHLTOUTHandlerListEntryVector::iterator handler;</span>
+<span class="lineNum">    1010 </span>            : 
+<span class="lineNum">    1011 </span>            :   // process and write all esd data blocks
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :   for (handler=pEsdHandlers-&gt;begin(); handler!=pEsdHandlers-&gt;end() &amp;&amp; iResult&gt;=0; handler++) {</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :     AliHLTOUT::AliHLTOUTSelectionGuard g(pHLTOUT, &amp;(*handler));         </span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :     AliHLTOUTHandler* pHandler=*handler;</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :     const AliHLTUInt8_t* pBuffer=NULL;</span>
+<span class="lineNum">    1016 </span>            :     AliHLTUInt32_t size=0;
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :     pHandler-&gt;ProcessData(pHLTOUT);</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :     if ((size=pHandler-&gt;GetProcessedData(pBuffer))&gt;0) {</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :       AliHLTModuleAgent::AliHLTOUTHandlerDesc desc=*handler;</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :       AliHLTComponentDataType dt=desc;</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :       pHLTOUT-&gt;WriteESD(pBuffer, size, dt, esd);</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :       pHandler-&gt;ReleaseProcessedData(pBuffer, size);</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     pHLTOUT-&gt;MarkDataBlocksProcessed(&amp;(*handler));</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1026 </span>            : 
+<span class="lineNum">    1027 </span>            :   // process all kProprietary data blocks
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :   for (handler=pProprietaryHandlers-&gt;begin(); handler!=pProprietaryHandlers-&gt;end() &amp;&amp; iResult&gt;=0; handler++) {</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :     AliHLTOUT::AliHLTOUTSelectionGuard g(pHLTOUT, &amp;(*handler));         </span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :     AliHLTOUTHandler* pHandler=*handler;</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :     const AliHLTUInt8_t* pBuffer=NULL;</span>
+<span class="lineNum">    1032 </span>            :     AliHLTUInt32_t size=0;
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :     pHandler-&gt;ProcessData(pHLTOUT);</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :     if ((size=pHandler-&gt;GetProcessedData(pBuffer))&gt;0) {</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;data produced by kProprietary handler ignored&quot;);</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :       pHandler-&gt;ReleaseProcessedData(pBuffer, size);</span>
+<span class="lineNum">    1037 </span>            :     }
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :     pHLTOUT-&gt;MarkDataBlocksProcessed(&amp;(*handler));</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1040 </span>            : 
+<span class="lineNum">    1041 </span>            :   // remove all empty handlers form the list (handlers which did not get a block this time)
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :   AliHLTOUT::RemoveEmptyDuplicateHandlers(*pEsdHandlers);</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :   AliHLTOUT::RemoveEmptyDuplicateHandlers(*pProprietaryHandlers);</span>
+<span class="lineNum">    1044 </span>            : 
+<span class="lineNum">    1045 </span>            :   return iResult;
+<a name="1046"><span class="lineNum">    1046 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1047 </span>            : 
+<span class="lineNum">    1048 </span>            : int AliHLTSystem::ProcessHLTOUTkChain(AliHLTOUT* pHLTOUT)
+<span class="lineNum">    1049 </span>            : {
+<span class="lineNum">    1050 </span>            :   // see header file for class documentation
+<span class="lineNum">    1051 </span>            :   int iResult=0;
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :   if (!pHLTOUT) return -EINVAL;</span>
+<span class="lineNum">    1053 </span>            : 
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :   if (!fpChainHandlers)</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :     fpChainHandlers=new AliHLTOUT::AliHLTOUTHandlerListEntryVector;</span>
+<span class="lineNum">    1056 </span>            : 
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :   AliHLTOUT::AliHLTOUTHandlerListEntryVector* pChainHandlers=reinterpret_cast&lt;AliHLTOUT::AliHLTOUTHandlerListEntryVector*&gt;(fpChainHandlers);</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :   if (!pChainHandlers) return -ENOMEM;</span>
+<span class="lineNum">    1059 </span>            : 
+<span class="lineNum">    1060 </span>            :   // invalidate all blocks
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :   AliHLTOUT::InvalidateBlocks(*pChainHandlers);</span>
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span>            :   // fill the list
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :   pHLTOUT-&gt;FillHandlerList(*pChainHandlers, AliHLTModuleAgent::kChain);</span>
+<span class="lineNum">    1065 </span>            : 
+<span class="lineNum">    1066 </span>            :   // process all defined chain handlers
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :   AliHLTOUT::AliHLTOUTHandlerListEntryVector::iterator chainHandler;</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :   for (chainHandler=pChainHandlers-&gt;begin(); chainHandler!=pChainHandlers-&gt;end() &amp;&amp; iResult&gt;=0; chainHandler++) {</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :     if (chainHandler-&gt;IsEmpty()) continue;</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :     AliHLTOUT::AliHLTOUTSelectionGuard g(pHLTOUT, &amp;(*chainHandler));            </span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :     AliHLTOUTHandler* pHandler=*chainHandler;</span>
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :     const AliHLTUInt8_t* pBuffer=NULL;</span>
+<span class="lineNum">    1073 </span>            :     AliHLTUInt32_t size=0;
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :     pHandler-&gt;ProcessData(pHLTOUT);</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :     if ((size=pHandler-&gt;GetProcessedData(pBuffer))&gt;0) {</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :       AliHLTModuleAgent::AliHLTOUTHandlerDesc desc=*chainHandler;</span>
+<span class="lineNum">    1077 </span>            :       //AliHLTComponentDataType dt=desc;
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :       pHandler-&gt;ReleaseProcessedData(pBuffer, size);</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :     pHLTOUT-&gt;MarkDataBlocksProcessed(&amp;(*chainHandler));</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1083 </span>            : 
+<span class="lineNum">    1084 </span>            :   // remove all empty handlers form the list (handlers which did not get a block this time)
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :   AliHLTOUT::RemoveEmptyDuplicateHandlers(*pChainHandlers);</span>
+<span class="lineNum">    1086 </span>            : 
+<span class="lineNum">    1087 </span>            :   return iResult;
+<a name="1088"><span class="lineNum">    1088 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1089 </span>            : 
+<span class="lineNum">    1090 </span>            : int AliHLTSystem::LoadComponentLibraries(const char* libraries)
+<span class="lineNum">    1091 </span>            : {
+<span class="lineNum">    1092 </span>            :   // see header file for class documentation
+<span class="lineNum">    1093 </span>            :   int iResult=0;
+<span class="lineNum">    1094 </span><span class="lineCov">          6 :   if (libraries) {</span>
+<span class="lineNum">    1095 </span><span class="lineCov">          3 :     if (fpComponentHandler) {</span>
+<span class="lineNum">    1096 </span><span class="lineCov">          3 :       TString libs(libraries);</span>
+<span class="lineNum">    1097 </span><span class="lineCov">          9 :       TObjArray* pTokens=libs.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">    1098 </span><span class="lineCov">          3 :       if (pTokens) {</span>
+<span class="lineNum">    1099 </span><span class="lineCov">          3 :         int iEntries=pTokens-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1100 </span><span class="lineCov">         78 :         for (int i=0; i&lt;iEntries &amp;&amp; iResult&gt;=0; i++) {</span>
+<span class="lineNum">    1101 </span><span class="lineCov">         72 :           if (!pTokens-&gt;At(i)) continue;</span>
+<span class="lineNum">    1102 </span><span class="lineCov">        108 :           iResult=fpComponentHandler-&gt;LoadLibrary(pTokens-&gt;At(i)-&gt;GetName());</span>
+<span class="lineNum">    1103 </span><span class="lineCov">         36 :         }</span>
+<span class="lineNum">    1104 </span><span class="lineCov">          6 :         delete pTokens;</span>
+<span class="lineNum">    1105 </span><span class="lineCov">          3 :       }</span>
+<span class="lineNum">    1106 </span><span class="lineCov">          3 :       if (iResult&gt;=0) {</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :         SetStatusFlags(kLibrariesLoaded);</span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">    1109 </span>            :         // lets see if we need this, probably not
+<span class="lineNum">    1110 </span>            :         //fpComponentHandler-&gt;UnloadLibraries();
+<span class="lineNum">    1111 </span><span class="lineCov">          3 :         ClearStatusFlags(kLibrariesLoaded);</span>
+<span class="lineNum">    1112 </span>            :       }
+<span class="lineNum">    1113 </span><span class="lineCov">          3 :     } else {</span>
+<span class="lineNum">    1114 </span>            :       iResult=-EFAULT;
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :       HLTFatal(&quot;no component handler available&quot;);</span>
+<span class="lineNum">    1116 </span>            :     }
+<span class="lineNum">    1117 </span>            :   } else {
+<span class="lineNum">    1118 </span>            :     iResult=-EINVAL;
+<span class="lineNum">    1119 </span>            :   }
+<span class="lineNum">    1120 </span><span class="lineCov">          3 :   return iResult;</span>
+<a name="1121"><span class="lineNum">    1121 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1122 </span>            : 
+<span class="lineNum">    1123 </span>            : int AliHLTSystem::Configure(AliRunLoader* runloader)
+<span class="lineNum">    1124 </span>            : {
+<span class="lineNum">    1125 </span>            :   // see header file for class documentation
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :   return Configure(NULL, runloader);</span>
+<a name="1127"><span class="lineNum">    1127 </span>            : }</a>
+<span class="lineNum">    1128 </span>            : 
+<span class="lineNum">    1129 </span>            : int AliHLTSystem::Configure(AliRawReader* rawReader, AliRunLoader* runloader)
+<span class="lineNum">    1130 </span>            : {
+<span class="lineNum">    1131 </span>            :   // see header file for class documentation
+<span class="lineNum">    1132 </span>            :   int iResult=0;
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :   if (CheckStatus(kRunning)) {</span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :     HLTError(&quot;HLT system in running state, can not configure&quot;);</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     return -EBUSY;</span>
+<span class="lineNum">    1136 </span>            :   }
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :   ClearStatusFlags(kTaskListCreated);</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :   if (CheckFilter(kHLTLogDebug))</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     AliHLTModuleAgent::PrintStatus();</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :   if (CheckStatus(kConfigurationLoaded)==0) {</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     iResult=LoadConfigurations(rawReader, runloader);</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :     if (fChains.Length()==0) {</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :       HLTError(&quot;custom configuration(s) specified, but no configuration to run in local reconstruction, use \'chains=&lt;chain,...&gt;\' option&quot;);</span>
+<span class="lineNum">    1145 </span>            :       iResult=-ENOENT;
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1147 </span>            :   }
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0) {</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :     SetStatusFlags(kConfigurationLoaded);</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :     if (CheckFilter(kHLTLogDebug))</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :       fpConfigurationHandler-&gt;PrintConfigurations();</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :     iResult=BuildTaskListsFromReconstructionChains(rawReader, runloader);</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :     if (iResult&gt;=0) {</span>
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :       SetStatusFlags(kTaskListCreated);</span>
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1156 </span>            :   }
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :   if (iResult&lt;0) SetStatusFlags(kError);</span>
+<span class="lineNum">    1158 </span>            :   
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="1160"><span class="lineNum">    1160 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1161 </span>            : 
+<span class="lineNum">    1162 </span>            : int AliHLTSystem::ScanOptions(const char* options)
+<span class="lineNum">    1163 </span>            : {
+<span class="lineNum">    1164 </span>            :   // see header file for class documentation
+<span class="lineNum">    1165 </span>            :   int iResult=0;
+<span class="lineNum">    1166 </span><span class="lineCov">          6 :   fConfigurationString = options;</span>
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span><span class="lineCov">          3 :   if (options) {</span>
+<span class="lineNum">    1169 </span>            :     //AliHLTComponentHandler::TLibraryMode libMode=AliHLTComponentHandler::kDynamic;
+<span class="lineNum">    1170 </span><span class="lineCov">          3 :     TString libs(&quot;&quot;);</span>
+<span class="lineNum">    1171 </span><span class="lineCov">          3 :     TString excludelibs(&quot;&quot;);</span>
+<span class="lineNum">    1172 </span><span class="lineCov">          3 :     TString alloptions(options);</span>
+<span class="lineNum">    1173 </span><span class="lineCov">          9 :     TObjArray* pTokens=alloptions.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">    1174 </span><span class="lineCov">          3 :     if (pTokens) {</span>
+<span class="lineNum">    1175 </span><span class="lineCov">          3 :       int iEntries=pTokens-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1176 </span><span class="lineCov">         12 :       for (int i=0; i&lt;iEntries; i++) {</span>
+<span class="lineNum">    1177 </span><span class="lineCov">          6 :         if (!pTokens-&gt;At(i)) continue;</span>
+<span class="lineNum">    1178 </span><span class="lineCov">          9 :         TString token=pTokens-&gt;At(i)-&gt;GetName();</span>
+<span class="lineNum">    1179 </span><span class="lineCov">          6 :         if (token.Contains(&quot;loglevel=&quot;)) {</span>
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :           TString param=token.ReplaceAll(&quot;loglevel=&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :           if (param.IsDigit()) {</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :             SetGlobalLoggingLevel((AliHLTComponentLogSeverity)param.Atoi());</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :           } else if (param.BeginsWith(&quot;0x&quot;) &amp;&amp;</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :                      param.Replace(0,2,&quot;&quot;,0).IsHex()) {</span>
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :             int severity=0;</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :             sscanf(param.Data(),&quot;%x&quot;, &amp;severity);</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :             SetGlobalLoggingLevel((AliHLTComponentLogSeverity)severity);</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :           } else {</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :             HLTWarning(&quot;wrong parameter for option \'loglevel=\', (hex) number expected&quot;);</span>
+<span class="lineNum">    1190 </span>            :           }
+<span class="lineNum">    1191 </span><span class="lineCov">          6 :         } else if (token.Contains(&quot;frameworklog=&quot;)) {</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :           TString param=token.ReplaceAll(&quot;frameworklog=&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :           if (param.IsDigit()) {</span>
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :             SetFrameworkLog((AliHLTComponentLogSeverity)param.Atoi());</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :           } else if (param.BeginsWith(&quot;0x&quot;) &amp;&amp;</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :                      param.Replace(0,2,&quot;&quot;,0).IsHex()) {</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :             int severity=0;</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :             sscanf(param.Data(),&quot;%x&quot;, &amp;severity);</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :             SetFrameworkLog((AliHLTComponentLogSeverity)severity);</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :           } else {</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :             HLTWarning(&quot;wrong parameter for option \'loglevel=\', (hex) number expected&quot;);</span>
+<span class="lineNum">    1202 </span>            :           }
+<span class="lineNum">    1203 </span><span class="lineCov">          6 :         } else if (token.Contains(&quot;alilog=off&quot;)) {</span>
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :           SwitchAliLog(0);</span>
+<span class="lineNum">    1205 </span><span class="lineCov">         12 :         } else if (token.Contains(&quot;config=&quot;) || token.Contains(&quot;run-online-config&quot;)) {</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :           if (!CheckStatus(kConfigurationLoaded)) {</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :             Int_t error=0;</span>
+<span class="lineNum">    1208 </span>            :             AliHLTOnlineConfiguration* pConf = NULL;
+<span class="lineNum">    1209 </span><span class="lineNoCov">          0 :             if (token.Contains(&quot;run-online-config&quot;)) {</span>
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :               AliCDBEntry* pEntry=AliHLTMisc::Instance().LoadOCDBEntry(&quot;HLT/Calib/OnlineConfig&quot;);</span>
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :               if (pEntry) {</span>
+<span class="lineNum">    1212 </span><span class="lineNoCov">          0 :                 TObject* pObject=AliHLTMisc::Instance().ExtractObject(pEntry);</span>
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :                 if (pObject &amp;&amp; pObject-&gt;IsA() == AliHLTOnlineConfiguration::Class())</span>
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :                   pConf = (AliHLTOnlineConfiguration*)pObject;</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :               }</span>
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :             if (token.Contains(&quot;config=&quot;)) {</span>
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 :               TString param=token.ReplaceAll(&quot;config=&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :               if (token.EndsWith(&quot;.xml&quot;, TString::kIgnoreCase)) {</span>
+<span class="lineNum">    1220 </span>            :                 Int_t filesize = 0;
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :                 pConf = new AliHLTOnlineConfiguration;</span>
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :                 filesize = pConf-&gt;LoadConfiguration(param.Data());</span>
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :                 if (filesize &lt;= 0) {</span>
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :                   HLTError(&quot;cannot load config \'%s\'&quot;, param.Data());</span>
+<span class="lineNum">    1225 </span>            :                   iResult=-EBADF;
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :               } else {</span>
+<span class="lineNum">    1228 </span><span class="lineNoCov">          0 :                 gROOT-&gt;Macro(param.Data(), &amp;error);</span>
+<span class="lineNum">    1229 </span><span class="lineNoCov">          0 :                 if (error==0) {</span>
+<span class="lineNum">    1230 </span><span class="lineNoCov">          0 :                   SetStatusFlags(kConfigurationLoaded);</span>
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 :                 } else {</span>
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :                   HLTError(&quot;cannot execute macro \'%s\'&quot;, param.Data());</span>
+<span class="lineNum">    1233 </span>            :                   iResult=-EBADF;
+<span class="lineNum">    1234 </span>            :                 }
+<span class="lineNum">    1235 </span>            :               }
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :             if (pConf) {</span>
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :                 error = pConf-&gt;Parse();</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :                 if (error==0) {</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :                   fChains = pConf-&gt;GetDefaultChains();</span>
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :                   libs = pConf-&gt;GetComponentLibraries();</span>
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :                   libs += &quot; &quot;;</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :                   SetStatusFlags(kConfigurationLoaded);</span>
+<span class="lineNum">    1244 </span><span class="lineNoCov">          0 :                 } else {</span>
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :                   HLTError(&quot;cannot parse online configuration&quot;);</span>
+<span class="lineNum">    1246 </span>            :                   iResult=-EBADF;
+<span class="lineNum">    1247 </span>            :                 }
+<span class="lineNum">    1248 </span>            :             }
+<span class="lineNum">    1249 </span><span class="lineNoCov">          0 :             delete pConf; pConf=NULL;</span>
+<span class="lineNum">    1250 </span><span class="lineNoCov">          0 :           } else {</span>
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :             HLTWarning(&quot;HLT options has both a config file and run-online-config set&quot;);</span>
+<span class="lineNum">    1252 </span>            :           }
+<span class="lineNum">    1253 </span><span class="lineCov">          6 :         } else if (token.Contains(&quot;chains=&quot;)) {</span>
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :           TString param=token.ReplaceAll(&quot;chains=&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1255 </span><span class="lineNoCov">          0 :           fChains=param.ReplaceAll(&quot;,&quot;, &quot; &quot;);</span>
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :           if (fChains.IsNull()) fChains=&quot; &quot;; // disable all chains</span>
+<span class="lineNum">    1257 </span><span class="lineCov">          6 :         } else if (token.Contains(&quot;libmode=&quot;)) {</span>
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 :           TString param=token.ReplaceAll(&quot;libmode=&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :           param.ReplaceAll(&quot;,&quot;, &quot; &quot;);</span>
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :           if (fpComponentHandler) {</span>
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :             if (param.CompareTo(&quot;static&quot;)==0) {</span>
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :               fpComponentHandler-&gt;SetLibraryMode(AliHLTComponentHandler::kStatic);</span>
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :             } else if (param.CompareTo(&quot;dynamic&quot;)==0) {</span>
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :               fpComponentHandler-&gt;SetLibraryMode(AliHLTComponentHandler::kDynamic);</span>
+<span class="lineNum">    1265 </span>            :             } else {
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :               HLTWarning(&quot;wrong argument for option \'libmode=\', use \'static\' or \'dynamic\'&quot;);</span>
+<span class="lineNum">    1267 </span>            :             }
+<span class="lineNum">    1268 </span>            :           }
+<span class="lineNum">    1269 </span><span class="lineCov">          6 :         } else if (token.BeginsWith(&quot;ECS=&quot;)) {</span>
+<span class="lineNum">    1270 </span><span class="lineCov">          4 :           fECSParams=token.ReplaceAll(&quot;ECS=&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1271 </span><span class="lineCov">          2 :         } else if (token.BeginsWith(&quot;hltout-mode=&quot;)) {</span>
+<span class="lineNum">    1272 </span>            :           // The actual parameter for argument 'hltout-mode' is treated in AliSimulation.
+<span class="lineNum">    1273 </span>            :           // For AliHLTSystem the occurrence with parameter 'split' signals the use of the
+<span class="lineNum">    1274 </span>            :           // separated HLTOUTComponents for digit and raw data. All others indicate
+<span class="lineNum">    1275 </span>            :           // HLTOUTComponent type 'global' where the data generation is steered from global
+<span class="lineNum">    1276 </span>            :           // flags
+<span class="lineNum">    1277 </span><span class="lineCov">          2 :           fUseHLTOUTComponentTypeGlobal=token.CompareTo(&quot;hltout-mode=split&quot;)!=0;</span>
+<span class="lineNum">    1278 </span><span class="lineCov">          1 :         } else if (token.BeginsWith(&quot;lib&quot;) &amp;&amp; token.EndsWith(&quot;.so&quot;)) {</span>
+<span class="lineNum">    1279 </span><span class="lineNoCov">          0 :           libs+=token;</span>
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :           libs+=&quot; &quot;;</span>
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :         } else if (token.BeginsWith(&quot;!lib&quot;) &amp;&amp; token.EndsWith(&quot;.so&quot;)) {</span>
+<span class="lineNum">    1282 </span><span class="lineNoCov">          0 :           excludelibs+=token;</span>
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :           excludelibs+=&quot; &quot;;</span>
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :         } else if ( (token.CompareTo(&quot;ignore-hltout&quot;)==0 ) || (token.Contains(&quot;TPC-input=&quot;)) ) {</span>
+<span class="lineNum">    1285 </span>            :             // these options will be used when configuring subdetectors, do nothing here
+<span class="lineNum">    1286 </span>            :         } else {
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :           HLTWarning(&quot;unknown option \'%s\'&quot;, token.Data());</span>
+<span class="lineNum">    1288 </span>            :         }
+<span class="lineNum">    1289 </span><span class="lineCov">          3 :       }</span>
+<span class="lineNum">    1290 </span><span class="lineCov">          6 :       delete pTokens;</span>
+<span class="lineNum">    1291 </span><span class="lineCov">          3 :     }</span>
+<span class="lineNum">    1292 </span>            : 
+<span class="lineNum">    1293 </span><span class="lineCov">          3 :     if (iResult&gt;=0) {</span>
+<span class="lineNum">    1294 </span><span class="lineCov">          6 :       if (libs.IsNull()) {</span>
+<span class="lineNum">    1295 </span>            :         const char** deflib=fgkHLTDefaultLibs;
+<span class="lineNum">    1296 </span><span class="lineCov">         84 :         for (;*deflib; deflib++) {</span>
+<span class="lineNum">    1297 </span><span class="lineCov">         78 :           if (excludelibs.Contains(*deflib)) continue;</span>
+<span class="lineNum">    1298 </span><span class="lineCov">         39 :           libs+=*deflib;</span>
+<span class="lineNum">    1299 </span><span class="lineCov">         39 :           libs+=&quot; &quot;;</span>
+<span class="lineNum">    1300 </span>            :         }
+<span class="lineNum">    1301 </span><span class="lineCov">          3 :       }</span>
+<span class="lineNum">    1302 </span><span class="lineCov">          6 :       if ((!CheckStatus(AliHLTSystem::kLibrariesLoaded)) &amp;&amp;</span>
+<span class="lineNum">    1303 </span><span class="lineCov">          9 :           (LoadComponentLibraries(libs.Data())&lt;0)) {</span>
+<span class="lineNum">    1304 </span><span class="lineCov">         12 :         HLTError(&quot;error while loading HLT libraries&quot;);</span>
+<span class="lineNum">    1305 </span>            :         iResult=-EFAULT;
+<span class="lineNum">    1306 </span><span class="lineCov">          3 :       }</span>
+<span class="lineNum">    1307 </span>            :     }
+<span class="lineNum">    1308 </span><span class="lineCov">          3 :   }</span>
+<span class="lineNum">    1309 </span><span class="lineCov">          3 :   return iResult;</span>
+<a name="1310"><span class="lineNum">    1310 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1311 </span>            : 
+<span class="lineNum">    1312 </span>            : int AliHLTSystem::Reset(int bForce)
+<span class="lineNum">    1313 </span>            : {
+<span class="lineNum">    1314 </span>            :   // see header file for class documentation
+<span class="lineNum">    1315 </span>            :   int iResult=0;
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :   if (!bForce &amp;&amp; CheckStatus(kRunning)) {</span>
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :     HLTError(&quot;HLT system in running state, can not configure&quot;);</span>
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :     return -EBUSY;</span>
+<span class="lineNum">    1319 </span>            :   }
+<span class="lineNum">    1320 </span><span class="lineNoCov">          0 :   CleanTaskList();</span>
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :   ClearStatusFlags(~kUninitialized);</span>
+<span class="lineNum">    1322 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="1323"><span class="lineNum">    1323 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1324 </span>            : 
+<span class="lineNum">    1325 </span>            : int AliHLTSystem::LoadConfigurations(AliRawReader* rawReader, AliRunLoader* runloader)
+<span class="lineNum">    1326 </span>            : {
+<span class="lineNum">    1327 </span>            :   // see header file for class documentation
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :   if (CheckStatus(kRunning)) {</span>
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 :     HLTError(&quot;HLT system in running state, can not configure&quot;);</span>
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :     return -EBUSY;</span>
+<span class="lineNum">    1331 </span>            :   }
+<span class="lineNum">    1332 </span>            :   int iResult=0;
+<span class="lineNum">    1333 </span>            :   AliHLTModuleAgent* pAgent=NULL;
+<span class="lineNum">    1334 </span>            : 
+<span class="lineNum">    1335 </span>            :   // first check for the required libraries and load those
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :   TString extralibs;</span>
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :   for (pAgent=AliHLTModuleAgent::GetFirstAgent(); </span>
+<span class="lineNum">    1338 </span><span class="lineNoCov">          0 :        pAgent &amp;&amp; iResult&gt;=0;</span>
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :        pAgent=AliHLTModuleAgent::GetNextAgent()) {</span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :     const char* deplibs=pAgent-&gt;GetRequiredComponentLibraries();</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :     if (deplibs) {</span>
+<span class="lineNum">    1342 </span>            :       HLTDebug(&quot;required libraries \'%s\' for agent %s (%p)&quot;, deplibs, pAgent-&gt;GetName(), pAgent);
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :       extralibs+=&quot; &quot;;</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :       extralibs+=deplibs;</span>
+<span class="lineNum">    1345 </span>            :     }
+<span class="lineNum">    1346 </span>            :   }
+<span class="lineNum">    1347 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0) {</span>
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :     iResult=LoadComponentLibraries(extralibs.Data());</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1350 </span>            : 
+<span class="lineNum">    1351 </span>            :   // in order to register the configurations in the correct sequence
+<span class="lineNum">    1352 </span>            :   // all agents need to be ordered with respect to the required
+<span class="lineNum">    1353 </span>            :   // libraries. Ordering relies on the naming convention
+<span class="lineNum">    1354 </span>            :   // libAliHLT&lt;Module&gt;.so
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :   TList agents;</span>
+<span class="lineNum">    1356 </span><span class="lineNoCov">          0 :   for (pAgent=AliHLTModuleAgent::GetFirstAgent(); </span>
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :        pAgent &amp;&amp; iResult&gt;=0;</span>
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :        pAgent=AliHLTModuleAgent::GetNextAgent()) {</span>
+<span class="lineNum">    1359 </span>            :     AliHLTModuleAgent* pPrevDep=NULL;
+<span class="lineNum">    1360 </span><span class="lineNoCov">          0 :     TString dependencies=pAgent-&gt;GetRequiredComponentLibraries();</span>
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :     TObjArray* pTokens=dependencies.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :     if (pTokens) {</span>
+<span class="lineNum">    1363 </span><span class="lineNoCov">          0 :       for (int n=0; n&lt;pTokens-&gt;GetEntriesFast(); n++) {</span>
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :         if (!pTokens-&gt;At(n)) continue;</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :         TString module=pTokens-&gt;At(n)-&gt;GetName();</span>
+<span class="lineNum">    1366 </span>            :         HLTDebug(&quot;  checking %s&quot;, module.Data());
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :         module.ReplaceAll(&quot;libAliHLT&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :         module.ReplaceAll(&quot;.so&quot;, &quot;&quot;);</span>
+<span class="lineNum">    1369 </span>            :         
+<span class="lineNum">    1370 </span><span class="lineNoCov">          0 :         for (AliHLTModuleAgent* pCurrent=dynamic_cast&lt;AliHLTModuleAgent*&gt;(pPrevDep==NULL?agents.First():agents.After(pPrevDep));</span>
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :              pCurrent!=NULL; pCurrent=dynamic_cast&lt;AliHLTModuleAgent*&gt;(agents.After(pCurrent))) {</span>
+<span class="lineNum">    1372 </span>            :           HLTDebug(&quot;    checking %s == %s&quot;, module.Data(), pCurrent-&gt;GetModuleId());
+<span class="lineNum">    1373 </span>            : 
+<span class="lineNum">    1374 </span><span class="lineNoCov">          0 :           if (module.CompareTo(pCurrent-&gt;GetModuleId())==0) {</span>
+<span class="lineNum">    1375 </span>            :             pPrevDep=pCurrent;
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1377 </span>            :           }
+<span class="lineNum">    1378 </span>            :         }
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :       delete pTokens;</span>
+<span class="lineNum">    1381 </span>            :     }
+<span class="lineNum">    1382 </span>            : 
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :     if (pPrevDep) {</span>
+<span class="lineNum">    1384 </span>            :       // insert right after the last dependency
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :       agents.AddAfter(pPrevDep, pAgent);</span>
+<span class="lineNum">    1386 </span>            :       HLTDebug(&quot;insert %s after %s&quot;, pAgent-&gt;GetModuleId(), pPrevDep-&gt;GetModuleId());
+<span class="lineNum">    1387 </span>            :     } else {
+<span class="lineNum">    1388 </span>            :       // insert at the beginning
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 :       agents.AddFirst(pAgent);</span>
+<span class="lineNum">    1390 </span>            :       HLTDebug(&quot;insert %s at beginning&quot;, pAgent-&gt;GetModuleId());
+<span class="lineNum">    1391 </span>            :     }
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1393 </span>            : 
+<span class="lineNum">    1394 </span>            :   // now we load the configurations
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :   if (agents.GetEntries()) {</span>
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :     TIter next(&amp;agents);</span>
+<span class="lineNum">    1397 </span><span class="lineNoCov">          0 :     while ((pAgent = dynamic_cast&lt;AliHLTModuleAgent*&gt;(next()))) {</span>
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :       if(fDetMask &amp;&amp; !(fDetMask &amp; pAgent-&gt;GetDetectorMask())) {</span>
+<span class="lineNum">    1399 </span><span class="lineNoCov">          0 :         HLTInfo(&quot;Skipping %s due to active detector mask.&quot;, pAgent-&gt;GetName());</span>
+<span class="lineNum">    1400 </span>            :       } else {
+<span class="lineNum">    1401 </span>            :         HLTDebug(&quot;load configurations for agent %s (%p)&quot;, pAgent-&gt;GetName(), pAgent);
+<span class="lineNum">    1402 </span><span class="lineNoCov">          0 :         pAgent-&gt;CreateConfigurations(fpConfigurationHandler, rawReader, runloader);</span>
+<span class="lineNum">    1403 </span>            :       }
+<span class="lineNum">    1404 </span>            :     }
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1406 </span>            : 
+<span class="lineNum">    1407 </span>            :   return iResult;
+<a name="1408"><span class="lineNum">    1408 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1409 </span>            : 
+<span class="lineNum">    1410 </span>            : int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader, AliRunLoader* runloader)
+<span class="lineNum">    1411 </span>            : {
+<span class="lineNum">    1412 </span>            :   // see header file for class documentation
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :   if (CheckStatus(kRunning)) {</span>
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :     HLTError(&quot;HLT system in running state, can not configure&quot;);</span>
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :     return -EBUSY;</span>
+<span class="lineNum">    1416 </span>            :   }
+<span class="lineNum">    1417 </span><span class="lineNoCov">          0 :   if (!CheckStatus(kConfigurationLoaded)) {</span>
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :     HLTWarning(&quot;configurations not yet loaded&quot;);</span>
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">    1420 </span>            :   }
+<span class="lineNum">    1421 </span>            : 
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :   if (!fpConfigurationHandler || !fpComponentHandler) return -EFAULT;</span>
+<span class="lineNum">    1423 </span>            : 
+<span class="lineNum">    1424 </span>            :   int iResult=0;
+<span class="lineNum">    1425 </span>            :   int bHaveOutput=0;
+<span class="lineNum">    1426 </span>            : 
+<span class="lineNum">    1427 </span>            :   // query chains
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :   TString chains;</span>
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :   if (fChains.Length()&gt;0) {</span>
+<span class="lineNum">    1430 </span><span class="lineNoCov">          0 :     chains=fChains;</span>
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :     HLTImportant(&quot;custom reconstruction chain: %s&quot;, chains.Data());</span>
+<span class="lineNum">    1432 </span>            :   } else {
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 :     for (AliHLTModuleAgent* pAgent=AliHLTModuleAgent::GetFirstAgent();</span>
+<span class="lineNum">    1434 </span><span class="lineNoCov">          0 :          pAgent &amp;&amp; iResult&gt;=0;</span>
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :          pAgent=AliHLTModuleAgent::GetNextAgent()) {</span>
+<span class="lineNum">    1436 </span><span class="lineNoCov">          0 :       const char* agentchains=pAgent-&gt;GetReconstructionChains(rawReader, runloader);</span>
+<span class="lineNum">    1437 </span><span class="lineNoCov">          0 :       if (agentchains) {</span>
+<span class="lineNum">    1438 </span><span class="lineNoCov">          0 :         if (!chains.IsNull()) chains+=&quot; &quot;;</span>
+<span class="lineNum">    1439 </span><span class="lineNoCov">          0 :         chains+=agentchains;</span>
+<span class="lineNum">    1440 </span><span class="lineNoCov">          0 :         HLTInfo(&quot;reconstruction chains for agent %s (%p): %s&quot;, pAgent-&gt;GetName(), pAgent, agentchains);</span>
+<span class="lineNum">    1441 </span>            :       }
+<span class="lineNum">    1442 </span>            :     }
+<span class="lineNum">    1443 </span>            :   }
+<span class="lineNum">    1444 </span>            : 
+<span class="lineNum">    1445 </span>            :   // build task list for chains
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :   TObjArray* pTokens=chains.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">    1447 </span><span class="lineNoCov">          0 :   if (pTokens) {</span>
+<span class="lineNum">    1448 </span><span class="lineNoCov">          0 :     int iEntries=pTokens-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1449 </span><span class="lineNoCov">          0 :     for (int i=0; i&lt;iEntries &amp;&amp; iResult&gt;=0; i++) {</span>
+<span class="lineNum">    1450 </span><span class="lineNoCov">          0 :       if (!pTokens-&gt;At(i)) continue;</span>
+<span class="lineNum">    1451 </span><span class="lineNoCov">          0 :       const char* pCID=pTokens-&gt;At(i)-&gt;GetName();</span>
+<span class="lineNum">    1452 </span><span class="lineNoCov">          0 :       AliHLTConfiguration* pConf=fpConfigurationHandler-&gt;FindConfiguration(pCID);</span>
+<span class="lineNum">    1453 </span><span class="lineNoCov">          0 :       if (pConf) {</span>
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :         iResult=BuildTaskList(pConf);</span>
+<span class="lineNum">    1455 </span>            :         if (true) { // condition was deprecated but kept for sake of svn diff
+<span class="lineNum">    1456 </span>            :           // bHaveOutput variable has to be set for both running modes
+<span class="lineNum">    1457 </span>            :           // AliHLTSimulation and AliHLTReconstruction
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :           TString cid=pConf-&gt;GetComponentID();</span>
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 :           if (runloader!=NULL &amp;&amp; cid.CompareTo(&quot;HLTOUT&quot;)==0) {</span>
+<span class="lineNum">    1460 </span>            :             // remove from the input of a global HLTOUT configuration
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :             chains.ReplaceAll(pCID, &quot;&quot;);</span>
+<span class="lineNum">    1462 </span><span class="lineNoCov">          0 :           } else if (bHaveOutput==0) {</span>
+<span class="lineNum">    1463 </span>            :             // check whether this configuration produces data output
+<span class="lineNum">    1464 </span><span class="lineNoCov">          0 :             if ((bHaveOutput=fpComponentHandler-&gt;HasOutputData(cid.Data()))&lt;0) {</span>
+<span class="lineNum">    1465 </span>            :               bHaveOutput=0;
+<span class="lineNum">    1466 </span><span class="lineNoCov">          0 :               chains.ReplaceAll(pCID, &quot;&quot;);</span>
+<span class="lineNum">    1467 </span>            :             }
+<span class="lineNum">    1468 </span>            :           }
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1470 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">    1471 </span><span class="lineNoCov">          0 :         HLTWarning(&quot;can not find configuration %s&quot;, pCID);</span>
+<span class="lineNum">    1472 </span>            :       }
+<span class="lineNum">    1473 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :     delete pTokens;</span>
+<span class="lineNum">    1475 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1476 </span>            : 
+<span class="lineNum">    1477 </span>            :   // build HLTOUT for simulation
+<span class="lineNum">    1478 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0 &amp;&amp; runloader) {</span>
+<span class="lineNum">    1479 </span><span class="lineNoCov">          0 :     if (bHaveOutput) {</span>
+<span class="lineNum">    1480 </span>            :       // there are components in the chain which produce data which need to be
+<span class="lineNum">    1481 </span>            :       // piped to an HLTOUT
+<span class="lineNum">    1482 </span>            : 
+<span class="lineNum">    1483 </span>            :       // add the SchemaEvolutionComponent which analyzes the ROOT objects in
+<span class="lineNum">    1484 </span>            :       // the output stream
+<span class="lineNum">    1485 </span><span class="lineNoCov">          0 :       if (fpComponentHandler-&gt;FindComponentIndex(&quot;ROOTSchemaEvolutionComponent&quot;)&gt;=0 ||</span>
+<span class="lineNum">    1486 </span><span class="lineNoCov">          0 :           fpComponentHandler-&gt;LoadLibrary(&quot;libAliHLTUtil.so&quot;)&gt;=0) {</span>
+<span class="lineNum">    1487 </span><span class="lineNoCov">          0 :         fpConfigurationHandler-&gt;CreateConfiguration(&quot;_schemaevolution_&quot;, &quot;ROOTSchemaEvolutionComponent&quot;, </span>
+<span class="lineNum">    1488 </span><span class="lineNoCov">          0 :                                                      chains.Data(), &quot;-file=HLT.StreamerInfo.root&quot;);</span>
+<span class="lineNum">    1489 </span><span class="lineNoCov">          0 :         iResult=BuildTaskList(&quot;_schemaevolution_&quot;);</span>
+<span class="lineNum">    1490 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">    1491 </span><span class="lineNoCov">          0 :         HLTWarning(&quot;can not load libAliHLTUtil.so and ROOTSchemaEvolutionComponent&quot;);</span>
+<span class="lineNum">    1492 </span>            :       }
+<span class="lineNum">    1493 </span>            : 
+<span class="lineNum">    1494 </span>            :       // add the HLTOUT component
+<span class="lineNum">    1495 </span><span class="lineNoCov">          0 :       if (fpComponentHandler-&gt;FindComponentIndex(&quot;HLTOUT&quot;)&gt;=0 ||</span>
+<span class="lineNum">    1496 </span><span class="lineNoCov">          0 :           fpComponentHandler-&gt;LoadLibrary(&quot;libHLTsim.so&quot;)&gt;=0) {</span>
+<span class="lineNum">    1497 </span>            :         // for the default HLTOUTComponent type 'global' the data generation is steered
+<span class="lineNum">    1498 </span>            :         // by global flags from AliSimulation. This allows for emulation of the old
+<span class="lineNum">    1499 </span>            :         // AliHLTSimulation behavior where only one chain is run on either digits or
+<span class="lineNum">    1500 </span>            :         // simulated raw data and the HLT digits and raw files have been generated
+<span class="lineNum">    1501 </span>            :         // depending on the configuration
+<span class="lineNum">    1502 </span>            :         const char* HLTOUTComponentId=&quot;HLTOUT&quot;;
+<span class="lineNum">    1503 </span><span class="lineNoCov">          0 :         if (!fUseHLTOUTComponentTypeGlobal) {</span>
+<span class="lineNum">    1504 </span>            :           // choose the type of output depending  on the availability of
+<span class="lineNum">    1505 </span>            :           // the raw reader
+<span class="lineNum">    1506 </span><span class="lineNoCov">          0 :           if (rawReader) HLTOUTComponentId=&quot;HLTOUTraw&quot;;</span>
+<span class="lineNum">    1507 </span>            :           else HLTOUTComponentId=&quot;HLTOUTdigits&quot;;
+<span class="lineNum">    1508 </span>            :         }
+<span class="lineNum">    1509 </span><span class="lineNoCov">          0 :         fpConfigurationHandler-&gt;CreateConfiguration(&quot;_globalout_&quot;, HLTOUTComponentId, chains.Data(), NULL);</span>
+<span class="lineNum">    1510 </span><span class="lineNoCov">          0 :         iResult=BuildTaskList(&quot;_globalout_&quot;);</span>
+<span class="lineNum">    1511 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">    1512 </span><span class="lineNoCov">          0 :         HLTError(&quot;can not load libHLTsim.so and HLTOUT component&quot;);</span>
+<span class="lineNum">    1513 </span>            :         iResult=-EFAULT;
+<span class="lineNum">    1514 </span>            :       }
+<span class="lineNum">    1515 </span>            :     }
+<span class="lineNum">    1516 </span>            :   }
+<span class="lineNum">    1517 </span>            : 
+<span class="lineNum">    1518 </span>            :   // build HLTOUT task for reconstruction
+<span class="lineNum">    1519 </span>            :   // Matthias 08.07.2008 the rawReader is never set when running embedded into
+<span class="lineNum">    1520 </span>            :   // AliReconstruction. The system is configured during AliHLTReconstructor::Init
+<span class="lineNum">    1521 </span>            :   // where the RawReader is not available. It is available in the first invocation
+<span class="lineNum">    1522 </span>            :   // of Reconstruct.
+<span class="lineNum">    1523 </span>            :   // 
+<span class="lineNum">    1524 </span>            :   // That means that policy is slightly changed:
+<span class="lineNum">    1525 </span>            :   // - if the run loader is available -&gt; AliSimulation
+<span class="lineNum">    1526 </span>            :   // - no run loader available -&gt; AliReconstruction
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0 &amp;&amp; !runloader) {</span>
+<span class="lineNum">    1528 </span>            :     if (bHaveOutput) {
+<span class="lineNum">    1529 </span>            :       // there are components in the chain which produce data which need to be
+<span class="lineNum">    1530 </span>            :       // piped to an HLTOUT sub-collection
+<span class="lineNum">    1531 </span><span class="lineNoCov">          0 :       if (!fpHLTOUTTask) {</span>
+<span class="lineNum">    1532 </span><span class="lineNoCov">          0 :         iResult=AddHLTOUTTask(chains.Data());</span>
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1534 </span>            :     }
+<span class="lineNum">    1535 </span>            :   }
+<span class="lineNum">    1536 </span>            : 
+<span class="lineNum">    1537 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0) SetStatusFlags(kTaskListCreated);</span>
+<span class="lineNum">    1538 </span>            : 
+<span class="lineNum">    1539 </span>            :   return iResult;
+<a name="1540"><span class="lineNum">    1540 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1541 </span>            : 
+<span class="lineNum">    1542 </span>            : int AliHLTSystem::AddHLTOUTTask(const char* hltoutchains)
+<span class="lineNum">    1543 </span>            : {
+<span class="lineNum">    1544 </span>            :   // see header file for class documentation
+<span class="lineNum">    1545 </span>            :   int iResult=0;
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :   if (!hltoutchains || hltoutchains[0]==0) return 0;</span>
+<span class="lineNum">    1547 </span>            : 
+<span class="lineNum">    1548 </span>            :   // check chains for output
+<span class="lineNum">    1549 </span><span class="lineNoCov">          0 :   TString chains=hltoutchains;</span>
+<span class="lineNum">    1550 </span><span class="lineNoCov">          0 :   TObjArray* pTokens=chains.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">    1551 </span><span class="lineNoCov">          0 :   if (pTokens) {</span>
+<span class="lineNum">    1552 </span><span class="lineNoCov">          0 :     int iEntries=pTokens-&gt;GetEntriesFast();</span>
+<span class="lineNum">    1553 </span><span class="lineNoCov">          0 :     for (int i=0; i&lt;iEntries &amp;&amp; iResult&gt;=0; i++) {</span>
+<span class="lineNum">    1554 </span><span class="lineNoCov">          0 :       if (!pTokens-&gt;At(i)) continue;</span>
+<span class="lineNum">    1555 </span><span class="lineNoCov">          0 :       const char* token=pTokens-&gt;At(i)-&gt;GetName();</span>
+<span class="lineNum">    1556 </span><span class="lineNoCov">          0 :       AliHLTConfiguration* pConf=fpConfigurationHandler-&gt;FindConfiguration(token);</span>
+<span class="lineNum">    1557 </span><span class="lineNoCov">          0 :       if (pConf) {</span>
+<span class="lineNum">    1558 </span><span class="lineNoCov">          0 :         TString cid=pConf-&gt;GetComponentID();</span>
+<span class="lineNum">    1559 </span><span class="lineNoCov">          0 :         if (fpComponentHandler-&gt;HasOutputData(cid.Data())) {</span>
+<span class="lineNum">    1560 </span><span class="lineNoCov">          0 :           continue;</span>
+<span class="lineNum">    1561 </span>            :         }
+<span class="lineNum">    1562 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">    1563 </span><span class="lineNoCov">          0 :         HLTWarning(&quot;can not find configuration %s&quot;, token);</span>
+<span class="lineNum">    1564 </span>            :       }
+<span class="lineNum">    1565 </span>            :       // remove from the list of hltout chains
+<span class="lineNum">    1566 </span><span class="lineNoCov">          0 :       chains.ReplaceAll(token, &quot;&quot;);</span>
+<span class="lineNum">    1567 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1568 </span><span class="lineNoCov">          0 :     delete pTokens;</span>
+<span class="lineNum">    1569 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1570 </span>            : 
+<span class="lineNum">    1571 </span>            :   // do not create the HLTOUT task if none of the chains have output
+<span class="lineNum">    1572 </span><span class="lineNoCov">          0 :   if (chains.IsNull()) return 0;</span>
+<span class="lineNum">    1573 </span>            : 
+<span class="lineNum">    1574 </span>            :   // indicate the task to be available
+<span class="lineNum">    1575 </span>            :   iResult=1;
+<span class="lineNum">    1576 </span>            : 
+<span class="lineNum">    1577 </span><span class="lineNoCov">          0 :   if (fpHLTOUTTask) {</span>
+<span class="lineNum">    1578 </span><span class="lineNoCov">          0 :     if (strcmp(chains.Data(), fpHLTOUTTask-&gt;GetSourceChains())==0) {</span>
+<span class="lineNum">    1579 </span><span class="lineNoCov">          0 :       HLTWarning(&quot;HLTOUT task already added for chains \&quot;%s\&quot; %p&quot;, chains.Data(), fpHLTOUTTask);</span>
+<span class="lineNum">    1580 </span>            :     } else {
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 :       HLTError(&quot;HLTOUT task already added for chains \&quot;%s\&quot; %p, ignoring new chains  \&quot;%s\&quot;&quot;,</span>
+<span class="lineNum">    1582 </span>            :                fpHLTOUTTask-&gt;GetSourceChains(), fpHLTOUTTask, chains.Data());
+<span class="lineNum">    1583 </span>            :     }
+<span class="lineNum">    1584 </span><span class="lineNoCov">          0 :     return iResult;</span>
+<span class="lineNum">    1585 </span>            :   }
+<span class="lineNum">    1586 </span>            : 
+<span class="lineNum">    1587 </span><span class="lineNoCov">          0 :   fpHLTOUTTask=new AliHLTOUTTask(chains);</span>
+<span class="lineNum">    1588 </span><span class="lineNoCov">          0 :   if (fpHLTOUTTask) {</span>
+<span class="lineNum">    1589 </span><span class="lineNoCov">          0 :     if (fpHLTOUTTask-&gt;GetConf() &amp;&amp; </span>
+<span class="lineNum">    1590 </span><span class="lineNoCov">          0 :         (fpHLTOUTTask-&gt;GetConf()-&gt;SourcesResolved()&gt;0 ||</span>
+<span class="lineNum">    1591 </span><span class="lineNoCov">          0 :          fpHLTOUTTask-&gt;GetConf()-&gt;ExtractSources(fpConfigurationHandler)&gt;0)) {</span>
+<span class="lineNum">    1592 </span><span class="lineNoCov">          0 :       iResult=InsertTask(fpHLTOUTTask);</span>
+<span class="lineNum">    1593 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">    1594 </span><span class="lineNoCov">          0 :       HLTError(&quot;HLTOUT task (%s) sources not resolved&quot;, fpHLTOUTTask-&gt;GetName());</span>
+<span class="lineNum">    1595 </span>            :       iResult=-ENOENT;
+<span class="lineNum">    1596 </span>            :     }
+<span class="lineNum">    1597 </span>            : 
+<span class="lineNum">    1598 </span><span class="lineNoCov">          0 :     if (iResult&lt;0) {</span>
+<span class="lineNum">    1599 </span><span class="lineNoCov">          0 :       delete fpHLTOUTTask;</span>
+<span class="lineNum">    1600 </span>            :     }
+<span class="lineNum">    1601 </span>            : 
+<span class="lineNum">    1602 </span>            :   } else {
+<span class="lineNum">    1603 </span>            :     iResult=-ENOMEM;
+<span class="lineNum">    1604 </span>            :   }
+<span class="lineNum">    1605 </span><span class="lineNoCov">          0 :   return iResult;</span>
+<a name="1606"><span class="lineNum">    1606 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1607 </span>            : 
+<span class="lineNum">    1608 </span>            : int AliHLTSystem::CheckStatus(int flag)
+<span class="lineNum">    1609 </span>            : {
+<span class="lineNum">    1610 </span>            :   // see header file for class documentation
+<span class="lineNum">    1611 </span><span class="lineCov">         72 :   if (flag==kUninitialized &amp;&amp; flag==fState) return 1;</span>
+<span class="lineNum">    1612 </span><span class="lineCov">         36 :   if ((fState&amp;flag)==flag) return 1;</span>
+<span class="lineNum">    1613 </span><span class="lineCov">         36 :   return 0;</span>
+<a name="1614"><span class="lineNum">    1614 </span><span class="lineCov">         36 : }</span></a>
+<span class="lineNum">    1615 </span>            : 
+<span class="lineNum">    1616 </span>            : int AliHLTSystem::GetStatusFlags()
+<span class="lineNum">    1617 </span>            : {
+<span class="lineNum">    1618 </span>            :   // see header file for class documentation
+<span class="lineNum">    1619 </span><span class="lineCov">          8 :   return fState;</span>
+<a name="1620"><span class="lineNum">    1620 </span>            : }</a>
+<span class="lineNum">    1621 </span>            : 
+<span class="lineNum">    1622 </span>            : int AliHLTSystem::SetStatusFlags(int flags)
+<span class="lineNum">    1623 </span>            : {
+<span class="lineNum">    1624 </span>            :   // see header file for class documentation
+<span class="lineNum">    1625 </span><span class="lineNoCov">          0 :   fState|=flags;</span>
+<span class="lineNum">    1626 </span><span class="lineNoCov">          0 :   return fState;</span>
+<a name="1627"><span class="lineNum">    1627 </span>            : }</a>
+<span class="lineNum">    1628 </span>            : 
+<span class="lineNum">    1629 </span>            : int AliHLTSystem::ClearStatusFlags(int flags)
+<span class="lineNum">    1630 </span>            : {
+<span class="lineNum">    1631 </span>            :   // see header file for class documentation
+<span class="lineNum">    1632 </span><span class="lineCov">          6 :   fState&amp;=~flags;</span>
+<span class="lineNum">    1633 </span><span class="lineCov">          3 :   return fState;</span>
+<a name="1634"><span class="lineNum">    1634 </span>            : }</a>
+<span class="lineNum">    1635 </span>            : 
+<span class="lineNum">    1636 </span>            : AliHLTfctVoid AliHLTSystem::FindDynamicSymbol(const char* library, const char* symbol)
+<span class="lineNum">    1637 </span>            : {
+<span class="lineNum">    1638 </span>            :   // see header file for class documentation
+<span class="lineNum">    1639 </span><span class="lineNoCov">          0 :   if (fpComponentHandler==NULL) return NULL;</span>
+<span class="lineNum">    1640 </span><span class="lineNoCov">          0 :   return fpComponentHandler-&gt;FindSymbol(library, symbol);</span>
+<a name="1641"><span class="lineNum">    1641 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1642 </span>            : 
+<span class="lineNum">    1643 </span>            : void AliHLTSystem::SetFrameworkLog(AliHLTComponentLogSeverity level) 
+<span class="lineNum">    1644 </span>            : {
+<span class="lineNum">    1645 </span>            :   // see header file for class documentation
+<span class="lineNum">    1646 </span><span class="lineCov">          6 :   SetLocalLoggingLevel(level);</span>
+<span class="lineNum">    1647 </span><span class="lineCov">          6 :   if (fpComponentHandler) fpComponentHandler-&gt;SetLocalLoggingLevel(level);</span>
+<span class="lineNum">    1648 </span><span class="lineCov">          6 :   if (fpConfigurationHandler) fpConfigurationHandler-&gt;SetLocalLoggingLevel(level);</span>
+<a name="1649"><span class="lineNum">    1649 </span><span class="lineCov">          3 : }</span></a>
+<span class="lineNum">    1650 </span>            : 
+<span class="lineNum">    1651 </span>            : int AliHLTSystem::LoggingVarargs(AliHLTComponentLogSeverity severity, 
+<span class="lineNum">    1652 </span>            :                                  const char* originClass, const char* originFunc,
+<span class="lineNum">    1653 </span>            :                                  const char* file, int line, ... ) const
+<span class="lineNum">    1654 </span>            : {
+<span class="lineNum">    1655 </span>            :   // see header file for function documentation
+<span class="lineNum">    1656 </span>            :   int iResult=0;
+<span class="lineNum">    1657 </span>            : 
+<span class="lineNum">    1658 </span><span class="lineCov">          6 :   va_list args;</span>
+<span class="lineNum">    1659 </span><span class="lineCov">          3 :   va_start(args, line);</span>
+<span class="lineNum">    1660 </span>            : 
+<span class="lineNum">    1661 </span><span class="lineCov">          3 :   if (!fName.IsNull())</span>
+<span class="lineNum">    1662 </span><span class="lineNoCov">          0 :     AliHLTLogging::SetLogString(this, &quot; (%p)&quot;, &quot;%s_pfmt_: &quot;, fName.Data());</span>
+<span class="lineNum">    1663 </span><span class="lineCov">          3 :   iResult=SendMessage(severity, originClass, originFunc, file, line, AliHLTLogging::BuildLogString(NULL, args, !fName.IsNull() /*append if non empty*/));</span>
+<span class="lineNum">    1664 </span><span class="lineCov">          3 :   va_end(args);</span>
+<span class="lineNum">    1665 </span>            : 
+<span class="lineNum">    1666 </span><span class="lineCov">          3 :   return iResult;</span>
+<a name="1667"><span class="lineNum">    1667 </span><span class="lineCov">          3 : }</span></a>
+<span class="lineNum">    1668 </span>            : 
+<span class="lineNum">    1669 </span>            : int AliHLTSystem::InitHLTOUT(AliHLTOUT* instance)
+<span class="lineNum">    1670 </span>            : {
+<span class="lineNum">    1671 </span>            :   // Init the HLTOUT instance for the current event.
+<span class="lineNum">    1672 </span>            :   // The instance can be used by other classes to get hold on the data
+<span class="lineNum">    1673 </span>            :   // from HLTOUT.
+<span class="lineNum">    1674 </span><span class="lineCov">          8 :   if (!instance) return -EINVAL;</span>
+<span class="lineNum">    1675 </span><span class="lineCov">          4 :   if (fpHLTOUT &amp;&amp; fpHLTOUT!=instance) return -EBUSY;</span>
+<span class="lineNum">    1676 </span><span class="lineCov">          4 :   fpHLTOUT=instance;</span>
+<span class="lineNum">    1677 </span><span class="lineCov">          4 :   return 0;</span>
+<a name="1678"><span class="lineNum">    1678 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">    1679 </span>            : 
+<span class="lineNum">    1680 </span>            : int AliHLTSystem::InvalidateHLTOUT(AliHLTOUT** target)
+<span class="lineNum">    1681 </span>            : {
+<span class="lineNum">    1682 </span>            :   // Clear the HLTOUT instance.
+<span class="lineNum">    1683 </span>            :   int iResult=0;
+<span class="lineNum">    1684 </span><span class="lineCov">         36 :   if (fHLTOUTUse&gt;0) {</span>
+<span class="lineNum">    1685 </span><span class="lineNoCov">          0 :     HLTWarning(&quot;HLTOUT instance still in use, potential problem due to invalid pointer ahead&quot;);</span>
+<span class="lineNum">    1686 </span><span class="lineNoCov">          0 :     fHLTOUTUse=0;</span>
+<span class="lineNum">    1687 </span>            :     iResult=-EBUSY;
+<span class="lineNum">    1688 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1689 </span><span class="lineCov">         36 :   if (target) *target=fpHLTOUT;</span>
+<span class="lineNum">    1690 </span><span class="lineCov">         18 :   fpHLTOUT=NULL;</span>
+<span class="lineNum">    1691 </span><span class="lineCov">         18 :   return iResult;</span>
+<a name="1692"><span class="lineNum">    1692 </span>            : }</a>
+<span class="lineNum">    1693 </span>            : 
+<span class="lineNum">    1694 </span>            : AliHLTOUT* AliHLTSystem::RequestHLTOUT()
+<span class="lineNum">    1695 </span>            : {
+<span class="lineNum">    1696 </span>            :   // Get the HLTOUT instance.
+<span class="lineNum">    1697 </span>            :   // User method for processing classes. To be released after use.
+<span class="lineNum">    1698 </span><span class="lineNoCov">          0 :   if (!fpHLTOUT) return NULL;</span>
+<span class="lineNum">    1699 </span><span class="lineNoCov">          0 :   fHLTOUTUse++;</span>
+<span class="lineNum">    1700 </span><span class="lineNoCov">          0 :   return fpHLTOUT;</span>
+<a name="1701"><span class="lineNum">    1701 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1702 </span>            : 
+<span class="lineNum">    1703 </span>            : int AliHLTSystem::ReleaseHLTOUT(const AliHLTOUT* instance)
+<span class="lineNum">    1704 </span>            : {
+<span class="lineNum">    1705 </span>            :   // Release the HLTOUT instance after use.
+<span class="lineNum">    1706 </span><span class="lineNoCov">          0 :   if (!instance) return -EINVAL;</span>
+<span class="lineNum">    1707 </span><span class="lineNoCov">          0 :   if (instance!=fpHLTOUT) return -ENOENT;</span>
+<span class="lineNum">    1708 </span><span class="lineNoCov">          0 :   fHLTOUTUse--;</span>
+<span class="lineNum">    1709 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="1710"><span class="lineNum">    1710 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1711 </span>            : 
+<span class="lineNum">    1712 </span>            : int AliHLTSystem::InitHLTInput(AliHLTOUT* instance)
+<span class="lineNum">    1713 </span>            : {
+<span class="lineNum">    1714 </span>            :   // Init the HLTInput instance for the current event.
+<span class="lineNum">    1715 </span>            :   // The instance can be used by other classes to get hold on the data
+<span class="lineNum">    1716 </span>            :   // from HLTInput.
+<span class="lineNum">    1717 </span><span class="lineNoCov">          0 :   if (!instance) return -EINVAL;</span>
+<span class="lineNum">    1718 </span><span class="lineNoCov">          0 :   if (fpHLTInput &amp;&amp; fpHLTInput!=instance) return -EBUSY;</span>
+<span class="lineNum">    1719 </span><span class="lineNoCov">          0 :   fpHLTInput=instance;</span>
+<span class="lineNum">    1720 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="1721"><span class="lineNum">    1721 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1722 </span>            : 
+<span class="lineNum">    1723 </span>            : int AliHLTSystem::InvalidateHLTInput(AliHLTOUT** target)
+<span class="lineNum">    1724 </span>            : {
+<span class="lineNum">    1725 </span>            :   // Clear the HLTInput instance.
+<span class="lineNum">    1726 </span>            :   int iResult=0;
+<span class="lineNum">    1727 </span><span class="lineCov">          8 :   if (fHLTInputUse&gt;0) {</span>
+<span class="lineNum">    1728 </span><span class="lineNoCov">          0 :     HLTWarning(&quot;HLTInput instance still in use, potential problem due to invalid pointer ahead&quot;);</span>
+<span class="lineNum">    1729 </span><span class="lineNoCov">          0 :     fHLTInputUse=0;</span>
+<span class="lineNum">    1730 </span>            :     iResult=-EBUSY;
+<span class="lineNum">    1731 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1732 </span><span class="lineCov">          8 :   if (target) *target=fpHLTInput;</span>
+<span class="lineNum">    1733 </span><span class="lineCov">          4 :   fpHLTInput=NULL;</span>
+<span class="lineNum">    1734 </span><span class="lineCov">          4 :   return iResult;</span>
+<a name="1735"><span class="lineNum">    1735 </span>            : }</a>
+<span class="lineNum">    1736 </span>            : 
+<span class="lineNum">    1737 </span>            : AliHLTOUT* AliHLTSystem::RequestHLTInput()
+<span class="lineNum">    1738 </span>            : {
+<span class="lineNum">    1739 </span>            :   // Get the HLTInput instance.
+<span class="lineNum">    1740 </span>            :   // User method for processing classes. To be released after use.
+<span class="lineNum">    1741 </span><span class="lineNoCov">          0 :   if (!fpHLTInput) return NULL;</span>
+<span class="lineNum">    1742 </span><span class="lineNoCov">          0 :   fHLTInputUse++;</span>
+<span class="lineNum">    1743 </span><span class="lineNoCov">          0 :   return fpHLTInput;</span>
+<a name="1744"><span class="lineNum">    1744 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1745 </span>            : 
+<span class="lineNum">    1746 </span>            : int AliHLTSystem::ReleaseHLTInput(const AliHLTOUT* instance)
+<span class="lineNum">    1747 </span>            : {
+<span class="lineNum">    1748 </span>            :   // Release the HLTInput instance after use.
+<span class="lineNum">    1749 </span><span class="lineNoCov">          0 :   if (!instance) return -EINVAL;</span>
+<span class="lineNum">    1750 </span><span class="lineNoCov">          0 :   if (instance!=fpHLTInput) return -ENOENT;</span>
+<span class="lineNum">    1751 </span><span class="lineNoCov">          0 :   fHLTInputUse--;</span>
+<span class="lineNum">    1752 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">    1753 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

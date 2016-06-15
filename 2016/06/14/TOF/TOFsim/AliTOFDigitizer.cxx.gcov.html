@@ -1,0 +1,689 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TOF/TOFsim/AliTOFDigitizer.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TOF/TOFsim</a> - AliTOFDigitizer.cxx<span style="font-size: 80%;"> (source / <a href="AliTOFDigitizer.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">148</td>
+            <td class="headerCovTableEntry">193</td>
+            <td class="headerCovTableEntryMed">76.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryLo">70.6 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-2000, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : //_________________________________________________________________________//
+<span class="lineNum">      17 </span>            : //                                                                         //
+<span class="lineNum">      18 </span>            : // This is a TTask that makes TOF-Digits out of TOF-SDigits.               //
+<span class="lineNum">      19 </span>            : // The simulation of the detector is performed at sdigits level:           //
+<span class="lineNum">      20 </span>            : // during digitization the unique task is the sum of all sdigits in the    //
+<span class="lineNum">      21 </span>            : // same pad.                                                               //
+<span class="lineNum">      22 </span>            : // Digits are written to TreeD in branch &quot;TOF&quot;.                            //
+<span class="lineNum">      23 </span>            : //                                                                         //
+<span class="lineNum">      24 </span>            : // -- Author :  F. Pierella (Bologna University) pierella@bo.infn.it       //
+<span class="lineNum">      25 </span>            : //                                                                         //
+<span class="lineNum">      26 </span>            : //_________________________________________________________________________//
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : //#include &quot;Riostream.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : //#include &quot;TFile.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;TH1F.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;TTree.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;TRandom.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;TObjArray.h&quot;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #include &quot;AliLoader.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliDigitizationInput.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliRunLoader.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliRun.h&quot;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #include &quot;AliTOFcalib.h&quot;
+<span class="lineNum">      44 </span>            : //#include &quot;AliTOFChannelOnlineArray.h&quot;
+<span class="lineNum">      45 </span>            : //#include &quot;AliTOFChannelOnlineStatusArray.h&quot;
+<span class="lineNum">      46 </span>            : //#include &quot;AliTOFChannelOffline.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;AliTOFDigitizer.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;AliTOFdigit.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliTOFHitMap.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;AliTOFGeometry.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliTOFSDigit.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;AliTOF.h&quot;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : extern TRandom *gRandom;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : extern AliRun *gAlice;
+<a name="57"><span class="lineNum">      57 </span>            : </a>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineCov">         26 : ClassImp(AliTOFDigitizer)</span>
+<a name="60"><span class="lineNum">      60 </span>            : </a>
+<span class="lineNum">      61 </span>            : //___________________________________________
+<span class="lineNum">      62 </span>            :   AliTOFDigitizer::AliTOFDigitizer()  :
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     AliDigitizer(),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     fDigits(new TClonesArray(&quot;AliTOFdigit&quot;,4000)),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     fSDigitsArray(new TClonesArray(&quot;AliTOFSDigit&quot;,1000)),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   fhitMap(0x0),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   fCalib(new AliTOFcalib())</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      69 </span>            :   // Default ctor - don't use it
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   InitDecalibration();</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 : }</span>
+<a name="72"><span class="lineNum">      72 </span>            : </a>
+<span class="lineNum">      73 </span>            : //___________________________________________
+<span class="lineNum">      74 </span>            : AliTOFDigitizer::AliTOFDigitizer(AliDigitizationInput* digInput): 
+<span class="lineNum">      75 </span><span class="lineCov">          1 :   AliDigitizer(digInput), </span>
+<span class="lineNum">      76 </span><span class="lineCov">          3 :   fDigits(new TClonesArray(&quot;AliTOFdigit&quot;,4000)),</span>
+<span class="lineNum">      77 </span><span class="lineCov">          3 :   fSDigitsArray(new TClonesArray(&quot;AliTOFSDigit&quot;,1000)),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          1 :   fhitMap(0x0),</span>
+<span class="lineNum">      79 </span><span class="lineCov">          3 :   fCalib(new AliTOFcalib())</span>
+<span class="lineNum">      80 </span><span class="lineCov">          5 : {</span>
+<span class="lineNum">      81 </span>            :   //ctor with RunDigitizer
+<span class="lineNum">      82 </span><span class="lineCov">          1 :   InitDecalibration();</span>
+<span class="lineNum">      83 </span><span class="lineCov">          2 : }</span>
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<span class="lineNum">      85 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">      86 </span>            : AliTOFDigitizer::AliTOFDigitizer(const AliTOFDigitizer &amp;source):
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   AliDigitizer(source),</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   fDigits(source.fDigits),</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   fSDigitsArray(source.fSDigitsArray),</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   fhitMap(source.fhitMap),</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   fCalib(source.fCalib)</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      93 </span>            :   // copy constructor
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : }</span>
+<a name="95"><span class="lineNum">      95 </span>            : </a>
+<span class="lineNum">      96 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">      97 </span>            :   AliTOFDigitizer&amp; AliTOFDigitizer::operator=(const AliTOFDigitizer &amp;source)
+<span class="lineNum">      98 </span>            : {
+<span class="lineNum">      99 </span>            :   // ass. op.
+<span class="lineNum">     100 </span>            :   
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   if (this == &amp;source)</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     return *this;</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   AliDigitizer::operator=(source);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fDigits=source.fDigits;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   fSDigitsArray=source.fSDigitsArray;</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   fhitMap=source.fhitMap;</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   fCalib=source.fCalib;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : }</span>
+<a name="112"><span class="lineNum">     112 </span>            : </a>
+<span class="lineNum">     113 </span>            : //------------------------------------------------------------------------
+<span class="lineNum">     114 </span>            : AliTOFDigitizer::~AliTOFDigitizer()
+<span class="lineNum">     115 </span><span class="lineCov">          6 : {</span>
+<span class="lineNum">     116 </span>            :   // Destructor
+<span class="lineNum">     117 </span><span class="lineCov">          2 :   delete fCalib;</span>
+<span class="lineNum">     118 </span><span class="lineCov">          1 :   if (fDigits){</span>
+<span class="lineNum">     119 </span><span class="lineCov">          1 :     fDigits-&gt;Delete();</span>
+<span class="lineNum">     120 </span><span class="lineCov">          2 :     delete fDigits;</span>
+<span class="lineNum">     121 </span><span class="lineCov">          1 :     fDigits=0x0;</span>
+<span class="lineNum">     122 </span><span class="lineCov">          1 :   }</span>
+<span class="lineNum">     123 </span><span class="lineCov">          1 :   if (fSDigitsArray){</span>
+<span class="lineNum">     124 </span><span class="lineCov">          1 :     fSDigitsArray-&gt;Delete();</span>
+<span class="lineNum">     125 </span><span class="lineCov">          2 :     delete fSDigitsArray;</span>
+<span class="lineNum">     126 </span><span class="lineCov">          1 :     fSDigitsArray=0x0;</span>
+<span class="lineNum">     127 </span><span class="lineCov">          1 :   }</span>
+<span class="lineNum">     128 </span><span class="lineCov">          3 : }</span>
+<span class="lineNum">     129 </span>            : 
+<a name="130"><span class="lineNum">     130 </span>            : //---------------------------------------------------------------------</a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : void AliTOFDigitizer::Digitize(Option_t* /*option*/)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span>            :   //
+<span class="lineNum">     135 </span>            :   // Perform digitization and merging.
+<span class="lineNum">     136 </span>            :   // The algorithm is the following:
+<span class="lineNum">     137 </span>            :   // - a hitmap is created to check if a pad is already activated;
+<span class="lineNum">     138 </span>            :   // - an sdigits container is created to collect all sdigits from
+<span class="lineNum">     139 </span>            :   //   different files;
+<span class="lineNum">     140 </span>            :   // - sdigits are summed using the hitmap;
+<span class="lineNum">     141 </span>            :   // - the sdigits container is used to create the array of AliTOFdigit.
+<span class="lineNum">     142 </span>            :   //
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineCov">         16 :   AliDebug(1, &quot;&quot;);</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :   // get the ptr to TOF detector
+<span class="lineNum">     148 </span><span class="lineCov">          4 :   AliTOF * tof = (AliTOF *) gAlice-&gt;GetDetector(&quot;TOF&quot;) ;</span>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            :   //Make branches
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :   const Int_t kSize = 20;
+<span class="lineNum">     153 </span><span class="lineCov">          4 :   char branchname[kSize];</span>
+<span class="lineNum">     154 </span><span class="lineCov">          4 :   snprintf(branchname,kSize,&quot;%s&quot;, tof-&gt;GetName ());</span>
+<span class="lineNum">     155 </span>            :  
+<span class="lineNum">     156 </span><span class="lineCov">          4 :   AliRunLoader* outrl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetOutputFolderName());</span>
+<span class="lineNum">     157 </span><span class="lineCov">          4 :   if (outrl == 0x0)</span>
+<span class="lineNum">     158 </span>            :    {
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :      AliError(&quot;Can not find Run Loader in output folder.&quot;);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :      return;</span>
+<span class="lineNum">     161 </span>            :    }
+<span class="lineNum">     162 </span>            :    
+<span class="lineNum">     163 </span><span class="lineCov">          4 :   AliLoader* outgime = outrl-&gt;GetLoader(&quot;TOFLoader&quot;);</span>
+<span class="lineNum">     164 </span><span class="lineCov">          4 :   if (outgime == 0x0)</span>
+<span class="lineNum">     165 </span>            :    {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :      AliError(&quot;Can not get TOF Loader from Output Run Loader.&quot;);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :      return;</span>
+<span class="lineNum">     168 </span>            :    }
+<span class="lineNum">     169 </span>            :   
+<span class="lineNum">     170 </span><span class="lineCov">          4 :   TTree* treeD = outgime-&gt;TreeD();</span>
+<span class="lineNum">     171 </span><span class="lineCov">          4 :   if (treeD == 0x0)</span>
+<span class="lineNum">     172 </span>            :    {
+<span class="lineNum">     173 </span><span class="lineCov">          4 :      outgime-&gt;MakeTree(&quot;D&quot;);</span>
+<span class="lineNum">     174 </span><span class="lineCov">          4 :      treeD = outgime-&gt;TreeD();</span>
+<span class="lineNum">     175 </span><span class="lineCov">          4 :    }</span>
+<span class="lineNum">     176 </span>            :   //Make branch for digits (to be created in Init())
+<span class="lineNum">     177 </span><span class="lineCov">          4 :   tof-&gt;MakeBranchInTree(treeD,branchname,&amp;fDigits,4000);</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :   // container for all summed sdigits (to be created in Init())
+<span class="lineNum">     180 </span>            :   //fSDigitsArray=new TClonesArray(&quot;AliTOFSDigit&quot;,1000);
+<span class="lineNum">     181 </span>            :   
+<span class="lineNum">     182 </span>            :   // create hit map (to be created in Init())
+<span class="lineNum">     183 </span><span class="lineCov">          8 :   fhitMap = new AliTOFHitMap(fSDigitsArray);</span>
+<span class="lineNum">     184 </span>            :   
+<span class="lineNum">     185 </span>            :   // Loop over files to digitize
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineCov">         16 :   for (Int_t inputFile=0; inputFile&lt;fDigInput-&gt;GetNinputs();</span>
+<span class="lineNum">     188 </span><span class="lineCov">          4 :        inputFile++) {</span>
+<span class="lineNum">     189 </span><span class="lineCov">          4 :     ReadSDigit(inputFile);</span>
+<span class="lineNum">     190 </span>            :    }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :   // create digits
+<span class="lineNum">     193 </span><span class="lineCov">          4 :   CreateDigits();</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :   // free used memory for Hit Map in current event
+<span class="lineNum">     196 </span><span class="lineCov">          8 :   delete fhitMap;</span>
+<span class="lineNum">     197 </span><span class="lineCov">          4 :   fSDigitsArray-&gt;Clear();</span>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineCov">          4 :   treeD-&gt;Fill();</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineCov">         12 :   AliDebug(2,&quot;----------------------------------------&quot;);</span>
+<span class="lineNum">     202 </span><span class="lineCov">         12 :   AliDebug(1,Form(&quot;%d digits have been created&quot;, fDigits-&gt;GetEntriesFast()));</span>
+<span class="lineNum">     203 </span><span class="lineCov">         12 :   AliDebug(2,&quot;----------------------------------------&quot;);</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineCov">          4 :   outgime-&gt;WriteDigits(&quot;OVERWRITE&quot;);</span>
+<span class="lineNum">     206 </span><span class="lineCov">          4 :   outgime-&gt;UnloadDigits();</span>
+<span class="lineNum">     207 </span><span class="lineCov">          4 :   fDigits-&gt;Clear();</span>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     210 </span>            : 
+<a name="211"><span class="lineNum">     211 </span>            : //---------------------------------------------------------------------</a>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : void AliTOFDigitizer::CreateDigits()
+<span class="lineNum">     214 </span>            : {
+<span class="lineNum">     215 </span>            :   // loop on sdigits container to fill the AliTOFdigit TClonesArray
+<span class="lineNum">     216 </span>            :   // start digitizing all the collected sdigits 
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :   Int_t ndump=0; // dump the first ndump created digits for each event
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :   // get the total number of collected sdigits
+<span class="lineNum">     221 </span><span class="lineCov">          8 :   Int_t ndig = fSDigitsArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">          4 :   Int_t  vol[5]={-1,-1,-1,-1,-1};  // location for a digit</span>
+<span class="lineNum">     224 </span><span class="lineCov">          4 :   Int_t  digit[4] = {0,0,0,0};     // TOF digit variables</span>
+<span class="lineNum">     225 </span><span class="lineCov">          4 :   Int_t tracknum[AliTOFSDigit::kMAXDIGITS]; // contributing tracks for the current slot</span>
+<span class="lineNum">     226 </span><span class="lineCov">         32 :   for (Int_t aa=0; aa&lt;AliTOFSDigit::kMAXDIGITS; aa++) tracknum[aa] = -1;</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineCov">        208 :   for (Int_t k = 0; k &lt; ndig; k++) {</span>
+<span class="lineNum">     229 </span>            :     
+<span class="lineNum">     230 </span><span class="lineCov">       1200 :     for (Int_t i=0; i&lt;5; i++) vol[i] = -1;</span>
+<span class="lineNum">     231 </span>            :     
+<span class="lineNum">     232 </span>            :     // Get the information for this digit
+<span class="lineNum">     233 </span><span class="lineCov">        100 :     AliTOFSDigit *tofsdigit = (AliTOFSDigit *) fSDigitsArray-&gt;UncheckedAt(k);</span>
+<span class="lineNum">     234 </span>            :     
+<span class="lineNum">     235 </span><span class="lineCov">        100 :     Int_t nslot=tofsdigit-&gt;GetNDigits(); // get the number of slots</span>
+<span class="lineNum">     236 </span>            :     // for current sdigit
+<span class="lineNum">     237 </span>            :     
+<span class="lineNum">     238 </span>            :     // TOF sdigit volumes (always the same for all slots)
+<span class="lineNum">     239 </span><span class="lineCov">        100 :     Int_t sector    = tofsdigit-&gt;GetSector(); // range [0-17]</span>
+<span class="lineNum">     240 </span><span class="lineCov">        100 :     Int_t plate     = tofsdigit-&gt;GetPlate();  // range [0- 4]</span>
+<span class="lineNum">     241 </span><span class="lineCov">        100 :     Int_t strip     = tofsdigit-&gt;GetStrip();  // range [0-14/18/19]</span>
+<span class="lineNum">     242 </span><span class="lineCov">        100 :     Int_t padz      = tofsdigit-&gt;GetPadz();   // range [0- 1]</span>
+<span class="lineNum">     243 </span><span class="lineCov">        100 :     Int_t padx      = tofsdigit-&gt;GetPadx();   // range [0-47]</span>
+<span class="lineNum">     244 </span>            :     
+<span class="lineNum">     245 </span><span class="lineCov">        100 :     vol[0] = sector;</span>
+<span class="lineNum">     246 </span><span class="lineCov">        100 :     vol[1] = plate;</span>
+<span class="lineNum">     247 </span><span class="lineCov">        100 :     vol[2] = strip;</span>
+<span class="lineNum">     248 </span><span class="lineCov">        100 :     vol[3] = padx;</span>
+<span class="lineNum">     249 </span><span class="lineCov">        100 :     vol[4] = padz;</span>
+<span class="lineNum">     250 </span>            :     
+<span class="lineNum">     251 </span>            :     //--------------------- QA section ----------------------
+<span class="lineNum">     252 </span>            :     // in the while, I perform QA
+<span class="lineNum">     253 </span><span class="lineCov">        300 :     Bool_t isSDigitBad = (sector&lt;0 || sector&gt;17 || plate&lt;0 || plate &gt;4 || padz&lt;0 || padz&gt;1 || padx&lt;0 || padx&gt;47);</span>
+<span class="lineNum">     254 </span>            :     
+<span class="lineNum">     255 </span><span class="lineCov">        100 :     if (isSDigitBad)</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :       AliFatal(Form(&quot;strange sdigit found   %2d  %1d  %2d  %1d %2d&quot;, sector, plate, strip, padz, padx));</span>
+<span class="lineNum">     257 </span>            :     //-------------------------------------------------------
+<span class="lineNum">     258 </span>            :     
+<span class="lineNum">     259 </span>            :     //------------------- Dump section ----------------------
+<span class="lineNum">     260 </span><span class="lineCov">        100 :     if (k&lt;ndump) {</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :       AliInfo(Form(&quot;%2d-th digit: Sector %2d | Plate %1d | Strip %2d | PadZ %1d | PadX %2d &quot;, k, sector, plate, strip, padz, padx));</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       AliInfo(&quot;----------------------------------------------------&quot;);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     264 </span>            :     // ------------------------------------------------------
+<span class="lineNum">     265 </span>            :     
+<span class="lineNum">     266 </span>            :     // start loop on number of slots for current sdigit
+<span class="lineNum">     267 </span><span class="lineCov">        400 :     for (Int_t islot = 0; islot &lt; nslot; islot++) {</span>
+<span class="lineNum">     268 </span><span class="lineCov">       1000 :       for (Int_t aa=0; aa&lt;4; aa++) digit[aa] = 0; // TOF digit variables</span>
+<span class="lineNum">     269 </span><span class="lineCov">        800 :       for (Int_t aa=0; aa&lt;AliTOFSDigit::kMAXDIGITS; aa++) tracknum[aa] = -1;</span>
+<span class="lineNum">     270 </span>            :       
+<span class="lineNum">     271 </span><span class="lineCov">        100 :       Int_t tdc=tofsdigit-&gt;GetTdc(islot); digit[0]=tdc;</span>
+<span class="lineNum">     272 </span><span class="lineCov">        100 :       Int_t adc=tofsdigit-&gt;GetAdc(islot); digit[1]=adc;</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            :       //if (tdc&gt;=8192) continue;//AdC
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">        100 :       tracknum[0]=tofsdigit-&gt;GetTrack(islot,0);</span>
+<span class="lineNum">     277 </span><span class="lineCov">        100 :       tracknum[1]=tofsdigit-&gt;GetTrack(islot,1);</span>
+<span class="lineNum">     278 </span><span class="lineCov">        100 :       tracknum[2]=tofsdigit-&gt;GetTrack(islot,2);</span>
+<span class="lineNum">     279 </span>            :       
+<span class="lineNum">     280 </span>            :       // new with placement must be used
+<span class="lineNum">     281 </span>            :       // adding a TOF digit for each slot
+<span class="lineNum">     282 </span><span class="lineCov">        100 :       TClonesArray &amp;aDigits = *fDigits;</span>
+<span class="lineNum">     283 </span><span class="lineCov">        100 :       Int_t last=fDigits-&gt;GetEntriesFast();</span>
+<span class="lineNum">     284 </span><span class="lineCov">        100 :       new (aDigits[last]) AliTOFdigit(tracknum, vol, digit);</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            :     }
+<span class="lineNum">     287 </span>            :     
+<span class="lineNum">     288 </span>            :   } // end loop on sdigits - end digitizing all collected sdigits
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :   //Insert Decalibration 
+<span class="lineNum">     291 </span><span class="lineCov">         12 :   AliDebug(2,&quot;in digitizer, create digits&quot;);</span>
+<span class="lineNum">     292 </span><span class="lineCov">          4 :   DecalibrateTOFSignal();</span>
+<span class="lineNum">     293 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     294 </span>            : 
+<a name="295"><span class="lineNum">     295 </span>            : //---------------------------------------------------------------------</a>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : void AliTOFDigitizer::ReadSDigit(Int_t inputFile )
+<span class="lineNum">     298 </span>            : {
+<span class="lineNum">     299 </span>            :   // Read sdigits for current event and inputFile; 
+<span class="lineNum">     300 </span>            :   // store them into the sdigits container
+<span class="lineNum">     301 </span>            :   // and update the hit map
+<span class="lineNum">     302 </span>            :   // SDigits from different files are assumed to
+<span class="lineNum">     303 </span>            :   // be created with the same simulation parameters.
+<span class="lineNum">     304 </span>            :   
+<span class="lineNum">     305 </span>            :   // creating the TClonesArray to store the digits
+<span class="lineNum">     306 </span><span class="lineCov">         11 :   static TClonesArray sdigitsClonesArray(&quot;AliTOFSDigit&quot;,  1000); </span>
+<span class="lineNum">     307 </span><span class="lineCov">          4 :   sdigitsClonesArray.Clear();</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            :   // get the treeS from digInput
+<span class="lineNum">     310 </span><span class="lineCov">          4 :   AliRunLoader* rl = AliRunLoader::GetRunLoader(fDigInput-&gt;GetInputFolderName(inputFile));</span>
+<span class="lineNum">     311 </span><span class="lineCov">          4 :   if (rl == 0x0)</span>
+<span class="lineNum">     312 </span>            :    {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :      AliError(Form(&quot;Can not find Run Loader in input %d folder.&quot;,inputFile));</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :      return;</span>
+<span class="lineNum">     315 </span>            :    }
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineCov">          4 :   AliLoader* gime = rl-&gt;GetLoader(&quot;TOFLoader&quot;);</span>
+<span class="lineNum">     318 </span><span class="lineCov">          4 :   if (gime == 0x0)</span>
+<span class="lineNum">     319 </span>            :    {
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :      AliError(Form(&quot;Can not get TOF Loader from Input %d Run Loader.&quot;,inputFile));</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :      return;</span>
+<span class="lineNum">     322 </span>            :    }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineCov">          4 :   TTree* currentTreeS=gime-&gt;TreeS();</span>
+<span class="lineNum">     325 </span><span class="lineCov">          4 :   if (currentTreeS == 0x0)</span>
+<span class="lineNum">     326 </span>            :    {
+<span class="lineNum">     327 </span><span class="lineCov">          1 :      Int_t retval = gime-&gt;LoadSDigits();</span>
+<span class="lineNum">     328 </span><span class="lineCov">          1 :      if (retval) </span>
+<span class="lineNum">     329 </span>            :       {
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :          AliError(Form(&quot;Error occured while loading S. Digits for Input %d&quot;,inputFile));</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :          return;</span>
+<span class="lineNum">     332 </span>            :       }
+<span class="lineNum">     333 </span><span class="lineCov">          1 :      currentTreeS=gime-&gt;TreeS();</span>
+<span class="lineNum">     334 </span><span class="lineCov">          1 :      if (currentTreeS == 0x0)</span>
+<span class="lineNum">     335 </span>            :       {
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :          AliError(Form(&quot;Can not get S. Digits Tree for Input %d&quot;,inputFile));</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :          return;</span>
+<span class="lineNum">     338 </span>            :       }
+<span class="lineNum">     339 </span><span class="lineCov">          1 :    } </span>
+<span class="lineNum">     340 </span>            :   // get the branch TOF inside the treeS
+<span class="lineNum">     341 </span><span class="lineCov">          4 :   TClonesArray * sdigitsDummyContainer=&amp;sdigitsClonesArray;</span>
+<span class="lineNum">     342 </span>            :   // check if the branch exist
+<span class="lineNum">     343 </span><span class="lineCov">          4 :   TBranch* tofBranch=currentTreeS-&gt;GetBranch(&quot;TOF&quot;);</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">          4 :   if(!tofBranch){</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     AliFatal(Form(&quot;TOF branch not found for input %d&quot;,inputFile));</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     348 </span>            :   }
+<span class="lineNum">     349 </span>            :   
+<span class="lineNum">     350 </span><span class="lineCov">          4 :   tofBranch-&gt;SetAddress(&amp;sdigitsDummyContainer);           </span>
+<span class="lineNum">     351 </span>            :   
+<span class="lineNum">     352 </span><span class="lineCov">          4 :   Int_t nEntries = (Int_t)tofBranch-&gt;GetEntries();                                </span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :   // Loop through all entries in the tree
+<span class="lineNum">     355 </span>            :   Int_t nbytes = 0;
+<span class="lineNum">     356 </span>            :   
+<span class="lineNum">     357 </span><span class="lineCov">          4 :   Int_t  vol[5]; // location for a sdigit</span>
+<span class="lineNum">     358 </span><span class="lineCov">         48 :   for (Int_t i=0; i&lt;5; i++) vol[i] = -1;</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineCov">         16 :   for (Int_t iEntry = 0; iEntry &lt; nEntries; iEntry++) {</span>
+<span class="lineNum">     361 </span>            :     
+<span class="lineNum">     362 </span>            :     // Import the tree
+<span class="lineNum">     363 </span><span class="lineCov">          4 :     nbytes += tofBranch-&gt;GetEvent(iEntry);</span>
+<span class="lineNum">     364 </span>            :     
+<span class="lineNum">     365 </span>            :     // Get the number of sdigits
+<span class="lineNum">     366 </span><span class="lineCov">          4 :     Int_t ndig = sdigitsDummyContainer-&gt;GetEntriesFast();</span>
+<span class="lineNum">     367 </span>            :     
+<span class="lineNum">     368 </span><span class="lineCov">        208 :     for (Int_t k=0; k&lt;ndig; k++) {</span>
+<span class="lineNum">     369 </span><span class="lineCov">        100 :       AliTOFSDigit *tofSdigit= (AliTOFSDigit*) sdigitsDummyContainer-&gt;UncheckedAt(k);</span>
+<span class="lineNum">     370 </span>            :       
+<span class="lineNum">     371 </span><span class="lineCov">       1200 :       for (Int_t i=0; i&lt;5; i++) vol[i] = -1;</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            :       // check the sdigit volume
+<span class="lineNum">     374 </span><span class="lineCov">        100 :       vol[0] = tofSdigit-&gt;GetSector();</span>
+<span class="lineNum">     375 </span><span class="lineCov">        100 :       vol[1] = tofSdigit-&gt;GetPlate();</span>
+<span class="lineNum">     376 </span><span class="lineCov">        100 :       vol[2] = tofSdigit-&gt;GetStrip();</span>
+<span class="lineNum">     377 </span><span class="lineCov">        100 :       vol[3] = tofSdigit-&gt;GetPadx();</span>
+<span class="lineNum">     378 </span><span class="lineCov">        100 :       vol[4] = tofSdigit-&gt;GetPadz();</span>
+<span class="lineNum">     379 </span>            :       
+<span class="lineNum">     380 </span><span class="lineCov">        100 :       if (fhitMap-&gt;TestHit(vol) != kEmpty) {</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         AliTOFSDigit *sdig = static_cast&lt;AliTOFSDigit*&gt;(fhitMap-&gt;GetHit(vol));</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         sdig-&gt;Update(tofSdigit);</span>
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">        100 :         CollectSDigit(tofSdigit); // collect the current sdigit</span>
+<span class="lineNum">     387 </span><span class="lineCov">        100 :         fhitMap-&gt;SetHit(vol);     // update the hitmap for location vol</span>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span>            :       } // if (hitMap-&gt;TestHit(vol) != kEmpty)
+<span class="lineNum">     390 </span>            :       
+<span class="lineNum">     391 </span>            :     } // for (Int_t k=0; k&lt;ndig; k++)
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :   } // end loop on entries
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">         12 : }</span>
+<span class="lineNum">     396 </span>            : 
+<a name="397"><span class="lineNum">     397 </span>            : </a>
+<span class="lineNum">     398 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     399 </span>            : void AliTOFDigitizer::CollectSDigit(const AliTOFSDigit * const sdigit)
+<span class="lineNum">     400 </span>            : {
+<span class="lineNum">     401 </span>            :   //
+<span class="lineNum">     402 </span>            :   // Add a TOF sdigit in container
+<span class="lineNum">     403 </span>            :   // new with placement must be used
+<span class="lineNum">     404 </span><span class="lineCov">        200 :   TClonesArray &amp;aSDigitsArray = *fSDigitsArray;</span>
+<span class="lineNum">     405 </span><span class="lineCov">        100 :   Int_t last=fSDigitsArray-&gt;GetEntriesFast();</span>
+<span class="lineNum">     406 </span>            :   // make a copy of the current sdigit and
+<span class="lineNum">     407 </span>            :   // put it into tmp array
+<span class="lineNum">     408 </span><span class="lineCov">        100 :   new (aSDigitsArray[last]) AliTOFSDigit(*sdigit);</span>
+<span class="lineNum">     409 </span><span class="lineCov">        100 : }</span>
+<a name="410"><span class="lineNum">     410 </span>            : </a>
+<span class="lineNum">     411 </span>            : //_____________________________________________________________________________
+<span class="lineNum">     412 </span>            : void AliTOFDigitizer::InitDecalibration() const {
+<span class="lineNum">     413 </span>            :   //
+<span class="lineNum">     414 </span>            :   // Initialize TOF digits decalibration
+<span class="lineNum">     415 </span>            :   //
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineCov">          2 :   fCalib-&gt;Init();</span>
+<span class="lineNum">     418 </span>            :   /*
+<span class="lineNum">     419 </span>            :   fCalib-&gt;CreateCalArrays();
+<span class="lineNum">     420 </span>            :   fCalib-&gt;ReadSimHistoFromCDB(&quot;TOF/Calib&quot;, -1); // use AliCDBManager's number
+<span class="lineNum">     421 </span>            :   fCalib-&gt;ReadParOfflineFromCDB(&quot;TOF/Calib&quot;, -1); // use AliCDBManager's number
+<span class="lineNum">     422 </span>            :   */
+<a name="423"><span class="lineNum">     423 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     424 </span>            : //---------------------------------------------------------------------
+<span class="lineNum">     425 </span>            : void AliTOFDigitizer::DecalibrateTOFSignal() {
+<span class="lineNum">     426 </span>            :   //
+<span class="lineNum">     427 </span>            :   // Decalibrate TOF signals according to OCDB parameters
+<span class="lineNum">     428 </span>            :   //
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :   Double_t time=0., tot=0., corr=0.;
+<span class="lineNum">     431 </span>            :   Int_t deltaBC=0, l0l1=0, tdcBin=0;
+<span class="lineNum">     432 </span>            :   Int_t index = -1;
+<span class="lineNum">     433 </span><span class="lineCov">          8 :   Int_t detId[5] ={-1,-1,-1,-1,-1};</span>
+<span class="lineNum">     434 </span>            :   UInt_t timestamp=0;
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineCov">          4 :   Int_t ndigits = fDigits-&gt;GetEntriesFast();</span>
+<span class="lineNum">     437 </span>            :   // Loop on TOF Digits
+<span class="lineNum">     438 </span><span class="lineCov">        208 :   for (Int_t i=0;i&lt;ndigits;i++){</span>
+<span class="lineNum">     439 </span><span class="lineCov">        100 :     AliTOFdigit * dig = (AliTOFdigit*)fDigits-&gt;At(i);</span>
+<span class="lineNum">     440 </span><span class="lineCov">        100 :     detId[0] = dig-&gt;GetSector();</span>
+<span class="lineNum">     441 </span><span class="lineCov">        100 :     detId[1] = dig-&gt;GetPlate();</span>
+<span class="lineNum">     442 </span><span class="lineCov">        100 :     detId[2] = dig-&gt;GetStrip();</span>
+<span class="lineNum">     443 </span><span class="lineCov">        100 :     detId[3] = dig-&gt;GetPadz();</span>
+<span class="lineNum">     444 </span><span class="lineCov">        100 :     detId[4] = dig-&gt;GetPadx();</span>
+<span class="lineNum">     445 </span><span class="lineCov">        100 :     dig-&gt;SetTdcND(dig-&gt;GetTdc()); // save the non decalibrated time</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineCov">        100 :     index = AliTOFGeometry::GetIndex(detId); // The channel index    </span>
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            :     // Read Calibration parameters from the CDB
+<span class="lineNum">     450 </span>            :     // get digit info
+<span class="lineNum">     451 </span><span class="lineCov">        100 :     time = dig-&gt;GetTdc() * AliTOFGeometry::TdcBinWidth(); /* ps */</span>
+<span class="lineNum">     452 </span><span class="lineCov">        100 :     tot = dig-&gt;GetToT() * AliTOFGeometry::ToTBinWidth() * 1.e-3; /* ns */</span>
+<span class="lineNum">     453 </span>            :     deltaBC = 0;//dig-&gt;GetDeltaBC();
+<span class="lineNum">     454 </span>            :     l0l1 = 0;//dig-&gt;GetL0L1Latency();
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            :     // get correction
+<span class="lineNum">     457 </span><span class="lineCov">        100 :     corr = fCalib-&gt;GetTimeCorrection(index, tot, deltaBC, l0l1, timestamp); /* ps */</span>
+<span class="lineNum">     458 </span><span class="lineCov">        300 :     AliDebug(2, Form(&quot;calibrate index %d: time=%f (ps) tot=%f (ns) deltaBC=%d l0l1=%d timestamp=%d corr=%f (ps)&quot;,</span>
+<span class="lineNum">     459 </span>            :                      index, time, tot, deltaBC, l0l1, timestamp, corr));
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            :     // apply time correction
+<span class="lineNum">     462 </span><span class="lineCov">        100 :     time += corr;</span>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            :     // convert in TDC bins and set digit
+<span class="lineNum">     465 </span>            :     //tdcBin = (Int_t)(time / AliTOFGeometry::TdcBinWidth()); //the corrected time (tdc counts)
+<span class="lineNum">     466 </span><span class="lineCov">        100 :     tdcBin = TMath::Nint(time / AliTOFGeometry::TdcBinWidth()); //the corrected time (tdc counts)</span>
+<span class="lineNum">     467 </span><span class="lineCov">        100 :     dig-&gt;SetTdc(tdcBin);</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            :   }
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineCov">         12 :   AliDebug(1,&quot;Simulating miscalibrated digits&quot;);</span>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            :   return;
+<span class="lineNum">     474 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span>            : //---------------------------------------------------------------------
+<span class="lineNum">     477 </span>            : /*
+<span class="lineNum">     478 </span>            : void AliTOFDigitizer::DecalibrateTOFSignal(){ // Old implementation
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :   // Read Calibration parameters from the CDB
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :   TObjArray * calOffline= fCalib-&gt;GetTOFCalArrayOffline();
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :   AliDebug(2,Form(&quot;Size of array for Offline Calibration = %i&quot;,calOffline-&gt;GetEntries()));
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :   // Initialize Quantities to Simulate ToT Spectra
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span>            :   TH1F * hToT= fCalib-&gt;GetTOFSimToT();
+<span class="lineNum">     489 </span>            :   Int_t nbins = hToT-&gt;GetNbinsX();
+<span class="lineNum">     490 </span>            :   Float_t delta = hToT-&gt;GetBinWidth(1);
+<span class="lineNum">     491 </span>            :   Float_t maxch = hToT-&gt;GetBinLowEdge(nbins)+delta;
+<span class="lineNum">     492 </span>            :   Float_t minch = hToT-&gt;GetBinLowEdge(1);
+<span class="lineNum">     493 </span>            :   Float_t max=0,min=0; //maximum and minimum value of the distribution
+<span class="lineNum">     494 </span>            :   Int_t maxbin=0,minbin=0; //maximum and minimum bin of the distribution
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            :   for (Int_t ii=nbins; ii&gt;0; ii--){
+<span class="lineNum">     497 </span>            :     if (hToT-&gt;GetBinContent(ii)!= 0) {
+<span class="lineNum">     498 </span>            :       max = maxch - (nbins-ii-1)*delta;
+<span class="lineNum">     499 </span>            :       maxbin = ii; 
+<span class="lineNum">     500 </span>            :       break;}
+<span class="lineNum">     501 </span>            :   }
+<span class="lineNum">     502 </span>            :   for (Int_t j=1; j&lt;nbins; j++){
+<span class="lineNum">     503 </span>            :     if (hToT-&gt;GetBinContent(j)!= 0) {
+<span class="lineNum">     504 </span>            :       min = minch + (j-1)*delta;
+<span class="lineNum">     505 </span>            :       minbin = j; 
+<span class="lineNum">     506 </span>            :       break;}
+<span class="lineNum">     507 </span>            :   }
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span>            :   Float_t maxToT=max;
+<span class="lineNum">     510 </span>            :   Float_t minToT=min;
+<span class="lineNum">     511 </span>            :  
+<span class="lineNum">     512 </span>            :   Float_t maxToTDistr=hToT-&gt;GetMaximum();
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :   AliDebug (1, Form(&quot; The minimum ToT = %f&quot;, minToT)); 
+<span class="lineNum">     515 </span>            :   AliDebug (1, Form(&quot; The maximum ToT = %f&quot;, maxToT)); 
+<span class="lineNum">     516 </span>            :   AliDebug (1, Form(&quot; The maximum peak in ToT = %f&quot;, maxToTDistr)); 
+<span class="lineNum">     517 </span>            :   
+<span class="lineNum">     518 </span>            :   // Loop on TOF Digits
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            :   Bool_t isToTSimulated=kFALSE;
+<span class="lineNum">     521 </span>            :   Bool_t misCalibPars=kFALSE;
+<span class="lineNum">     522 </span>            :   if(hToT-&gt;GetEntries()&gt;0)isToTSimulated=kTRUE;  
+<span class="lineNum">     523 </span>            :   Int_t ndigits = fDigits-&gt;GetEntriesFast();
+<span class="lineNum">     524 </span>            :   for (Int_t i=0;i&lt;ndigits;i++){
+<span class="lineNum">     525 </span>            :     AliTOFdigit * dig = (AliTOFdigit*)fDigits-&gt;At(i);
+<span class="lineNum">     526 </span>            :     Int_t detId[5];
+<span class="lineNum">     527 </span>            :     detId[0] = dig-&gt;GetSector();
+<span class="lineNum">     528 </span>            :     detId[1] = dig-&gt;GetPlate();
+<span class="lineNum">     529 </span>            :     detId[2] = dig-&gt;GetStrip();
+<span class="lineNum">     530 </span>            :     detId[3] = dig-&gt;GetPadz();
+<span class="lineNum">     531 </span>            :     detId[4] = dig-&gt;GetPadx();
+<span class="lineNum">     532 </span>            :     dig-&gt;SetTdcND(dig-&gt;GetTdc()); // save the non decalibrated time
+<span class="lineNum">     533 </span>            :     if(isToTSimulated){  
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span>            :       //A realistic ToT Spectrum was found in input, 
+<span class="lineNum">     536 </span>            :       //decalibrated TOF Digits likely to be simulated....
+<span class="lineNum">     537 </span>            :  
+<span class="lineNum">     538 </span>            :       Int_t index = AliTOFGeometry::GetIndex(detId); // The channel index    
+<span class="lineNum">     539 </span>            :       AliTOFChannelOffline *calChannelOffline = (AliTOFChannelOffline *)calOffline-&gt;At(index); //retrieve the info for time slewing 
+<span class="lineNum">     540 </span>            :       Double_t par[6];  // time slewing parameters
+<span class="lineNum">     541 </span>            :   
+<span class="lineNum">     542 </span>            :       //check whether we actually ask for miscalibration
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :       for (Int_t j = 0; j&lt;6; j++){
+<span class="lineNum">     545 </span>            :         par[j]=(Double_t)calChannelOffline-&gt;GetSlewPar(j);
+<span class="lineNum">     546 </span>            :         if(par[j]!=0)misCalibPars=kTRUE;
+<span class="lineNum">     547 </span>            :       }
+<span class="lineNum">     548 </span>            :       AliDebug(2,Form(&quot; Calib Pars = %f (0-th parameter for time slewing + time delay), %f, %f, %f, %f, %f &quot;,par[0],par[1],par[2],par[3],par[4],par[5]));
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            :       // Now generate Realistic ToT distribution from TestBeam Data. 
+<span class="lineNum">     551 </span>            :       // Tot is in ns, assuming a Matching Window of 10 ns.
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span>            :       Float_t simToT = 0;
+<span class="lineNum">     554 </span>            :       Float_t trix = 0;
+<span class="lineNum">     555 </span>            :       Float_t triy = 0;
+<span class="lineNum">     556 </span>            :       Double_t timeCorr;
+<span class="lineNum">     557 </span>            :       Double_t tToT;
+<span class="lineNum">     558 </span>            :       while (simToT &lt;= triy){
+<span class="lineNum">     559 </span>            :         trix = gRandom-&gt;Rndm(i);
+<span class="lineNum">     560 </span>            :         triy = gRandom-&gt;Rndm(i);
+<span class="lineNum">     561 </span>            :         trix = (maxToT-minToT)*trix + minToT; 
+<span class="lineNum">     562 </span>            :         triy = maxToTDistr*triy;
+<span class="lineNum">     563 </span>            :         Int_t binx=hToT-&gt;FindBin(trix);
+<span class="lineNum">     564 </span>            :         simToT=hToT-&gt;GetBinContent(binx);
+<span class="lineNum">     565 </span>            :       }
+<span class="lineNum">     566 </span>            :       // the generated ToT (ns)
+<span class="lineNum">     567 </span>            :       tToT= (Double_t) trix; // to apply slewing we start from ns..
+<span class="lineNum">     568 </span>            :       // transform TOF signal in ns
+<span class="lineNum">     569 </span>            :       AliDebug(2,Form(&quot; The Initial Time (counts): %i: &quot;,dig-&gt;GetTdc()));
+<span class="lineNum">     570 </span>            :       AliDebug(2,Form(&quot; Time before miscalibration (ps) %e: &quot;,dig-&gt;GetTdc()*(Double_t)AliTOFGeometry::TdcBinWidth()));
+<span class="lineNum">     571 </span>            :       // add slewing effect
+<span class="lineNum">     572 </span>            :       timeCorr=par[0] + tToT*(par[1] +tToT*(par[2] +tToT*(par[3] +tToT*(par[4] +tToT*par[5])))); 
+<span class="lineNum">     573 </span>            :       AliDebug(2,Form(&quot; The Time slewing + delay (ns): %f: &quot;,timeCorr));
+<span class="lineNum">     574 </span>            :       // add global time shift
+<span class="lineNum">     575 </span>            :       //convert to ps
+<span class="lineNum">     576 </span>            :       timeCorr*=1E3;
+<span class="lineNum">     577 </span>            :       Double_t timeMis = (Double_t)(dig-&gt;GetTdc())*(Double_t)AliTOFGeometry::TdcBinWidth();
+<span class="lineNum">     578 </span>            :       timeMis = timeMis+timeCorr;
+<span class="lineNum">     579 </span>            :       AliDebug(2,Form(&quot; The Miscalibrated time (ps): %e: &quot;,timeMis));
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span>            :       // now update the digit info
+<span class="lineNum">     582 </span>            :  
+<span class="lineNum">     583 </span>            :       Int_t tdcCorr= (Int_t)(timeMis/AliTOFGeometry::TdcBinWidth());
+<span class="lineNum">     584 </span>            :       AliDebug(2,Form(&quot; Final Time (counts): %i: &quot;,tdcCorr));
+<span class="lineNum">     585 </span>            :       // Setting Decalibrated Time signal (TDC counts)    
+<span class="lineNum">     586 </span>            :       dig-&gt;SetTdc(tdcCorr);   
+<span class="lineNum">     587 </span>            :       // Setting realistic ToT signal (TDC counts) 
+<span class="lineNum">     588 </span>            :       tToT*=1E3; //back to ps  
+<span class="lineNum">     589 </span>            :       Int_t tot=(Int_t)(tToT/AliTOFGeometry::ToTBinWidth());//(factor 1E3 as input ToT is in ns)
+<span class="lineNum">     590 </span>            :       dig-&gt;SetToT(tot); 
+<span class="lineNum">     591 </span>            :       AliDebug(2,Form(&quot; Final Time and ToT (counts): %d: , %d:&quot;,dig-&gt;GetTdc(),dig-&gt;GetToT()));
+<span class="lineNum">     592 </span>            :       if(tdcCorr&lt;0){
+<span class="lineNum">     593 </span>            :         AliWarning (Form(&quot; The bad Slewed Time(TDC counts)= %d &quot;, tdcCorr)); 
+<span class="lineNum">     594 </span>            :         AliWarning(Form(&quot; The bad ToT (TDC counts)= %d &quot;, tot)); 
+<span class="lineNum">     595 </span>            :       }
+<span class="lineNum">     596 </span>            :     }
+<span class="lineNum">     597 </span>            :     else{
+<span class="lineNum">     598 </span>            :     // For Data with no Miscalibration, set ToT signal == Adc
+<span class="lineNum">     599 </span>            :       dig-&gt;SetToT((Int_t)(dig-&gt;GetAdc()/AliTOFGeometry::ToTBinWidth())); //remove the factor 10^3 just to have a reasonable ToT range for raw data simulation even in the case of non-realistic ToT distribution (n.b. fAdc is practically an arbitrary quantity, and ToT has no impact on the TOF reco for non-miscalibrated digits)
+<span class="lineNum">     600 </span>            :     }
+<span class="lineNum">     601 </span>            :   }
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :   if(!isToTSimulated)
+<span class="lineNum">     604 </span>            :     AliDebug(1,&quot;Standard Production, no miscalibrated digits&quot;);
+<span class="lineNum">     605 </span>            :   else
+<span class="lineNum">     606 </span>            :     if(!misCalibPars)
+<span class="lineNum">     607 </span>            :       AliDebug(1,&quot;Standard Production, no miscalibrated digits&quot;);
+<span class="lineNum">     608 </span>            :     else
+<span class="lineNum">     609 </span>            :       AliDebug(1,&quot;Simulating miscalibrated digits&quot;);
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span>            :   return;
+<span class="lineNum">     612 </span>            : }
+<span class="lineNum">     613 </span>            : */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

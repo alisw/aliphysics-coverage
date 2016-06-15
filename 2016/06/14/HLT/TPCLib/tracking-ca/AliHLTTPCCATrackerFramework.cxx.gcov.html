@@ -1,0 +1,399 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/TPCLib/tracking-ca/AliHLTTPCCATrackerFramework.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">HLT/TPCLib/tracking-ca</a> - AliHLTTPCCATrackerFramework.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTTPCCATrackerFramework.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">118</td>
+            <td class="headerCovTableEntryLo">0.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntryLo">7.1 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // @(#) $Id: AliHLTTPCCATracker.cxx 34611 2009-09-04 00:22:05Z sgorbuno $</a>
+<span class="lineNum">       2 </span>            : // **************************************************************************
+<span class="lineNum">       3 </span>            : // This file is property of and copyright by the ALICE HLT Project          *
+<span class="lineNum">       4 </span>            : // ALICE Experiment at CERN, All rights reserved.                           *
+<span class="lineNum">       5 </span>            : //                                                                          *
+<span class="lineNum">       6 </span>            : // Primary Authors: Sergey Gorbunov &lt;sergey.gorbunov@kip.uni-heidelberg.de&gt; *
+<span class="lineNum">       7 </span>            : //                  Ivan Kisel &lt;kisel@kip.uni-heidelberg.de&gt;                *
+<span class="lineNum">       8 </span>            : //                  for The ALICE HLT Project.                              *
+<span class="lineNum">       9 </span>            : //                                                                          *
+<span class="lineNum">      10 </span>            : // Permission to use, copy, modify and distribute this software and its     *
+<span class="lineNum">      11 </span>            : // documentation strictly for non-commercial purposes is hereby granted     *
+<span class="lineNum">      12 </span>            : // without fee, provided that the above copyright notice appears in all     *
+<span class="lineNum">      13 </span>            : // copies and that both the copyright notice and this permission notice     *
+<span class="lineNum">      14 </span>            : // appear in the supporting documentation. The authors make no claims       *
+<span class="lineNum">      15 </span>            : // about the suitability of this software for any purpose. It is            *
+<span class="lineNum">      16 </span>            : // provided &quot;as is&quot; without express or implied warranty.                    *
+<span class="lineNum">      17 </span>            : //                                                                          *
+<span class="lineNum">      18 </span>            : //***************************************************************************
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;AliHLTTPCCADef.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;AliHLTTPCCAGPUConfig.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;AliHLTTPCCATrackerFramework.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliHLTTPCCAGPUTracker.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;AliHLTTPCCATracker.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;AliHLTTPCCAMath.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliHLTTPCCAClusterData.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #ifdef R__WIN32
+<span class="lineNum">      29 </span>            : #include &lt;windows.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;winbase.h&gt;
+<span class="lineNum">      31 </span>            : #else
+<span class="lineNum">      32 </span>            : #include &lt;dlfcn.h&gt;
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">      36 </span>            : #include &lt;omp.h&gt;
+<a name="37"><span class="lineNum">      37 </span>            : #endif</a>
+<span class="lineNum">      38 </span>            : 
+<a name="39"><span class="lineNum">      39 </span><span class="lineCov">          6 : ClassImp( AliHLTTPCCATrackerFramework )</span></a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span>            :         //Initialize GPU Tracker and determine if GPU available
+<span class="lineNum">      44 </span>            :         int retVal;
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :         if (!fGPULibAvailable)</span>
+<span class="lineNum">      46 </span>            :         {
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :                 HLTError(&quot;GPU Library not loaded\n&quot;);</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :                 return(1);</span>
+<span class="lineNum">      49 </span>            :         }
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :         if (fGPUTrackerAvailable &amp;&amp; (retVal = ExitGPU())) return(retVal);</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :         retVal = fGPUTracker-&gt;InitGPU(sliceCount, forceDeviceID);</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :         fUseGPUTracker = fGPUTrackerAvailable = retVal == 0;</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         return(retVal);</span>
+<a name="54"><span class="lineNum">      54 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : int AliHLTTPCCATrackerFramework::ExitGPU()
+<span class="lineNum">      57 </span>            : {
+<span class="lineNum">      58 </span>            :         //Uninitialize GPU Tracker
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :         if (!fGPUTrackerAvailable) return(0);</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         fUseGPUTracker = false;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         fGPUTrackerAvailable = false;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :         return(fGPUTracker-&gt;ExitGPU());</span>
+<a name="63"><span class="lineNum">      63 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : void AliHLTTPCCATrackerFramework::SetGPUDebugLevel(int Level, std::ostream *OutFile, std::ostream *GPUOutFile)
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :         //Set Debug Level for GPU Tracker and also for CPU Tracker for comparison reasons
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         fGPUTracker-&gt;SetDebugLevel(Level, GPUOutFile);</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         fGPUDebugLevel = Level;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         for (int i = 0;i &lt; fgkNSlices;i++)</span>
+<span class="lineNum">      71 </span>            :         {
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :                 fCPUTrackers[i].SetGPUDebugLevel(Level, OutFile);</span>
+<span class="lineNum">      73 </span>            :         }
+<a name="74"><span class="lineNum">      74 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : int AliHLTTPCCATrackerFramework::SetGPUTracker(bool enable)
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :         //Enable / disable GPU Tracker
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         if (enable &amp;&amp; !fGPUTrackerAvailable)</span>
+<span class="lineNum">      80 </span>            :         {
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :                 fUseGPUTracker = false;</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :                 return(1);</span>
+<span class="lineNum">      83 </span>            :         }
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         fUseGPUTracker = enable;</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         return(0);</span>
+<a name="86"><span class="lineNum">      86 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val)
+<span class="lineNum">      89 </span>            : {
+<span class="lineNum">      90 </span>            :         //Set Output Control Pointers
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :         fOutputControl = val;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         fGPUTracker-&gt;SetOutputControl(val);</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         for (int i = 0;i &lt; fgkNSlices;i++)</span>
+<span class="lineNum">      94 </span>            :         {
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :                 fCPUTrackers[i].SetOutputControl(val);</span>
+<span class="lineNum">      96 </span>            :         }
+<a name="97"><span class="lineNum">      97 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         int useGlobalTracking = fGlobalTracking;</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         if (fGlobalTracking &amp;&amp; (firstSlice || sliceCount != fgkNSlices))</span>
+<span class="lineNum">     103 </span>            :         {
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :                 HLTWarning(&quot;Global Tracking only available if all slices are processed!&quot;);</span>
+<span class="lineNum">     105 </span>            :                 useGlobalTracking = 0;
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            :         //Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         if (fUseGPUTracker)</span>
+<span class="lineNum">     110 </span>            :         {
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :                 if (fGPUTracker-&gt;Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice))) return(1);</span>
+<span class="lineNum">     112 </span>            :         }
+<span class="lineNum">     113 </span>            :         else
+<span class="lineNum">     114 </span>            :         {
+<span class="lineNum">     115 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">     116 </span>            :                 if (fOutputControl-&gt;fOutputPtr &amp;&amp; omp_get_max_threads() &gt; 1)
+<span class="lineNum">     117 </span>            :                 {
+<span class="lineNum">     118 </span>            :                         HLTError(&quot;fOutputPtr must not be used with OpenMP\n&quot;);
+<span class="lineNum">     119 </span>            :                         return(1);
+<span class="lineNum">     120 </span>            :                 }
+<span class="lineNum">     121 </span>            :                 int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : #pragma omp parallel for
+<span class="lineNum">     124 </span>            : #endif
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 for (int iSlice = 0;iSlice &lt; CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)</span>
+<span class="lineNum">     126 </span>            :                 {
+<span class="lineNum">     127 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">     128 </span>            :                         fCPUTrackers[firstSlice + iSlice].StandalonePerfTime(0);
+<span class="lineNum">     129 </span>            : #endif
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :                         fCPUTrackers[firstSlice + iSlice].ReadEvent(&amp;pClusterData[iSlice]);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                         fCPUTrackers[firstSlice + iSlice].SetOutput(&amp;pOutput[iSlice]);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                         fCPUTrackers[firstSlice + iSlice].Reconstruct();</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :                         fCPUTrackers[firstSlice + iSlice].CommonMemory()-&gt;fNLocalTracks = fCPUTrackers[firstSlice + iSlice].CommonMemory()-&gt;fNTracks;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                         fCPUTrackers[firstSlice + iSlice].CommonMemory()-&gt;fNLocalTrackHits = fCPUTrackers[firstSlice + iSlice].CommonMemory()-&gt;fNTrackHits;</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :                         if (!useGlobalTracking)</span>
+<span class="lineNum">     136 </span>            :                         {
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :                                 fCPUTrackers[firstSlice + iSlice].ReconstructOutput();</span>
+<span class="lineNum">     138 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">     139 </span>            :                                 nOutputTracks += (*fCPUTrackers[firstSlice + iSlice].Output())-&gt;NTracks();
+<span class="lineNum">     140 </span>            :                                 nLocalTracks += fCPUTrackers[firstSlice + iSlice].CommonMemory()-&gt;fNTracks;
+<span class="lineNum">     141 </span>            : #endif
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :                                 if (!fKeepData)</span>
+<span class="lineNum">     143 </span>            :                                 {
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                                         fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                                 }</span>
+<span class="lineNum">     146 </span>            :                         }
+<span class="lineNum">     147 </span>            :                 }
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :                 if (useGlobalTracking)</span>
+<span class="lineNum">     150 </span>            :                 {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                         for (int iSlice = 0;iSlice &lt; CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)</span>
+<span class="lineNum">     152 </span>            :                         {
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                                 int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                                 int sliceRight = (iSlice + 1) % (fgkNSlices / 2);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                                 if (iSlice &gt;= fgkNSlices / 2)</span>
+<span class="lineNum">     156 </span>            :                                 {
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                                         sliceLeft += fgkNSlices / 2;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                                         sliceRight += fgkNSlices / 2;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                                 }</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                                 fCPUTrackers[iSlice].PerformGlobalTracking(fCPUTrackers[sliceLeft], fCPUTrackers[sliceRight], CAMath::Min(fCPUTrackers[sliceLeft].CommonMemory()-&gt;fNTracklets, fCPUTrackers[sliceRight].CommonMemory()-&gt;fNTracklets) * 2);</span>
+<span class="lineNum">     161 </span>            :                         }
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                         for (int iSlice = 0;iSlice &lt; CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)</span>
+<span class="lineNum">     163 </span>            :                         {
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                                 fCPUTrackers[firstSlice + iSlice].ReconstructOutput();</span>
+<span class="lineNum">     165 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">     166 </span>            :                                 //printf(&quot;Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n&quot;, iSlice, fCPUTrackers[iSlice].CommonMemory()-&gt;fNLocalTracks, fCPUTrackers[iSlice].CommonMemory()-&gt;fNTracks, fCPUTrackers[iSlice].CommonMemory()-&gt;fNLocalTrackHits, fCPUTrackers[iSlice].CommonMemory()-&gt;fNTrackHits);
+<span class="lineNum">     167 </span>            :                                 nLocalTracks += fCPUTrackers[iSlice].CommonMemory()-&gt;fNLocalTracks;
+<span class="lineNum">     168 </span>            :                                 nGlobalTracks += fCPUTrackers[iSlice].CommonMemory()-&gt;fNTracks;
+<span class="lineNum">     169 </span>            :                                 nLocalHits += fCPUTrackers[iSlice].CommonMemory()-&gt;fNLocalTrackHits;
+<span class="lineNum">     170 </span>            :                                 nGlobalHits += fCPUTrackers[iSlice].CommonMemory()-&gt;fNTrackHits;
+<span class="lineNum">     171 </span>            :                                 nOutputTracks += (*fCPUTrackers[iSlice].Output())-&gt;NTracks();
+<span class="lineNum">     172 </span>            : #endif
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                                 if (!fKeepData)</span>
+<span class="lineNum">     174 </span>            :                                 {
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                                         fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                                 }</span>
+<span class="lineNum">     177 </span>            :                         }
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     179 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">     180 </span>            :                 //printf(&quot;Slice Tracks Output %d: - Tracks: %d local, %d global -  Hits: %d local, %d global\n&quot;, nOutputTracks, nLocalTracks, nGlobalTracks, nLocalHits, nGlobalHits);
+<span class="lineNum">     181 </span>            :                 /*for (int i = firstSlice;i &lt; firstSlice + sliceCount;i++)
+<span class="lineNum">     182 </span>            :                 {
+<span class="lineNum">     183 </span>            :                         fCPUTrackers[i].DumpOutput(stdout);
+<span class="lineNum">     184 </span>            :                 }*/
+<span class="lineNum">     185 </span>            : #endif
+<span class="lineNum">     186 </span>            :         }
+<span class="lineNum">     187 </span>            :         
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         if (fGPUDebugLevel &gt;= 6 &amp;&amp; fUseGPUTracker)</span>
+<span class="lineNum">     189 </span>            :         {
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :             fUseGPUTracker = 0;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             ProcessSlices(firstSlice, sliceCount, pClusterData, pOutput);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             fUseGPUTracker = 1;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         return(0);</span>
+<a name="196"><span class="lineNum">     196 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : unsigned long long int* AliHLTTPCCATrackerFramework::PerfTimer(int GPU, int iSlice, int iTimer)
+<span class="lineNum">     199 </span>            : {
+<span class="lineNum">     200 </span>            :         //Performance information for slice trackers
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         return(GPU ? fGPUTracker-&gt;PerfTimer(iSlice, iTimer) : fCPUTrackers[iSlice].PerfTimer(iTimer));</span>
+<a name="202"><span class="lineNum">     202 </span>            : }</a>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &amp;param)
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span>            :         //Initialize Tracker Parameters for a slice
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         if (fGPUTrackerAvailable &amp;&amp; fGPUTracker-&gt;InitializeSliceParam(iSlice, param)) return(1);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         fCPUTrackers[iSlice].Initialize(param);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         return(0);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            : #ifdef HLTCA_STANDALONE
+<span class="lineNum">     213 </span>            : #define GPULIBNAME &quot;libAliHLTTPCCAGPUSA&quot;
+<span class="lineNum">     214 </span>            : #else
+<span class="lineNum">     215 </span>            : #define GPULIBNAME &quot;libAliHLTTPCCAGPU&quot;
+<a name="216"><span class="lineNum">     216 </span>            : #endif</a>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 : AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const char* GPU_Library, int GPUDeviceNum) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     220 </span>            :         //Constructor
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         if (GPU_Library &amp;&amp; !GPU_Library[0]) GPU_Library = NULL;</span>
+<span class="lineNum">     222 </span>            : #ifdef R__WIN32
+<span class="lineNum">     223 </span>            :         HMODULE hGPULib = LoadLibraryEx(GPU_Library == NULL ? (GPULIBNAME &quot;.dll&quot;) : GPU_Library, NULL, NULL);
+<span class="lineNum">     224 </span>            : #else
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         void* hGPULib = dlopen(GPU_Library == NULL ? (GPULIBNAME &quot;.so&quot;) : GPU_Library, RTLD_NOW);</span>
+<span class="lineNum">     226 </span>            : #endif
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         if (hGPULib == NULL)</span>
+<span class="lineNum">     228 </span>            :         {
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                 if (allowGPU)</span>
+<span class="lineNum">     230 </span>            :                 {
+<span class="lineNum">     231 </span>            :                         #ifndef R__WIN32
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                                 HLTImportant(&quot;The following error occured during dlopen: %s&quot;, dlerror());</span>
+<span class="lineNum">     233 </span>            :                         #endif
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                         HLTError(&quot;Error Opening cagpu library for GPU Tracker (%s), will fallback to CPU&quot;, GPU_Library == NULL ? &quot;default: &quot; GPULIBNAME : GPU_Library);</span>
+<span class="lineNum">     235 </span>            :                 }
+<span class="lineNum">     236 </span>            :                 else
+<span class="lineNum">     237 </span>            :                 {
+<span class="lineNum">     238 </span>            :                         HLTDebug(&quot;Cagpu library was not found, Tracking on GPU will not be available&quot;);
+<span class="lineNum">     239 </span>            :                 }
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 fGPUTracker = new AliHLTTPCCAGPUTracker;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     242 </span>            :         else
+<span class="lineNum">     243 </span>            :         {
+<span class="lineNum">     244 </span>            : #ifdef R__WIN32
+<span class="lineNum">     245 </span>            :                 FARPROC createFunc = GetProcAddress(hGPULib, &quot;AliHLTTPCCAGPUTrackerNVCCCreate&quot;);
+<span class="lineNum">     246 </span>            : #else
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                 void* createFunc = (void*) dlsym(hGPULib, &quot;AliHLTTPCCAGPUTrackerNVCCCreate&quot;);</span>
+<span class="lineNum">     248 </span>            : #endif
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                 if (createFunc == NULL)</span>
+<span class="lineNum">     250 </span>            :                 {
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                         HLTError(&quot;Error Creating GPU Tracker\n&quot;);</span>
+<span class="lineNum">     252 </span>            : #ifdef R__WIN32
+<span class="lineNum">     253 </span>            :                         FreeLibrary(hGPULib);
+<span class="lineNum">     254 </span>            : #else
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                         dlclose(hGPULib);</span>
+<span class="lineNum">     256 </span>            : #endif
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                         fGPUTracker = new AliHLTTPCCAGPUTracker;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     259 </span>            :                 else
+<span class="lineNum">     260 </span>            :                 {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :                         AliHLTTPCCAGPUTracker* (*tmp)() = (AliHLTTPCCAGPUTracker* (*)()) createFunc;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                         fGPUTracker = tmp();</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                         fGPULibAvailable = true;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :                         fGPULib = (void*) (size_t) hGPULib;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                         HLTInfo(&quot;GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)&quot;, allowGPU ? &quot;&quot; : &quot;in&quot;);</span>
+<span class="lineNum">     266 </span>            :                 }
+<span class="lineNum">     267 </span>            :         }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         if (allowGPU &amp;&amp; fGPULibAvailable)</span>
+<span class="lineNum">     270 </span>            :         {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                 fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker-&gt;InitGPU(-1, GPUDeviceNum) == 0));</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 if(fUseGPUTracker)</span>
+<span class="lineNum">     273 </span>            :                 {
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                   HLTInfo(&quot;GPU Tracker Initialized and available in framework&quot;);</span>
+<span class="lineNum">     275 </span>            :                 }
+<span class="lineNum">     276 </span>            :                 else
+<span class="lineNum">     277 </span>            :                 {
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :                   HLTError(&quot;GPU Tracker NOT Initialized and NOT available in framework&quot;);</span>
+<span class="lineNum">     279 </span>            :                 }
+<span class="lineNum">     280 </span>            :         }
+<a name="281"><span class="lineNum">     281 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     285 </span>            : #ifdef R__WIN32
+<span class="lineNum">     286 </span>            :         HMODULE hGPULib = (HMODULE) (size_t) fGPULib;
+<span class="lineNum">     287 </span>            : #else
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         void* hGPULib = fGPULib;</span>
+<span class="lineNum">     289 </span>            : #endif
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         if (fGPULib)</span>
+<span class="lineNum">     291 </span>            :         {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 if (fGPUTracker)</span>
+<span class="lineNum">     293 </span>            :                 {
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :                         ExitGPU();</span>
+<span class="lineNum">     295 </span>            : #ifdef R__WIN32
+<span class="lineNum">     296 </span>            :                         FARPROC destroyFunc = GetProcAddress(hGPULib, &quot;AliHLTTPCCAGPUTrackerNVCCDestroy&quot;);
+<span class="lineNum">     297 </span>            : #else
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                         void* destroyFunc = (void*) dlsym(hGPULib, &quot;AliHLTTPCCAGPUTrackerNVCCDestroy&quot;);</span>
+<span class="lineNum">     299 </span>            : #endif
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                         if (destroyFunc == NULL)</span>
+<span class="lineNum">     301 </span>            :                         {
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                                 HLTError(&quot;Error Freeing GPU Tracker\n&quot;);</span>
+<span class="lineNum">     303 </span>            :                         }
+<span class="lineNum">     304 </span>            :                         else
+<span class="lineNum">     305 </span>            :                         {
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                                 void (*tmp)(AliHLTTPCCAGPUTracker*) =  (void (*)(AliHLTTPCCAGPUTracker*)) destroyFunc;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                                 tmp(fGPUTracker);</span>
+<span class="lineNum">     308 </span>            :                         }
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            : #ifdef R__WIN32
+<span class="lineNum">     312 </span>            :                 FreeLibrary(hGPULib);
+<span class="lineNum">     313 </span>            : #else
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                 dlclose(hGPULib);</span>
+<span class="lineNum">     315 </span>            : #endif
+<span class="lineNum">     316 </span>            :         }
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         else if (fGPUTracker)</span>
+<span class="lineNum">     318 </span>            :         {
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 delete fGPUTracker;</span>
+<span class="lineNum">     320 </span>            :         }
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         fGPULib = NULL;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         fGPUTracker = NULL;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

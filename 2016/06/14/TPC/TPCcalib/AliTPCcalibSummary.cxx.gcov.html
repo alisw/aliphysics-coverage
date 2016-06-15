@@ -1,0 +1,1562 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - TPC/TPCcalib/AliTPCcalibSummary.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">TPC/TPCcalib</a> - AliTPCcalibSummary.cxx<span style="font-size: 80%;"> (source / <a href="AliTPCcalibSummary.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">935</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            : // Make a summary information of calibration.
+<span class="lineNum">       3 </span>            : // Store results in the summary trees
+<span class="lineNum">       4 </span>            : // OCDB configuration
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : Example usage:
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : gSystem-&gt;Load(&quot;libANALYSIS&quot;);
+<span class="lineNum">       9 </span>            : gSystem-&gt;Load(&quot;libTPCcalib&quot;);
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : Int_t irun=119037;
+<span class="lineNum">      12 </span>            : gROOT-&gt;LoadMacro(&quot;$ALICE_ROOT/TPC/scripts/OCDBscan/ConfigOCDB.C&quot;);
+<span class="lineNum">      13 </span>            : ConfigOCDB(irun)
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : AliTPCcalibSummary *calibSummary = new AliTPCcalibSummary;
+<span class="lineNum">      16 </span>            : calibSummary-&gt;ProcessRun(irun);
+<span class="lineNum">      17 </span>            : delete calibSummary;
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      23 </span>            : #include &lt;fstream&gt;
+<span class="lineNum">      24 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;AliCDBManager.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;AliCDBEntry.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;AliLog.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;AliMagF.h&gt;
+<span class="lineNum">      29 </span>            : #include &quot;AliTPCcalibDB.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliTPCcalibDButil.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliTPCAltroMapping.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliTPCExB.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliTPCCalROC.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliTPCCalPad.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliTPCSensorTempArray.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliGRPObject.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliTPCTransform.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;TFile.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;TKey.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;TObjArray.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;TObjString.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;TString.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;AliTPCCalPad.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;AliTPCROC.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;AliTPCParam.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;AliTPCCalibPulser.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;AliTPCCalibPedestal.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;AliTPCCalibCE.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;AliTPCExBFirst.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;TTreeStream.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;AliTPCTempMap.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;TVectorD.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;TMatrixD.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;AliTPCCalibRaw.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;AliSplineFit.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;TGraphErrors.h&quot;
+<span class="lineNum">      57 </span>            : #include &lt;AliCTPTimeParams.h&gt;
+<span class="lineNum">      58 </span>            : #include &lt;AliTPCcalibSummary.h&gt;
+<span class="lineNum">      59 </span>            : #include &lt;TStatToolkit.h&gt;
+<span class="lineNum">      60 </span>            : #include &lt;TCut.h&gt; 
+<span class="lineNum">      61 </span>            : #include &quot;AliTPCCalibGlobalMisalignment.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;AliTPCExBTwist.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;AliTPCComposedCorrection.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;AliLHCData.h&quot;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : //
+<a name="67"><span class="lineNum">      67 </span>            : //</a>
+<span class="lineNum">      68 </span>            : //
+<span class="lineNum">      69 </span>            : AliTPCcalibSummary::AliTPCcalibSummary():
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :   TNamed(),</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   fCalibDB(0),</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   fDButil(0),</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   fPcstream(0)</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      75 </span>            :   //
+<span class="lineNum">      76 </span>            :   // default constructor
+<span class="lineNum">      77 </span>            :   // OCDB have to be setupe before - not part of class
+<span class="lineNum">      78 </span>            :   // usualy ConfigOCDB.C macro used
+<span class="lineNum">      79 </span>            :   // 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   fPcstream = new TTreeSRedirector(&quot;dcsTime.root&quot;);</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   fCalibDB = AliTPCcalibDB::Instance();</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   fDButil= new AliTPCcalibDButil;</span>
+<a name="83"><span class="lineNum">      83 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 : AliTPCcalibSummary::~AliTPCcalibSummary(){</span>
+<span class="lineNum">      86 </span>            :   //
+<span class="lineNum">      87 </span>            :   // destructor  - close streamer
+<span class="lineNum">      88 </span>            :   //
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   delete fPcstream;  </span>
+<a name="90"><span class="lineNum">      90 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : void AliTPCcalibSummary::Process(const char * runList, Int_t first, Int_t last){
+<span class="lineNum">      93 </span>            :   //
+<span class="lineNum">      94 </span>            :   // runList - listOfRuns to process
+<span class="lineNum">      95 </span>            :   // first   - first run to process
+<span class="lineNum">      96 </span>            :   // last    - last  to process
+<span class="lineNum">      97 </span>            :   // 
+<span class="lineNum">      98 </span>            :   //
+<span class="lineNum">      99 </span>            :   // make list of runs
+<span class="lineNum">     100 </span>            :   //
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :   ifstream inputFile;</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   inputFile.open(&quot;run.list&quot;);</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   Int_t irun=0;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   TArrayI runArray(100000);</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   Int_t indexes[100000];</span>
+<span class="lineNum">     107 </span>            :   Int_t nruns=0;
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :   printf(&quot;Runs to process:\n&quot;);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   if (!inputFile.is_open()) { </span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     printf(&quot;Problem to open file %s\n&quot;,runList);</span>
+<span class="lineNum">     111 </span>            :   }
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   while( inputFile.good() ) {</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     inputFile &gt;&gt; irun;</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     printf(&quot;Run \t%d\n&quot;,irun);</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     if (irun&lt;first) continue;  // process only subset of list</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     if (last&gt;0 &amp;&amp; irun&gt;last) continue;  // process only subset of list</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     runArray[nruns]=irun;</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     nruns++;</span>
+<span class="lineNum">     119 </span>            :   }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   TMath::Sort(nruns, runArray.fArray, indexes,kFALSE);</span>
+<span class="lineNum">     123 </span>            :   Int_t startTime = 0;
+<span class="lineNum">     124 </span>            :   Int_t endTime   = 0;
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   for (Int_t run=0; run&lt;nruns; run++){</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     irun=runArray[indexes[run]];</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     printf(&quot;Processing run %d ...\n&quot;,irun);</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     fCalibDB-&gt;SetRun(irun);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     fDButil-&gt;UpdateFromCalibDB();</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     fDButil-&gt;SetReferenceRun(irun);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     fDButil-&gt;UpdateRefDataFromOCDB();</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     fCalibDB-&gt;CreateGUITree(&quot;calPads.root&quot;);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     fDButil-&gt;CreateGUIRefTree(&quot;calPadsRef.root&quot;);</span>
+<span class="lineNum">     134 </span>            :     //
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     AliDCSSensorArray *arrHV=fCalibDB-&gt;GetVoltageSensors(irun);</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     if (!arrHV) continue;</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     for  (Int_t isenHV=0; isenHV&lt;arrHV-&gt;NumSensors(); ++isenHV){</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :       AliDCSSensor *senHV=arrHV-&gt;GetSensorNum(isenHV);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :       if (!senHV) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         printf(&quot;Not interesting OCDB info\n&quot;);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     142 </span>            :       }
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :       startTime=senHV-&gt;GetStartTime();</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :       endTime  =senHV-&gt;GetEndTime();</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :       if (startTime&gt;0&amp;&amp;endTime&gt;0) break;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     AliDCSSensorArray* goofieArray = fCalibDB-&gt;GetGoofieSensors(irun);       </span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     if (goofieArray) fDButil-&gt;FilterGoofie(goofieArray,0.5,4.,4,10,fPcstream);</span>
+<span class="lineNum">     149 </span>            :     // don't filter goofie for the moment
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     ProcessRun(irun, startTime,endTime);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 : }</span>
+<a name="153"><span class="lineNum">     153 </span>            : </a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : void AliTPCcalibSummary::ProcessRun(Int_t irun, Int_t startTime, Int_t endTime){
+<span class="lineNum">     156 </span>            :   //
+<span class="lineNum">     157 </span>            :   // Process run irun
+<span class="lineNum">     158 </span>            :   // 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   fCalibDB-&gt;SetRun(irun);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   fDButil-&gt;UpdateFromCalibDB();</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   fDButil-&gt;SetReferenceRun(irun);</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   fDButil-&gt;UpdateRefDataFromOCDB();</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   fCalibDB-&gt;CreateGUITree(&quot;calPads.root&quot;);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   fDButil-&gt;CreateGUIRefTree(&quot;calPadsRef.root&quot;);</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            :   //
+<span class="lineNum">     167 </span>            :   AliSplineFit *fitVdrift=0x0;
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   Int_t startTimeGRP=0, stopTimeGRP=0;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   if (fCalibDB-&gt;GetGRP(irun)){</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     startTimeGRP = AliTPCcalibDB::GetGRP(irun)-&gt;GetTimeStart();</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     stopTimeGRP  = AliTPCcalibDB::GetGRP(irun)-&gt;GetTimeEnd();</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   if (startTime==0){</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     startTime=startTimeGRP;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     endTime=stopTimeGRP;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   AliTPCSensorTempArray * tempArray = fCalibDB-&gt;GetTemperatureSensor(irun);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   AliTPCTempMap * tempMap = new AliTPCTempMap(tempArray);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   AliDCSSensorArray* goofieArray = fCalibDB-&gt;GetGoofieSensors(irun);</span>
+<span class="lineNum">     180 </span>            :   //
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   Int_t dtime = TMath::Max((endTime-startTime)/20,10);</span>
+<span class="lineNum">     182 </span>            :   //
+<span class="lineNum">     183 </span>            :   //Goofie statistical data
+<span class="lineNum">     184 </span>            :   //
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   TVectorD vecEntries, vecMean, vecMedian,vecRMS;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessGoofie(vecEntries ,vecMedian, vecMean, vecRMS);</span>
+<span class="lineNum">     187 </span>            :   //
+<span class="lineNum">     188 </span>            :   //CE data processing - see ProcessCEdata function for description of the results
+<span class="lineNum">     189 </span>            :   //
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   TVectorD fitResultsA, fitResultsC;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   Int_t nmaskedCE;</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   Double_t chi2ACE=0,chi2CCE=0;</span>
+<span class="lineNum">     193 </span>            :   //     fDButil-&gt;ProcessCEdata(&quot;(sector&lt;36)++gx++gy++lx++lx**2&quot;,fitResultsA,fitResultsC,nmaskedCE);
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessCEdata(&quot;(sector&lt;36)++gx++gy++(lx-134)++(sector&lt;36)*(lx-134)++(ly/lx)^2&quot;,fitResultsA,fitResultsC,nmaskedCE,chi2ACE,chi2CCE);</span>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   TVectorD fitCEResultsA(7), fitCEResultsC(7);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   Int_t    noutCE;</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   Double_t chi2CEA=0,chi2CEC=0;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   AliTPCCalPad *time0 = fDButil-&gt;CreatePadTime0CE(fitCEResultsA, fitCEResultsC, noutCE, chi2CEA, chi2CEC);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   delete time0;</span>
+<span class="lineNum">     201 </span>            :   //  
+<span class="lineNum">     202 </span>            :   //
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :   TVectorD vecTEntries, vecTMean, vecTRMS, vecTMedian, vecQEntries, vecQMean, vecQRMS, vecQMedian;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   Float_t driftTimeA, driftTimeC;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessCEgraphs(vecTEntries, vecTMean, vecTRMS, vecTMedian,</span>
+<span class="lineNum">     206 </span>            :                           vecQEntries, vecQMean, vecQRMS, vecQMedian,
+<span class="lineNum">     207 </span>            :                           driftTimeA, driftTimeC );
+<span class="lineNum">     208 </span>            :   //
+<span class="lineNum">     209 </span>            :   //
+<span class="lineNum">     210 </span>            :   //
+<span class="lineNum">     211 </span>            :   //drift velocity using tracks
+<span class="lineNum">     212 </span>            :   //
+<span class="lineNum">     213 </span>            :   //     fitVdrift=fCalibDB-&gt;GetVdriftSplineFit(&quot;ALISPLINEFIT_MEAN_VDRIFT_COSMICS_ALL&quot;,irun);
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   fitVdrift=fCalibDB-&gt;CreateVdriftSplineFit(&quot;TGRAPHERRORS_MEAN_VDRIFT_COSMICS_ALL&quot;,irun);</span>
+<span class="lineNum">     215 </span>            :   //noise data Processing - see ProcessNoiseData function for description of the results
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   TVectorD vNoiseMean, vNoiseMeanSenRegions, vNoiseRMS, vNoiseRMSSenRegions;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   Int_t nonMaskedZero=0, nNaN=0;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessNoiseData(vNoiseMean, vNoiseMeanSenRegions, vNoiseRMS, vNoiseRMSSenRegions, nonMaskedZero, nNaN);</span>
+<span class="lineNum">     219 </span>            :   //
+<span class="lineNum">     220 </span>            :   // comparisons
+<span class="lineNum">     221 </span>            :   //
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   TVectorF pedestalDeviations;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   TVectorF noiseDeviations;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   TVectorF pulserQdeviations;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   Float_t varQMean;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   Int_t npadsOutOneTB;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   Int_t npadsOffAdd;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessPedestalVariations(pedestalDeviations);</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessNoiseVariations(noiseDeviations);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessPulserVariations(pulserQdeviations,varQMean,npadsOutOneTB,npadsOffAdd);</span>
+<span class="lineNum">     231 </span>            :   //
+<span class="lineNum">     232 </span>            :   //L3 data 
+<span class="lineNum">     233 </span>            :   //
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   Float_t bz=AliTPCcalibDB::GetBz(irun);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   Char_t  l3pol=AliTPCcalibDB::GetL3Polarity(irun);</span>
+<span class="lineNum">     236 </span>            :   //
+<span class="lineNum">     237 </span>            :   //QA data processing
+<span class="lineNum">     238 </span>            :   //
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   TVectorD vQaOcc;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   TVectorD vQaQtot;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   TVectorD vQaQmax;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessQAData(vQaOcc, vQaQtot, vQaQmax);</span>
+<span class="lineNum">     243 </span>            :   //
+<span class="lineNum">     244 </span>            :   //calibration Pulser data processing
+<span class="lineNum">     245 </span>            :   //
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   Int_t nOffChannels=0;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   TVectorD vTimePulser;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   nOffChannels=fDButil-&gt;GetNPulserOutliers();</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessPulser(vTimePulser);</span>
+<span class="lineNum">     250 </span>            :   //
+<span class="lineNum">     251 </span>            :   //ALTRO data
+<span class="lineNum">     252 </span>            :   //
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   Int_t nMasked=0;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   fDButil-&gt;ProcessALTROConfig(nMasked);</span>
+<span class="lineNum">     255 </span>            :   //
+<span class="lineNum">     256 </span>            :   //Calib RAW data
+<span class="lineNum">     257 </span>            :   //
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   Int_t nFailL1=-1;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   if (fCalibDB-&gt;GetCalibRaw()) nFailL1=fCalibDB-&gt;GetCalibRaw()-&gt;GetNFailL1Phase();</span>
+<span class="lineNum">     260 </span>            :   //
+<span class="lineNum">     261 </span>            :   //production information
+<span class="lineNum">     262 </span>            :   //
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   Int_t nalien=0,nRawAlien=0,nlocal=0,nRawLocal=0;</span>
+<span class="lineNum">     264 </span>            :   //run type
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   TObjString runType(AliTPCcalibDB::GetRunType(irun).Data());</span>
+<span class="lineNum">     266 </span>            :   // ===| LHC data |===========================================================
+<span class="lineNum">     267 </span>            :   //
+<span class="lineNum">     268 </span>            :   //
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   TVectorF vecMeanLHCBckgAlice(AliLHCData::kNBGs);</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   GetAverageLHCData(vecMeanLHCBckgAlice);</span>
+<span class="lineNum">     271 </span>            :   //
+<span class="lineNum">     272 </span>            :   //
+<span class="lineNum">     273 </span>            :   //
+<span class="lineNum">     274 </span>            :   
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   for (Int_t itime=startTime; itime&lt;endTime; itime+=dtime){</span>
+<span class="lineNum">     276 </span>            :     //
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     TTimeStamp tstamp(itime);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     Float_t valuePressure  = fCalibDB-&gt;GetPressure(tstamp,irun,0);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     Float_t valuePressure2 = fCalibDB-&gt;GetPressure(tstamp,irun,1);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     Double_t ptrelative0 = AliTPCcalibDB::GetPTRelative((UInt_t)itime,irun,0);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     Double_t ptrelative1 = AliTPCcalibDB::GetPTRelative((UInt_t)itime,irun,1);</span>
+<span class="lineNum">     282 </span>            :     //temperature fits
+<span class="lineNum">     283 </span>            :     TLinearFitter * fitter = 0;
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     TVectorD vecTemp[10];</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     for (Int_t itype=0; itype&lt;5; itype++)</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :       for (Int_t iside=0; iside&lt;2; iside++){</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         fitter= tempMap-&gt;GetLinearFitter(itype,iside,tstamp);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         if (!fitter) continue;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :         fitter-&gt;Eval();</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         fitter-&gt;GetParameters(vecTemp[itype+iside*5]);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         delete fitter;</span>
+<span class="lineNum">     292 </span>            :       }
+<span class="lineNum">     293 </span>            :     //
+<span class="lineNum">     294 </span>            :     //measured skirt temperatures
+<span class="lineNum">     295 </span>            :     //
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     TVectorD vecSkirtTempA(18);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     TVectorD vecSkirtTempC(18);</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     Int_t nsenTemp=tempArray-&gt;NumSensors();</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     for (Int_t isenTemp=0;isenTemp&lt;nsenTemp;++isenTemp){</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :       AliTPCSensorTemp *senTemp=(AliTPCSensorTemp*)tempArray-&gt;GetSensorNum(isenTemp);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :       if (senTemp-&gt;GetType()!=3) continue;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :       if (TMath::Sqrt(senTemp-&gt;GetX()*senTemp-&gt;GetX()+senTemp-&gt;GetY()*senTemp-&gt;GetY())&lt;100) continue; //only skirt, outer FC vessel</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :       Double_t val=senTemp-&gt;GetValue(tstamp);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       if (senTemp-&gt;GetSide()==0)</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         vecSkirtTempA[senTemp-&gt;GetSector()]=val;</span>
+<span class="lineNum">     306 </span>            :       else
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         vecSkirtTempC[senTemp-&gt;GetSector()]=val;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     309 </span>            :     //
+<span class="lineNum">     310 </span>            :     //goofie data
+<span class="lineNum">     311 </span>            :     //
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     TVectorD vecGoofie; </span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     if (goofieArray){</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :       vecGoofie.ResizeTo(goofieArray-&gt;NumSensors());</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :       for (Int_t isensor=0; isensor&lt;goofieArray-&gt;NumSensors();isensor++){</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         AliDCSSensor *gsensor = goofieArray-&gt;GetSensor(isensor);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         if (gsensor){</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :           vecGoofie[isensor] = gsensor-&gt;GetValue(tstamp);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     320 </span>            :       }
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :       vecGoofie.ResizeTo(19);</span>
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            :     //
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     static TVectorF voltagesIROC(36);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     static TVectorF voltagesIROCMedian(36);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     static TVectorF voltagesIROCNominal(36);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     static TVectorF voltagesIROCCurrentNominal(36);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     static TVectorF voltagesIROCStatus(36);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     static TVectorF voltagesIROCGoodFraction(36);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     static TVectorF gainCorrIROCHVandPT(36);</span>
+<span class="lineNum">     332 </span>            :     //
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     static TVectorF voltagesOROC(36);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     static TVectorF voltagesOROCMedian(36);</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     static TVectorF voltagesOROCNominal(36);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     static TVectorF voltagesOROCCurrentNominal(36);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     static TVectorF voltagesOROCStatus(36);</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     static TVectorF voltagesOROCGoodFraction(36);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     static TVectorF gainCorrOROCHVandPT(36);</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     for(Int_t j=0; j&lt;36; j++){</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :       voltagesIROC[j]               = fCalibDB-&gt;GetChamberHighVoltage(irun, j,itime);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :       voltagesIROCMedian[j]         = fCalibDB-&gt;GetChamberHighVoltageMedian(j);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :       voltagesIROCNominal[j]        = fCalibDB-&gt;GetParameters()-&gt;GetNominalVoltage(j);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :       voltagesIROCCurrentNominal[j] = fCalibDB-&gt;GetChamberCurrentNominalHighVoltage(j);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :       voltagesIROCStatus[j]         = fCalibDB-&gt;GetChamberHVStatus(j);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :       voltagesIROCGoodFraction[j]   = fCalibDB-&gt;GetChamberGoodHighVoltageFraction(j);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :       gainCorrIROCHVandPT[j]        = fCalibDB-&gt;GetGainCorrectionHVandPT(itime, irun, j, 5, 1);</span>
+<span class="lineNum">     349 </span>            :     }
+<span class="lineNum">     350 </span>            :     
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     for(Int_t j=36; j&lt;72; j++) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :       voltagesOROC[j-36]               = fCalibDB-&gt;GetChamberHighVoltage(irun, j,itime);</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :       voltagesOROCMedian[j-36]         = fCalibDB-&gt;GetChamberHighVoltageMedian(j);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :       voltagesOROCNominal[j-36]        = fCalibDB-&gt;GetParameters()-&gt;GetNominalVoltage(j);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :       voltagesOROCCurrentNominal[j-36] = fCalibDB-&gt;GetChamberCurrentNominalHighVoltage(j);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :       voltagesOROCStatus[j-36]         = fCalibDB-&gt;GetChamberHVStatus(j);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :       voltagesOROCGoodFraction[j-36]   = fCalibDB-&gt;GetChamberGoodHighVoltageFraction(j);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :       gainCorrOROCHVandPT[j-36]        = fCalibDB-&gt;GetGainCorrectionHVandPT(itime, irun, j, 5, 1);</span>
+<span class="lineNum">     359 </span>            :     }
+<span class="lineNum">     360 </span>            :     
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     Double_t voltIROC = TMath::Median(36, voltagesIROC.GetMatrixArray());</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     Double_t voltOROC = TMath::Median(36, voltagesOROC.GetMatrixArray());</span>
+<span class="lineNum">     363 </span>            :     //
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     Float_t  coverIA=AliTPCcalibDB::GetCoverVoltage(irun,0,itime);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     Float_t  coverIC=AliTPCcalibDB::GetCoverVoltage(irun,18,itime);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     Float_t  coverOA=AliTPCcalibDB::GetCoverVoltage(irun,36,itime);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     Float_t  coverOC=AliTPCcalibDB::GetCoverVoltage(irun,54,itime);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     Float_t  skirtA=AliTPCcalibDB::GetSkirtVoltage(irun,0,itime);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     Float_t  skirtC=AliTPCcalibDB::GetSkirtVoltage(irun,18,itime);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     Float_t  ggOffA=AliTPCcalibDB::GetGGoffsetVoltage(irun,0,itime);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     Float_t  ggOffC=AliTPCcalibDB::GetGGoffsetVoltage(irun,18,itime);</span>
+<span class="lineNum">     372 </span>            :     //drift velocity
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     Float_t dvCorr=-5;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     if (fitVdrift) dvCorr=fitVdrift-&gt;Eval(itime);</span>
+<span class="lineNum">     375 </span>            :     //data taking active
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     Bool_t dataTakingActive=fCalibDB-&gt;IsDataTakingActive((time_t)itime);</span>
+<span class="lineNum">     377 </span>            :     
+<span class="lineNum">     378 </span>            :     //tempMap-&gt;GetLinearFitter(0,0,itime);
+<span class="lineNum">     379 </span>            :     // parameter description is as follows: // &lt;name&gt;;&lt;unit&gt;;&lt;group&gt;;&lt;array type/array info&gt;
+<span class="lineNum">     380 </span>            :     //      &lt;name&gt; should also include the unit; e.g. IROC anode voltage (V))
+<span class="lineNum">     381 </span>            :     // where group is e.g.
+<span class="lineNum">     382 </span>            :     //       o HV:              for High Voltage information
+<span class="lineNum">     383 </span>            :     //       o Environment:     for environmental information (temperature; pressure)
+<span class="lineNum">     384 </span>            :     //       o Pulser:          Calibartion pulser information
+<span class="lineNum">     385 </span>            :     //       o CE:              Central electrode inforamtion
+<span class="lineNum">     386 </span>            :     //       o Noise Pedestals: Noise and Pedestal information
+<span class="lineNum">     387 </span>            :     //       o ALTRO:           ALTRO configuration information
+<span class="lineNum">     388 </span>            :     //
+<span class="lineNum">     389 </span>            :     // &lt;array type&gt; describes the information stored in the elements of a TVectorT&lt;&gt; variable
+<span class="lineNum">     390 </span>            :     // this can e.g. be
+<span class="lineNum">     391 </span>            :     //       o Sector:   The array has 36 entries; one per sector (A00-A17 and C00 to C17)
+<span class="lineNum">     392 </span>            :     //       o Sector-A: The array has 18 entries; one per sector on the A-Side (A00-A17)
+<span class="lineNum">     393 </span>            :     //       o Sector-C: The array has 18 entries; one per sector on the C-Side (C00-C17)
+<span class="lineNum">     394 </span>            :     //       o ROC:      The array has 72 entries; one per ROC (IA00-IA17, IC00-IC17, OA00-OA17, OC00-OC17)
+<span class="lineNum">     395 </span>            :     //       o Parameters from a fit: in this case the description per parameter should be given
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :       &quot;run=&quot;&lt;&lt;irun&lt;&lt; // Run number</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :       &quot;time=&quot;&lt;&lt;itime&lt;&lt; // Time stamp of calibration entry</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :       &quot;startTimeGRP=&quot;&lt;&lt;startTimeGRP&lt;&lt; // Start time of run from GRP</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :       &quot;stopTimeGRP=&quot;&lt;&lt;stopTimeGRP&lt;&lt; // Stop time of run from GRP</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :       &quot;dataTakingActive=&quot;&lt;&lt;dataTakingActive&lt;&lt; // If data taking is active</span>
+<span class="lineNum">     402 </span>            :       //run type
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :       &quot;runType.=&quot;&lt;&lt;&amp;runType&lt;&lt; // Run Type; e.g. PHYSICS; LASER; COSMIC; PEDESTAL; PULSER</span>
+<span class="lineNum">     404 </span>            :       // voltage setting
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :       &quot;VIROC.=&quot;               &lt;&lt; &amp;voltagesIROC               &lt;&lt; // IROC anode voltage [calib interval] (V);HV;Sector</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :       &quot;VIROCMedian.=&quot;         &lt;&lt; &amp;voltagesIROCMedian         &lt;&lt; // IROC anode voltage [Median of run] (V);HV;Sector</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :       &quot;VIROCNominal.=&quot;        &lt;&lt; &amp;voltagesIROCNominal        &lt;&lt; // IROC anode voltage [global nominal] (V);HV;Sector</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :       &quot;VIROCCurrentNominal.=&quot; &lt;&lt; &amp;voltagesIROCCurrentNominal &lt;&lt; // IROC anode voltage [current nominal] (V);HV;Sector</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :       &quot;VIROCGoodHVFraction.=&quot; &lt;&lt; &amp;voltagesIROCGoodFraction   &lt;&lt; // IROC anode voltage [fraction of good settings];-;HV;Sector</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :       &quot;VIROCStatus.=&quot;         &lt;&lt; &amp;voltagesIROCStatus         &lt;&lt; // IROC HV status;-;HV;Sector</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :       &quot;gainCorrIROCHVandPT.=&quot; &lt;&lt; &amp;gainCorrIROCHVandPT        &lt;&lt; // IROC gain correction factor using HV, P and T</span>
+<span class="lineNum">     412 </span>            :       //
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :       &quot;VOROC.=&quot;               &lt;&lt; &amp;voltagesOROC               &lt;&lt; // OROC anode voltage [calib interval] (V);HV;Sector</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :       &quot;VOROCMedian.=&quot;         &lt;&lt; &amp;voltagesOROCMedian         &lt;&lt; // OROC anode voltage [Median of run] (V);HV;Sector</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :       &quot;VOROCNominal.=&quot;        &lt;&lt; &amp;voltagesOROCNominal        &lt;&lt; // OROC anode voltage [global nominal] (V);HV;Sector</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :       &quot;VOROCCurrentNominal.=&quot; &lt;&lt; &amp;voltagesOROCCurrentNominal &lt;&lt; // OROC anode voltage [current nominal] (V);HV;Sector</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :       &quot;VOROCGoodHVFraction.=&quot; &lt;&lt; &amp;voltagesOROCGoodFraction   &lt;&lt; // OROC anode voltage [fraction of good settings];-;HV;Sector</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :       &quot;VOROCStatus.=&quot;         &lt;&lt; &amp;voltagesOROCStatus         &lt;&lt; // OROC HV status;-;HV;Sector</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       &quot;gainCorrOROCHVandPT.=&quot; &lt;&lt; &amp;gainCorrOROCHVandPT        &lt;&lt; // OROC gain correction factor using HV, P and T</span>
+<span class="lineNum">     420 </span>            :       //
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :       &quot;medianVIROC=&quot;          &lt;&lt; voltIROC                    &lt;&lt; // IROC anode voltage [median of all IROCs] (V);HV</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       &quot;medianVOROC=&quot;          &lt;&lt; voltOROC                    &lt;&lt; // OROC anode voltage [median of all OROCs] (V);HV</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :       &quot;coverIA=&quot;              &lt;&lt; coverIA                     &lt;&lt; // Cover voltage IROC A-Side (V);HV</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :       &quot;coverIC=&quot;              &lt;&lt; coverIC                     &lt;&lt; // Cover voltage IROC C-Side (V);HV</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :       &quot;coverOA=&quot;              &lt;&lt; coverOA                     &lt;&lt; // Cover voltage OROC A-Side (V);HV</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :       &quot;coverOC=&quot;              &lt;&lt; coverOC                     &lt;&lt; // Cover voltage OROC C-Side (V);HV</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :       &quot;skirtA=&quot;               &lt;&lt; skirtA                      &lt;&lt; // Skirt voltage IROC A-Side (V);HV</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       &quot;skirtC=&quot;               &lt;&lt; skirtC                      &lt;&lt; // Skirt voltage IROC C-Side (V);HV</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :       &quot;ggOffA=&quot;               &lt;&lt; ggOffA                      &lt;&lt; // Gating grid offset voltage A-Side (V);HV</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :       &quot;ggOffC=&quot;               &lt;&lt; ggOffC                      &lt;&lt; // Gating grid offset voltage C-Side (V);HV</span>
+<span class="lineNum">     431 </span>            :       //
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :       &quot;ptrel0=&quot;&lt;&lt;ptrelative0&lt;&lt;  // deltaTP/TP  - A side</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :       &quot;ptrel1=&quot;&lt;&lt;ptrelative1&lt;&lt;  // deltaTP/TPC - C side</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :       &quot;goofie.=&quot;&lt;&lt;&amp;vecGoofie&lt;&lt;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :       &quot;goofieE.=&quot;&lt;&lt;&amp;vecEntries&lt;&lt;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :       &quot;goofieMean.=&quot;&lt;&lt;&amp;vecMean&lt;&lt;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :       &quot;goofieMedian.=&quot;&lt;&lt;&amp;vecMedian&lt;&lt;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :       &quot;goofieRMS.=&quot;&lt;&lt;&amp;vecRMS&lt;&lt;</span>
+<span class="lineNum">     439 </span>            :       //
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :       &quot;press=&quot;&lt;&lt;valuePressure&lt;&lt;</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :       &quot;press2=&quot;&lt;&lt;valuePressure2&lt;&lt;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       &quot;temp00.=&quot;&lt;&lt;&amp;vecTemp[0]&lt;&lt; // T-Fit ROC A-Side;Environment;Mean Temp (#circC);dT/dgx (K/cm);dT/dgy (K/cm)</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :       &quot;temp10.=&quot;&lt;&lt;&amp;vecTemp[1]&lt;&lt; // T-Fit OFC A-Side;Environment;Mean Temp (#circC);dT/dz (K/cm);dT/d#phi (K/rad)</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :       &quot;temp20.=&quot;&lt;&lt;&amp;vecTemp[2]&lt;&lt; // T-Fit IFC+TS A-Side;Environment;Mean Temp (#circC);dT/dz (K/cm);dT/d#phi (K/rad)</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :       &quot;temp30.=&quot;&lt;&lt;&amp;vecTemp[3]&lt;&lt; // T-Fit Skirt A-Side;Environment;Mean Temp (#circC);dT/dgx (K/cm);dT/dgy (K/cm)</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :       &quot;temp40.=&quot;&lt;&lt;&amp;vecTemp[4]&lt;&lt; // T-Fit IFC A-Side;Environment;Mean Temp (#circC);dT/dz (K/cm);dT/d#phi (K/rad)</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :       &quot;temp01.=&quot;&lt;&lt;&amp;vecTemp[5]&lt;&lt; // T-Fit ROC C-Side;Environment;Mean Temp (#circC);dT/dgx (K/cm);dT/dgy (K/cm)</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :       &quot;temp11.=&quot;&lt;&lt;&amp;vecTemp[6]&lt;&lt; // T-Fit OFC C-Side;Environment;Mean Temp (#circC);dT/dz (K/cm);dT/d#phi (K/rad)</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :       &quot;temp21.=&quot;&lt;&lt;&amp;vecTemp[7]&lt;&lt; // T-Fit IFC+TS C-Side;Environment;Mean Temp (#circC);dT/dz (K/cm);dT/d#phi (K/rad)</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :       &quot;temp31.=&quot;&lt;&lt;&amp;vecTemp[8]&lt;&lt; // T-Fit Skirt C-Side;Environment;Mean Temp (#circC);dT/dgx (K/cm);dT/dgy (K/cm)</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       &quot;temp41.=&quot;&lt;&lt;&amp;vecTemp[9]&lt;&lt; // T-Fit IFC C-Side;Environment;Mean Temp (#circC);dT/dz (K/cm);dT/d#phi (K/rad)</span>
+<span class="lineNum">     452 </span>            :       //
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       &quot;tempSkirtA.=&quot;&lt;&lt;&amp;vecSkirtTempA&lt;&lt; // T Skirt A-Side;Environment;Sector-A</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :       &quot;tempSkirtC.=&quot;&lt;&lt;&amp;vecSkirtTempC;  // T Skirt C-Side;Environment;Sector-C</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     ProcessDrift(irun, itime);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     ProcessDriftCE(irun,itime);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     ProcessDriftAll(irun,itime);</span>
+<span class="lineNum">     459 </span>            :     //    ProcessKryptonTime(irun,itime);
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     ProcessCTP(irun,itime);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     ProcessAlign(irun,itime);</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     ProcessGain(irun,itime);</span>
+<span class="lineNum">     463 </span>            :     //ProcessDriftCERef();
+<span class="lineNum">     464 </span>            :     //ProcessPulserRef();
+<span class="lineNum">     465 </span>            :     //ProcessCurrent(irun,itime);
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     ProcessLHCData(irun, itime);</span>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt; </span>
+<span class="lineNum">     470 </span>            :       //noise data
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :       &quot;meanNoise.=&quot;    &lt;&lt; &amp;vNoiseMean           &lt;&lt; // Mean Noise;Noise Pedestals;All Pads;IROCs;OROCs small pads;OROCs large pads</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       &quot;meanNoiseSen.=&quot; &lt;&lt; &amp;vNoiseMeanSenRegions &lt;&lt; // Mean Noise in sensitive regions;Noise Pedestals;All Pads;IROCs;OROCs small pads;OROCs large pads</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :       &quot;rmsNoise.=&quot;     &lt;&lt; &amp;vNoiseRMS            &lt;&lt; // RMS Noise;Noise Pedestals;All Pads;IROCs;OROCs small pads;OROCs large pads</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :       &quot;rmsNoiseSen.=&quot;  &lt;&lt; &amp;vNoiseRMSSenRegions  &lt;&lt; // RMS Noise in sensitive regions;Noise Pedestals;All Pads;IROCs;OROCs small pads;OROCs large pads</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       &quot;zeroNoise=&quot;     &lt;&lt; nonMaskedZero         &lt;&lt; // Pads with zero noise;Noise Pedestals</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :       &quot;nNaN=&quot;          &lt;&lt; nNaN                  &lt;&lt; // Pads with NaN noise;Noise Pedestals</span>
+<span class="lineNum">     477 </span>            :       //QA data
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :       &quot;occQA.=&quot;  &lt;&lt; &amp;vQaOcc  &lt;&lt;</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :       &quot;qQA.=&quot;    &lt;&lt; &amp;vQaQtot &lt;&lt;</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :       &quot;qmaxQA.=&quot; &lt;&lt; &amp;vQaQmax &lt;&lt;</span>
+<span class="lineNum">     481 </span>            :       //pulser data
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :       &quot;timePulser.=&quot; &lt;&lt; &amp;vTimePulser &lt;&lt;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :       &quot;nOffPulser=&quot;&lt;&lt;nOffChannels&lt;&lt;</span>
+<span class="lineNum">     484 </span>            :       //altro data
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :       &quot;nMasked=&quot;&lt;&lt; nMasked &lt;&lt; // Number of masked pads;ALTRO</span>
+<span class="lineNum">     486 </span>            :       //
+<span class="lineNum">     487 </span>            :       //ce data -Jens version
+<span class="lineNum">     488 </span>            :       //
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :       &quot;CEfitA.=&quot;        &lt;&lt; &amp;fitResultsA  &lt;&lt; // CE-Fit A-Side;CE;Offset (timebins);IROC/OROC Offset (timebins);dt/dgx (timebins/cm);dt/dgy (timebins/cm);dt/dlx common (timebins/cm);dt/dlx IROCs (timebins/cm)</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :       &quot;CEfitC.=&quot;        &lt;&lt; &amp;fitResultsC  &lt;&lt; // CE Fit C-Side;CE;Offset (timebins);IROC/OROC Offset (timebins);dt/dgx (timebins/cm);dt/dgy (timebins/cm);dt/dlx common (timebins/cm);dt/dlx IROCs (timebins/cm)</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :       &quot;nmaskedCE=&quot;      &lt;&lt; nmaskedCE     &lt;&lt; // CE Number of outliers;CE</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :       &quot;chi2ACE=&quot;        &lt;&lt; chi2ACE       &lt;&lt; // CE-Fit Chi^{2} A-Side;CE</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       &quot;chi2CCE=&quot;        &lt;&lt; chi2CCE       &lt;&lt; // CE-Fit Chi^{2} C-Side;CE</span>
+<span class="lineNum">     494 </span>            :       //
+<span class="lineNum">     495 </span>            :       //ce data new - MI version
+<span class="lineNum">     496 </span>            :       //
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :       &quot;CEfitAMI.=&quot;      &lt;&lt; &amp;fitCEResultsA&lt;&lt; // CE-Fit A-Side [MI];CE;Offset (timebins);IROC/OROC Offset (timebins);dt/dgx (timebins/cm);dt/dgy (timebins/cm);dt/dlx common (timebins/cm);dt/dlx IROCs (timebins/cm)</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :       &quot;CEfitCMI.=&quot;      &lt;&lt; &amp;fitCEResultsC&lt;&lt; // CE-Fit C-Side [MI];CE;Offset (timebins);IROC/OROC Offset (timebins);dt/dgx (timebins/cm);dt/dgy (timebins/cm);dt/dlx common (timebins/cm);dt/dlx IROCs (timebins/cm)</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :       &quot;chi2CEA=&quot;        &lt;&lt; chi2CEA       &lt;&lt; // CE-Fit Chi^{2} A-Side [MI];CE</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :       &quot;chi2CEC=&quot;        &lt;&lt; chi2CEC       &lt;&lt; // CE-Fit Chi^{2} C-Side [MI];CE</span>
+<span class="lineNum">     501 </span>            :       //
+<span class="lineNum">     502 </span>            :       //ce graph data
+<span class="lineNum">     503 </span>            :       //
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :       &quot;CEgrTEntries.=&quot;   &lt;&lt; &amp;vecTEntries &lt;&lt; // CE-graph drift time - entries;CE;ROC</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :       &quot;CEgrTMean.=&quot;      &lt;&lt; &amp;vecTMean    &lt;&lt; // CE-graph mean drift time;CE;ROC</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :       &quot;CEgrTRMS.=&quot;       &lt;&lt; &amp;vecTRMS     &lt;&lt; // CE-graph RMS of drift time;CE;ROC</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :       &quot;CEgrTMedian.=&quot;    &lt;&lt; &amp;vecTMedian  &lt;&lt; // CE-graph median drift time;CE;ROC</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :       &quot;CEgrQEntries.=&quot;   &lt;&lt; &amp;vecQEntries &lt;&lt; // CE-graph charge - entries;CE;ROC</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :       &quot;CEgrQMean.=&quot;      &lt;&lt; &amp;vecQMean    &lt;&lt; // CE-graph mean charge;CE;ROC</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :       &quot;CEgrQRMS.=&quot;       &lt;&lt; &amp;vecQRMS     &lt;&lt; // CE-graph RMS charge;CE;ROC</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :       &quot;CEgrQMedian.=&quot;    &lt;&lt; &amp;vecQMedian  &lt;&lt; // CE-graph median charge;CE;ROC</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :       &quot;CEgrDriftA=&quot;      &lt;&lt; driftTimeA   &lt;&lt; // CE median drift time A-Side;CE</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :       &quot;CEgrDriftC=&quot;      &lt;&lt; driftTimeC   &lt;&lt; // CE median drift time C-Side;CE</span>
+<span class="lineNum">     514 </span>            :       //
+<span class="lineNum">     515 </span>            :       //calib raw data
+<span class="lineNum">     516 </span>            :       //
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :       &quot;nFailL1=&quot;         &lt;&lt; nFailL1      &lt;&lt; // RCU synchonisation failures;ALTRO</span>
+<span class="lineNum">     518 </span>            :       // b field
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :       &quot;Bz=&quot;              &lt;&lt; bz           &lt;&lt; // Magnetic Field (T);Environment</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :       &quot;L3polarity=&quot;      &lt;&lt; l3pol        &lt;&lt; // L3 polarity;Environment</span>
+<span class="lineNum">     521 </span>            :       // production information
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :       &quot;nalien=&quot;          &lt;&lt; nalien       &lt;&lt; // obsolete</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :       &quot;nRawAlien=&quot;       &lt;&lt; nRawAlien    &lt;&lt; // obsolete</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :       &quot;nlocal=&quot;          &lt;&lt; nlocal       &lt;&lt; // obsolete</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :       &quot;nRawLocal=&quot;       &lt;&lt;nRawLocal     &lt;&lt; // obsolete</span>
+<span class="lineNum">     526 </span>            :       //
+<span class="lineNum">     527 </span>            :       // comparisons with ref data
+<span class="lineNum">     528 </span>            :       //
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :       &quot;pedestalDeviations.=&quot; &lt;&lt; &amp;pedestalDeviations &lt;&lt; // Pedestal variation to ref (fraction);Noise Pedestals;&gt;#pm 0.5 ADC;&gt;#pm 1 ADC;&gt;#pm 1.5 ADC;&gt;#pm 2.0 ADC</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :       &quot;noiseDeviations.=&quot;    &lt;&lt; &amp;noiseDeviations    &lt;&lt; // Noise var to ref (fraction);Noise Pedestals;&gt;5%;&gt;10%;&gt;15%;&gt;20%</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :       &quot;pulserQdeviations.=&quot;  &lt;&lt; &amp;pulserQdeviations  &lt;&lt; // Pulser-Q var to ref (fraction);Pulser;&gt;0.5%;&gt;1%;&gt;5%;&gt;10%</span>
+<span class="lineNum">     532 </span>            :       //         &quot;pulserVarQMean=&quot;&lt;&lt;varQMean&lt;&lt;
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :       &quot;pulserNpadsOutOneTB=&quot; &lt;&lt; npadsOutOneTB       &lt;&lt; // Number of pads with Pulser time var &gt;#pm 1 tb to ROC mean;Pulser</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :       &quot;pulserNpadsOffAdd=&quot;   &lt;&lt; npadsOffAdd         &lt;&lt; // Number of pads without signal but signal in ref;Pulser</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       &quot;driftCorrCosmAll=&quot;    &lt;&lt; dvCorr              &lt;&lt;</span>
+<span class="lineNum">     536 </span>            :       //
+<span class="lineNum">     537 </span>            :       // LHCData
+<span class="lineNum">     538 </span>            :       //
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       &quot;meanBckgAlice.=&quot;       &lt;&lt; &amp;vecMeanLHCBckgAlice &lt;&lt;</span>
+<span class="lineNum">     540 </span>            :       &quot;\n&quot;;
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :   }//end run loop</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            : 
+<a name="547"><span class="lineNum">     547 </span>            : </a>
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span>            : void AliTPCcalibSummary::ProcessDrift(Int_t run, Int_t timeStamp){
+<span class="lineNum">     550 </span>            :   //
+<span class="lineNum">     551 </span>            :   // dump drift calibration data to the tree
+<span class="lineNum">     552 </span>            :   //
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :   TObjArray *array =fCalibDB-&gt;GetTimeVdriftSplineRun(run);</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :   TGraphErrors *laserA[3]={0,0,0};</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   TGraphErrors *laserC[3]={0,0,0};</span>
+<span class="lineNum">     556 </span>            :   TGraphErrors *cosmicAll=0;
+<span class="lineNum">     557 </span>            :   static Double_t     vlaserA[3]={0,0,0};
+<span class="lineNum">     558 </span>            :   static Double_t     vlaserC[3]={0,0,0};
+<span class="lineNum">     559 </span>            :   static Double_t     vcosmicAll=0;
+<span class="lineNum">     560 </span>            :   static Double_t     vdrift1=0;                                // TODO: repeated below, obsolete?
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   vdrift1=fCalibDB-&gt;GetVDriftCorrectionTime(timeStamp,run,0,1); // TODO: repeated below, obsolete?</span>
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :   if (array){</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     laserA[0]=(TGraphErrors*)array-&gt;FindObject(&quot;GRAPH_MEAN_DELAY_LASER_ALL_A&quot;);</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     laserA[1]=(TGraphErrors*)array-&gt;FindObject(&quot;GRAPH_MEAN_DRIFT_LASER_ALL_A&quot;);</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     laserA[2]=(TGraphErrors*)array-&gt;FindObject(&quot;GRAPH_MEAN_GLOBALYGRADIENT_LASER_ALL_A&quot;);</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     laserC[0]=(TGraphErrors*)array-&gt;FindObject(&quot;GRAPH_MEAN_DELAY_LASER_ALL_C&quot;);</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     laserC[1]=(TGraphErrors*)array-&gt;FindObject(&quot;GRAPH_MEAN_DRIFT_LASER_ALL_C&quot;);</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     laserC[2]=(TGraphErrors*)array-&gt;FindObject(&quot;GRAPH_MEAN_GLOBALYGRADIENT_LASER_ALL_C&quot;);</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     cosmicAll =(TGraphErrors*)array-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_VDRIFT_COSMICS_ALL&quot;);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            :   //
+<span class="lineNum">     574 </span>            :   // TODO: the information stored in vlaserXX, vcosmicAll and vclaserXX,vccosmicAll 
+<span class="lineNum">     575 </span>            :   //       seem to be redundant information do we need to keep vlaserXX vcosmicAll
+<span class="lineNum">     576 </span>            :   //
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :   if (laserA[0]) vlaserA[0]= AliTPCcalibDButil::EvalGraphConst(laserA[0],timeStamp);</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :   if (laserA[1]) vlaserA[1]= AliTPCcalibDButil::EvalGraphConst(laserA[1],timeStamp);</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :   if (laserA[2]) vlaserA[2]= AliTPCcalibDButil::EvalGraphConst(laserA[2],timeStamp);</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :   if (laserC[0]) vlaserC[0]= AliTPCcalibDButil::EvalGraphConst(laserC[0],timeStamp);</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :   if (laserC[1]) vlaserC[1]= AliTPCcalibDButil::EvalGraphConst(laserC[1],timeStamp);</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :   if (laserC[2]) vlaserC[2]= AliTPCcalibDButil::EvalGraphConst(laserC[2],timeStamp);</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :   if (cosmicAll) vcosmicAll= AliTPCcalibDButil::EvalGraphConst(cosmicAll,timeStamp);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :     &quot;vlaserA0=&quot;   &lt;&lt; vlaserA[0] &lt;&lt; // Laser offset A-Side;Drift            //TODO: Obsolete</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     &quot;vlaserA1=&quot;   &lt;&lt; vlaserA[1] &lt;&lt; // Laser drift correction A-Side;Drift  //TODO: Obsolete</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :     &quot;vlaserA2=&quot;   &lt;&lt; vlaserA[2] &lt;&lt; // Laser gy correction A-Side;Drift     //TODO: Obsolete</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :     &quot;vlaserC0=&quot;   &lt;&lt; vlaserC[0] &lt;&lt; // Laser offset C-Side;Drift            //TODO: Obsolete</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     &quot;vlaserC1=&quot;   &lt;&lt; vlaserC[1] &lt;&lt; // Laser drift correction C-Side;Drift  //TODO: Obsolete</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :     &quot;vlaserC2=&quot;   &lt;&lt; vlaserC[2] &lt;&lt; // Laser gy correction C-Side;Drift     //TODO: Obsolete</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     &quot;vcosmicAll=&quot; &lt;&lt; vcosmicAll &lt;&lt; // Cosmic drift corrrection;Drift       //TODO: Obsolete</span>
+<span class="lineNum">     592 </span>            :     //
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     &quot;vdrift1=&quot;    &lt;&lt; vdrift1;      // Combined drift correction ;Drift      // TODO: repeated below, obsolete?</span>
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span>            :   //
+<span class="lineNum">     596 </span>            :   // define distance to measurement
+<span class="lineNum">     597 </span>            :   //
+<span class="lineNum">     598 </span>            :   static Double_t dlaserA=0; 
+<span class="lineNum">     599 </span>            :   static Double_t dlaserC=0; 
+<span class="lineNum">     600 </span>            :   static Double_t dcosmic=0; 
+<span class="lineNum">     601 </span>            :   static Double_t slaserA=0; //TODO: Obsolete?
+<span class="lineNum">     602 </span>            :   static Double_t slaserC=0; //TODO: Obsolete?
+<span class="lineNum">     603 </span>            :   static Double_t scosmic=0; //TODO: Obsolete?
+<span class="lineNum">     604 </span>            :   static Double_t  vclaserA[3]={0,0,0};
+<span class="lineNum">     605 </span>            :   static Double_t  vclaserC[3]={0,0,0};
+<span class="lineNum">     606 </span>            :   static Double_t  vccosmicAll=0;
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;3;i++){</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     if (laserA[i]) AliTPCcalibDButil::GetNearest(laserA[i],timeStamp,dlaserA,vclaserA[i]);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     if (laserC[i]) AliTPCcalibDButil::GetNearest(laserC[i],timeStamp,dlaserC,vclaserC[i]);</span>
+<span class="lineNum">     610 </span>            :   }  
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :   if (cosmicAll) AliTPCcalibDButil::GetNearest(cosmicAll,timeStamp,dcosmic,vccosmicAll);</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     &quot;vclaserA0=&quot;   &lt;&lt; vclaserA[0]&lt;&lt; // Laser offset A-Side;Drift</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     &quot;vclaserA1=&quot;   &lt;&lt; vclaserA[1]&lt;&lt; // Laser drift correction A-Side;Drift</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     &quot;vclaserA2=&quot;   &lt;&lt; vclaserA[2]&lt;&lt; // Laser gy correction A-Side;Drift</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     &quot;vclaserC0=&quot;   &lt;&lt; vclaserC[0]&lt;&lt; // Laser offset A-Side;Drift</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     &quot;vclaserC1=&quot;   &lt;&lt; vclaserC[1]&lt;&lt; // Laser drift correction A-Side;Drift</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     &quot;vclaserC2=&quot;   &lt;&lt; vclaserC[2]&lt;&lt; // Laser gy correction A-Side;Drift</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     &quot;vccosmicAll=&quot; &lt;&lt; vccosmicAll&lt;&lt; // Cosmic drift corrrection;Drift</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     &quot;dlaserA=&quot;     &lt;&lt; dlaserA    &lt;&lt; // Distance to laser measurement A-Side;Drift</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     &quot;dlaserC=&quot;     &lt;&lt; dlaserC    &lt;&lt; // Distance to laser measurement C-Side;Drift</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     &quot;dcosmic=&quot;     &lt;&lt; dcosmic    &lt;&lt; // Distance to cosmics measurement A-Side;Drift</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :     &quot;slaserA=&quot;     &lt;&lt; slaserA    &lt;&lt; //TODO: Obsolete?</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :     &quot;slaserC=&quot;     &lt;&lt; slaserC    &lt;&lt; //TODO: Obsolete?</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     &quot;scosmic=&quot;     &lt;&lt; scosmic;      //TODO: Obsolete?</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span>            :   static TGeoMatrix * matrixAlign=0;
+<span class="lineNum">     628 </span>            :   static Double_t twistX=0;
+<span class="lineNum">     629 </span>            :   static Double_t twistY=0;
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :   if (matrixAlign==0){</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     AliTPCComposedCorrection * corr =  (AliTPCComposedCorrection *)array-&gt;FindObject(&quot;FitCorrectionTime&quot;);</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     if (!corr) {</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :       matrixAlign=new TGeoHMatrix;</span>
+<span class="lineNum">     634 </span>            :       
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     if (corr){</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :        AliTPCCalibGlobalMisalignment *align = (AliTPCCalibGlobalMisalignment*)corr-&gt;GetCorrections()-&gt;FindObject(&quot;FitAlignTime&quot;);</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :        AliTPCExBTwist *twist  = (AliTPCExBTwist*)corr-&gt;GetCorrections()-&gt;FindObject(&quot;FitExBTwistTime&quot;);</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :        if (twist){</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :          twistX=twist-&gt;GetXTwist();</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :          twistY=twist-&gt;GetYTwist();</span>
+<span class="lineNum">     642 </span>            :          //delete twist;
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :        if (align &amp;&amp; align-&gt;GetAlignGlobal()){</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :          matrixAlign =  (TGeoMatrix*) (align-&gt;GetAlignGlobal()-&gt;Clone());  </span>
+<span class="lineNum">     646 </span>            :          //delete align;
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :        }</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     }    </span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     &quot;alignTime.=&quot;&lt;&lt;matrixAlign&lt;&lt;</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :     &quot;twistX=&quot;&lt;&lt;twistX&lt;&lt;</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     &quot;twistY=&quot;&lt;&lt;twistY;</span>
+<a name="654"><span class="lineNum">     654 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            : void AliTPCcalibSummary::ProcessDriftCE(Int_t run,Int_t timeStamp){
+<span class="lineNum">     657 </span>            :   //
+<span class="lineNum">     658 </span>            :   // dump drift calibration data CE
+<span class="lineNum">     659 </span>            :   //
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :   TObjArray *arrT=fCalibDB-&gt;GetCErocTtime();</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :   AliTPCParam *param=fCalibDB-&gt;GetParameters();</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   static TVectorD tdriftCE(74);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   static TVectorD tndriftCE(74);</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   static TVectorD vdriftCE(74);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :   static TVectorD tcdriftCE(74);</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :   static TVectorD tddriftCE(74);</span>
+<span class="lineNum">     667 </span>            :   static Double_t ltime0A=0.;
+<span class="lineNum">     668 </span>            :   static Double_t ltime0C=0.;
+<span class="lineNum">     669 </span>            :   //
+<span class="lineNum">     670 </span>            :   //
+<span class="lineNum">     671 </span>            :   //
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :   ltime0A  = fDButil-&gt;GetLaserTime0(run,timeStamp,36000,0);</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :   ltime0C  = fDButil-&gt;GetLaserTime0(run,timeStamp,36000,1);</span>
+<span class="lineNum">     674 </span>            :   //
+<span class="lineNum">     675 </span>            :   // TODO: are the values tdriftCE and tcdriftCE redundant and need both be kept?
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;arrT-&gt;GetEntries();i++){</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     tdriftCE[i]=0;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :     vdriftCE[i]=0;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     TGraph *graph = (TGraph*)arrT-&gt;At(i);</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     if (!graph) continue;</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :     tdriftCE[i]=AliTPCcalibDButil::EvalGraphConst(graph,timeStamp);</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     Double_t deltaT,gry;</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :     AliTPCcalibDButil::GetNearest(graph,timeStamp,deltaT,gry);</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     tndriftCE[i]=graph-&gt;GetN();</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     tcdriftCE[i]=gry;</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :     tddriftCE[i]=deltaT;</span>
+<span class="lineNum">     687 </span>            :     // TODO: use tdriftCE or tndriftCE
+<span class="lineNum">     688 </span>            :     if (i%36&lt;18){
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :       vdriftCE[i] =(param-&gt;GetZLength(i)/(tdriftCE[i]*param-&gt;GetTSample()*(1.-ltime0A)-param-&gt;GetL1Delay()))/param-&gt;GetDriftV();</span>
+<span class="lineNum">     690 </span>            :     }else{
+<span class="lineNum">     691 </span>            :       vdriftCE[i] =(param-&gt;GetZLength(i)/(tdriftCE[i]*param-&gt;GetTSample()*(1.-ltime0A)-param-&gt;GetL1Delay()))/param-&gt;GetDriftV();
+<span class="lineNum">     692 </span>            :     }
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     694 </span>            :   // export values
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;  </span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     &quot;tdriftCE.=&quot;  &lt;&lt; &amp;tdriftCE  &lt;&lt; // CE arrival time;CE;Sector                  // TODO: obsolete, redundant?</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     &quot;vdriftCE.=&quot;  &lt;&lt; &amp;vdriftCE  &lt;&lt; // CE derived drift velocity;CE;Sector</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     &quot;tndriftCE.=&quot; &lt;&lt; &amp;tndriftCE &lt;&lt; // CE number of points;CE;Sector</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     &quot;tcdriftCE.=&quot; &lt;&lt; &amp;tcdriftCE &lt;&lt; // CE arrival time - nearest point;CE;Sector</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :     &quot;tddriftCE.=&quot; &lt;&lt; &amp;tddriftCE &lt;&lt; // CE distance to closest measuement;CE;Sector</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     &quot;ltime0A=&quot;    &lt;&lt; ltime0A    &lt;&lt; // CE laser offset A-Side;CE</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     &quot;ltime0C=&quot;    &lt;&lt; ltime0C     ; // CE laser offset C-Side;CE</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :    }</span>
+<a name="704"><span class="lineNum">     704 </span>            : </a>
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            : void AliTPCcalibSummary::ProcessDriftAll(Int_t run,Int_t timeStamp){
+<span class="lineNum">     707 </span>            :   //
+<span class="lineNum">     708 </span>            :   // dump drift calibration data  all calibrations form DB util
+<span class="lineNum">     709 </span>            :   // test of utils
+<span class="lineNum">     710 </span>            :   static Double_t vdriftCEA=0, vdriftCEC=0, vdriftCEM=0;
+<span class="lineNum">     711 </span>            :   static Double_t vdriftLTA=0, vdriftLTC=0, vdriftLTM=0;
+<span class="lineNum">     712 </span>            :   static Double_t vdriftLTAon=0, vdriftLTCon=0, vdriftLTMon=0;
+<span class="lineNum">     713 </span>            :   static Double_t vdriftITS=0;
+<span class="lineNum">     714 </span>            :   static Double_t vdriftP=0;
+<span class="lineNum">     715 </span>            :   static Double_t dcea=0, dcec=0, dcem=0,  dla=0,dlc=0,dlm=0, dlaon=0,dlcon=0,dlmon=0, dp=0;
+<span class="lineNum">     716 </span>            :   static Double_t dits=0;
+<span class="lineNum">     717 </span>            :   static Double_t ltime0A=0.;
+<span class="lineNum">     718 </span>            :   static Double_t ltime0C=0.;
+<span class="lineNum">     719 </span>            :   static Double_t ctime0=0.;
+<span class="lineNum">     720 </span>            :   static Double_t vdrift1=0;
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :   vdrift1= fCalibDB-&gt;GetVDriftCorrectionTime(timeStamp,run,0,1);</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :   vdriftP = fDButil-&gt;GetVDriftTPC(dp, run, timeStamp, 86400, 3600,0);</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   ctime0 = AliTPCcalibDButil::GetTriggerOffsetTPC(run,timeStamp, 36000, 3600,0);</span>
+<span class="lineNum">     724 </span>            :   //
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   vdriftCEA= fDButil-&gt;GetVDriftTPCCE(dcea,run,timeStamp,36000,0);</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :   vdriftCEC= fDButil-&gt;GetVDriftTPCCE(dcec,run,timeStamp,36000,1);</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :   vdriftCEM= fDButil-&gt;GetVDriftTPCCE(dcem,run,timeStamp,36000,2);</span>
+<span class="lineNum">     728 </span>            :   //
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :   vdriftLTA= fDButil-&gt;GetVDriftTPCLaserTracks(dla,run,timeStamp,36000,0);</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :   vdriftLTC= fDButil-&gt;GetVDriftTPCLaserTracks(dlc,run,timeStamp,36000,1);</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :   vdriftLTM= fDButil-&gt;GetVDriftTPCLaserTracks(dlm,run,timeStamp,36000,2);</span>
+<span class="lineNum">     732 </span>            :   //
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :   vdriftLTAon= fDButil-&gt;GetVDriftTPCLaserTracksOnline(dlaon,run,timeStamp,36000,0);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :   vdriftLTCon= fDButil-&gt;GetVDriftTPCLaserTracksOnline(dlcon,run,timeStamp,36000,1);</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :   vdriftLTMon= fDButil-&gt;GetVDriftTPCLaserTracksOnline(dlmon,run,timeStamp,36000,2);</span>
+<span class="lineNum">     736 </span>            :   //
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :   vdriftITS= fDButil-&gt;GetVDriftTPCITS(dits, run,timeStamp);</span>
+<span class="lineNum">     738 </span>            :   //
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :   ltime0A  = fDButil-&gt;GetLaserTime0(run,timeStamp,36000,0); // TODO: not used, needed?</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   ltime0C  = fDButil-&gt;GetLaserTime0(run,timeStamp,36000,1); // TODO: not used, needed?</span>
+<span class="lineNum">     741 </span>            : 
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;  </span>
+<span class="lineNum">     743 </span>            :     //
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     &quot;vdriftCEA=&quot;   &lt;&lt; vdriftCEA   &lt;&lt; // CE drift correction A-Side;Drift</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     &quot;vdriftCEC=&quot;   &lt;&lt; vdriftCEC   &lt;&lt; // CE drift correction C-Side;Drift</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     &quot;vdriftCEM=&quot;   &lt;&lt; vdriftCEM   &lt;&lt; // CE drift correction Mean;Drift</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     &quot;dcea=&quot;        &lt;&lt; dcea        &lt;&lt; // CE distance to closest measurement A-Side;Drift</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     &quot;dcec=&quot;        &lt;&lt; dcec        &lt;&lt; // CE distance to closest measurement C-Side;Drift</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     &quot;dcem=&quot;        &lt;&lt; dcem        &lt;&lt; // CE distance to closest measurement Mean;Drift</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     &quot;vdriftLTA=&quot;   &lt;&lt; vdriftLTA   &lt;&lt; // Offline Laser track vdrift correction A-Side;Drift</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :     &quot;vdriftLTC=&quot;   &lt;&lt; vdriftLTC   &lt;&lt; // Offline Laser track vdrift correction C-Side;Drift</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     &quot;vdriftLTM=&quot;   &lt;&lt; vdriftLTM   &lt;&lt; // Offline Laser track vdrift correction Mean;Drift</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     &quot;dla=&quot;         &lt;&lt; dla         &lt;&lt; // Offline Laser track distance to closest measurement A-Side;Drift</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :     &quot;dlc=&quot;         &lt;&lt; dlc         &lt;&lt; // Offline Laser track distance to closest measurement C-Side;Drift</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     &quot;dlm=&quot;         &lt;&lt; dlm         &lt;&lt; // Offline Laser track distance to closest measurement Mean;Drift</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     &quot;vdriftLTAon=&quot; &lt;&lt; vdriftLTAon &lt;&lt; // Online Laser track vdrift correction A-Side;Drift</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     &quot;vdriftLTCon=&quot; &lt;&lt; vdriftLTCon &lt;&lt; // Online Laser track vdrift correction C-Side;Drift</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     &quot;vdriftLTMon=&quot; &lt;&lt; vdriftLTMon &lt;&lt; // Online Laser track vdrift correction Mean;Drift</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     &quot;dlaOn=&quot;       &lt;&lt; dlaon       &lt;&lt; // Online Laser track distance to closest measurement A-Side;Drift</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     &quot;dlcOn=&quot;       &lt;&lt; dlcon       &lt;&lt; // Online Laser track distance to closest measurement C-Side;Drift</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     &quot;dlmOn=&quot;       &lt;&lt; dlmon       &lt;&lt; // Online Laser track distance to closest measurement Mean;Drift</span>
+<span class="lineNum">     762 </span>            :     //
+<span class="lineNum">     763 </span>            :     //
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     &quot;vdriftITS=&quot;   &lt;&lt; vdriftITS   &lt;&lt; // TPC-ITS vdrift correction;Drift</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     &quot;dits=&quot;        &lt;&lt; dits        &lt;&lt; // TPC-ITS vdrift correction distance to closest measurement;Drift</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :     &quot;ctime0=&quot;      &lt;&lt; ctime0      &lt;&lt; // Trigger offset correction;Drift</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     &quot;vdriftP=&quot;     &lt;&lt; vdriftP     &lt;&lt; // Cosmics vdrift correction;Drift</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     &quot;dp=&quot;          &lt;&lt; dp          &lt;&lt; // Cosmics vdrift correction distance to closest measurement;Drift</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     &quot;vdrift1=&quot;     &lt;&lt; vdrift1      ; // combined drift velocity;Drift</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     772 </span>            : 
+<a name="773"><span class="lineNum">     773 </span>            : </a>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span>            : void AliTPCcalibSummary::ProcessKryptonTime(Int_t run, Int_t timeStamp){
+<span class="lineNum">     776 </span>            :   //
+<span class="lineNum">     777 </span>            :   // Dumping  krypton calibration results
+<span class="lineNum">     778 </span>            :   //
+<span class="lineNum">     779 </span>            :   static TObjArray * krArray=0;
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :   if (!krArray) {</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     AliCDBEntry* entry = AliCDBManager::Instance()-&gt;Get(&quot;TPC/Calib/TimeGainKrypton&quot;, run);</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     if (entry){</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :       krArray = (TObjArray*)entry-&gt;GetObject();</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :   static TVectorD krMean(74);</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   static TVectorD krErr(74);</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :   static TVectorD krDist(74);</span>
+<span class="lineNum">     789 </span>            :   TGraphErrors *gr=0;
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :   Double_t deltaT=0,gry=0;</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :   if (krArray){</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :     for (Int_t isec=0; isec&lt;72; isec++){</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :       krMean[isec]=0;</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :       krDist[isec]=0;</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :       krErr[isec]=0;</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :       gr=(TGraphErrors*)krArray-&gt;At(isec);</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :       if (gr) {</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :         krMean[isec]=AliTPCcalibDButil::EvalGraphConst(gr,timeStamp);</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         AliTPCcalibDButil::GetNearest(gr, timeStamp,deltaT,gry);</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :         krDist[isec]=deltaT;</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :       }     </span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :       if (72+isec&lt;krArray-&gt;GetEntries()) {</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :         gr=(TGraphErrors*)krArray-&gt;At(72+isec);</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         if (gr) krErr[isec]=AliTPCcalibDButil::EvalGraphConst(gr,timeStamp);</span>
+<span class="lineNum">     805 </span>            :       }
+<span class="lineNum">     806 </span>            :     }
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :     krMean[72]= TMath::Median(36,krMean.GetMatrixArray());</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :     krMean[73]= TMath::Median(36,&amp;(krMean.GetMatrixArray()[36]));</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :     krErr[72]= TMath::Median(36,krErr.GetMatrixArray());</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :     krErr[73]= TMath::Median(36,&amp;(krErr.GetMatrixArray()[36]));</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     &quot;krMean.=&quot;&lt;&lt;&amp;krMean&lt;&lt;</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :     &quot;krErr.=&quot;&lt;&lt;&amp;krErr&lt;&lt;</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     &quot;krDist.=&quot;&lt;&lt;&amp;krDist;</span>
+<a name="816"><span class="lineNum">     816 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span>            : void AliTPCcalibSummary::ProcessCTP(Int_t irun, Int_t timeStamp){
+<span class="lineNum">     819 </span>            :   //
+<span class="lineNum">     820 </span>            :   // 
+<span class="lineNum">     821 </span>            :   //
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :   static TClonesArray *pcarray = new TClonesArray(&quot;AliCTPInputTimeParams&quot;,1);</span>
+<span class="lineNum">     823 </span>            :   static AliCTPTimeParams *ctpParams =0;
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   ctpParams = fCalibDB-&gt;GetCTPTimeParams(); //</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :   const TObjArray        *arr = ctpParams-&gt;GetInputTimeParams();</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   pcarray-&gt;ExpandCreateFast(TMath::Max(arr-&gt;GetEntries(),1));</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;arr-&gt;GetEntries(); i++){</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :     new ((*pcarray)[i]) AliCTPInputTimeParams(*((AliCTPInputTimeParams*)arr-&gt;At(i)));</span>
+<span class="lineNum">     829 </span>            :   }
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;ctp&quot;&lt;&lt;</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     &quot;run=&quot;&lt;&lt;irun&lt;&lt;</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :     &quot;time=&quot;&lt;&lt;timeStamp&lt;&lt;</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :     &quot;ctpP.=&quot;&lt;&lt;ctpParams&lt;&lt;</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :     &quot;ctpArr=&quot;&lt;&lt;pcarray&lt;&lt;</span>
+<span class="lineNum">     835 </span>            :     &quot;\n&quot;;
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :     &quot;ctpP.=&quot;&lt;&lt;ctpParams&lt;&lt;</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :     &quot;ctpArr=&quot;&lt;&lt;pcarray;</span>
+<a name="839"><span class="lineNum">     839 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span>            : void AliTPCcalibSummary::ProcessGain(Int_t irun, Int_t timeStamp){
+<span class="lineNum">     842 </span>            :   //
+<span class="lineNum">     843 </span>            :   // Dump gain related information to the tree
+<span class="lineNum">     844 </span>            :   //
+<span class="lineNum">     845 </span>            :   static Float_t  gainCosmic = 0;
+<span class="lineNum">     846 </span>            :   static Float_t  gainMIP = 0;
+<span class="lineNum">     847 </span>            :   static Float_t  attachMIP = 0;
+<span class="lineNum">     848 </span>            :   static Double_t dMIP=0; 
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :   Double_t dummy=0;</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   static TVectorD vGainGraphIROC(36);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :   static TVectorD vGainGraphOROCmed(36);</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   static TVectorD vGainGraphOROClong(36);</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :   static TVectorD vGainGraphIROCErr(36);</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :   static TVectorD vGainGraphOROCmedErr(36);</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :   static TVectorD vGainGraphOROClongErr(36);</span>
+<span class="lineNum">     856 </span>            :   //
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :   static TVectorD vGainQMaxGraphRegion(3);</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :   static TVectorD vGainQTotGraphRegion(3);</span>
+<span class="lineNum">     859 </span>            :   //
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrPadEqualMax(36);</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrPadEqualTot(36);</span>
+<span class="lineNum">     862 </span>            :   //
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleMaxShort;</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleMaxMedium;</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleMaxLong;</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleMaxAbsolute;</span>
+<span class="lineNum">     867 </span>            :   //
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleTotShort;</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleTotMedium;</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleTotLong;</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrDipAngleTotAbsolute;</span>
+<span class="lineNum">     872 </span>            :   //
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrMultiplicityTot;</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :   static TGraphErrors ggrMultiplicityMax;</span>
+<span class="lineNum">     875 </span>            :   //
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParMaxShort(3);</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParMaxMedium(3);</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParMaxLong(3);</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParMaxAbsolute(3);</span>
+<span class="lineNum">     880 </span>            :   //
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParTotShort(3);</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParTotMedium(3);</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParTotLong(3);</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :   static TVectorD vFitDipAngleParTotAbsolute(3);</span>
+<span class="lineNum">     885 </span>            :   static Int_t gainMIPTime0=0;
+<span class="lineNum">     886 </span>            :   static Int_t gainMIPTime1=0;
+<span class="lineNum">     887 </span>            :    
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :   vGainGraphIROC.Zero();</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :   vGainGraphOROCmed.Zero();</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :   vGainGraphOROClong.Zero();</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :   vGainGraphIROCErr.Zero();</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :   vGainGraphOROCmedErr.Zero();</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :   vGainGraphOROClongErr.Zero();</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :   vGainQMaxGraphRegion.Zero();</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :   vGainQTotGraphRegion.Zero();</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :   TGraphErrors grDummy;</span>
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :   TObjArray * gainSplines = fCalibDB-&gt;GetTimeGainSplinesRun(irun);</span>
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :   if (gainSplines) {</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :     TGraphErrors * graphMIP = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_GAIN_BEAM_ALL&quot;);</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :     TGraphErrors * graphCosmic = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_GAIN_COSMIC_ALL&quot;);</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :     TGraphErrors * graphAttach = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_ATTACHMENT_BEAM_ALL&quot;);</span>
+<span class="lineNum">     902 </span>            :     //
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :     TGraphErrors * grPadEqualQMax = (TGraphErrors * ) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEANQMAX_PADREGIONGAIN_BEAM_ALL&quot;);</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :     TGraphErrors * grPadEqualQTot = (TGraphErrors * ) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL&quot;);</span>
+<span class="lineNum">     905 </span>            :     //
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :     TGraphErrors * graphGainIROC       = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_CHAMBERGAIN_SHORT_BEAM_ALL&quot;);</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :     TGraphErrors * graphGainOROCMedium = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_CHAMBERGAIN_MEDIUM_BEAM_ALL&quot;);</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :     TGraphErrors * graphGainOROCLong   = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEAN_CHAMBERGAIN_LONG_BEAM_ALL&quot;);</span>
+<span class="lineNum">     909 </span>            :     //
+<span class="lineNum">     910 </span>            :     //
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :     TF1*  funDipAngleMax[4]={0x0,0x0,0x0,0x0};</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :     TF1*  funDipAngleTot[4]={0x0,0x0,0x0,0x0};</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :     TGraphErrors*  grDipAngleMax[4]={0x0,0x0,0x0,0x0};</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :     TGraphErrors*  grDipAngleTot[4]={0x0,0x0,0x0,0x0};</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :     const char* names[4]={&quot;SHORT&quot;,&quot;MEDIUM&quot;,&quot;LONG&quot;,&quot;ABSOLUTE&quot;};</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :     for (Int_t iPadRegion=0; iPadRegion&lt;4; ++iPadRegion) {</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :       funDipAngleMax[iPadRegion]=(TF1*) gainSplines-&gt;FindObject(Form(&quot;TF1_QMAX_DIPANGLE_%s_BEAM_ALL&quot;,names[iPadRegion]));</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :       funDipAngleTot[iPadRegion]=(TF1*) gainSplines-&gt;FindObject(Form(&quot;TF1_QTOT_DIPANGLE_%s_BEAM_ALL&quot;,names[iPadRegion]));</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :       grDipAngleMax[iPadRegion]= (TGraphErrors*) gainSplines-&gt;FindObject(Form(&quot;TGRAPHERRORS_QMAX_DIPANGLE_%s_BEAM_ALL&quot;,names[iPadRegion]));</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :       grDipAngleTot[iPadRegion]= (TGraphErrors*) gainSplines-&gt;FindObject(Form(&quot;TGRAPHERRORS_QTOT_DIPANGLE_%s_BEAM_ALL&quot;,names[iPadRegion]));</span>
+<span class="lineNum">     921 </span>            :     }
+<span class="lineNum">     922 </span>            :     //
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :     for(Int_t iPar=0; iPar &lt; 3; iPar++) {</span>
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :       if (funDipAngleMax[0]) vFitDipAngleParMaxShort(iPar)    = funDipAngleMax[0]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :       if (funDipAngleMax[1]) vFitDipAngleParMaxMedium(iPar)   = funDipAngleMax[1]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :       if (funDipAngleMax[2]) vFitDipAngleParMaxLong(iPar)     = funDipAngleMax[2]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :       if (funDipAngleMax[3]) vFitDipAngleParMaxAbsolute(iPar) = funDipAngleMax[3]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     928 </span>            :       //
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :       if (funDipAngleTot[0]) vFitDipAngleParTotShort(iPar)    = funDipAngleTot[0]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :       if (funDipAngleTot[1]) vFitDipAngleParTotMedium(iPar)   = funDipAngleTot[1]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :       if (funDipAngleTot[2]) vFitDipAngleParTotLong(iPar)     = funDipAngleTot[2]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :       if (funDipAngleTot[3]) vFitDipAngleParTotAbsolute(iPar) = funDipAngleTot[3]-&gt;GetParameter(iPar);</span>
+<span class="lineNum">     933 </span>            :     }
+<span class="lineNum">     934 </span>            :     //
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :     if (grDipAngleMax[0]) ggrDipAngleMaxShort    = * grDipAngleMax[0];</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :     if (grDipAngleMax[1]) ggrDipAngleMaxMedium   = * grDipAngleMax[1];</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     if (grDipAngleMax[2]) ggrDipAngleMaxLong     = * grDipAngleMax[2];</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :     if (grDipAngleMax[3]) ggrDipAngleMaxAbsolute = * grDipAngleMax[3];</span>
+<span class="lineNum">     939 </span>            :     //
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :     if (grDipAngleTot[0]) ggrDipAngleTotShort    = * grDipAngleTot[0];</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     if (grDipAngleTot[1]) ggrDipAngleTotMedium   = * grDipAngleTot[1];</span>
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :     if (grDipAngleTot[2]) ggrDipAngleTotLong     = * grDipAngleTot[2];</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :     if (grDipAngleTot[3]) ggrDipAngleTotAbsolute = * grDipAngleTot[3];</span>
+<span class="lineNum">     944 </span>            :     //
+<span class="lineNum">     945 </span>            :     //
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :     TGraphErrors *grPadEqualMax = (TGraphErrors * ) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEANQMAX_PADREGIONGAIN_BEAM_ALL&quot;);</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :     TGraphErrors *grPadEqualTot = (TGraphErrors * ) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL&quot;);</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :     if (grPadEqualMax) ggrPadEqualMax = *grPadEqualMax;</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :     if (grPadEqualTot) ggrPadEqualTot = *grPadEqualTot;</span>
+<span class="lineNum">     950 </span>            :     //
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :     TGraphErrors * grMultiplicityTot  = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEANQTOT_MULTIPLICITYDEPENDENCE_BEAM_ALL&quot;);</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :     TGraphErrors * grMultiplicityMax  = (TGraphErrors *) gainSplines-&gt;FindObject(&quot;TGRAPHERRORS_MEANQMAX_MULTIPLICITYDEPENDENCE_BEAM_ALL&quot;);</span>
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :     if (grMultiplicityTot) ggrMultiplicityTot = *grMultiplicityTot;</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :     if (grMultiplicityMax) ggrMultiplicityTot = *grMultiplicityMax;</span>
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :     if (graphGainIROC &amp;&amp; graphGainOROCMedium &amp;&amp; graphGainOROCLong) {</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :       Double_t x=0,y=0;</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :       for (Int_t i=0; i&lt;36; ++i){</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :         graphGainIROC-&gt;GetPoint(i,x,y);</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :         vGainGraphIROC(i)=y;</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :         graphGainOROCMedium-&gt;GetPoint(i,x,y);</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :         vGainGraphOROCmed(i)=y;</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :         graphGainOROCLong-&gt;GetPoint(i,x,y);</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :         vGainGraphOROClong(i)=y;</span>
+<span class="lineNum">     965 </span>            :         //errors
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         vGainGraphIROCErr(i)     = graphGainIROC-&gt;GetEY()[i];</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :         vGainGraphOROCmedErr(i)  = graphGainOROCMedium-&gt;GetEY()[i];</span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :         vGainGraphOROClongErr(i) = graphGainOROCLong-&gt;GetEY()[i];</span>
+<span class="lineNum">     969 </span>            :       }
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :        for (Int_t i=0; i&lt;3; ++i){</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :          vGainQMaxGraphRegion[i]=grPadEqualQMax-&gt;GetY()[i];</span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :          vGainQTotGraphRegion[i]=grPadEqualQTot-&gt;GetY()[i];</span>
+<span class="lineNum">     973 </span>            :        }
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     975 </span>            :     
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :     if (graphMIP) {</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :       gainMIP = AliTPCcalibDButil::EvalGraphConst(graphMIP,timeStamp);</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :       gainMIPTime0=graphMIP-&gt;GetX()[0];</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :       gainMIPTime1=graphMIP-&gt;GetX()[graphMIP-&gt;GetN()-1];</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :     if (graphCosmic) gainCosmic = AliTPCcalibDButil::EvalGraphConst(graphCosmic,timeStamp);</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :     if (graphAttach) attachMIP = AliTPCcalibDButil::EvalGraphConst(graphAttach,timeStamp);</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :     if (graphMIP)  AliTPCcalibDButil::GetNearest(graphMIP, timeStamp, dMIP,dummy);</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     985 </span>            :     
+<span class="lineNum">     986 </span>            :   // time dependence of gain 
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :     &quot;grPadEqualMax.=&quot;             &lt;&lt; &amp;ggrPadEqualMax             &lt;&lt;</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :     &quot;grPadEqualTot.=&quot;             &lt;&lt; &amp;ggrPadEqualTot             &lt;&lt;</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :     &quot;rocGainIROC.=&quot;               &lt;&lt; &amp;vGainGraphIROC             &lt;&lt;</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :     &quot;rocGainOROCMedium.=&quot;         &lt;&lt; &amp;vGainGraphOROCmed          &lt;&lt;</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :     &quot;rocGainOROCLong.=&quot;           &lt;&lt; &amp;vGainGraphOROClong         &lt;&lt;</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :     &quot;rocGainErrIROC.=&quot;            &lt;&lt; &amp;vGainGraphIROCErr          &lt;&lt;</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :     &quot;rocGainErrOROCMedium.=&quot;      &lt;&lt; &amp;vGainGraphOROCmedErr       &lt;&lt;</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :     &quot;rocGainErrOROCLong.=&quot;        &lt;&lt; &amp;vGainGraphOROClongErr      &lt;&lt;</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :     &quot;vGainQMaxGraphRegion.=&quot;      &lt;&lt; &amp;vGainQMaxGraphRegion       &lt;&lt;</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :     &quot;vGainQTotGraphRegion.=&quot;      &lt;&lt; &amp;vGainQTotGraphRegion       &lt;&lt;</span>
+<span class="lineNum">     998 </span>            :     //
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParMaxShort.=&quot;   &lt;&lt; &amp;vFitDipAngleParMaxShort    &lt;&lt;</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParMaxMedium.=&quot;  &lt;&lt; &amp;vFitDipAngleParMaxMedium   &lt;&lt;</span>
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParMaxLong.=&quot;    &lt;&lt; &amp;vFitDipAngleParMaxLong     &lt;&lt;</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParMaxAbsolute.=&quot;&lt;&lt; &amp;vFitDipAngleParMaxAbsolute &lt;&lt;</span>
+<span class="lineNum">    1003 </span>            :     //
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParTotShort.=&quot;   &lt;&lt; &amp;vFitDipAngleParTotShort    &lt;&lt;</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParTotMedium.=&quot;  &lt;&lt; &amp;vFitDipAngleParTotMedium   &lt;&lt;</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParTotLong.=&quot;    &lt;&lt; &amp;vFitDipAngleParTotLong     &lt;&lt;</span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     &quot;vFitDipAngleParTotAbsolute.=&quot;&lt;&lt; &amp;vFitDipAngleParTotAbsolute &lt;&lt;</span>
+<span class="lineNum">    1008 </span>            :     //
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :     &quot;grDipAngleMaxShort.=&quot;        &lt;&lt; &amp;ggrDipAngleMaxShort        &lt;&lt;</span>
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :     &quot;grDipAngleMaxMedium.=&quot;       &lt;&lt; &amp;ggrDipAngleMaxMedium       &lt;&lt;</span>
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :     &quot;grDipAngleMaxLong.=&quot;         &lt;&lt; &amp;ggrDipAngleMaxLong         &lt;&lt;</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :     &quot;grDipAngleMaxAbsolute.=&quot;     &lt;&lt; &amp;ggrDipAngleMaxAbsolute     &lt;&lt;</span>
+<span class="lineNum">    1013 </span>            :     //
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :     &quot;grDipAngleTotShort.=&quot;        &lt;&lt; &amp;ggrDipAngleTotShort        &lt;&lt;</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :     &quot;grDipAngleTotMedium.=&quot;       &lt;&lt; &amp;ggrDipAngleTotMedium       &lt;&lt;</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :     &quot;grDipAngleTotLong.=&quot;         &lt;&lt; &amp;ggrDipAngleTotLong         &lt;&lt;</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :     &quot;grDipAngleTotAbsolute.=&quot;     &lt;&lt; &amp;ggrDipAngleTotAbsolute     &lt;&lt;</span>
+<span class="lineNum">    1018 </span>            :     //
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :     &quot;grMultiplicityTot.=&quot;         &lt;&lt; &amp;ggrMultiplicityTot         &lt;&lt;</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :     &quot;grMultiplicityMax.=&quot;         &lt;&lt; &amp;ggrMultiplicityMax         &lt;&lt;</span>
+<span class="lineNum">    1021 </span>            :     //
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :     &quot;gainMIP=&quot;                    &lt;&lt; gainMIP                     &lt;&lt;   // gain normalization parameter</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     &quot;gainMIPTime0=&quot;               &lt;&lt; gainMIPTime0                &lt;&lt;   // first bin for time calibration</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     &quot;gainMIPTime1=&quot;               &lt;&lt; gainMIPTime1                &lt;&lt;   // last bin for gain calibration</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :     &quot;attachMIP=&quot;                  &lt;&lt; attachMIP                   &lt;&lt;</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :     &quot;dMIP=&quot;                       &lt;&lt; dMIP                        &lt;&lt;</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     &quot;gainCosmic=&quot;                 &lt;&lt; gainCosmic                   ;</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 : }</span>
+<a name="1029"><span class="lineNum">    1029 </span>            : </a>
+<span class="lineNum">    1030 </span>            : 
+<span class="lineNum">    1031 </span>            : void AliTPCcalibSummary::ProcessAlign(Int_t run, Int_t timeStamp){
+<span class="lineNum">    1032 </span>            :   //
+<span class="lineNum">    1033 </span>            :   // Proccess alignment 
+<span class="lineNum">    1034 </span>            :   //
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :   TString   grnames[12]={&quot;ALIGN_ITS&quot;, &quot;ALIGN_ITSP&quot;, &quot;ALIGN_ITSM&quot;, &quot;ALIGN_ITSB&quot;,</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :                          &quot;ALIGN_TRD&quot;, &quot;ALIGN_TRDP&quot;, &quot;ALIGN_TRDM&quot;,&quot;ALIGN_TRDB&quot;,</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :                          &quot;ALIGN_TOF&quot;, &quot;ALIGN_TOFP&quot;, &quot;ALIGN_TOFM&quot;,&quot;ALIGN_TOFB&quot;};</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :   TString   grpar[9]={&quot;DELTAPSI&quot;, &quot;DELTATHETA&quot;, &quot;DELTAPHI&quot;,</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :                       &quot;DELTAX&quot;, &quot;DELTAY&quot;, &quot;DELTAZ&quot;,</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :                       &quot;DRIFTVD&quot;, &quot;T0&quot;, &quot;VDGY&quot;};</span>
+<span class="lineNum">    1041 </span>            :   static Double_t values[12*9];
+<span class="lineNum">    1042 </span>            :   static Double_t errs[12*9];
+<span class="lineNum">    1043 </span>            : 
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :   TObjArray *array =fCalibDB-&gt;GetTimeVdriftSplineRun(run);</span>
+<span class="lineNum">    1045 </span>            :   TGraphErrors *gr=0;
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :   for (Int_t idet=0; idet&lt;12; idet++){</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :     for (Int_t ipar=0; ipar&lt;9; ipar++){</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :       TString grName=grnames[idet];</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :       grName+=&quot;_TPC_&quot;;</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :       grName+=grpar[ipar];</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :       if (array){</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :         gr = (TGraphErrors*)array-&gt;FindObject(grName.Data());</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :       values[9*idet+ipar]=0;</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :       errs[9*idet+ipar]=0;</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :       if (gr) values[9*idet+ipar]=AliTPCcalibDButil::EvalGraphConst(gr,timeStamp);</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :       (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :         Form(&quot;%s=&quot;,grName.Data())&lt;&lt;values[9*idet+ipar];</span>
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :       (*fPcstream)&lt;&lt;&quot;align&quot;&lt;&lt;</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :         Form(&quot;%s=&quot;,grName.Data())&lt;&lt;values[9*idet+ipar];</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1062 </span>            :   }
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;align&quot;&lt;&lt;</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :     &quot;time=&quot;&lt;&lt;timeStamp&lt;&lt;</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :     &quot;run=&quot;&lt;&lt;run&lt;&lt;</span>
+<span class="lineNum">    1066 </span>            :     &quot;\n&quot;;
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 : }</span>
+<a name="1068"><span class="lineNum">    1068 </span>            : </a>
+<span class="lineNum">    1069 </span>            : 
+<span class="lineNum">    1070 </span>            : void AliTPCcalibSummary::ProcessDriftCERef(){
+<span class="lineNum">    1071 </span>            :   //
+<span class="lineNum">    1072 </span>            :   // Get fit of residuals if CE in respect with reference
+<span class="lineNum">    1073 </span>            :   // data
+<span class="lineNum">    1074 </span>            :   //
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :   static TVectorD  sec(72);</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :   static TVectorD vec0(72);</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :   static TVectorD vecLy(72);</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :   static TVectorD vecLx(72);</span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :   static TVectorD vecChi2(72);</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :   static TVectorD vecN(72);</span>
+<span class="lineNum">    1081 </span>            :   //
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :   static TVectorD vecA0(72);</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   static TVectorD vecALy(72);</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :   static TVectorD vecALx(72);</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :   static TVectorD vecAChi2(72);</span>
+<span class="lineNum">    1086 </span>            :   //
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :   static TVectorD vecASide(4);</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :   static TVectorD vecCSide(4);</span>
+<span class="lineNum">    1089 </span>            :   static Bool_t isCalc=kFALSE;
+<span class="lineNum">    1090 </span>            :   
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :   TFile f(&quot;calPads.root&quot;);</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :   TFile fref(&quot;calPadsRef.root&quot;);</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :   TTree * tree = (TTree*)f.Get(&quot;calPads&quot;);</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :   TTree * treeRef = (TTree*)fref.Get(&quot;calPads&quot;);</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :   tree-&gt;AddFriend(treeRef,&quot;R&quot;);</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :   tree-&gt;SetAlias(&quot;inCE&quot;,&quot;((CEQmean.fElements&gt;35)&amp;&amp;abs(CETmean.fElements)&lt;1.5&amp;&amp;abs(CETrms.fElements/1.2-1)&lt;0.2)&quot;);  // outlyerTrms</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :   tree-&gt;SetAlias(&quot;inCER&quot;,&quot;((R.CEQmean.fElements&gt;35)&amp;&amp;abs(R.CETmean.fElements)&lt;1.5&amp;&amp;abs(R.CETrms.fElements/1.2-1)&lt;0.2)&quot;);  // outlyerTrms</span>
+<span class="lineNum">    1098 </span>            :   //
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :   if (!isCalc){</span>
+<span class="lineNum">    1100 </span>            :     // make fits only once
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :     Double_t chi2=0;</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     Int_t    npoints=0;</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     TVectorD param;</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :     TMatrixD covar;</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :     tree-&gt;SetAlias(&quot;dt&quot;,&quot;CETmean.fElements-R.CETmean.fElements&quot;);</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :     TCut cutAll =&quot;inCE&amp;&amp;inCER&amp;&amp;abs(CETmean.fElements-R.CETmean.fElements)&lt;0.5&quot;;</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :     TString  fstringG=&quot;&quot;;              // global part</span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :     fstringG+=&quot;ly.fElements++&quot;;</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :     fstringG+=&quot;(lx.fElements-134.)++&quot;;</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :     for (Int_t isec=0; isec&lt;72; isec++){</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :       TStatToolkit::FitPlane(tree,&quot;0.264*dt&quot;, fstringG.Data(),Form(&quot;sector==%d&quot;,isec)+cutAll, chi2,npoints,param,covar,-1,0, 10000000, kFALSE);</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :       if (npoints&lt;3) continue;</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :       printf(&quot;Sector=%d\n&quot;,isec);</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :       vec0[isec]=param[0];</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :       vecLy[isec]=param[1];</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :       vecLx[isec]=param[2];</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :       sec[isec]=isec;</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :       vecN[isec]=npoints;</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :       vecChi2[isec]=TMath::Sqrt(chi2/npoints);</span>
+<span class="lineNum">    1120 </span>            : 
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :       TStatToolkit::FitPlane(tree,&quot;0.264*CETmean.fElements&quot;, fstringG.Data(),Form(&quot;sector==%d&quot;,isec)+cutAll, chi2,npoints,param,covar,-1,0, 10000000, kFALSE);</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :       if (npoints&lt;3) continue;</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :       printf(&quot;Sector=%d\n&quot;,isec);</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :       vecA0[isec]=param[0];</span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :       vecALy[isec]=param[1];</span>
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :       vecALx[isec]=param[2];</span>
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :       vecAChi2[isec]=TMath::Sqrt(chi2/npoints);</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :     isCalc=kTRUE;</span>
+<span class="lineNum">    1130 </span>            :     //
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :     TString  fstringRef=&quot;&quot;;              // global fit</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :     fstringRef+=&quot;gx.fElements++&quot;;</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :     fstringRef+=&quot;gy.fElements++&quot;;  </span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :     fstringRef+=&quot;lx.fElements++&quot;;</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     TStatToolkit::FitPlane(tree,&quot;0.264*dt&quot;, fstringG.Data(),&quot;(sector%36)&lt;18&quot;+cutAll, chi2,npoints,vecASide,covar,-1,0, 10000000, kFALSE);</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :     TStatToolkit::FitPlane(tree,&quot;0.264*dt&quot;, fstringG.Data(),&quot;(sector%36)&gt;=18&quot;+cutAll, chi2,npoints,vecCSide,covar,-1,0, 10000000, kFALSE);</span>
+<span class="lineNum">    1137 </span>            : 
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;     // CE information</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     &quot;CETSector.=&quot;  &lt;&lt; &amp;sec      &lt;&lt; // sector numbers</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     &quot;CETRefA.=&quot;    &lt;&lt; &amp;vecASide &lt;&lt; // diff to reference A side</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :     &quot;CETRefC.=&quot;    &lt;&lt; &amp;vecCSide &lt;&lt; // diff to reference C side</span>
+<span class="lineNum">    1143 </span>            :     //                      // fit in respect to reference data
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :     &quot;CETRef0.=&quot;    &lt;&lt; &amp;vec0     &lt;&lt; // offset change</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :     &quot;CETRefY.=&quot;    &lt;&lt; &amp;vecLy    &lt;&lt; // slope y change - rad</span>
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :     &quot;CETRefX.=&quot;    &lt;&lt; &amp;vecLx    &lt;&lt; // slope x change - rad</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :     &quot;CETRefChi2.=&quot; &lt;&lt; &amp;vecChi2  &lt;&lt; // chi2 (rms in cm)</span>
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :     &quot;CETRefN.=&quot;    &lt;&lt; &amp;vecN     &lt;&lt; //number of accepted points</span>
+<span class="lineNum">    1149 </span>            :     //                       // fit in respect per mean per side
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :     &quot;CET0.=&quot;       &lt;&lt; &amp;vecA0    &lt;&lt; // offset change</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :     &quot;CETY.=&quot;       &lt;&lt; &amp;vecALy   &lt;&lt; // slope y change - rad</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :     &quot;CETX.=&quot;       &lt;&lt; &amp;vecALx   &lt;&lt; // slope x change - rad</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :     &quot;CETChi2.=&quot;    &lt;&lt; &amp;vecAChi2  ; // chi2 (rms in cm)</span>
+<a name="1154"><span class="lineNum">    1154 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1155 </span>            : 
+<span class="lineNum">    1156 </span>            : void AliTPCcalibSummary::ProcessPulserRef(){
+<span class="lineNum">    1157 </span>            :   //
+<span class="lineNum">    1158 </span>            :   // Get fit of residuals if Pulser in respect with reference
+<span class="lineNum">    1159 </span>            :   // data
+<span class="lineNum">    1160 </span>            :   //
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :   static TVectorD  sec(72);</span>
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :   static TVectorD vec0(72);</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :   static TVectorD vecLy(72);</span>
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :   static TVectorD vecLx(72);</span>
+<span class="lineNum">    1165 </span><span class="lineNoCov">          0 :   static TVectorD vecChi2(72);</span>
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :   static TVectorD vecN(72);</span>
+<span class="lineNum">    1167 </span>            :   //
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :   static TVectorD vecA0(72);</span>
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :   static TVectorD vecALy(72);</span>
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :   static TVectorD vecALx(72);</span>
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :   static TVectorD vecAChi2(72);</span>
+<span class="lineNum">    1172 </span>            :   static Bool_t isCalc=kFALSE;
+<span class="lineNum">    1173 </span>            :   
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :   TFile f(&quot;calPads.root&quot;);</span>
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :   TFile fref(&quot;calPadsRef.root&quot;);</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :   TTree * tree = (TTree*)f.Get(&quot;calPads&quot;);</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :   TTree * treeRef = (TTree*)fref.Get(&quot;calPads&quot;);</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :   tree-&gt;AddFriend(treeRef,&quot;R&quot;);</span>
+<span class="lineNum">    1179 </span>            :   
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :   tree-&gt;SetAlias(&quot;inPulser&quot;,&quot;(abs(PulserTmean.fElements-PulserTmean_Median)&lt;1.5&amp;&amp;abs(PulserTrms.fElements-PulserTrms_Median)&lt;0.2)&quot;);  // outlyerTrms</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :   tree-&gt;SetAlias(&quot;inPulserR&quot;,&quot;(abs(R.PulserTmean.fElements-R.PulserTmean_Median)&lt;1.5&amp;&amp;abs(R.PulserTrms.fElements-R.PulserTrms_Median)&lt;0.2)&quot;);  // outlyerTrms</span>
+<span class="lineNum">    1182 </span>            :   //
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :   if (!isCalc){</span>
+<span class="lineNum">    1184 </span>            :     // make fits only once
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :     Double_t chi2=0;</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :     Int_t    npoints=0;</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :     TVectorD param;</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :     TMatrixD covar;</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :     tree-&gt;SetAlias(&quot;dt&quot;,&quot;PulserTmean.fElements-R.PulserTmean.fElements&quot;);</span>
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :     TCut cutAll =&quot;inPulser&amp;&amp;inPulserR&quot;; </span>
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :     TString  fstringG=&quot;&quot;;              // global part</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :     fstringG+=&quot;ly.fElements++&quot;;</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :     fstringG+=&quot;(lx.fElements-134.)++&quot;;  </span>
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :     for (Int_t isec=0; isec&lt;72; isec++){</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :       TStatToolkit::FitPlane(tree,&quot;dt&quot;, fstringG.Data(),Form(&quot;sector==%d&quot;,isec)+cutAll, chi2,npoints,param,covar,-1,0, 10000000, kFALSE);</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :       if (npoints&lt;3) continue;</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :       printf(&quot;Setor=%d\n&quot;,isec);</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :       vec0[isec]=param[0];</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :       vecLy[isec]=param[1];</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :       vecLx[isec]=param[2];</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :       sec[isec]=isec;</span>
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :       vecN[isec]=npoints;</span>
+<span class="lineNum">    1203 </span>            : 
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :       TStatToolkit::FitPlane(tree,&quot;PulserTmean.fElements&quot;, fstringG.Data(),Form(&quot;sector==%d&quot;,isec)+cutAll, chi2,npoints,param,covar,-1,0, 10000000, kFALSE);</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :       if (npoints&lt;3) continue;</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :       printf(&quot;Setor=%d\n&quot;,isec);</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :       vecA0[isec]=param[0];</span>
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :       vecALy[isec]=param[1];</span>
+<span class="lineNum">    1209 </span><span class="lineNoCov">          0 :       vecALx[isec]=param[2];</span>
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :       vecAChi2[isec]=TMath::Sqrt(chi2/npoints);</span>
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1212 </span>            : 
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :     isCalc=kTRUE;</span>
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;     // Pulser information</span>
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :     &quot;PulserTSector.=&quot;  &lt;&lt; &amp;sec     &lt;&lt; // sector numbers</span>
+<span class="lineNum">    1217 </span>            :     //                      // fit in respect to reference
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 :     &quot;PulserTRef0.=&quot;    &lt;&lt; &amp;vec0    &lt;&lt; // offset change</span>
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :     &quot;PulserTRefY.=&quot;    &lt;&lt; &amp;vecLy   &lt;&lt; // slope y change - rad</span>
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :     &quot;PulserTRefX.=&quot;    &lt;&lt; &amp;vecLx   &lt;&lt; // slope x change - rad</span>
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :     &quot;PulserTRefChi2.=&quot; &lt;&lt; &amp;vecChi2 &lt;&lt; // chi2 (rms in cm)</span>
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :     &quot;PulserTRefN.=&quot;    &lt;&lt; &amp;vecN    &lt;&lt; //number of accepted points</span>
+<span class="lineNum">    1223 </span>            :     //                       // fit in respect per mean per side
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :     &quot;PulserT0.=&quot;       &lt;&lt; &amp;vecA0   &lt;&lt; // offset change</span>
+<span class="lineNum">    1225 </span><span class="lineNoCov">          0 :     &quot;PulserTY.=&quot;       &lt;&lt; &amp;vecALy  &lt;&lt; // slope y change - rad</span>
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :     &quot;PulserTX.=&quot;       &lt;&lt; &amp;vecALx  &lt;&lt; // slope x change - rad</span>
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     &quot;PulserTChi2.=&quot;    &lt;&lt; &amp;vecAChi2 ; // chi2 (rms in cm)</span>
+<a name="1228"><span class="lineNum">    1228 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1229 </span>            : 
+<span class="lineNum">    1230 </span>            : void AliTPCcalibSummary::ProcessCurrent(Int_t irun, Int_t itime){
+<span class="lineNum">    1231 </span>            :   //
+<span class="lineNum">    1232 </span>            :   // Dump current 
+<span class="lineNum">    1233 </span>            :   //
+<span class="lineNum">    1234 </span>            :   //variables to export
+<span class="lineNum">    1235 </span>            :   //
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :   static TObjArray *currentArray=new TObjArray(72);   // current graphs</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :   static TObjArray *currentArray2=new TObjArray(72);  // current graphs to export</span>
+<span class="lineNum">    1238 </span>            :   //
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :   static TVectorD currentIROC(36);                    // current snapshots</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :   static TVectorD currentOROC(36); </span>
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :   static TVectorF sector(72);                         //</span>
+<span class="lineNum">    1242 </span>            :   static Double_t medcurIROC = 0;
+<span class="lineNum">    1243 </span>            :   static Double_t medcurOROC = 0;
+<span class="lineNum">    1244 </span>            :   //
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :   static TVectorF minROC(72);                         // current mean +-5 minutes</span>
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :   static TVectorF maxROC(72);</span>
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :   static TVectorF meanROC(72);</span>
+<span class="lineNum">    1248 </span><span class="lineNoCov">          0 :   static TVectorF medianROC(72);</span>
+<span class="lineNum">    1249 </span>            :   static Double_t meanIIROC=0;
+<span class="lineNum">    1250 </span>            :   static Double_t meanIOROC=0;
+<span class="lineNum">    1251 </span>            :   static Double_t medianIIROC=0;
+<span class="lineNum">    1252 </span>            :   static Double_t medianIOROC=0;
+<span class="lineNum">    1253 </span>            :   //
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :   AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()-&gt;GetVoltageSensors(irun);</span>
+<span class="lineNum">    1255 </span>            :   //
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :   for(Int_t j=1; j&lt;36; j++) currentIROC[j-1] = fCalibDB-&gt;GetChamberHighVoltage(irun, j,itime,-1,kTRUE);</span>
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :   for(Int_t j=36; j&lt;72; j++) currentOROC[j-36] = fCalibDB-&gt;GetChamberHighVoltage(irun, j,itime,-1,kTRUE);</span>
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 :   medcurIROC = TMath::Median(36, currentIROC.GetMatrixArray());</span>
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :   medcurOROC = TMath::Median(36, currentOROC.GetMatrixArray());</span>
+<span class="lineNum">    1260 </span>            : 
+<span class="lineNum">    1261 </span>            : 
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :   if (currentArray-&gt;At(0)==0){</span>
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :     for (Int_t isec=0; isec&lt;72; isec++){</span>
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :       TString sensorName=&quot;&quot;;</span>
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :       const char* sideName=(isec%36&lt;18) ? &quot;A&quot;:&quot;C&quot;;</span>
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :       if (isec&lt;36){</span>
+<span class="lineNum">    1267 </span>            :         //IROC
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :         sensorName=Form(&quot;TPC_ANODE_I_%s%02d_IMEAS&quot;,sideName,isec%18);</span>
+<span class="lineNum">    1269 </span>            :       }else{
+<span class="lineNum">    1270 </span>            :         //OROC
+<span class="lineNum">    1271 </span><span class="lineNoCov">          0 :         sensorName=Form(&quot;TPC_ANODE_O_%s%02d_0_IMEAS&quot;,sideName,isec%18);</span>
+<span class="lineNum">    1272 </span>            :       }      
+<span class="lineNum">    1273 </span>            :     
+<span class="lineNum">    1274 </span>            :       AliDCSSensor *sensor = 0;
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :       if (voltageArray) sensor= voltageArray-&gt;GetSensor(sensorName);   </span>
+<span class="lineNum">    1276 </span>            :       TGraph *gr=0;
+<span class="lineNum">    1277 </span><span class="lineNoCov">          0 :       if (!sensor) gr=new TGraph(1);</span>
+<span class="lineNum">    1278 </span>            :       else{
+<span class="lineNum">    1279 </span><span class="lineNoCov">          0 :         if (!sensor-&gt;GetGraph()) gr=new TGraph(1);</span>
+<span class="lineNum">    1280 </span>            :         else{
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :           gr=sensor-&gt;GetGraph();</span>
+<span class="lineNum">    1282 </span><span class="lineNoCov">          0 :           Double_t startTime=sensor-&gt;GetStartTime();</span>
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :           Double_t * time = new Double_t[gr-&gt;GetN()];</span>
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :           for (Int_t ip=0; ip&lt;gr-&gt;GetN(); ip++){ time[ip]= (gr-&gt;GetX()[ip]*3600.)+startTime;}    </span>
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :           gr=new TGraph(gr-&gt;GetN(), time, gr-&gt;GetY());</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :           delete [] time;</span>
+<span class="lineNum">    1287 </span>            :         }      
+<span class="lineNum">    1288 </span>            :       }
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :       gr-&gt;Sort();</span>
+<span class="lineNum">    1290 </span><span class="lineNoCov">          0 :       currentArray-&gt;AddAt(gr, isec);</span>
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :       currentArray-&gt;AddAt(gr-&gt;Clone(), isec);</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1294 </span>            : 
+<span class="lineNum">    1295 </span>            : 
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :   for (Int_t isec=0; isec&lt;72; isec++){</span>
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :     sector[isec]=isec;</span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :     TGraph * gr = (TGraph*)currentArray-&gt;At(isec);</span>
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :     TGraph * graph2 = (TGraph*)currentArray2-&gt;At(isec);    </span>
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :     Int_t firstBin= TMath::BinarySearch(gr-&gt;GetN(), gr-&gt;GetX(), itime-300.)-2;</span>
+<span class="lineNum">    1301 </span><span class="lineNoCov">          0 :     Int_t lastBin= TMath::BinarySearch(gr-&gt;GetN(), gr-&gt;GetX(), itime+300.)+2;</span>
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :     if (firstBin&lt;0) firstBin=0;</span>
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :     if (lastBin&gt;=gr-&gt;GetN()) lastBin=gr-&gt;GetN()-1;</span>
+<span class="lineNum">    1304 </span>            :     //
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :     if (firstBin&lt;lastBin){</span>
+<span class="lineNum">    1306 </span>            :       //
+<span class="lineNum">    1307 </span><span class="lineNoCov">          0 :       minROC[isec]=TMath::MinElement(lastBin-firstBin, &amp;(gr-&gt;GetY()[firstBin]));</span>
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 :       maxROC[isec]=TMath::MaxElement(lastBin-firstBin, &amp;(gr-&gt;GetY()[firstBin]));</span>
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :       meanROC[isec]=TMath::Mean(lastBin-firstBin, &amp;(gr-&gt;GetY()[firstBin]));</span>
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :       medianROC[isec]=TMath::Median(lastBin-firstBin, &amp;(gr-&gt;GetY()[firstBin]));</span>
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :       graph2 = new TGraph(lastBin-firstBin, &amp;(gr-&gt;GetX()[firstBin]), &amp;(gr-&gt;GetY()[firstBin]));</span>
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 :       delete currentArray2-&gt;At(isec);</span>
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 :       currentArray2-&gt;AddAt(graph2,isec);</span>
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1315 </span><span class="lineNoCov">          0 :     (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;     // current information</span>
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :       Form(&quot;current%d.=&quot;,isec)&lt;&lt;graph2;</span>
+<span class="lineNum">    1317 </span>            :   }     
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :   meanIIROC=TMath::Mean(36, &amp;(meanROC.GetMatrixArray()[0]));</span>
+<span class="lineNum">    1319 </span><span class="lineNoCov">          0 :   meanIOROC=TMath::Mean(36, &amp;(meanROC.GetMatrixArray()[36]));</span>
+<span class="lineNum">    1320 </span><span class="lineNoCov">          0 :   medianIIROC=TMath::Median(36, &amp;(meanROC.GetMatrixArray()[0]));</span>
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :   medianIOROC=TMath::Median(36, &amp;(meanROC.GetMatrixArray()[36]));</span>
+<span class="lineNum">    1322 </span>            :   //
+<span class="lineNum">    1323 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;     // current information</span>
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :     &quot;isec.=&quot;        &lt;&lt; &amp;sector      &lt;&lt; // sector number</span>
+<span class="lineNum">    1325 </span><span class="lineNoCov">          0 :     &quot;IIROC.=&quot;       &lt;&lt; &amp;currentIROC &lt;&lt; // current sample at given moment</span>
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :     &quot;IOROC.=&quot;       &lt;&lt; &amp;currentOROC &lt;&lt; // current sample at given moment</span>
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :     &quot;medianIIROC=&quot;  &lt;&lt; medcurIROC   &lt;&lt; // median at given moment</span>
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :     &quot;medianIOROC=&quot;  &lt;&lt; medcurOROC   &lt;&lt; // median at given moment</span>
+<span class="lineNum">    1329 </span>            :     //
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :     &quot;minIROC.=&quot;     &lt;&lt; &amp;minROC      &lt;&lt; // minimum in +-5 min</span>
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :     &quot;maxIROC.=&quot;     &lt;&lt; &amp;maxROC      &lt;&lt; // maximum in +-5 min</span>
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :     &quot;meanIROC.=&quot;    &lt;&lt; &amp;meanROC     &lt;&lt; // mean in +-5 min</span>
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :     &quot;medianIROC.=&quot;  &lt;&lt; &amp;medianROC   &lt;&lt; // median in +-5 min</span>
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :     &quot;meanIIROC5=&quot;   &lt;&lt; meanIIROC    &lt;&lt; // mean current in IROC +-5 minutes</span>
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :     &quot;meanIOROC5=&quot;   &lt;&lt; meanIOROC    &lt;&lt; // mean current in OROC</span>
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :     &quot;medianIIROC5=&quot; &lt;&lt; medianIIROC  &lt;&lt; // median current in IROC</span>
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :     &quot;medianIOROC5=&quot; &lt;&lt; medianIOROC   ; // medianan current in OROC</span>
+<span class="lineNum">    1338 </span>            :    
+<span class="lineNum">    1339 </span>            : 
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;current&quot;&lt;&lt;     // current information</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :     &quot;time=&quot;         &lt;&lt; itime        &lt;&lt;</span>
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :     &quot;isec.=&quot;        &lt;&lt; &amp;sector      &lt;&lt; // sector number</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :     &quot;IIROC.=&quot;       &lt;&lt; &amp;currentIROC &lt;&lt; // current sample at given moment</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :     &quot;IOROC.=&quot;       &lt;&lt; &amp;currentOROC &lt;&lt; // current sample at given moment</span>
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :     &quot;medianIIROC=&quot;  &lt;&lt; medcurIROC   &lt;&lt; // median at given moment</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :     &quot;medianIOROC=&quot;  &lt;&lt; medcurOROC   &lt;&lt; // median at given moment</span>
+<span class="lineNum">    1347 </span>            :     //
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :     &quot;minIROC.=&quot;     &lt;&lt; &amp;minROC      &lt;&lt; // minimum in +-5 min</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :     &quot;maxIROC.=&quot;     &lt;&lt; &amp;maxROC      &lt;&lt; // maximum in +-5 min</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :     &quot;meanIROC.=&quot;    &lt;&lt; &amp;meanROC     &lt;&lt; // mean in +-5 min</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :     &quot;medianIROC.=&quot;  &lt;&lt; &amp;medianROC   &lt;&lt; // median in +-5 min</span>
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :     &quot;meanIIROC5=&quot;   &lt;&lt; meanIIROC    &lt;&lt; // mean current in IROC +-5 minutes</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :     &quot;meanIOROC5=&quot;   &lt;&lt; meanIOROC    &lt;&lt; // mean current in OROC</span>
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :     &quot;medianIIROC5=&quot; &lt;&lt; medianIIROC  &lt;&lt; // median current in IROC</span>
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :     &quot;medianIOROC5=&quot; &lt;&lt; medianIOROC  &lt;&lt; // medianan current in OROC</span>
+<span class="lineNum">    1356 </span>            :     &quot;\n&quot;;
+<span class="lineNum">    1357 </span>            : 
+<a name="1358"><span class="lineNum">    1358 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1359 </span>            : 
+<span class="lineNum">    1360 </span>            : void AliTPCcalibSummary::ProcessLHCData(Int_t irun, Int_t itime)
+<span class="lineNum">    1361 </span>            : {
+<span class="lineNum">    1362 </span>            :   // itime
+<span class="lineNum">    1363 </span><span class="lineNoCov">          0 :   static TVectorF vecLHCBckgAlice(AliLHCData::kNBGs);</span>
+<span class="lineNum">    1364 </span>            : 
+<span class="lineNum">    1365 </span>            :   // ---| fill data if lhcData object exists |---
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :   const AliLHCData *lhcData=GetLHCdata();</span>
+<span class="lineNum">    1367 </span>            : 
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;Int_t(AliLHCData::kNBGs); ++i) {</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :     vecLHCBckgAlice[i]=lhcData?lhcData-&gt;GetBckgAlice(i,Double_t(itime)):-1.f;</span>
+<span class="lineNum">    1370 </span>            :   }
+<span class="lineNum">    1371 </span>            : 
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :   (*fPcstream)&lt;&lt;&quot;dcs&quot;&lt;&lt;     // current information</span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :   &quot;bckgAlice.=&quot; &lt;&lt; &amp;vecLHCBckgAlice;</span>
+<span class="lineNum">    1374 </span>            : 
+<a name="1375"><span class="lineNum">    1375 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1376 </span>            : 
+<span class="lineNum">    1377 </span>            : void AliTPCcalibSummary::AddMetadataRawQA(TTree * treeRawQATPC){
+<span class="lineNum">    1378 </span>            :   //
+<span class="lineNum">    1379 </span>            :   // Make Aliases and description for Raw QA trending
+<span class="lineNum">    1380 </span>            :   //
+<span class="lineNum">    1381 </span><span class="lineNoCov">          0 :   treeRawQATPC-&gt;SetAlias(&quot;isIROC&quot;,&quot;(Iteration$&lt;36)&quot;);</span>
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :   treeRawQATPC-&gt;SetAlias(&quot;isOROC&quot;,&quot;(Iteration$&gt;=36)&quot;);</span>
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :   treeRawQATPC-&gt;SetAlias(&quot;occOK0&quot;,&quot;(occQA.fElements&gt;0)&quot;);</span>
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :   treeRawQATPC-&gt;SetAlias(&quot;occIROC&quot;,&quot;Sum$(occQA.fElements*(isIROC*occOK0))/Sum$(isIROC*occOK0)&quot;);</span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :   treeRawQATPC-&gt;SetAlias(&quot;occOROC&quot;,&quot;Sum$(occQA.fElements*(isOROC*occOK0))/Sum$(isOROC*occOK0)&quot;);</span>
+<span class="lineNum">    1386 </span>            : 
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occIROC.AxisTitle&quot;,&quot;Occupancy IROC &quot;);</span>
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occIROC.Title&quot;,&quot;Sum$(occQA.fElements*(isIROC*occOK0))/Sum$(isIROC*occOK0)&quot;);</span>
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occIROC.Legend&quot;,&quot;IROC occ.&quot;);</span>
+<span class="lineNum">    1390 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occIROC.Comment&quot;,&quot;Digits occupancy in IROC  #(A&gt;thr)/#All as obtained in AMORE QA&quot;);</span>
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occOROC.AxisTitle&quot;,&quot;Occupancy IROC &quot;);</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occOROC.Title&quot;,&quot;Sum$(occQA.fElements*(isOROC*occOK0))/Sum$(isOROC*occOK0)&quot;);</span>
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occOROC.Legend&quot;,&quot;OROC occ.&quot;);</span>
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;occOROC.Comment&quot;,&quot;Digits occupanncy in OROC  #(A&gt;thr)/#All as obtained in AMORE QA&quot;);</span>
+<a name="1395"><span class="lineNum">    1395 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1396 </span>            : 
+<span class="lineNum">    1397 </span>            : void AliTPCcalibSummary::AddMetadataGain(TTree * treeRawQATPC){
+<span class="lineNum">    1398 </span>            :   //
+<span class="lineNum">    1399 </span>            :   // Define aliases and valriable description for some important gain calibration parameters
+<span class="lineNum">    1400 </span>            :   //
+<span class="lineNum">    1401 </span><span class="lineNoCov">          0 :   treeRawQATPC-&gt;SetAlias(&quot;gainDefined&quot;,&quot;gainMIP!=0&amp;&amp;abs(dits)&lt;1800&quot;);</span>
+<span class="lineNum">    1402 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;gainMIP.AxisTitle&quot;,&quot;gain conversion (50/MIP)&quot;);</span>
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;gainMIP.Title&quot;,&quot;gainMIP&quot;);</span>
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;gainMIP.Legend&quot;,&quot;gain(t)&quot;);</span>
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :   TStatToolkit::AddMetadata(treeRawQATPC,&quot;gainMIP.Comment&quot;,&quot;Gain normalization coeficient used for time dependenta gain calibation. Last correction to move combined dEdx for MIP to channel 50&quot;);</span>
+<span class="lineNum">    1406 </span>            : 
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 : }</span>
+<a name="1408"><span class="lineNum">    1408 </span>            : </a>
+<span class="lineNum">    1409 </span>            : 
+<span class="lineNum">    1410 </span>            : void AliTPCcalibSummary::AddMetadata(TTree * tree){
+<span class="lineNum">    1411 </span>            :   //
+<span class="lineNum">    1412 </span>            :   // add metadata for automatic documentiation 
+<span class="lineNum">    1413 </span>            :   //
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :   AddMetadataRawQA(tree);</span>
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :   AddMetadataGain(tree);</span>
+<span class="lineNum">    1416 </span>            :   
+<a name="1417"><span class="lineNum">    1417 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1418 </span>            : 
+<span class="lineNum">    1419 </span>            : AliLHCData* AliTPCcalibSummary::GetLHCdata()
+<span class="lineNum">    1420 </span>            : {
+<span class="lineNum">    1421 </span>            :   static AliCDBEntry *cdbLHCData=0x0;
+<span class="lineNum">    1422 </span>            :   static AliLHCData *lhcData=0x0;
+<span class="lineNum">    1423 </span>            : 
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :   AliCDBManager *man=AliCDBManager::Instance();</span>
+<span class="lineNum">    1425 </span>            : 
+<span class="lineNum">    1426 </span>            :   // ===| get LHCData OCDB object |============================================
+<span class="lineNum">    1427 </span>            : 
+<span class="lineNum">    1428 </span>            :   // ===| check if we already have the latest object |=========================
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :   const Int_t currentRun=man-&gt;GetRun();</span>
+<span class="lineNum">    1430 </span><span class="lineNoCov">          0 :   if (cdbLHCData &amp;&amp; cdbLHCData-&gt;GetId().GetAliCDBRunRange().Comprises(AliCDBRunRange(currentRun, currentRun))) {</span>
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :     return lhcData;</span>
+<span class="lineNum">    1432 </span>            :   }
+<span class="lineNum">    1433 </span>            : 
+<span class="lineNum">    1434 </span>            :   // ---| if not, load the object |---------------------------------------------
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :   cdbLHCData=man-&gt;Get(&quot;GRP/GRP/LHCData&quot;);</span>
+<span class="lineNum">    1436 </span>            : 
+<span class="lineNum">    1437 </span><span class="lineNoCov">          0 :   if (!cdbLHCData) {</span>
+<span class="lineNum">    1438 </span><span class="lineNoCov">          0 :     AliError(&quot;Could not get LHCData&quot;);</span>
+<span class="lineNum">    1439 </span><span class="lineNoCov">          0 :     return lhcData;</span>
+<span class="lineNum">    1440 </span>            :   }
+<span class="lineNum">    1441 </span>            : 
+<span class="lineNum">    1442 </span><span class="lineNoCov">          0 :   lhcData=static_cast&lt;AliLHCData*&gt;(cdbLHCData-&gt;GetObject());</span>
+<span class="lineNum">    1443 </span><span class="lineNoCov">          0 :   return lhcData;</span>
+<a name="1444"><span class="lineNum">    1444 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1445 </span>            : 
+<span class="lineNum">    1446 </span>            : void AliTPCcalibSummary::GetAverageLHCData(TVectorF &amp;valsBckgAlice)
+<span class="lineNum">    1447 </span>            : {
+<span class="lineNum">    1448 </span>            :   // average Alice background
+<span class="lineNum">    1449 </span><span class="lineNoCov">          0 :   const AliLHCData *lhcData=GetLHCdata();</span>
+<span class="lineNum">    1450 </span><span class="lineNoCov">          0 :   valsBckgAlice.ResizeTo(AliLHCData::kNBGs);</span>
+<span class="lineNum">    1451 </span>            : 
+<span class="lineNum">    1452 </span>            :   // ===| reset to -1 |---
+<span class="lineNum">    1453 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;Int_t(AliLHCData::kNBGs); ++i) {</span>
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :     valsBckgAlice[i]=-1.f;</span>
+<span class="lineNum">    1455 </span>            :   }
+<span class="lineNum">    1456 </span>            : 
+<span class="lineNum">    1457 </span>            :   // ===| exit if lhcData does not exist |===
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :   if (!lhcData) {</span>
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1460 </span>            :   }
+<span class="lineNum">    1461 </span>            : 
+<span class="lineNum">    1462 </span>            :   // ===| build simple average per background estimator |===
+<span class="lineNum">    1463 </span><span class="lineNoCov">          0 :   for (Int_t ibckg=0; ibckg&lt;Int_t(AliLHCData::kNBGs); ++ibckg) {</span>
+<span class="lineNum">    1464 </span><span class="lineNoCov">          0 :     const Int_t nValues=lhcData-&gt;GetNBckgAlice(ibckg);</span>
+<span class="lineNum">    1465 </span><span class="lineNoCov">          0 :     if (nValues&lt;=0) { continue; }</span>
+<span class="lineNum">    1466 </span>            :     Double_t sum=0.;
+<span class="lineNum">    1467 </span><span class="lineNoCov">          0 :     for (Int_t ivalue=0; ivalue&lt;nValues; ++ivalue ) {</span>
+<span class="lineNum">    1468 </span><span class="lineNoCov">          0 :       sum+=lhcData-&gt;GetBckgAlice(ibckg,ivalue)-&gt;GetValue();</span>
+<span class="lineNum">    1469 </span>            :     }
+<span class="lineNum">    1470 </span><span class="lineNoCov">          0 :     sum/=Double_t(nValues);</span>
+<span class="lineNum">    1471 </span><span class="lineNoCov">          0 :     valsBckgAlice[ibckg]=sum;</span>
+<span class="lineNum">    1472 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1473 </span>            : 
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1475 </span>            : 
+<span class="lineNum">    1476 </span>            : // TCanvas * DrawCEDiff(TTree * tree){
+<span class="lineNum">    1477 </span>            :   
+<span class="lineNum">    1478 </span>            : //   TCanvas *canvasIO = new TCanvas(&quot;canvasCEIO&quot;,&quot;canvasCEIO&quot;);
+<span class="lineNum">    1479 </span>            : //   canvasIO-&gt;Divide(6,6);
+<span class="lineNum">    1480 </span>            : //   for (Int_t isec=0; isec&lt;36; isec++){
+<span class="lineNum">    1481 </span>            : //     canvasIO-&gt;cd(isec+1);
+<span class="lineNum">    1482 </span>            : //     dcs-&gt;Draw(Form(&quot;CET0.fElements[%d]-CET0.fElements[%d]&quot;,isec+36,isec),Form(&quot;abs(CETRef0.fElements[%d])&lt;0.3&quot;,isec),&quot;&quot;);
+<span class="lineNum">    1483 </span>            : //     printf(&quot;%d\t%f\t%f\n&quot;,isec,dcs-&gt;GetHistogram()-&gt;GetMean(),dcs-&gt;GetHistogram()-&gt;GetRMS());
+<span class="lineNum">    1484 </span>            : //   }
+<span class="lineNum">    1485 </span>            : 
+<span class="lineNum">    1486 </span>            : // }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

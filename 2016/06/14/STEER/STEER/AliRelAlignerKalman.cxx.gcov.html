@@ -1,0 +1,1657 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - STEER/STEER/AliRelAlignerKalman.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">STEER/STEER</a> - AliRelAlignerKalman.cxx<span style="font-size: 80%;"> (source / <a href="AliRelAlignerKalman.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">830</td>
+            <td class="headerCovTableEntryLo">0.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryLo">2.4 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : ///////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      17 </span>            : //
+<span class="lineNum">      18 </span>            : //    Kalman filter based aligner:
+<span class="lineNum">      19 </span>            : //    Finds alignement constants for  two tracking volumes (by default ITS
+<span class="lineNum">      20 </span>            : //    and TPC)
+<span class="lineNum">      21 </span>            : //    Determines the inverse transformation of the second volume (TPC)
+<span class="lineNum">      22 </span>            : //    with respect to the first (ITS) (how to realign TPC to ITS)
+<span class="lineNum">      23 </span>            : //    by measuring the residual between the 2 tracks.
+<span class="lineNum">      24 </span>            : //    Additionally calculates some callibration parameters for TPC
+<span class="lineNum">      25 </span>            : //    Fit parameters are:
+<span class="lineNum">      26 </span>            : //    - 3 shifts, x,y,z
+<span class="lineNum">      27 </span>            : //    - 3 Cardan angles, psi, theta, phi (see definition in alignment docs),
+<span class="lineNum">      28 </span>            : //    - TPC drift velocity correction,
+<span class="lineNum">      29 </span>            : //    - TPC time offset correction.
+<span class="lineNum">      30 </span>            : //
+<span class="lineNum">      31 </span>            : //    Basic usage:
+<span class="lineNum">      32 </span>            : //    When aligning two volumes, at any given time a single instance of
+<span class="lineNum">      33 </span>            : //    the class should be active. The fit of the parameters is updated
+<span class="lineNum">      34 </span>            : //    by adding new data using one of the Add.... methods:
+<span class="lineNum">      35 </span>            : //
+<span class="lineNum">      36 </span>            : //    In collision events add an ESD event to update the fit (adds all tracks):
+<span class="lineNum">      37 </span>            : //
+<span class="lineNum">      38 </span>            : //        Bool_t AddESDevent( AliESDevent* pTrack );
+<span class="lineNum">      39 </span>            : //    
+<span class="lineNum">      40 </span>            : //    or add each individual track
+<span class="lineNum">      41 </span>            : //
+<span class="lineNum">      42 </span>            : //        AddESDtrack( AliESDtrack* pTrack );
+<span class="lineNum">      43 </span>            : //
+<span class="lineNum">      44 </span>            : //    For cosmic data, the assumption is that the tracking is done twice:
+<span class="lineNum">      45 </span>            : //    once global and once only ITS and the tracklets are saved inside
+<span class="lineNum">      46 </span>            : //    one AliESDEvent. The method
+<span class="lineNum">      47 </span>            : //
+<span class="lineNum">      48 </span>            : //        Bool_t AddCosmicEvent( AliESDEvent* pEvent );
+<span class="lineNum">      49 </span>            : //
+<span class="lineNum">      50 </span>            : //    then searches the event for matching tracklets and upon succes it updates.
+<span class="lineNum">      51 </span>            : //    One cosmic ideally triggers two updates: for the upper and lower half of
+<span class="lineNum">      52 </span>            : //    the cosmic (upper ITS tracklet+upper TPC tracklet, idem dito for lower)
+<span class="lineNum">      53 </span>            : //
+<span class="lineNum">      54 </span>            : //    by default give misalignment parameters for TPC as they appear to be.
+<span class="lineNum">      55 </span>            : //    TPC calibration parameters are always given as correction to values used in reco.
+<span class="lineNum">      56 </span>            : //
+<span class="lineNum">      57 </span>            : //    _________________________________________________________________________
+<span class="lineNum">      58 </span>            : //    Expert options:
+<span class="lineNum">      59 </span>            : //    look at AddESDevent() and AddCosmicEvent() to get the idea of how the
+<span class="lineNum">      60 </span>            : //    aligner works, it's safe to repeat the needed steps outside of the class,
+<span class="lineNum">      61 </span>            : //    only public methods are used.
+<span class="lineNum">      62 </span>            : //
+<span class="lineNum">      63 </span>            : //    Origin: Mikolaj Krzewicki, Nikhef, Mikolaj.Krzewicki@cern.ch
+<span class="lineNum">      64 </span>            : //
+<span class="lineNum">      65 </span>            : //////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      68 </span>            : #include &lt;TObject.h&gt;
+<span class="lineNum">      69 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      70 </span>            : #include &lt;TMatrix.h&gt;
+<span class="lineNum">      71 </span>            : #include &lt;TVector.h&gt;
+<span class="lineNum">      72 </span>            : #include &lt;TVector3.h&gt;
+<span class="lineNum">      73 </span>            : #include &lt;TDecompLU.h&gt;
+<span class="lineNum">      74 </span>            : #include &lt;TArrayI.h&gt;
+<span class="lineNum">      75 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      76 </span>            : #include &lt;TH1D.h&gt;
+<span class="lineNum">      77 </span>            : #include &lt;TF1.h&gt;
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : #include &quot;AliESDtrack.h&quot;
+<span class="lineNum">      80 </span>            : #include &quot;AliESDEvent.h&quot;
+<span class="lineNum">      81 </span>            : #include &quot;AliExternalTrackParam.h&quot;
+<span class="lineNum">      82 </span>            : 
+<a name="83"><span class="lineNum">      83 </span>            : #include &quot;AliRelAlignerKalman.h&quot;</a>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span><span class="lineCov">        126 : ClassImp(AliRelAlignerKalman)</span>
+<a name="86"><span class="lineNum">      86 </span>            : </a>
+<span class="lineNum">      87 </span>            : //______________________________________________________________________________
+<span class="lineNum">      88 </span>            : AliRelAlignerKalman::AliRelAlignerKalman():
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     TObject(),</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     fPTrackParam1(new AliExternalTrackParam()),</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     fPTrackParam2(new AliExternalTrackParam()),</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     fMagField(0.),</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     fNMeasurementParams(4),</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     fPX(new TVectorD( fgkNSystemParams )),</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     fPXcov(new TMatrixDSym( fgkNSystemParams )),</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     fPH(new TMatrixD( fNMeasurementParams, fgkNSystemParams )),</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     fQ(1.e-15),</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     fPMeasurement(new TVectorD( fNMeasurementParams )),</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     fPMeasurementCov(new TMatrixDSym( fNMeasurementParams )),</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     fPMeasurementPrediction(new TVectorD( fNMeasurementParams )),</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     fOutRejSigmas(1.),</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     fOutRejSigma2Median(5.),</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     fYZOnly(kFALSE),</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     fNumericalParanoia(kTRUE),</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     fRejectOutliers(kTRUE),</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     fRejectOutliersSigma2Median(kFALSE),</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     fRequireMatchInTPC(kFALSE),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     fCuts(kFALSE),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     fMinPointsVol1(3),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     fMinPointsVol2(50),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     fMinPt(0.),</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     fMaxPt(1.e100),</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     fMaxMatchingAngle(0.1),</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     fMaxMatchingDistance(10.),  //in cm</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     fCorrectionMode(kFALSE),</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     fNTracks(0),</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     fNUpdates(0),</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     fNOutliers(0),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     fNOutliersSigma2Median(0),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     fNMatchedCosmics(0),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     fNMatchedTPCtracklets(0),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     fNProcessedEvents(0),</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     fTimeStamp(0),</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     fRunNumber(0),</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     fNMerges(0),</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     fNMergesFailed(0),</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     fTPCvd(2.64),</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     fTPCZLengthA(2.4972500e02),</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     fTPCZLengthC(2.4969799e02)</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     131 </span>            :   //Default constructor
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;fgkNSystemParams;i++) fDelta[i] = 1.e-6;</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;4;i++){fResArrSigma2Median[i]=NULL;}</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   Reset();</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : }</span>
+<a name="136"><span class="lineNum">     136 </span>            : </a>
+<span class="lineNum">     137 </span>            : //______________________________________________________________________________
+<span class="lineNum">     138 </span>            : AliRelAlignerKalman::AliRelAlignerKalman(const AliRelAlignerKalman&amp; a):
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     TObject(static_cast&lt;TObject&gt;(a)),</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     fPTrackParam1(new AliExternalTrackParam()),</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     fPTrackParam2(new AliExternalTrackParam()),</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     fMagField(a.fMagField),</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     fNMeasurementParams(a.fNMeasurementParams),</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     fPX(new TVectorD( *a.fPX )),</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     fPXcov(new TMatrixDSym( *a.fPXcov )),</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     fPH(new TMatrixD( fNMeasurementParams, fgkNSystemParams )),</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     fQ(a.fQ),</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     fPMeasurement(new TVectorD( fNMeasurementParams )),</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     fPMeasurementCov(new TMatrixDSym( fNMeasurementParams )),</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     fPMeasurementPrediction(new TVectorD( fNMeasurementParams )),</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     fOutRejSigmas(a.fOutRejSigmas),</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     fOutRejSigma2Median(a.fOutRejSigma2Median),</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     fYZOnly(a.fYZOnly),</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     fNumericalParanoia(a.fNumericalParanoia),</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     fRejectOutliers(a.fRejectOutliers),</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     fRejectOutliersSigma2Median(a.fRejectOutliersSigma2Median),</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     fRequireMatchInTPC(a.fRequireMatchInTPC),</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     fCuts(a.fCuts),</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     fMinPointsVol1(a.fMinPointsVol1),</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     fMinPointsVol2(a.fMinPointsVol2),</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     fMinPt(a.fMinPt),</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     fMaxPt(a.fMaxPt),</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     fMaxMatchingAngle(a.fMaxMatchingAngle),</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     fMaxMatchingDistance(a.fMaxMatchingDistance),  //in cm</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     fCorrectionMode(a.fCorrectionMode),</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     fNTracks(a.fNTracks),</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     fNUpdates(a.fNUpdates),</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     fNOutliers(a.fNOutliers),</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     fNOutliersSigma2Median(a.fNOutliersSigma2Median),</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     fNMatchedCosmics(a.fNMatchedCosmics),</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     fNMatchedTPCtracklets(a.fNMatchedTPCtracklets),</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     fNProcessedEvents(a.fNProcessedEvents),</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     fTimeStamp(a.fTimeStamp),</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     fRunNumber(a.fRunNumber),</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     fNMerges(a.fNMerges),</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     fNMergesFailed(a.fNMergesFailed),</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     fTPCvd(a.fTPCvd),</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     fTPCZLengthA(a.fTPCZLengthA),</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     fTPCZLengthC(a.fTPCZLengthC)</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     181 </span>            :   //copy constructor
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   memcpy(fDelta,a.fDelta,fgkNSystemParams*sizeof(Double_t));</span>
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :   //copy contents of the residuals array for sigma2median scheme
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;4;i++)</span>
+<span class="lineNum">     186 </span>            :   {
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     if ((a.fResArrSigma2Median)[i]) </span>
+<span class="lineNum">     188 </span>            :     {
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :       fResArrSigma2Median[i] = new Double_t[fgkNtracksSigma2Median];</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :       memcpy(fResArrSigma2Median[i],(a.fResArrSigma2Median)[i],</span>
+<span class="lineNum">     191 </span>            :              fgkNtracksSigma2Median*sizeof(Double_t));
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     193 </span>            :     else
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :       fResArrSigma2Median[i] = NULL;</span>
+<span class="lineNum">     195 </span>            :   }
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 : }</span>
+<a name="197"><span class="lineNum">     197 </span>            : </a>
+<span class="lineNum">     198 </span>            : //______________________________________________________________________________
+<span class="lineNum">     199 </span>            : AliRelAlignerKalman&amp; AliRelAlignerKalman::operator=(const AliRelAlignerKalman&amp; a)
+<span class="lineNum">     200 </span>            : {
+<span class="lineNum">     201 </span>            :   //assignment operator
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   if(&amp;a == this) return *this;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :   TObject::operator=(a);</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :   fMagField=a.fMagField;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   fNMeasurementParams=a.fNMeasurementParams;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   *fPX = *a.fPX;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   *fPXcov = *a.fPXcov;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   fQ=a.fQ;</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   fOutRejSigmas=a.fOutRejSigmas;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   fOutRejSigma2Median=a.fOutRejSigma2Median;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   memcpy(fDelta,a.fDelta,fgkNSystemParams*sizeof(Double_t));</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   fYZOnly=a.fYZOnly;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   fNumericalParanoia=a.fNumericalParanoia;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   fRejectOutliers=a.fRejectOutliers;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   fRejectOutliersSigma2Median=a.fRejectOutliersSigma2Median;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   fRequireMatchInTPC=a.fRequireMatchInTPC;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   fCuts=a.fCuts;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   fMinPointsVol1=a.fMinPointsVol1;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   fMinPointsVol2=a.fMinPointsVol2;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   fMinPt=a.fMinPt;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   fMaxPt=a.fMaxPt;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   fMaxMatchingAngle=a.fMaxMatchingAngle;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   fMaxMatchingDistance=a.fMaxMatchingDistance;  //in c;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   fCorrectionMode=a.fCorrectionMode;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   fNTracks=a.fNTracks;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :   fNUpdates=a.fNUpdates;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   fNOutliers=a.fNOutliers;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   fNOutliersSigma2Median=a.fNOutliersSigma2Median;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   fNMatchedCosmics=a.fNMatchedCosmics;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   fNMatchedTPCtracklets=a.fNMatchedTPCtracklets;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   fNProcessedEvents=a.fNProcessedEvents;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   fTimeStamp=a.fTimeStamp;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   fRunNumber=a.fRunNumber;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   fNMerges=a.fNMerges;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   fTPCvd=a.fTPCvd;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   fTPCZLengthA=a.fTPCZLengthA;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   fTPCZLengthC=a.fTPCZLengthC;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :   //copy contents of the residuals array for sigma2median scheme
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;4;i++)</span>
+<span class="lineNum">     242 </span>            :   {
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     if ((a.fResArrSigma2Median)[i]) </span>
+<span class="lineNum">     244 </span>            :     {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :       if (!(fResArrSigma2Median[i])) fResArrSigma2Median[i] = </span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                                      new Double_t[fgkNtracksSigma2Median];</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :       memcpy(fResArrSigma2Median[i],(a.fResArrSigma2Median)[i],</span>
+<span class="lineNum">     248 </span>            :              fgkNtracksSigma2Median*sizeof(Double_t));
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     250 </span>            :     else
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       fResArrSigma2Median[i] = NULL;</span>
+<span class="lineNum">     252 </span>            :   }
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 : }</span>
+<a name="255"><span class="lineNum">     255 </span>            : </a>
+<span class="lineNum">     256 </span>            : //______________________________________________________________________________
+<span class="lineNum">     257 </span>            : AliRelAlignerKalman::~AliRelAlignerKalman()
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     259 </span>            :   //destructor
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   delete fPTrackParam1;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   delete fPTrackParam2;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   delete fPX;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   delete fPXcov;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   delete fPH;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   delete fPMeasurement;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   delete fPMeasurementCov;</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   delete fPMeasurementPrediction;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;4;i++) </span>
+<span class="lineNum">     269 </span>            :   {
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     delete [] (fResArrSigma2Median[i]);</span>
+<span class="lineNum">     271 </span>            :   }
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 : }</span>
+<a name="273"><span class="lineNum">     273 </span>            : </a>
+<span class="lineNum">     274 </span>            : //______________________________________________________________________________
+<span class="lineNum">     275 </span>            : Bool_t AliRelAlignerKalman::AddESDevent( const AliESDEvent* pEvent )
+<span class="lineNum">     276 </span>            : {
+<span class="lineNum">     277 </span>            :   //Add all tracks in an ESD event
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   fNProcessedEvents++; //update the counter</span>
+<span class="lineNum">     280 </span>            :   
+<span class="lineNum">     281 </span>            :   Bool_t success=kFALSE;
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   SetMagField( pEvent-&gt;GetMagneticField() );</span>
+<span class="lineNum">     283 </span>            :   AliESDtrack* track=NULL;
+<span class="lineNum">     284 </span>            :   
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;pEvent-&gt;GetNumberOfTracks(); i++)</span>
+<span class="lineNum">     286 </span>            :   {
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     track = pEvent-&gt;GetTrack(i);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     if (!track) continue;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     if ( ((track-&gt;GetStatus()&amp;AliESDtrack::kTPCin)&gt;0)&amp;&amp;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :          ((track-&gt;GetStatus()&amp;AliESDtrack::kITSrefit)&gt;0)&amp;&amp;</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :          (track-&gt;GetNcls(0)&gt;=fMinPointsVol1)&amp;&amp;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :          (track-&gt;GetNcls(1)&gt;=fMinPointsVol2) )</span>
+<span class="lineNum">     293 </span>            :     { 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :       success = ( AddESDtrack( track ) || success );</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     296 </span>            :   }
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :   if (success)</span>
+<span class="lineNum">     298 </span>            :   {
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     fTimeStamp = pEvent-&gt;GetTimeStamp();</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     fRunNumber = pEvent-&gt;GetRunNumber();</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   return success;</span>
+<span class="lineNum">     303 </span>            : }
+<a name="304"><span class="lineNum">     304 </span>            : </a>
+<span class="lineNum">     305 </span>            : //______________________________________________________________________________
+<span class="lineNum">     306 </span>            : Bool_t AliRelAlignerKalman::AddESDtrack( const AliESDtrack* pTrack )
+<span class="lineNum">     307 </span>            : {
+<span class="lineNum">     308 </span>            :   //Adds a full track, returns true if results in a new estimate
+<span class="lineNum">     309 </span>            :   //  gets the inner TPC parameters from AliESDTrack::GetInnerParam()
+<span class="lineNum">     310 </span>            :   //  gets the outer ITS parameters from AliESDfriendTrack::GetITSout()
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   const AliExternalTrackParam* pconstparamsITS = pTrack-&gt;GetOuterParam();</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :   if (!pconstparamsITS) return kFALSE;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :   const AliExternalTrackParam* pconstparamsTPC = pTrack-&gt;GetInnerParam();</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   if (!pconstparamsTPC) return kFALSE;</span>
+<span class="lineNum">     316 </span>            :   
+<span class="lineNum">     317 </span>            :   //TPC part
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   AliExternalTrackParam paramsTPC = (*pconstparamsTPC);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   paramsTPC.Rotate(pconstparamsITS-&gt;GetAlpha());</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   paramsTPC.PropagateTo(pconstparamsITS-&gt;GetX(), fMagField);</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   return (AddTrackParams(pconstparamsITS, &amp;paramsTPC));</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 : }</span>
+<a name="324"><span class="lineNum">     324 </span>            : </a>
+<span class="lineNum">     325 </span>            : //______________________________________________________________________________
+<span class="lineNum">     326 </span>            : Bool_t AliRelAlignerKalman::AddTrackParams( const AliExternalTrackParam* p1, const AliExternalTrackParam* p2 )
+<span class="lineNum">     327 </span>            : {
+<span class="lineNum">     328 </span>            :   //Update the estimate using new matching tracklets
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   if (!SetTrackParams(p1, p2)) return kFALSE;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   return Update();</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 : }</span>
+<a name="333"><span class="lineNum">     333 </span>            : </a>
+<span class="lineNum">     334 </span>            : //______________________________________________________________________________
+<span class="lineNum">     335 </span>            : Bool_t AliRelAlignerKalman::AddCosmicEvent( const AliESDEvent* pEvent )
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span>            :   //Add an cosmic with separately tracked ITS and TPC parts, do trackmatching
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :   fNProcessedEvents++; //update the counter</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            :   Bool_t success=kFALSE;
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   TArrayI trackTArrITS(1);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   TArrayI trackTArrTPC(1);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :   if (!FindCosmicTrackletNumbersInEvent( trackTArrITS, trackTArrTPC, pEvent )) return kFALSE;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :   SetMagField( pEvent-&gt;GetMagneticField() );</span>
+<span class="lineNum">     346 </span>            :   AliESDtrack* ptrack=NULL;
+<span class="lineNum">     347 </span>            :   const AliExternalTrackParam* pconstparams1;
+<span class="lineNum">     348 </span>            :   const AliExternalTrackParam* pconstparams2;
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   AliExternalTrackParam params1;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   AliExternalTrackParam params2;</span>
+<span class="lineNum">     351 </span>            :   
+<span class="lineNum">     352 </span>            :   ////////////////////////////////
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;trackTArrITS.GetSize();i++)</span>
+<span class="lineNum">     354 </span>            :   {
+<span class="lineNum">     355 </span>            :     //ITS track
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     ptrack = pEvent-&gt;GetTrack(trackTArrITS[i]);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     pconstparams1 = ptrack-&gt;GetOuterParam();</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     if (!pconstparams1) continue;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     params1 = *pconstparams1; //make copy to be safe</span>
+<span class="lineNum">     360 </span>            :     
+<span class="lineNum">     361 </span>            :     //TPC track
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     ptrack = pEvent-&gt;GetTrack(trackTArrTPC[i]);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     pconstparams2 = ptrack-&gt;GetInnerParam();</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     if (!pconstparams2) continue;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     params2 = *pconstparams2; //make copy</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     params2.Rotate(params1.GetAlpha());</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     params2.PropagateTo( params1.GetX(), fMagField );</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     if (!SetTrackParams( &amp;params1, &amp;params2 )) continue;</span>
+<span class="lineNum">     370 </span>            :     
+<span class="lineNum">     371 </span>            :     //do some accounting and update
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     if (Update())</span>
+<span class="lineNum">     373 </span>            :       success = kTRUE;
+<span class="lineNum">     374 </span>            :     else
+<span class="lineNum">     375 </span>            :       continue;
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :   fTimeStamp=pEvent-&gt;GetTimeStamp(); //always update timestamp even when no update performed</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   fRunNumber=pEvent-&gt;GetRunNumber();</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   return success;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 : }</span>
+<a name="381"><span class="lineNum">     381 </span>            : </a>
+<span class="lineNum">     382 </span>            : //______________________________________________________________________________
+<span class="lineNum">     383 </span>            : void AliRelAlignerKalman::SetPoint2Track( Bool_t set )
+<span class="lineNum">     384 </span>            : {
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   fNMeasurementParams = (set)?2:4;</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :   delete fPH;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   fPH = new TMatrixD( fNMeasurementParams, fgkNSystemParams );</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   delete fPMeasurement;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   fPMeasurement = new TVectorD( fNMeasurementParams );</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :   delete fPMeasurementCov;</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :   fPMeasurementCov = new TMatrixDSym( fNMeasurementParams );</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   delete fPMeasurementPrediction;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :   fPMeasurementPrediction = new TVectorD( fNMeasurementParams );</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   fYZOnly = set;</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 : }</span>
+<a name="396"><span class="lineNum">     396 </span>            : </a>
+<span class="lineNum">     397 </span>            : //______________________________________________________________________________
+<span class="lineNum">     398 </span>            : void AliRelAlignerKalman::Print(Option_t*) const
+<span class="lineNum">     399 </span>            : {
+<span class="lineNum">     400 </span>            :   //Print some useful info
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :   Double_t rad2deg = 180./TMath::Pi();</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   printf(&quot;\nAliRelAlignerKalman\n&quot;);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   if (fCorrectionMode) printf(&quot;(Correction mode)\n&quot;);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   printf(&quot;  run: %i, timestamp: %i, magfield: %.3f\n&quot;, fRunNumber, fTimeStamp, fMagField);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   printf(&quot;  %i(-%i) inputs, %i(-%i) updates, %i(-%i) merges\n&quot;, fNTracks, fNOutliersSigma2Median, fNUpdates, fNOutliers, fNMerges, fNMergesFailed );</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   printf(&quot;  psi(x):           % .3f ± (%.2f) mrad  |  % .3f ± (%.2f) deg\n&quot;,1e3*(*fPX)(0), 1e3*TMath::Sqrt((*fPXcov)(0,0)),(*fPX)(0)*rad2deg,TMath::Sqrt((*fPXcov)(0,0))*rad2deg);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   printf(&quot;  theta(y):         % .3f ± (%.2f) mrad  |  % .3f ± (%.2f) deg\n&quot;,1e3*(*fPX)(1), 1e3*TMath::Sqrt((*fPXcov)(1,1)),(*fPX)(1)*rad2deg,TMath::Sqrt((*fPXcov)(1,1))*rad2deg);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   printf(&quot;  phi(z):           % .3f ± (%.2f) mrad  |  % .3f ± (%.2f) deg\n&quot;,1e3*(*fPX)(2), 1e3*TMath::Sqrt((*fPXcov)(2,2)),(*fPX)(2)*rad2deg,TMath::Sqrt((*fPXcov)(2,2))*rad2deg);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   printf(&quot;  x:                % .3f ± (%.2f) micron\n&quot;, 1e4*(*fPX)(3), 1e4*TMath::Sqrt((*fPXcov)(3,3)));</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   printf(&quot;  y:                % .3f ± (%.2f) micron\n&quot;, 1e4*(*fPX)(4), 1e4*TMath::Sqrt((*fPXcov)(4,4)));</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :   printf(&quot;  z:                % .3f ± (%.2f) micron\n&quot;, 1e4*(*fPX)(5), 1e4*TMath::Sqrt((*fPXcov)(5,5)));</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :   if (fgkNSystemParams&gt;6) printf(&quot;  vd corr           % .5g ± (%.2g)    [ vd should be %.4g (was %.4g in reco) ]\n&quot;, (*fPX)(6), TMath::Sqrt((*fPXcov)(6,6)), (*fPX)(6)*fTPCvd, fTPCvd);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :   if (fgkNSystemParams&gt;7) printf(&quot;  t0                % .5g ± (%.2g) us  |  %.4g ± (%.2g) cm     [ t0_real = t0_rec+t0 ]\n&quot;,(*fPX)(7), TMath::Sqrt((*fPXcov)(7,7)), fTPCvd*(*fPX)(7), fTPCvd*TMath::Sqrt((*fPXcov)(7,7)));</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :   if (fgkNSystemParams&gt;8) printf(&quot;  vd/dy             % .5f ± (%.2f) (cm/us)/m\n&quot;, (*fPX)(8), TMath::Sqrt((*fPXcov)(8,8)));</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   printf(&quot;\n&quot;);</span>
+<span class="lineNum">     416 </span>            :   return;
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 : }</span>
+<a name="418"><span class="lineNum">     418 </span>            : </a>
+<span class="lineNum">     419 </span>            : //______________________________________________________________________________
+<span class="lineNum">     420 </span>            : void AliRelAlignerKalman::PrintSystemMatrix()
+<span class="lineNum">     421 </span>            : {
+<span class="lineNum">     422 </span>            :   //Print the system matrix for this measurement
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   printf(&quot;Kalman system matrix:\n&quot;);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :   for ( Int_t i=0; i&lt;fNMeasurementParams; i++ )</span>
+<span class="lineNum">     425 </span>            :   {
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     for ( Int_t j=0; j&lt;fgkNSystemParams; j++ )</span>
+<span class="lineNum">     427 </span>            :     {
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       printf(&quot;% -2.2f  &quot;, (*fPH)(i,j) );</span>
+<span class="lineNum">     429 </span>            :     }//for i
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     printf(&quot;\n&quot;);</span>
+<span class="lineNum">     431 </span>            :   }//for j
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   printf(&quot;\n&quot;);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     434 </span>            : }
+<a name="435"><span class="lineNum">     435 </span>            : </a>
+<span class="lineNum">     436 </span>            : //______________________________________________________________________________
+<span class="lineNum">     437 </span>            : Bool_t AliRelAlignerKalman::SetTrackParams( const AliExternalTrackParam* exparam1, const AliExternalTrackParam* exparam2 )
+<span class="lineNum">     438 </span>            : {
+<span class="lineNum">     439 </span>            :   //Set the parameters, exparam1 will normally be ITS and exparam 2 tht TPC
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :   fNTracks++; //count added input sets</span>
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            :   //INPUT OUTLIER REJECTION
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   if (fRejectOutliersSigma2Median &amp;&amp; IsOutlierSigma2Median(exparam1,exparam2) ) return kFALSE;</span>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :   *fPTrackParam1 = *exparam1;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :   *fPTrackParam2 = *exparam2;</span>
+<span class="lineNum">     447 </span>            :   
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 : }</span>
+<a name="450"><span class="lineNum">     450 </span>            : </a>
+<span class="lineNum">     451 </span>            : //______________________________________________________________________________
+<span class="lineNum">     452 </span>            : Bool_t AliRelAlignerKalman::Update()
+<span class="lineNum">     453 </span>            : {
+<span class="lineNum">     454 </span>            :   //perform the update
+<span class="lineNum">     455 </span>            :   
+<span class="lineNum">     456 </span>            :   //if (fCalibrationMode) return UpdateCalibration();
+<span class="lineNum">     457 </span>            :   //if (fFillHistograms)
+<span class="lineNum">     458 </span>            :   //{
+<span class="lineNum">     459 </span>            :   //  if (!UpdateEstimateKalman()) return kFALSE;
+<span class="lineNum">     460 </span>            :   //  return UpdateCalibration(); //Update histograms only when update ok.
+<span class="lineNum">     461 </span>            :   //}
+<span class="lineNum">     462 </span>            :   //else return UpdateEstimateKalman();
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :   if (!PrepareMeasurement()) return kFALSE;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :   if (!PrepareSystemMatrix()) return kFALSE;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   if (!PreparePrediction()) return kFALSE;</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   return UpdateEstimateKalman();</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 : }</span>
+<a name="468"><span class="lineNum">     468 </span>            : </a>
+<span class="lineNum">     469 </span>            : //______________________________________________________________________________
+<span class="lineNum">     470 </span>            : void AliRelAlignerKalman::RotMat( TMatrixD &amp;R, const TVectorD&amp; angles )
+<span class="lineNum">     471 </span>            : {
+<span class="lineNum">     472 </span>            :   //Get Rotation matrix R given the Cardan angles psi, theta, phi (around x, y, z).
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :   Double_t sinpsi = TMath::Sin(angles(0));</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   Double_t sintheta = TMath::Sin(angles(1));</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :   Double_t sinphi = TMath::Sin(angles(2));</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :   Double_t cospsi = TMath::Cos(angles(0));</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :   Double_t costheta = TMath::Cos(angles(1));</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   Double_t cosphi = TMath::Cos(angles(2));</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   R(0,0) = costheta*cosphi;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   R(0,1) = -costheta*sinphi;</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   R(0,2) = sintheta;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   R(1,0) = sinpsi*sintheta*cosphi + cospsi*sinphi;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :   R(1,1) = -sinpsi*sintheta*sinphi + cospsi*cosphi;</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   R(1,2) = -costheta*sinpsi;</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   R(2,0) = -cospsi*sintheta*cosphi + sinpsi*sinphi;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   R(2,1) = cospsi*sintheta*sinphi + sinpsi*cosphi;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   R(2,2) = costheta*cospsi;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 : }</span>
+<a name="490"><span class="lineNum">     490 </span>            : </a>
+<span class="lineNum">     491 </span>            : //______________________________________________________________________________
+<span class="lineNum">     492 </span>            : Bool_t AliRelAlignerKalman::PrepareMeasurement()
+<span class="lineNum">     493 </span>            : {
+<span class="lineNum">     494 </span>            :   //Calculate the residuals and their covariance matrix
+<span class="lineNum">     495 </span>            :   
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     const Double_t* pararr1 = fPTrackParam1-&gt;GetParameter();</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     const Double_t* pararr2 = fPTrackParam2-&gt;GetParameter();</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :     //Take the track parameters and calculate the input to the Kalman filter
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     (*fPMeasurement)(0) = pararr2[0]-pararr1[0];</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     (*fPMeasurement)(1) = pararr2[1]-pararr1[1];</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     if (!fYZOnly)</span>
+<span class="lineNum">     503 </span>            :     {
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :       (*fPMeasurement)(2) = pararr2[2]-pararr1[2];</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :       (*fPMeasurement)(3) = pararr2[3]-pararr1[3];</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            :     //the covariance
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     const Double_t* parcovarr1 = fPTrackParam1-&gt;GetCovariance();</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     const Double_t* parcovarr2 = fPTrackParam2-&gt;GetCovariance();</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(0,0)=parcovarr1[0];</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(0,1)=parcovarr1[1];</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(1,0)=parcovarr1[1];</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(1,1)=parcovarr1[2];</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(0,0)+=parcovarr2[0];</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(0,1)+=parcovarr2[1];</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(1,0)+=parcovarr2[1];</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     (*fPMeasurementCov)(1,1)+=parcovarr2[2];</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     if (!fYZOnly)</span>
+<span class="lineNum">     520 </span>            :     {
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(0,2)=parcovarr1[3];</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(0,3)=parcovarr1[6];</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(1,2)=parcovarr1[4];</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(1,3)=parcovarr1[7];</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,0)=parcovarr1[3];</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,1)=parcovarr1[4];</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,2)=parcovarr1[5];</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,3)=parcovarr1[8];</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,0)=parcovarr1[6];</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,1)=parcovarr1[7];</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,2)=parcovarr1[8];</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,3)=parcovarr1[9];</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(0,2)+=parcovarr2[3];</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(0,3)+=parcovarr2[6];</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(1,2)+=parcovarr2[4];</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(1,3)+=parcovarr2[7];</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,0)+=parcovarr2[3];</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,1)+=parcovarr2[4];</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,2)+=parcovarr2[5];</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(2,3)+=parcovarr2[8];</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,0)+=parcovarr2[6];</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,1)+=parcovarr2[7];</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,2)+=parcovarr2[8];</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :       (*fPMeasurementCov)(3,3)+=parcovarr2[9];</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     546 </span>            :     
+<span class="lineNum">     547 </span>            :   //if (fApplyCovarianceCorrection)
+<span class="lineNum">     548 </span>            :   //  *fPMeasurementCov += *fPMeasurementCovCorr;
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     550 </span>            : }
+<a name="551"><span class="lineNum">     551 </span>            : </a>
+<span class="lineNum">     552 </span>            : //______________________________________________________________________________
+<span class="lineNum">     553 </span>            : Bool_t AliRelAlignerKalman::PrepareSystemMatrix()
+<span class="lineNum">     554 </span>            : {
+<span class="lineNum">     555 </span>            :   //Calculate the system matrix for the Kalman filter
+<span class="lineNum">     556 </span>            :   //approximate the system using as reference the track in the first volume
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :   TVectorD z1( fNMeasurementParams );</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :   TVectorD z2( fNMeasurementParams );</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   TVectorD x1( fgkNSystemParams );</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   TVectorD x2( fgkNSystemParams );</span>
+<span class="lineNum">     562 </span>            :   //get the derivatives
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :   for ( Int_t i=0; i&lt;fgkNSystemParams; i++ )</span>
+<span class="lineNum">     564 </span>            :   {
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     x1 = *fPX;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     x2 = *fPX;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     x1(i) = x1(i) - fDelta[i]/(2.0);</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     x2(i) = x2(i) + fDelta[i]/(2.0);</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     if (!PredictMeasurement( z1, x1 )) return kFALSE;</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     if (!PredictMeasurement( z2, x2 )) return kFALSE;</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     for (Int_t j=0; j&lt;fNMeasurementParams; j++ )</span>
+<span class="lineNum">     572 </span>            :     {
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :       (*fPH)(j,i) = ( z2(j)-z1(j) ) / fDelta[i];</span>
+<span class="lineNum">     574 </span>            :     }
+<span class="lineNum">     575 </span>            :   }
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 : }</span>
+<a name="578"><span class="lineNum">     578 </span>            : </a>
+<span class="lineNum">     579 </span>            : //______________________________________________________________________________
+<span class="lineNum">     580 </span>            : Bool_t AliRelAlignerKalman::PreparePrediction()
+<span class="lineNum">     581 </span>            : {
+<span class="lineNum">     582 </span>            :   //Prepare the prediction of the measurement using state vector
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :   return PredictMeasurement( (*fPMeasurementPrediction), (*fPX) );</span>
+<span class="lineNum">     584 </span>            : }
+<a name="585"><span class="lineNum">     585 </span>            : </a>
+<span class="lineNum">     586 </span>            : //______________________________________________________________________________
+<span class="lineNum">     587 </span>            : Bool_t AliRelAlignerKalman::PredictMeasurement( TVectorD&amp; pred, const TVectorD&amp; state )
+<span class="lineNum">     588 </span>            : {
+<span class="lineNum">     589 </span>            :   // Implements a system model for the Kalman fit
+<span class="lineNum">     590 </span>            :   // pred is [dy,dz,dsinphi,dtgl]
+<span class="lineNum">     591 </span>            :   // state is [psi,theta,phi,x,y,z,driftTPC,offsetTPC]
+<span class="lineNum">     592 </span>            :   // note: the measurement is in a local frame, so the prediction also has to be
+<span class="lineNum">     593 </span>            :   // note: state is the misalignment in global reference system
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :   if (fCorrectionMode)</span>
+<span class="lineNum">     596 </span>            :   {
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :       AliExternalTrackParam track(*fPTrackParam2); //make a copy track</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :       if (!CorrectTrack( &amp;track, state )) return kFALSE; //predict what the ideal track would be by applying correction</span>
+<span class="lineNum">     599 </span>            :       
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :       const Double_t* oldparam = fPTrackParam2-&gt;GetParameter();</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :       const Double_t* newparam = track.GetParameter();</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :       //calculate the predicted residual
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :       pred(0) = oldparam[0] - newparam[0];</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :       pred(1) = oldparam[1] - newparam[1];</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :       if (!fYZOnly)</span>
+<span class="lineNum">     607 </span>            :       {
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :         pred(2) = oldparam[2] - newparam[2];</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         pred(3) = oldparam[3] - newparam[3];</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     611 </span>            :       return kTRUE;
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     613 </span>            :   else
+<span class="lineNum">     614 </span>            :   {
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :       AliExternalTrackParam track(*fPTrackParam1); //make a copy track</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :       if (!MisalignTrack( &amp;track, state )) return kFALSE; //predict what the measured track would be by applying misalignment</span>
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :       const Double_t* oldparam = fPTrackParam1-&gt;GetParameter();</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :       const Double_t* newparam = track.GetParameter();</span>
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :       //calculate the predicted residual
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :       pred(0) = newparam[0] - oldparam[0];</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :       pred(1) = newparam[1] - oldparam[1];</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :       if (!fYZOnly)</span>
+<span class="lineNum">     625 </span>            :       {
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :         pred(2) = newparam[2] - oldparam[2];</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :         pred(3) = newparam[3] - oldparam[3];</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     629 </span>            :       return kTRUE;
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     631 </span>            :   return kFALSE;
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 : }</span>
+<a name="633"><span class="lineNum">     633 </span>            : </a>
+<span class="lineNum">     634 </span>            : //______________________________________________________________________________
+<span class="lineNum">     635 </span>            : Bool_t AliRelAlignerKalman::UpdateEstimateKalman()
+<span class="lineNum">     636 </span>            : {
+<span class="lineNum">     637 </span>            :   //Kalman estimation of noisy constants: in the model A=1
+<span class="lineNum">     638 </span>            :   //The arguments are (following the usual convention):
+<span class="lineNum">     639 </span>            :   //  fPX - the state vector (parameters)
+<span class="lineNum">     640 </span>            :   //  fPXcov - the state covariance matrix (parameter errors)
+<span class="lineNum">     641 </span>            :   //  fPMeasurement - measurement vector
+<span class="lineNum">     642 </span>            :   //  fPMeasurementCov - measurement covariance matrix
+<span class="lineNum">     643 </span>            :   //  fPH - measurement model matrix ( fPMeasurement = Hx + v ) v being measurement noise (error fR)
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :   TMatrixDSym identity(TMatrixDSym::kUnit, (*fPXcov));            //unit matrix</span>
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span>            :   //predict the state
+<span class="lineNum">     648 </span>            :   //(*fPXcov) = (*fPXcov) + fQ*identity;  //add some process noise (diagonal)
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span>            :   // update prediction with measurement
+<span class="lineNum">     651 </span>            :   // calculate Kalman gain
+<span class="lineNum">     652 </span>            :   // K = PH/(HPH+fPMeasurementCov)
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :   TMatrixD pht( (*fPXcov), TMatrixD::kMultTranspose, (*fPH) );  //common factor (used twice)</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   TMatrixD hpht( (*fPH), TMatrixD::kMult, pht );</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :   hpht += (*fPMeasurementCov);</span>
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span>            :   //shit happens so protect yourself!
+<span class="lineNum">     658 </span>            : //  if (fNumericalParanoia)
+<span class="lineNum">     659 </span>            : //  {
+<span class="lineNum">     660 </span>            : //    TDecompLU lu(hpht);
+<span class="lineNum">     661 </span>            : //    if (lu.Condition() &gt; 1e12) return kFALSE;
+<span class="lineNum">     662 </span>            : //    lu.Invert(hpht);
+<span class="lineNum">     663 </span>            : //  }
+<span class="lineNum">     664 </span>            : //  else
+<span class="lineNum">     665 </span>            : //  {
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :     Double_t det=0.0;</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     hpht.Invert(&amp;det); //since the matrix is small...</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :     if (det &lt; 2e-99) return kFALSE; //we need some sort of protection even in this case....</span>
+<span class="lineNum">     669 </span>            : //  }
+<span class="lineNum">     670 </span>            :   //printf(&quot;KalmanUpdate: det(hpht): %.4g\n&quot;,det);
+<span class="lineNum">     671 </span>            : 
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :   TMatrixD k(pht, TMatrixD::kMult, hpht ); //compute K (hpht is already inverted)</span>
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span>            :   // update the state and its covariance matrix
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   TVectorD xupdate(fgkNSystemParams);</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :   xupdate = k*((*fPMeasurement)-(*fPMeasurementPrediction));</span>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            :   //SIMPLE OUTLIER REJECTION
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :   if ( IsOutlier( xupdate, (*fPXcov) ) &amp;&amp; fRejectOutliers )</span>
+<span class="lineNum">     680 </span>            :   {
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :     fNOutliers++;</span>
+<span class="lineNum">     682 </span>            :     //printf(&quot;AliRelAlignerKalman: outlier\n&quot;);
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     684 </span>            :   }
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :   TMatrixD kh( k, TMatrixD::kMult, (*fPH) );</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   TMatrixD ikh(fgkNSystemParams,fgkNSystemParams); //this is because for some reason TMatrixD::kAdd didn't work</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   ikh = identity - kh;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   TMatrixD ikhp( ikh, TMatrixD::kMult, (*fPXcov) ); // (identity-KH)fPXcov</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :   if (!IsPositiveDefinite(ikhp)) return kFALSE;</span>
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :   (*fPX) += xupdate;</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   TMatrixDSymFromTMatrixD( (*fPXcov), ikhp ); //make the matrix completely symetrical</span>
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   fNUpdates++;</span>
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 : }</span>
+<a name="699"><span class="lineNum">     699 </span>            : </a>
+<span class="lineNum">     700 </span>            : //______________________________________________________________________________
+<span class="lineNum">     701 </span>            : Bool_t AliRelAlignerKalman::IsOutlier( const TVectorD&amp; update, const TMatrixDSym&amp; covmatrix )
+<span class="lineNum">     702 </span>            : {
+<span class="lineNum">     703 </span>            :   //check whether an update is an outlier given the covariance matrix of the fit
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            :   Bool_t is=kFALSE;
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;fgkNSystemParams;i++)</span>
+<span class="lineNum">     707 </span>            :   {
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     if (covmatrix(i,i)&lt;0.) return kTRUE; //if cov matrix has neg diagonals something went wrong</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     is = (is) || (TMath::Abs(update(i)) &gt; fOutRejSigmas*TMath::Sqrt((covmatrix)(i,i)));</span>
+<span class="lineNum">     710 </span>            :   }
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :   return is;</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 : }</span>
+<a name="713"><span class="lineNum">     713 </span>            : </a>
+<span class="lineNum">     714 </span>            : //______________________________________________________________________________
+<span class="lineNum">     715 </span>            : Bool_t AliRelAlignerKalman::IsOutlierSigma2Median( const AliExternalTrackParam* pITS, 
+<span class="lineNum">     716 </span>            :                                                    const AliExternalTrackParam* pTPC )
+<span class="lineNum">     717 </span>            : {
+<span class="lineNum">     718 </span>            :   //check if the input residuals are not too far off their median
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :   TVectorD vecDelta(4),vecMedian(4), vecRMS(4);</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :   TVectorD vecDeltaN(5);</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :   Double_t sign=(pITS-&gt;GetParameter()[1]&gt;0)? 1.:-1.;</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :   vecDeltaN[4]=0;</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;4;i++){</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :     vecDelta[i]=(pITS-&gt;GetParameter()[i]-pTPC-&gt;GetParameter()[i])*sign;</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     (fResArrSigma2Median[i])[(fNTracks-1)%fgkNtracksSigma2Median]=vecDelta[i];</span>
+<span class="lineNum">     726 </span>            :   }
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :   Int_t entries=(fNTracks&lt;fgkNtracksSigma2Median)?fNTracks:fgkNtracksSigma2Median;</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;fNMeasurementParams;i++){       //in point2trackmode just take the first 2 params (zy)</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     vecMedian[i] = TMath::Median(entries,fResArrSigma2Median[i]);</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :     vecRMS[i]    = TMath::RMS(entries,fResArrSigma2Median[i]);</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     vecDeltaN[i] = 0;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     if (vecRMS[i]&gt;0.){</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :       vecDeltaN[i] = (vecDelta[i]-vecMedian[i])/vecRMS[i];</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :       vecDeltaN[4]+= TMath::Abs(vecDeltaN[i]);  //sum of abs residuals</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     736 </span>            :   }
+<span class="lineNum">     737 </span>            :   Bool_t outlier=kFALSE;
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :   if (fNTracks&lt;3)  outlier=kTRUE;   //median and RMS still to be defined</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :   if ( vecDeltaN[4]/fNMeasurementParams&gt;fOutRejSigma2Median) outlier=kTRUE;</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   if (outlier) fNOutliersSigma2Median++;</span>
+<span class="lineNum">     741 </span>            :   return outlier;
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 : }</span>
+<a name="743"><span class="lineNum">     743 </span>            : </a>
+<span class="lineNum">     744 </span>            : //______________________________________________________________________________
+<span class="lineNum">     745 </span>            : Bool_t AliRelAlignerKalman::IsPositiveDefinite( const TMatrixD&amp; mat ) const
+<span class="lineNum">     746 </span>            : {
+<span class="lineNum">     747 </span>            :   //check for positive definiteness
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;mat.GetNcols(); i++)</span>
+<span class="lineNum">     750 </span>            :   {
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :     if (mat(i,i)&lt;=0.) return kFALSE;</span>
+<span class="lineNum">     752 </span>            :   }
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :   if (!fNumericalParanoia) return kTRUE;</span>
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :   TDecompLU lu(mat);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   return (lu.Decompose());</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 : }</span>
+<a name="759"><span class="lineNum">     759 </span>            : </a>
+<span class="lineNum">     760 </span>            : //______________________________________________________________________________
+<span class="lineNum">     761 </span>            : void AliRelAlignerKalman::TMatrixDSymFromTMatrixD( TMatrixDSym&amp; matsym, const TMatrixD&amp; mat )
+<span class="lineNum">     762 </span>            : {
+<span class="lineNum">     763 </span>            :   //Produce a valid symmetric matrix out of an almost symmetric TMatrixD
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;mat.GetNcols(); i++)</span>
+<span class="lineNum">     766 </span>            :   {
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     matsym(i,i) = mat(i,i); //copy diagonal</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     for (Int_t j=i+1; j&lt;mat.GetNcols(); j++)</span>
+<span class="lineNum">     769 </span>            :     {
+<span class="lineNum">     770 </span>            :       //copy the rest
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :       Double_t average = (mat(i,j)+mat(j,i))/2.;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :       matsym(i,j)=average;</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :       matsym(j,i)=average;</span>
+<span class="lineNum">     774 </span>            :     }
+<span class="lineNum">     775 </span>            :   }
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :   matsym.MakeValid();</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     778 </span>            : }
+<a name="779"><span class="lineNum">     779 </span>            : </a>
+<span class="lineNum">     780 </span>            : //______________________________________________________________________________
+<span class="lineNum">     781 </span>            : void AliRelAlignerKalman::Angles( TVectorD &amp;angles, const TMatrixD &amp;rotmat )
+<span class="lineNum">     782 </span>            : {
+<span class="lineNum">     783 </span>            :   //Calculate the Cardan angles (psi,theta,phi) from rotation matrix
+<span class="lineNum">     784 </span>            :   //b = R*a
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :   angles(0) = TMath::ATan2( -rotmat(1,2), rotmat(2,2) );</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :   angles(1) = TMath::ASin( rotmat(0,2) );</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   angles(2) = TMath::ATan2( -rotmat(0,1), rotmat(0,0) );</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     789 </span>            : }
+<a name="790"><span class="lineNum">     790 </span>            : </a>
+<span class="lineNum">     791 </span>            : //______________________________________________________________________________
+<span class="lineNum">     792 </span>            : void AliRelAlignerKalman::PrintCorrelationMatrix()
+<span class="lineNum">     793 </span>            : {
+<span class="lineNum">     794 </span>            :   //Print the correlation matrix for the fitted parameters
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :   printf(&quot;Correlation matrix for system parameters:\n&quot;);</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :   for ( Int_t i=0; i&lt;fgkNSystemParams; i++ )</span>
+<span class="lineNum">     797 </span>            :   {
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :     for ( Int_t j=0; j&lt;i+1; j++ )</span>
+<span class="lineNum">     799 </span>            :     {
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :       if ((*fPXcov)(i,i)==0. || (*fPXcov)(j,j)==0.) printf(&quot;   NaN  &quot;);</span>
+<span class="lineNum">     801 </span>            :       else
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         printf(&quot;% -1.3f  &quot;, (*fPXcov)(i,j)/TMath::Sqrt( (*fPXcov)(i,i) * (*fPXcov)(j,j) ) );</span>
+<span class="lineNum">     803 </span>            :     }//for j
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :     printf(&quot;\n&quot;);</span>
+<span class="lineNum">     805 </span>            :   }//for i
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   printf(&quot;\n&quot;);</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     808 </span>            : }
+<a name="809"><span class="lineNum">     809 </span>            : </a>
+<span class="lineNum">     810 </span>            : //______________________________________________________________________________
+<span class="lineNum">     811 </span>            : Bool_t AliRelAlignerKalman::FindCosmicTrackletNumbersInEvent( TArrayI&amp; outITSindexTArr, TArrayI&amp; outTPCindexTArr, const AliESDEvent* pEvent )
+<span class="lineNum">     812 </span>            : {
+<span class="lineNum">     813 </span>            :   //Find matching track segments in an event with tracks in TPC and ITS(standalone)
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span>            :   //Sanity cuts on tracks + check which tracks are ITS which are TPC
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :   Int_t ntracks = pEvent-&gt;GetNumberOfTracks(); ////printf(&quot;number of tracks in event: %i\n&quot;, ntracks);</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :   fMagField = pEvent-&gt;GetMagneticField();</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :   if (ntracks&lt;2)</span>
+<span class="lineNum">     819 </span>            :   {
+<span class="lineNum">     820 </span>            :     //printf(&quot;TrackFinder: less than 2 tracks!\n&quot;);
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     822 </span>            :   }
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :   Float_t* phiArr = new Float_t[ntracks];</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   Float_t* thetaArr = new Float_t[ntracks];</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :   Int_t* goodtracksArr = new Int_t[ntracks];</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   Int_t* candidateTPCtracksArr = new Int_t[ntracks];</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :   Int_t* matchedITStracksArr = new Int_t[ntracks];</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :   Int_t* matchedTPCtracksArr = new Int_t[ntracks];</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :   Int_t* tracksArrITS = new Int_t[ntracks];</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :   Int_t* tracksArrTPC = new Int_t[ntracks];</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :   Int_t* nPointsArr = new Int_t[ntracks];</span>
+<span class="lineNum">     832 </span>            :   Int_t nITStracks = 0;
+<span class="lineNum">     833 </span>            :   Int_t nTPCtracks = 0;
+<span class="lineNum">     834 </span>            :   Int_t nGoodTracks = 0;
+<span class="lineNum">     835 </span>            :   Int_t nCandidateTPCtracks = 0;
+<span class="lineNum">     836 </span>            :   Int_t nMatchedITStracks = 0;
+<span class="lineNum">     837 </span>            :   AliESDtrack* pTrack = NULL;
+<span class="lineNum">     838 </span>            :   Bool_t foundMatchTPC = kFALSE;
+<span class="lineNum">     839 </span>            : 
+<span class="lineNum">     840 </span>            :   //select and clasify tracks
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :   for (Int_t itrack=0; itrack &lt; ntracks; itrack++)</span>
+<span class="lineNum">     842 </span>            :   {
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :     pTrack = pEvent-&gt;GetTrack(itrack);</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     if (!pTrack)</span>
+<span class="lineNum">     845 </span>            :     {
+<span class="lineNum">     846 </span>            :       //std::cout&lt;&lt;&quot;no track!&quot;&lt;&lt;std::endl;
+<span class="lineNum">     847 </span>            :       continue;
+<span class="lineNum">     848 </span>            :     }
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :     if (fCuts)</span>
+<span class="lineNum">     850 </span>            :     {
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :       if (pTrack-&gt;GetP()&lt;fMinPt || pTrack-&gt;GetP()&gt;fMaxPt) continue;</span>
+<span class="lineNum">     852 </span>            :     }
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :     goodtracksArr[nGoodTracks]=itrack;</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     Float_t phi = pTrack-&gt;GetAlpha()+TMath::ASin(pTrack-&gt;GetSnp());</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :     Float_t theta = 0.5*TMath::Pi()-TMath::ATan(pTrack-&gt;GetTgl());</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :     phiArr[nGoodTracks]=phi;</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :     thetaArr[nGoodTracks]=theta;</span>
+<span class="lineNum">     858 </span>            : 
+<span class="lineNum">     859 </span>            :     //check if track is ITS
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :     Int_t nClsITS = pTrack-&gt;GetNcls(0);</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :     Int_t nClsTPC = pTrack-&gt;GetNcls(1);</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :     if ( ((pTrack-&gt;GetStatus()&amp;AliESDtrack::kITSout)&gt;0)&amp;&amp;</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :          !((pTrack-&gt;GetStatus()&amp;AliESDtrack::kTPCin)&gt;0)&amp;&amp;</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :          !(nClsITS&lt;fMinPointsVol1) )  //enough points</span>
+<span class="lineNum">     865 </span>            :     {
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :       tracksArrITS[nITStracks] = nGoodTracks;</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :       nITStracks++;</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :       nGoodTracks++;</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     870 </span>            :     }
+<span class="lineNum">     871 </span>            : 
+<span class="lineNum">     872 </span>            :     //check if track is TPC
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :     if ( ((pTrack-&gt;GetStatus()&amp;AliESDtrack::kTPCin)&gt;0)&amp;&amp;</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :          !(nClsTPC&lt;fMinPointsVol2) )  //enough points</span>
+<span class="lineNum">     875 </span>            :     {
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :       tracksArrTPC[nTPCtracks] = nGoodTracks;</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :       nTPCtracks++;</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :       nGoodTracks++;</span>
+<span class="lineNum">     879 </span>            :       //printf(&quot;tracksArrTPC[%d]=%d, goodtracksArr[%d]=%d\n&quot;,nTPCtracks-1,tracksArrTPC[nTPCtracks-1],nGoodTracks-1,goodtracksArr[nGoodTracks-1]);
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     881 </span>            :     }
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :   }//for itrack   -   selection fo tracks</span>
+<span class="lineNum">     883 </span>            : 
+<span class="lineNum">     884 </span>            :   //printf(&quot;TrackFinder: %d ITS | %d TPC out of %d tracks in event\n&quot;, nITStracks,nTPCtracks,ntracks);
+<span class="lineNum">     885 </span>            : 
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :   if ( nITStracks &lt; 1 || nTPCtracks &lt; 1 )</span>
+<span class="lineNum">     887 </span>            :   {
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     delete [] phiArr;</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :     delete [] thetaArr;</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :     delete [] goodtracksArr;</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     delete [] matchedITStracksArr;</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :     delete [] candidateTPCtracksArr;</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     delete [] matchedTPCtracksArr;</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :     delete [] tracksArrITS;</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :     delete [] tracksArrTPC;</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :     delete [] nPointsArr;</span>
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     898 </span>            :   }
+<span class="lineNum">     899 </span>            : 
+<span class="lineNum">     900 </span>            :   //find matching in TPC
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :   if (nTPCtracks&gt;1)  //if there is something to be matched, try and match it</span>
+<span class="lineNum">     902 </span>            :   {
+<span class="lineNum">     903 </span>            :     Float_t min = 10000000.;
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :     for (Int_t itr1=0; itr1&lt;nTPCtracks; itr1++)</span>
+<span class="lineNum">     905 </span>            :     {
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :       for (Int_t itr2=itr1+1; itr2&lt;nTPCtracks; itr2++)</span>
+<span class="lineNum">     907 </span>            :       {
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :         Float_t deltatheta = TMath::Abs(TMath::Pi()-thetaArr[tracksArrTPC[itr1]]-thetaArr[tracksArrTPC[itr2]]);</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :         if (deltatheta &gt; fMaxMatchingAngle) continue;</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :         Float_t deltaphi = TMath::Abs(TMath::Abs(phiArr[tracksArrTPC[itr1]]-phiArr[tracksArrTPC[itr2]])-TMath::Pi());</span>
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :         if (deltaphi &gt; fMaxMatchingAngle) continue;</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :         if (deltatheta+deltaphi&lt;min) //only the best matching pair</span>
+<span class="lineNum">     913 </span>            :         {
+<span class="lineNum">     914 </span>            :           min=deltatheta+deltaphi;
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :           candidateTPCtracksArr[0] = tracksArrTPC[itr1];  //store the index of track in goodtracksArr[]</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :           candidateTPCtracksArr[1] = tracksArrTPC[itr2];</span>
+<span class="lineNum">     917 </span>            :           nCandidateTPCtracks = 2;
+<span class="lineNum">     918 </span>            :           foundMatchTPC = kTRUE;
+<span class="lineNum">     919 </span>            :           //printf(&quot;TrackFinder: Matching TPC tracks candidates:\n&quot;);
+<span class="lineNum">     920 </span>            :           //printf(&quot;TrackFinder: candidateTPCtracksArr[0]=%d\n&quot;,tracksArrTPC[itr1]);
+<span class="lineNum">     921 </span>            :           //printf(&quot;TrackFinder: candidateTPCtracksArr[1]=%d\n&quot;,tracksArrTPC[itr2]);
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     924 </span>            :     }
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :   }//if nTPCtracks&gt;1</span>
+<span class="lineNum">     926 </span>            :   else //if nTPCtracks==1 - if nothing to match, take the only one we've got
+<span class="lineNum">     927 </span>            :   {
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :     candidateTPCtracksArr[0] = tracksArrTPC[0];</span>
+<span class="lineNum">     929 </span>            :     nCandidateTPCtracks = 1;
+<span class="lineNum">     930 </span>            :     foundMatchTPC = kFALSE;
+<span class="lineNum">     931 </span>            :   }
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :   if (foundMatchTPC) fNMatchedTPCtracklets++;</span>
+<span class="lineNum">     933 </span>            :   //if no match but the requirement is set return kFALSE
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :   if (fRequireMatchInTPC &amp;&amp; !foundMatchTPC)</span>
+<span class="lineNum">     935 </span>            :   {
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :     delete [] phiArr;</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     delete [] thetaArr;</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :     delete [] goodtracksArr;</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :     delete [] candidateTPCtracksArr;</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :     delete [] matchedITStracksArr;</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     delete [] matchedTPCtracksArr;</span>
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :     delete [] tracksArrITS;</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :     delete [] tracksArrTPC;</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :     delete [] nPointsArr;</span>
+<span class="lineNum">     945 </span>            :     //printf(&quot;TrackFinder: no match in TPC &amp;&amp; required\n&quot;);
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">     947 </span>            :   }
+<span class="lineNum">     948 </span>            : 
+<span class="lineNum">     949 </span>            :   //if no match and more than one track take all TPC tracks
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :   if (!fRequireMatchInTPC &amp;&amp; !foundMatchTPC)</span>
+<span class="lineNum">     951 </span>            :   {
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;nTPCtracks;i++)</span>
+<span class="lineNum">     953 </span>            :     {
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :       candidateTPCtracksArr[i] = tracksArrTPC[i];</span>
+<span class="lineNum">     955 </span>            :     }
+<span class="lineNum">     956 </span>            :     nCandidateTPCtracks = nTPCtracks;
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     958 </span>            :   //printf(&quot;TrackFinder: nCandidateTPCtracks: %i\n&quot;, nCandidateTPCtracks);
+<span class="lineNum">     959 </span>            : 
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :   Double_t* minDifferenceArr = new Double_t[nCandidateTPCtracks];</span>
+<span class="lineNum">     961 </span>            : 
+<span class="lineNum">     962 </span>            :   //find ITS matches for good TPC tracks
+<span class="lineNum">     963 </span>            :   Bool_t matchedITStracks=kFALSE;
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :   for (Int_t itpc=0;itpc&lt;nCandidateTPCtracks;itpc++)</span>
+<span class="lineNum">     965 </span>            :   {
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :     minDifferenceArr[nMatchedITStracks] = 10000000.;</span>
+<span class="lineNum">     967 </span>            :     matchedITStracks=kFALSE;
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :     for (Int_t iits=0; iits&lt;nITStracks; iits++)</span>
+<span class="lineNum">     969 </span>            :     {
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :       AliESDtrack* itstrack = pEvent-&gt;GetTrack(goodtracksArr[tracksArrITS[iits]]);</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :       const AliExternalTrackParam* parits = itstrack-&gt;GetOuterParam();</span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :       AliESDtrack* tpctrack = pEvent-&gt;GetTrack(goodtracksArr[candidateTPCtracksArr[itpc]]);</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :       const AliExternalTrackParam* tmp = tpctrack-&gt;GetInnerParam();</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :       AliExternalTrackParam partpc(*tmp);  //make a copy to avoid tampering with original params</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :       partpc.Rotate(parits-&gt;GetAlpha());</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :       partpc.PropagateTo(parits-&gt;GetX(),fMagField);</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :       Float_t dtgl = TMath::Abs(partpc.GetTgl()-parits-&gt;GetTgl());</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :       if (dtgl &gt; fMaxMatchingAngle) continue;</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :       Float_t dsnp = TMath::Abs(partpc.GetSnp()-parits-&gt;GetSnp());</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :       if (dsnp &gt; fMaxMatchingAngle) continue;</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :       Float_t dy = TMath::Abs(partpc.GetY()-parits-&gt;GetY());</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :       Float_t dz = TMath::Abs(partpc.GetZ()-parits-&gt;GetZ());</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :       if (TMath::Sqrt(dy*dy+dz*dz) &gt; fMaxMatchingDistance) continue;</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :       if (dtgl+dsnp&lt;minDifferenceArr[nMatchedITStracks]) //only the best matching pair</span>
+<span class="lineNum">     985 </span>            :       {
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :         minDifferenceArr[nMatchedITStracks]=dtgl+dsnp;</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :         matchedITStracksArr[nMatchedITStracks] = tracksArrITS[iits];</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :         matchedTPCtracksArr[nMatchedITStracks] = candidateTPCtracksArr[itpc]; //this tells us minDifferenceArrwhich TPC track this ITS track belongs to</span>
+<span class="lineNum">     989 </span>            :         //printf(&quot;TrackFinder: Matching ITS to TPC:\n&quot;);
+<span class="lineNum">     990 </span>            :         //printf(&quot;TrackFinder: minDifferenceArr[%i]=%.2f\n&quot;,nMatchedITStracks,minDifferenceArr[nMatchedITStracks]);
+<span class="lineNum">     991 </span>            :         //printf(&quot;TrackFinder: matchedITStracksArr[%i]=%i\n&quot;,nMatchedITStracks,matchedITStracksArr[nMatchedITStracks]);
+<span class="lineNum">     992 </span>            :         //printf(&quot;TrackFinder: matchedTPCtracksArr[%i]=%i\n&quot;,nMatchedITStracks,matchedTPCtracksArr[nMatchedITStracks]);
+<span class="lineNum">     993 </span>            :         matchedITStracks=kTRUE;;
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :     if (matchedITStracks) nMatchedITStracks++;</span>
+<span class="lineNum">     997 </span>            :   }
+<span class="lineNum">     998 </span>            : 
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :   if (nMatchedITStracks==0) //no match in ITS</span>
+<span class="lineNum">    1000 </span>            :   {
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     delete [] phiArr;</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :     delete [] thetaArr;</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :     delete [] minDifferenceArr;</span>
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :     delete [] goodtracksArr;</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :     delete [] matchedITStracksArr;</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :     delete [] candidateTPCtracksArr;</span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     delete [] matchedTPCtracksArr;</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :     delete [] tracksArrITS;</span>
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :     delete [] tracksArrTPC;</span>
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :     delete [] nPointsArr;</span>
+<span class="lineNum">    1011 </span>            :     //printf(&quot;TrackFinder: No match in ITS\n&quot;);
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :     return kFALSE;</span>
+<span class="lineNum">    1013 </span>            :   }
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            :   //printf(&quot;TrackFinder: nMatchedITStracks: %i\n&quot;,nMatchedITStracks);
+<span class="lineNum">    1016 </span>            :   //we found a cosmic
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :   fNMatchedCosmics++;</span>
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span>            :   //Now we may have ended up with more matches than we want in the case there was
+<span class="lineNum">    1020 </span>            :   //no TPC match and there were many TPC tracks
+<span class="lineNum">    1021 </span>            :   //a cosmic in a scenario like this will only have produced 1 pair, the rest is garbage
+<span class="lineNum">    1022 </span>            :   //so take only the best pair.
+<span class="lineNum">    1023 </span>            :   //same applies when there are more matches than ITS tracks - means that one ITS track
+<span class="lineNum">    1024 </span>            :   //matches more TPC tracks.
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :   if ((nMatchedITStracks&gt;2 &amp;&amp; !foundMatchTPC) || nMatchedITStracks&gt;nITStracks)</span>
+<span class="lineNum">    1026 </span>            :   {
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     Int_t imin = TMath::LocMin(nMatchedITStracks,minDifferenceArr);</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :     matchedITStracksArr[0] = matchedITStracksArr[imin];</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :     matchedTPCtracksArr[0] = matchedTPCtracksArr[imin];</span>
+<span class="lineNum">    1030 </span>            :     nMatchedITStracks = 1;
+<span class="lineNum">    1031 </span>            :     //printf(&quot;TrackFinder: too many matches - take only the best one\n&quot;);
+<span class="lineNum">    1032 </span>            :     //printf(&quot;TrackFinder: LocMin in matched its tracks: %d\n&quot;,imin);
+<span class="lineNum">    1033 </span>            :     //printf(&quot;TrackFinder: matchedITStracksArr[0]=%d\n&quot;,matchedITStracksArr[0]);
+<span class="lineNum">    1034 </span>            :     //printf(&quot;TrackFinder: matchedTPCtracksArr[0]=%d\n&quot;,matchedTPCtracksArr[0]);
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1036 </span>            : 
+<span class="lineNum">    1037 </span>            :   ///////////////////////////////////////////////////////////////////////////
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :   outITSindexTArr.Set(nMatchedITStracks);</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :   outTPCindexTArr.Set(nMatchedITStracks);</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;nMatchedITStracks;i++)</span>
+<span class="lineNum">    1041 </span>            :   {
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :     outITSindexTArr.AddAt( goodtracksArr[matchedITStracksArr[i]], i );</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :     outTPCindexTArr.AddAt( goodtracksArr[matchedTPCtracksArr[i]], i );</span>
+<span class="lineNum">    1044 </span>            :     //printf(&quot;TrackFinder: Fill the output\n&quot;);
+<span class="lineNum">    1045 </span>            :     //printf(&quot;TrackFinder: matchedITStracksArr[%d]=%d\n&quot;,i,matchedITStracksArr[i]);
+<span class="lineNum">    1046 </span>            :     //printf(&quot;TrackFinder: matchedTPCtracksArr[%d]=%d\n&quot;,i,matchedTPCtracksArr[i]);
+<span class="lineNum">    1047 </span>            :   }
+<span class="lineNum">    1048 </span>            :   //printf(&quot;TrackFinder: Size of outputarrays: %d, %d\n&quot;, outITSindexTArr.GetSize(), outTPCindexTArr.GetSize());
+<span class="lineNum">    1049 </span>            :   ///////////////////////////////////////////////////////////////////////////
+<span class="lineNum">    1050 </span>            : 
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :   delete [] phiArr;</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :   delete [] thetaArr;</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :   delete [] minDifferenceArr;</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :   delete [] goodtracksArr;</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :   delete [] candidateTPCtracksArr;</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :   delete [] matchedITStracksArr;</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :   delete [] matchedTPCtracksArr;</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :   delete [] tracksArrITS;</span>
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :   delete [] tracksArrTPC;</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :   delete [] nPointsArr;</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :   return kTRUE;</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 : }</span>
+<a name="1063"><span class="lineNum">    1063 </span>            : </a>
+<span class="lineNum">    1064 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1065 </span>            : Bool_t AliRelAlignerKalman::CorrectTrack( AliExternalTrackParam* tr, const TVectorD&amp; misal ) const
+<span class="lineNum">    1066 </span>            : {
+<span class="lineNum">    1067 </span>            :   //implements the system model -
+<span class="lineNum">    1068 </span>            :   //applies correction for misalignment and calibration to track
+<span class="lineNum">    1069 </span>            :   //track needs to be already propagated to the global reference plane
+<span class="lineNum">    1070 </span>            : 
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :   Double_t x = tr-&gt;GetX();</span>
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :   Double_t alpha = tr-&gt;GetAlpha();</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :   Double_t point[3],dir[3];</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :   tr-&gt;GetXYZ(point);</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :   tr-&gt;GetDirection(dir);</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :   TVector3 Point(point);</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :   TVector3 Dir(dir);</span>
+<span class="lineNum">    1078 </span>            :   
+<span class="lineNum">    1079 </span>            :   //Apply corrections to track
+<span class="lineNum">    1080 </span>            : 
+<span class="lineNum">    1081 </span>            :   //Shift
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :   Point(0) -= misal(3); //add shift in x</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   Point(1) -= misal(4); //add shift in y</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :   Point(2) -= misal(5); //add shift in z</span>
+<span class="lineNum">    1085 </span>            :   //Rotation
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :   TMatrixD rotmat(3,3);</span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :   RotMat( rotmat, misal );</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :   Point = rotmat.T() * Point;</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :   Dir = rotmat * Dir;</span>
+<span class="lineNum">    1090 </span>            :   
+<span class="lineNum">    1091 </span>            :   //TPC vdrift and T0 corrections
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :   TVector3 Point2; //second point of the track</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :   Point2 = Point + Dir;</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :   Double_t vdCorr = 1./misal(6);</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :   Double_t t0 = misal(7);</span>
+<span class="lineNum">    1096 </span>            :   Double_t vdY = 0.0;
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :   if (fgkNSystemParams&gt;8) vdY = misal(8)/100.; //change over 100cm.</span>
+<span class="lineNum">    1098 </span>            : 
+<span class="lineNum">    1099 </span>            :   //my model
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :   if (Point(2)&gt;0)</span>
+<span class="lineNum">    1101 </span>            :   {
+<span class="lineNum">    1102 </span>            :     //A-Side
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     Point(2) = Point(2)   - (fTPCZLengthA-Point(2))  * (vdCorr-1.+vdY*Point(1)/fTPCvd)  - (fTPCvd*vdCorr+vdY*Point(1))*t0;</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :     Point2(2) = Point2(2) - (fTPCZLengthA-Point2(2)) * (vdCorr-1.+vdY*Point2(1)/fTPCvd) - (fTPCvd*vdCorr+vdY*Point2(1))*t0;</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1106 </span>            :   else
+<span class="lineNum">    1107 </span>            :   {
+<span class="lineNum">    1108 </span>            :     //C-side
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :     Point(2) = Point(2)   - (fTPCZLengthC+Point(2))  * (1.-vdCorr-vdY*Point(1)/fTPCvd)  + (fTPCvd*vdCorr+vdY*Point(1))*t0;</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :     Point2(2) = Point2(2) - (fTPCZLengthC+Point2(2)) * (1.-vdCorr-vdY*Point2(1)/fTPCvd) + (fTPCvd*vdCorr+vdY*Point2(1))*t0;</span>
+<span class="lineNum">    1111 </span>            :   }
+<span class="lineNum">    1112 </span>            : 
+<span class="lineNum">    1113 </span>            :   //Stefan's model
+<span class="lineNum">    1114 </span>            :   //if (Point(2)&gt;0)
+<span class="lineNum">    1115 </span>            :   //{
+<span class="lineNum">    1116 </span>            :   //  //A-Side
+<span class="lineNum">    1117 </span>            :   //  Point(2) = Point(2)   - (fTPCZLengthA-Point(2))  * (1.-vdCorr+vdY*Point(1)/fTPCvd)  - (fTPCvd*vdCorr+vdY*Point(1))*t0;
+<span class="lineNum">    1118 </span>            :   //  Point2(2) = Point2(2) - (fTPCZLengthA-Point2(2)) * (1.-vdCorr+vdY*Point2(1)/fTPCvd) - (fTPCvd*vdCorr+vdY*Point2(1))*t0;
+<span class="lineNum">    1119 </span>            :   //}
+<span class="lineNum">    1120 </span>            :   //else
+<span class="lineNum">    1121 </span>            :   //{
+<span class="lineNum">    1122 </span>            :   //  //C-side
+<span class="lineNum">    1123 </span>            :   //  Point(2) = Point(2)   + (fTPCZLengthC+Point(2))  * (1.-vdCorr+vdY*Point(1)/fTPCvd)  + (fTPCvd*vdCorr+vdY*Point(1))*t0;
+<span class="lineNum">    1124 </span>            :   //  Point2(2) = Point2(2) + (fTPCZLengthC+Point2(2)) * (1.-vdCorr+vdY*Point2(1)/fTPCvd) + (fTPCvd*vdCorr+vdY*Point2(1))*t0;
+<span class="lineNum">    1125 </span>            :   //}
+<span class="lineNum">    1126 </span>            : 
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :   Dir = Point2-Point;</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :   Dir=Dir.Unit(); //keep unit length</span>
+<span class="lineNum">    1129 </span>            : 
+<span class="lineNum">    1130 </span>            :   //Turn back to local system
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :   Dir.GetXYZ(dir);</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :   Point.GetXYZ(point);</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :   tr-&gt;Global2LocalPosition(point,alpha);</span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :   tr-&gt;Global2LocalPosition(dir,alpha);</span>
+<span class="lineNum">    1135 </span>            : 
+<span class="lineNum">    1136 </span>            :   //Calculate new intersection point with ref plane
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :   Double_t p[5],pcov[15];</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :   if (dir[0]==0.0) return kFALSE;</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :   Double_t s=(x-point[0])/dir[0];</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :   p[0] = point[1]+s*dir[1];</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :   p[1] = point[2]+s*dir[2];</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :   Double_t pt = TMath::Sqrt(dir[0]*dir[0]+dir[1]*dir[1]);</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :   if (pt==0.0) return kFALSE;</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :   p[2] = dir[1]/pt;</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :   p[3] = dir[2]/pt;</span>
+<span class="lineNum">    1146 </span>            :   //insert everything back into track
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :   const Double_t* pcovtmp = tr-&gt;GetCovariance();</span>
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :   p[4] = tr-&gt;GetSigned1Pt(); //copy the momentum</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :   memcpy(pcov,pcovtmp,15*sizeof(Double_t));</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :   tr-&gt;Set(x,alpha,p,pcov);</span>
+<span class="lineNum">    1151 </span>            :   return kTRUE;
+<span class="lineNum">    1152 </span>            : 
+<span class="lineNum">    1153 </span>            :   ////put params back into track and propagate to ref
+<span class="lineNum">    1154 </span>            :   //Double_t p[5],pcov[15];
+<span class="lineNum">    1155 </span>            :   //p[0] = point[1];
+<span class="lineNum">    1156 </span>            :   //p[1] = point[2];
+<span class="lineNum">    1157 </span>            :   //Double_t xnew = point[0];
+<span class="lineNum">    1158 </span>            :   //Double_t pt = TMath::Sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
+<span class="lineNum">    1159 </span>            :   //if (pt==0.0) return kFALSE;
+<span class="lineNum">    1160 </span>            :   //p[2] = dir[1]/pt;
+<span class="lineNum">    1161 </span>            :   //p[3] = dir[2]/pt;
+<span class="lineNum">    1162 </span>            :   //p[4] = tr-&gt;GetSigned1Pt(); //copy the momentum
+<span class="lineNum">    1163 </span>            :   //const Double_t* pcovtmp = tr-&gt;GetCovariance();
+<span class="lineNum">    1164 </span>            :   //memcpy(pcov,pcovtmp,15*sizeof(Double_t));
+<span class="lineNum">    1165 </span>            :   //tr-&gt;Set(xnew,alpha,p,pcov);
+<span class="lineNum">    1166 </span>            :   //return tr-&gt;PropagateTo(x,fMagField);
+<span class="lineNum">    1167 </span><span class="lineNoCov">          0 : }</span>
+<a name="1168"><span class="lineNum">    1168 </span>            : </a>
+<span class="lineNum">    1169 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1170 </span>            : Bool_t AliRelAlignerKalman::MisalignTrack( AliExternalTrackParam* tr, const TVectorD&amp; misal ) const
+<span class="lineNum">    1171 </span>            : {
+<span class="lineNum">    1172 </span>            :   //implements the system model -
+<span class="lineNum">    1173 </span>            :   //applies misalignment and miscalibration to reference track
+<span class="lineNum">    1174 </span>            :   //trackparams have to be at the global reference plane
+<span class="lineNum">    1175 </span>            : 
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :   Double_t x = tr-&gt;GetX();</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :   Double_t alpha = tr-&gt;GetAlpha();</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :   Double_t point[3],dir[3];</span>
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :   tr-&gt;GetXYZ(point);</span>
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :   tr-&gt;GetDirection(dir);</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :   TVector3 Point(point);</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :   TVector3 Dir(dir);</span>
+<span class="lineNum">    1183 </span>            :   
+<span class="lineNum">    1184 </span>            :   //Apply misalignment to track
+<span class="lineNum">    1185 </span>            :   
+<span class="lineNum">    1186 </span>            :   //TPC vdrift and T0 corrections
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :   TVector3 Point2; //second point of the track</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :   Point2 = Point + Dir;</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :   Double_t vdCorr = 1./misal(6);</span>
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :   Double_t t0 = misal(7);</span>
+<span class="lineNum">    1191 </span>            :   Double_t vdY = 0.0;
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :   if (fgkNSystemParams&gt;8) vdY = misal(8)/100.; //change over 100cm.</span>
+<span class="lineNum">    1193 </span>            : 
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :   if (Point(2)&gt;0)</span>
+<span class="lineNum">    1195 </span>            :   {
+<span class="lineNum">    1196 </span>            :     //A-Side
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :     Point(2) = Point(2)   + ((fTPCZLengthA-Point(2))/(vdCorr*fTPCvd+vdY*Point(1)))</span>
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :                           * (fTPCvd*(vdCorr-1.)+vdY*Point(1)) + fTPCvd*t0;</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :     Point2(2) = Point2(2) + ((fTPCZLengthA-Point2(2))/(vdCorr*fTPCvd+vdY*Point2(1)))</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :                           * (fTPCvd*(vdCorr-1.)+vdY*Point2(1)) + fTPCvd*t0;</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1202 </span>            :   else
+<span class="lineNum">    1203 </span>            :   {
+<span class="lineNum">    1204 </span>            :     //C-side
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     Point(2) = Point(2)   + (fTPCZLengthC+Point(2))/(vdCorr*fTPCvd+vdY*Point(1))</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :                           * (fTPCvd*(1.-vdCorr)-vdY*Point(1)) - fTPCvd*t0;</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :     Point2(2) = Point2(2) + (fTPCZLengthC+Point2(2))/(vdCorr*fTPCvd+vdY*Point2(1))</span>
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :                           * (fTPCvd*(1.-vdCorr)-vdY*Point2(1)) - fTPCvd*t0;</span>
+<span class="lineNum">    1209 </span>            :   }
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :   Dir = Point2-Point;</span>
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :   Dir=Dir.Unit(); //keep unit length</span>
+<span class="lineNum">    1212 </span>            : 
+<span class="lineNum">    1213 </span>            :   //Rotation
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :   TMatrixD rotmat(3,3);</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :   RotMat( rotmat, misal );</span>
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :   Point = rotmat * Point;</span>
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :   Dir = rotmat * Dir;</span>
+<span class="lineNum">    1218 </span>            :   //Shift
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :   Point(0) += misal(3); //add shift in x</span>
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :   Point(1) += misal(4); //add shift in y</span>
+<span class="lineNum">    1221 </span><span class="lineNoCov">          0 :   Point(2) += misal(5); //add shift in z</span>
+<span class="lineNum">    1222 </span>            : 
+<span class="lineNum">    1223 </span>            :   //Turn back to local system
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :   Dir.GetXYZ(dir);</span>
+<span class="lineNum">    1225 </span><span class="lineNoCov">          0 :   Point.GetXYZ(point);</span>
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :   tr-&gt;Global2LocalPosition(point,alpha);</span>
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :   tr-&gt;Global2LocalPosition(dir,alpha);</span>
+<span class="lineNum">    1228 </span>            : 
+<span class="lineNum">    1229 </span>            :   //Calculate new intersection point with ref plane
+<span class="lineNum">    1230 </span><span class="lineNoCov">          0 :   Double_t p[5],pcov[15];</span>
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 :   if (dir[0]==0.0) return kFALSE;</span>
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :   Double_t s=(x-point[0])/dir[0];</span>
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :   p[0] = point[1]+s*dir[1];</span>
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :   p[1] = point[2]+s*dir[2];</span>
+<span class="lineNum">    1235 </span><span class="lineNoCov">          0 :   Double_t pt = TMath::Sqrt(dir[0]*dir[0]+dir[1]*dir[1]);</span>
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :   if (pt==0.0) return kFALSE;</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :   p[2] = dir[1]/pt;</span>
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :   p[3] = dir[2]/pt;</span>
+<span class="lineNum">    1239 </span>            :   //insert everything back into track
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :   const Double_t* pcovtmp = tr-&gt;GetCovariance();</span>
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :   p[4] = tr-&gt;GetSigned1Pt(); //copy the momentum</span>
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :   memcpy(pcov,pcovtmp,15*sizeof(Double_t));</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :   tr-&gt;Set(x,alpha,p,pcov);</span>
+<span class="lineNum">    1244 </span>            :   return kTRUE;
+<span class="lineNum">    1245 </span>            : 
+<span class="lineNum">    1246 </span>            :   ////put params back into track and propagate to ref
+<span class="lineNum">    1247 </span>            :   //Double_t p[5];
+<span class="lineNum">    1248 </span>            :   //Double_t pcov[15];
+<span class="lineNum">    1249 </span>            :   //p[0] = point[1];
+<span class="lineNum">    1250 </span>            :   //p[1] = point[2];
+<span class="lineNum">    1251 </span>            :   //Double_t xnew = point[0];
+<span class="lineNum">    1252 </span>            :   //Double_t pt = TMath::Sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
+<span class="lineNum">    1253 </span>            :   //if (pt==0.0) return kFALSE;
+<span class="lineNum">    1254 </span>            :   //p[2] = dir[1]/pt;
+<span class="lineNum">    1255 </span>            :   //p[3] = dir[2]/pt;
+<span class="lineNum">    1256 </span>            :   //p[4] = tr-&gt;GetSigned1Pt(); //copy the momentum
+<span class="lineNum">    1257 </span>            :   //const Double_t* pcovtmp = tr-&gt;GetCovariance();
+<span class="lineNum">    1258 </span>            :   //memcpy(pcov,pcovtmp,15*sizeof(Double_t));
+<span class="lineNum">    1259 </span>            :   //printf(&quot;x before: %.5f, after: %.5f\n&quot;,x, xnew);
+<span class="lineNum">    1260 </span>            :   //printf(&quot;before: %.4f %.4f %.4f %.4f %.4f \n&quot;,tr-&gt;GetParameter()[0],tr-&gt;GetParameter()[1],tr-&gt;GetParameter()[2],tr-&gt;GetParameter()[3],tr-&gt;GetParameter()[4]);
+<span class="lineNum">    1261 </span>            :   //printf(&quot;after:  %.4f %.4f %.4f %.4f %.4f \n&quot;,p[0],p[1],p[2],p[3],p[4]);
+<span class="lineNum">    1262 </span>            :   //tr-&gt;Set(xnew,alpha,p,pcov);
+<span class="lineNum">    1263 </span>            :   //return tr-&gt;PropagateTo(x,fMagField);
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 : }</span>
+<a name="1265"><span class="lineNum">    1265 </span>            : </a>
+<span class="lineNum">    1266 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1267 </span>            : void AliRelAlignerKalman::Reset()
+<span class="lineNum">    1268 </span>            : {
+<span class="lineNum">    1269 </span>            :   //full reset to defaults
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :   fPX-&gt;Zero();</span>
+<span class="lineNum">    1271 </span><span class="lineNoCov">          0 :   (*fPX)(6)=1.;</span>
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 :   ResetCovariance();</span>
+<span class="lineNum">    1273 </span>            : 
+<span class="lineNum">    1274 </span>            :   //initialize the differentials per parameter
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;4;i++) </span>
+<span class="lineNum">    1276 </span>            :   {
+<span class="lineNum">    1277 </span><span class="lineNoCov">          0 :     delete [] (fResArrSigma2Median[i]);</span>
+<span class="lineNum">    1278 </span>            :   }
+<span class="lineNum">    1279 </span><span class="lineNoCov">          0 :   fRejectOutliersSigma2Median=kFALSE;</span>
+<span class="lineNum">    1280 </span>            : 
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :   fNMatchedCosmics=0;</span>
+<span class="lineNum">    1282 </span><span class="lineNoCov">          0 :   fNMatchedTPCtracklets=0;</span>
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :   fNUpdates=0;</span>
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :   fNOutliers=0;</span>
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :   fNTracks=0;</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :   fNProcessedEvents=0;</span>
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :   fRunNumber=0;</span>
+<span class="lineNum">    1288 </span><span class="lineNoCov">          0 :   fTimeStamp=0;</span>
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 : }</span>
+<a name="1290"><span class="lineNum">    1290 </span>            : </a>
+<span class="lineNum">    1291 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1292 </span>            : void AliRelAlignerKalman::ResetCovariance( const Double_t number )
+<span class="lineNum">    1293 </span>            : {
+<span class="lineNum">    1294 </span>            :   //Resets the covariance to the default if arg=0 or resets the off diagonals
+<span class="lineNum">    1295 </span>            :   //to zero and releases the diagonals by factor arg.
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :   if (number!=0.)</span>
+<span class="lineNum">    1297 </span>            :   {
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :     for (Int_t z=0;z&lt;6;z++)</span>
+<span class="lineNum">    1299 </span>            :     {
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :       for (Int_t zz=0;zz&lt;6;zz++)</span>
+<span class="lineNum">    1301 </span>            :       {
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :         if (zz==z) continue; //don't touch diagonals</span>
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :         (*fPXcov)(zz,z) = 0.;</span>
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :         (*fPXcov)(z,zz) = 0.;</span>
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1306 </span><span class="lineNoCov">          0 :       (*fPXcov)(z,z) = (*fPXcov)(z,z) * number;</span>
+<span class="lineNum">    1307 </span>            :     }
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1309 </span>            :   else
+<span class="lineNum">    1310 </span>            :   {
+<span class="lineNum">    1311 </span>            :     //Resets the covariance of the fit to a default value
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 :     fPXcov-&gt;Zero();</span>
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 :     (*fPXcov)(0,0) = .08*.08; //psi (rad)</span>
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 :     (*fPXcov)(1,1) = .08*.08; //theta (rad</span>
+<span class="lineNum">    1315 </span><span class="lineNoCov">          0 :     (*fPXcov)(2,2) = .08*.08; //phi (rad)</span>
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :     (*fPXcov)(3,3) = .3*.3; //x (cm)</span>
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :     (*fPXcov)(4,4) = .3*.3; //y (cm)</span>
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :     (*fPXcov)(5,5) = .3*.3; //z (cm)</span>
+<span class="lineNum">    1319 </span>            :   }
+<span class="lineNum">    1320 </span><span class="lineNoCov">          0 :   ResetTPCparamsCovariance(number); </span>
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 : }</span>
+<a name="1322"><span class="lineNum">    1322 </span>            : </a>
+<span class="lineNum">    1323 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1324 </span>            : void AliRelAlignerKalman::ResetTPCparamsCovariance( const Double_t number )
+<span class="lineNum">    1325 </span>            : {
+<span class="lineNum">    1326 </span>            :   //Resets the covariance to the default if arg=0 or resets the off diagonals
+<span class="lineNum">    1327 </span>            :   //to zero and releases the diagonals by factor arg.
+<span class="lineNum">    1328 </span>            :   
+<span class="lineNum">    1329 </span>            :   //release diagonals
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :   if (number==0.)</span>
+<span class="lineNum">    1331 </span>            :   {
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :     if (fgkNSystemParams&gt;6) (*fPXcov)(6,6) = .1*.1;</span>
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :     if (fgkNSystemParams&gt;7) (*fPXcov)(7,7) = 1.*1.;</span>
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :     if (fgkNSystemParams&gt;8) (*fPXcov)(8,8) = .1*.1;</span>
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1336 </span>            :   else
+<span class="lineNum">    1337 </span>            :   {
+<span class="lineNum">    1338 </span><span class="lineNoCov">          0 :     if (fgkNSystemParams&gt;6) (*fPXcov)(6,6) = number * (*fPXcov)(6,6);</span>
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :     if (fgkNSystemParams&gt;7) (*fPXcov)(7,7) = number * (*fPXcov)(7,7);</span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :     if (fgkNSystemParams&gt;8) (*fPXcov)(8,8) = number * (*fPXcov)(8,8);</span>
+<span class="lineNum">    1341 </span>            :   }
+<span class="lineNum">    1342 </span>            :   
+<span class="lineNum">    1343 </span>            :   //set crossterms to zero
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;fgkNSystemParams;i++)</span>
+<span class="lineNum">    1345 </span>            :   {
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :     for (Int_t j=6;j&lt;fgkNSystemParams;j++) //TPC params</span>
+<span class="lineNum">    1347 </span>            :     {
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :       if (i==j) continue; //don't touch diagonals</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :       (*fPXcov)(i,j) = 0.;</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :       (*fPXcov)(j,i) = 0.;</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1352 </span>            :   }
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 : }</span>
+<a name="1354"><span class="lineNum">    1354 </span>            : </a>
+<span class="lineNum">    1355 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1356 </span>            : Bool_t AliRelAlignerKalman::Merge( const AliRelAlignerKalman* al )
+<span class="lineNum">    1357 </span>            : {
+<span class="lineNum">    1358 </span>            :   //Merge two aligners
+<span class="lineNum">    1359 </span>            :   
+<span class="lineNum">    1360 </span><span class="lineNoCov">          0 :   if (!al) return kFALSE;</span>
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :   if (al==this) return kTRUE;</span>
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :   if (al-&gt;fNUpdates == 0) return kTRUE; //no point in merging with an empty one</span>
+<span class="lineNum">    1363 </span>            :   
+<span class="lineNum">    1364 </span>            :   //store the pointers to current stuff
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :   TVectorD* pmes = fPMeasurement;</span>
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :   TMatrixDSym* pmescov = fPMeasurementCov;</span>
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :   TVectorD* pmespred = fPMeasurementPrediction;</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :   TMatrixD* ph = fPH;</span>
+<span class="lineNum">    1369 </span>            : 
+<span class="lineNum">    1370 </span>            :   //make a unity system matrix
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :   TMatrixD tmp(fgkNSystemParams,fgkNSystemParams);</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :   fPH = new TMatrixD(TMatrixD::kUnit, tmp);</span>
+<span class="lineNum">    1373 </span>            : 
+<span class="lineNum">    1374 </span>            :   //mesurement is the state of the new aligner
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :   fPMeasurement = al-&gt;fPX;</span>
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :   fPMeasurementCov = al-&gt;fPXcov;</span>
+<span class="lineNum">    1377 </span>            : 
+<span class="lineNum">    1378 </span>            :   //the mesurement prediction is the state
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :   fPMeasurementPrediction = fPX; //this is safe as fPX doesn't change until end</span>
+<span class="lineNum">    1380 </span>            :   
+<span class="lineNum">    1381 </span>            :   //do the merging
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :   Bool_t success = UpdateEstimateKalman();</span>
+<span class="lineNum">    1383 </span>            :   
+<span class="lineNum">    1384 </span>            :   //restore pointers to old stuff
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :   fPMeasurement = pmes;</span>
+<span class="lineNum">    1386 </span><span class="lineNoCov">          0 :   fPMeasurementCov = pmescov;</span>
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :   fPMeasurementPrediction = pmespred;</span>
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :   delete fPH;</span>
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 :   fPH = ph;</span>
+<span class="lineNum">    1390 </span>            : 
+<span class="lineNum">    1391 </span>            :   //merge stats
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :   if (!success)    </span>
+<span class="lineNum">    1393 </span>            :   {
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :     fNMergesFailed++;</span>
+<span class="lineNum">    1395 </span>            :     //printf(&quot;AliRelAlignerKalman::Merge failed\n&quot;);
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :     return kFALSE; //no point in merging stats if merge not succesful</span>
+<span class="lineNum">    1397 </span>            :   }
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :   fNProcessedEvents += al-&gt;fNProcessedEvents;</span>
+<span class="lineNum">    1399 </span><span class="lineNoCov">          0 :   fNUpdates += al-&gt;fNUpdates;</span>
+<span class="lineNum">    1400 </span><span class="lineNoCov">          0 :   fNOutliers += al-&gt;fNOutliers;</span>
+<span class="lineNum">    1401 </span><span class="lineNoCov">          0 :   fNOutliersSigma2Median += al-&gt;fNOutliersSigma2Median;</span>
+<span class="lineNum">    1402 </span><span class="lineNoCov">          0 :   fNTracks += al-&gt;fNTracks;</span>
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :   fNMatchedTPCtracklets += al-&gt;fNMatchedTPCtracklets;</span>
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :   fNMatchedCosmics += al-&gt;fNMatchedCosmics;</span>
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :   if (fNMerges==0 || al-&gt;fNMerges==0) fNMerges++;</span>
+<span class="lineNum">    1406 </span><span class="lineNoCov">          0 :   else fNMerges += al-&gt;fNMerges;</span>
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 :   if (fTimeStamp &lt; al-&gt;fTimeStamp) fTimeStamp = al-&gt;fTimeStamp; //take the newer one</span>
+<span class="lineNum">    1408 </span>            : 
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :   return success;</span>
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 : }</span>
+<a name="1411"><span class="lineNum">    1411 </span>            : </a>
+<span class="lineNum">    1412 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1413 </span>            : Long64_t AliRelAlignerKalman::Merge( TCollection* list )
+<span class="lineNum">    1414 </span>            : {
+<span class="lineNum">    1415 </span>            :   //merge all aligners in the collection
+<span class="lineNum">    1416 </span>            :   Long64_t numberOfMerges=0;
+<span class="lineNum">    1417 </span>            :   AliRelAlignerKalman* alignerFromList;
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :   if (!list) return 0;</span>
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :   TIter next(list);</span>
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :   while ( (alignerFromList = dynamic_cast&lt;AliRelAlignerKalman*&gt;(next())) )</span>
+<span class="lineNum">    1421 </span>            :   {
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :     if (alignerFromList == this) continue;</span>
+<span class="lineNum">    1423 </span><span class="lineNoCov">          0 :     if (Merge(alignerFromList)) numberOfMerges++;</span>
+<span class="lineNum">    1424 </span>            :   }
+<span class="lineNum">    1425 </span>            :   return numberOfMerges;
+<span class="lineNum">    1426 </span><span class="lineNoCov">          0 : }</span>
+<a name="1427"><span class="lineNum">    1427 </span>            : </a>
+<span class="lineNum">    1428 </span>            : //______________________________________________________________________________
+<span class="lineNum">    1429 </span>            : Int_t AliRelAlignerKalman::Compare(const TObject *obj) const
+<span class="lineNum">    1430 </span>            : {
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :   if (this == obj) return 0;</span>
+<span class="lineNum">    1432 </span><span class="lineNoCov">          0 :   const AliRelAlignerKalman* aobj = dynamic_cast&lt;const AliRelAlignerKalman*&gt;(obj);</span>
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 :   if (!aobj) return 0;</span>
+<span class="lineNum">    1434 </span><span class="lineNoCov">          0 :   if (fTimeStamp &lt; aobj-&gt;fTimeStamp) return -1;</span>
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :   else if (fTimeStamp &gt; aobj-&gt;fTimeStamp) return 1;</span>
+<span class="lineNum">    1436 </span><span class="lineNoCov">          0 :   else return 0;</span>
+<span class="lineNum">    1437 </span><span class="lineNoCov">          0 : }</span>
+<a name="1438"><span class="lineNum">    1438 </span>            : </a>
+<span class="lineNum">    1439 </span>            : //________________________________________________________________________
+<span class="lineNum">    1440 </span>            : Int_t AliRelAlignerKalman::FindMatchingTracks(TObjArray&amp; arrITS, TObjArray&amp; arrTPC, AliESDEvent* pESD)
+<span class="lineNum">    1441 </span>            : {
+<span class="lineNum">    1442 </span>            :   //find matching tracks and return tobjarrays with the params
+<span class="lineNum">    1443 </span>            :   
+<span class="lineNum">    1444 </span><span class="lineNoCov">          0 :   Int_t ntracks = pESD-&gt;GetNumberOfTracks();</span>
+<span class="lineNum">    1445 </span><span class="lineNoCov">          0 :   Int_t* matchedArr = new Int_t[ntracks]; //storage for index of ITS track for which a match was found</span>
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :   for (Int_t i=0;i&lt;ntracks;i++)</span>
+<span class="lineNum">    1447 </span>            :   {
+<span class="lineNum">    1448 </span><span class="lineNoCov">          0 :     matchedArr[i]=0;</span>
+<span class="lineNum">    1449 </span>            :   }
+<span class="lineNum">    1450 </span>            : 
+<span class="lineNum">    1451 </span>            :   Int_t iMatched=-1;
+<span class="lineNum">    1452 </span><span class="lineNoCov">          0 :   for (Int_t i=0; i&lt;ntracks; i++)</span>
+<span class="lineNum">    1453 </span>            :   {
+<span class="lineNum">    1454 </span>            :     //get track1 and friend
+<span class="lineNum">    1455 </span><span class="lineNoCov">          0 :     AliESDtrack* track1 = pESD-&gt;GetTrack(i);</span>
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :     if (!track1) continue;</span>
+<span class="lineNum">    1457 </span>            : 
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :     if (track1-&gt;GetNcls(0) &lt; fMinPointsVol1) continue;</span>
+<span class="lineNum">    1459 </span>            : 
+<span class="lineNum">    1460 </span><span class="lineNoCov">          0 :     if (!( ( track1-&gt;IsOn(AliESDtrack::kITSrefit)) &amp;&amp;</span>
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :            (!track1-&gt;IsOn(AliESDtrack::kTPCin)) )) continue;</span>
+<span class="lineNum">    1462 </span>            : 
+<span class="lineNum">    1463 </span><span class="lineNoCov">          0 :     const AliESDfriendTrack* constfriendtrack1 = track1-&gt;GetFriendTrack();</span>
+<span class="lineNum">    1464 </span><span class="lineNoCov">          0 :     if (!constfriendtrack1) continue;</span>
+<span class="lineNum">    1465 </span><span class="lineNoCov">          0 :     AliESDfriendTrack friendtrack1(*constfriendtrack1);</span>
+<span class="lineNum">    1466 </span>            :     
+<span class="lineNum">    1467 </span><span class="lineNoCov">          0 :     if (!friendtrack1.GetITSOut()) continue;</span>
+<span class="lineNum">    1468 </span><span class="lineNoCov">          0 :     AliExternalTrackParam params1(*(friendtrack1.GetITSOut()));</span>
+<span class="lineNum">    1469 </span>            : 
+<span class="lineNum">    1470 </span>            :     Double_t bestd = 1000.; //best distance
+<span class="lineNum">    1471 </span>            :     Bool_t newi = kTRUE; //whether we start with a new i
+<span class="lineNum">    1472 </span><span class="lineNoCov">          0 :     for (Int_t j=0; j&lt;ntracks; j++)</span>
+<span class="lineNum">    1473 </span>            :     {
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :       if (matchedArr[j]&gt;0 &amp;&amp; matchedArr[j]!=i) continue; //already matched, everything tried </span>
+<span class="lineNum">    1475 </span>            :       //get track2 and friend
+<span class="lineNum">    1476 </span><span class="lineNoCov">          0 :       AliESDtrack* track2 = pESD-&gt;GetTrack(j);</span>
+<span class="lineNum">    1477 </span><span class="lineNoCov">          0 :       if (!track2) continue;</span>
+<span class="lineNum">    1478 </span><span class="lineNoCov">          0 :       if (track1==track2) continue;</span>
+<span class="lineNum">    1479 </span>            :       //if ( ( ( track2-&gt;IsOn(AliESDtrack::kITSout)) &amp;&amp;
+<span class="lineNum">    1480 </span>            :       //       (!track2-&gt;IsOn(AliESDtrack::kTPCin)) )) continue; //all but ITS standalone
+<span class="lineNum">    1481 </span>            : 
+<span class="lineNum">    1482 </span><span class="lineNoCov">          0 :       if (track2-&gt;GetNcls(0) != track1-&gt;GetNcls(0)) continue;</span>
+<span class="lineNum">    1483 </span><span class="lineNoCov">          0 :       if (track2-&gt;GetITSClusterMap() != track1-&gt;GetITSClusterMap()) continue;</span>
+<span class="lineNum">    1484 </span><span class="lineNoCov">          0 :       if (track2-&gt;GetNcls(1) &lt; fMinPointsVol2) continue; //min 80 clusters in TPC</span>
+<span class="lineNum">    1485 </span><span class="lineNoCov">          0 :       if (track2-&gt;GetTgl() &gt; 1.) continue; //acceptance</span>
+<span class="lineNum">    1486 </span>            :       //cut crossing tracks
+<span class="lineNum">    1487 </span><span class="lineNoCov">          0 :       if (track2-&gt;GetOuterParam()-&gt;GetZ()*track2-&gt;GetInnerParam()-&gt;GetZ()&lt;0) continue;</span>
+<span class="lineNum">    1488 </span><span class="lineNoCov">          0 :       if (track2-&gt;GetInnerParam()-&gt;GetX()&gt;90) continue;</span>
+<span class="lineNum">    1489 </span><span class="lineNoCov">          0 :       if (TMath::Abs(track2-&gt;GetInnerParam()-&gt;GetZ())&lt;10.) continue; //too close to membrane?</span>
+<span class="lineNum">    1490 </span>            : 
+<span class="lineNum">    1491 </span>            : 
+<span class="lineNum">    1492 </span><span class="lineNoCov">          0 :       if (!track2-&gt;GetInnerParam()) continue;</span>
+<span class="lineNum">    1493 </span><span class="lineNoCov">          0 :       AliExternalTrackParam params2(*(track2-&gt;GetInnerParam()));</span>
+<span class="lineNum">    1494 </span>            : 
+<span class="lineNum">    1495 </span>            :       //bring to same reference plane
+<span class="lineNum">    1496 </span><span class="lineNoCov">          0 :       if (!params2.Rotate(params1.GetAlpha())) continue;</span>
+<span class="lineNum">    1497 </span><span class="lineNoCov">          0 :       if (!params2.PropagateTo(params1.GetX(), pESD-&gt;GetMagneticField())) continue;</span>
+<span class="lineNum">    1498 </span>            : 
+<span class="lineNum">    1499 </span>            :       //pt cut
+<span class="lineNum">    1500 </span><span class="lineNoCov">          0 :       if (params2.Pt() &lt; fMinPt) continue;</span>
+<span class="lineNum">    1501 </span>            : 
+<span class="lineNum">    1502 </span><span class="lineNoCov">          0 :       const Double32_t* p1 = params1.GetParameter();</span>
+<span class="lineNum">    1503 </span><span class="lineNoCov">          0 :       const Double32_t* p2 = params2.GetParameter();</span>
+<span class="lineNum">    1504 </span>            : 
+<span class="lineNum">    1505 </span>            :       //hard cuts
+<span class="lineNum">    1506 </span><span class="lineNoCov">          0 :       Double_t dy = TMath::Abs(p2[0]-p1[0]);</span>
+<span class="lineNum">    1507 </span><span class="lineNoCov">          0 :       Double_t dz = TMath::Abs(p2[1]-p1[1]);</span>
+<span class="lineNum">    1508 </span><span class="lineNoCov">          0 :       Double_t dphi = TMath::Abs(p2[2]-p1[2]);</span>
+<span class="lineNum">    1509 </span><span class="lineNoCov">          0 :       Double_t dlam = TMath::Abs(p2[3]-p1[3]);</span>
+<span class="lineNum">    1510 </span><span class="lineNoCov">          0 :       if (dy &gt; 2.0) continue;</span>
+<span class="lineNum">    1511 </span><span class="lineNoCov">          0 :       if (dz &gt; 10.0) continue;</span>
+<span class="lineNum">    1512 </span><span class="lineNoCov">          0 :       if (dphi &gt; 0.1 ) continue;</span>
+<span class="lineNum">    1513 </span><span class="lineNoCov">          0 :       if (dlam &gt; 0.1 ) continue;</span>
+<span class="lineNum">    1514 </span>            : 
+<span class="lineNum">    1515 </span>            :       //best match only
+<span class="lineNum">    1516 </span><span class="lineNoCov">          0 :       Double_t d = TMath::Sqrt(dy*dy+dz*dz+dphi*dphi+dlam*dlam);</span>
+<span class="lineNum">    1517 </span><span class="lineNoCov">          0 :       if ( d &gt;= bestd) continue;</span>
+<span class="lineNum">    1518 </span>            :       bestd = d;
+<span class="lineNum">    1519 </span><span class="lineNoCov">          0 :       matchedArr[j]=i; //j-th track matches i-th (ITS) track</span>
+<span class="lineNum">    1520 </span><span class="lineNoCov">          0 :       if (newi) iMatched++; newi=kFALSE; //increment at most once per i</span>
+<span class="lineNum">    1521 </span><span class="lineNoCov">          0 :       if (arrITS[iMatched] &amp;&amp; arrTPC[iMatched])</span>
+<span class="lineNum">    1522 </span>            :       {
+<span class="lineNum">    1523 </span><span class="lineNoCov">          0 :         *(arrITS[iMatched]) = params1;</span>
+<span class="lineNum">    1524 </span><span class="lineNoCov">          0 :         *(arrTPC[iMatched]) = params2;</span>
+<span class="lineNum">    1525 </span>            :       }
+<span class="lineNum">    1526 </span>            :       else
+<span class="lineNum">    1527 </span>            :       {
+<span class="lineNum">    1528 </span><span class="lineNoCov">          0 :         arrITS[iMatched] = new AliExternalTrackParam(params1);</span>
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 :         arrTPC[iMatched] = new AliExternalTrackParam(params2);</span>
+<span class="lineNum">    1530 </span>            :       }//else
+<span class="lineNum">    1531 </span><span class="lineNoCov">          0 :     }//for j</span>
+<span class="lineNum">    1532 </span><span class="lineNoCov">          0 :   }//for i</span>
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :   delete [] matchedArr;</span>
+<span class="lineNum">    1534 </span><span class="lineNoCov">          0 :   return iMatched;</span>
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 : }</span>
+<a name="1536"><span class="lineNum">    1536 </span>            : </a>
+<span class="lineNum">    1537 </span>            : //________________________________________________________________________
+<span class="lineNum">    1538 </span>            : void AliRelAlignerKalman::SetRejectOutliersSigma2Median(const Bool_t set )
+<span class="lineNum">    1539 </span>            : {
+<span class="lineNum">    1540 </span>            :   //Sets up or destroys the memory hungry array to hold the statistics
+<span class="lineNum">    1541 </span>            :   //for data rejection with median
+<span class="lineNum">    1542 </span><span class="lineNoCov">          0 :   if (set)</span>
+<span class="lineNum">    1543 </span>            :   {
+<span class="lineNum">    1544 </span><span class="lineNoCov">          0 :     for (Int_t i=0;i&lt;4;i++) </span>
+<span class="lineNum">    1545 </span>            :     {
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :       if (!fResArrSigma2Median[i]) fResArrSigma2Median[i] = </span>
+<span class="lineNum">    1547 </span><span class="lineNoCov">          0 :                                    new Double_t[fgkNtracksSigma2Median];</span>
+<span class="lineNum">    1548 </span>            :     }
+<span class="lineNum">    1549 </span><span class="lineNoCov">          0 :     fRejectOutliersSigma2Median = kTRUE;</span>
+<span class="lineNum">    1550 </span><span class="lineNoCov">          0 :   }//else</span>
+<span class="lineNum">    1551 </span>            :   else
+<span class="lineNum">    1552 </span>            :   {
+<span class="lineNum">    1553 </span>            :     // it probably doesn't make sense to delete the arrays, they are not streamed
+<span class="lineNum">    1554 </span>            :     //if (fRejectOutliersSigma2Median)
+<span class="lineNum">    1555 </span>            :     //for (Int_t i=0;i&lt;4;i++) 
+<span class="lineNum">    1556 </span>            :     //{
+<span class="lineNum">    1557 </span>            :     //  delete [] (fResArrSigma2Median[i]);
+<span class="lineNum">    1558 </span>            :     //}
+<span class="lineNum">    1559 </span><span class="lineNoCov">          0 :     fRejectOutliersSigma2Median = kFALSE;</span>
+<span class="lineNum">    1560 </span>            :   }//if
+<span class="lineNum">    1561 </span><span class="lineNoCov">          0 : }</span>
+<a name="1562"><span class="lineNum">    1562 </span>            : </a>
+<span class="lineNum">    1563 </span>            : 
+<span class="lineNum">    1564 </span>            : Int_t AliRelAlignerKalman::CheckCovariance(){
+<span class="lineNum">    1565 </span>            :   //
+<span class="lineNum">    1566 </span>            :   // check covariance matrix
+<span class="lineNum">    1567 </span>            :   // Return values:
+<span class="lineNum">    1568 </span>            :   //         -1    - everything OK
+<span class="lineNum">    1569 </span>            :   //          &gt;=0  - index of &quot;corrupted&quot; element in the covariance matrix
+<span class="lineNum">    1570 </span><span class="lineNoCov">          0 :   TMatrixDSym&amp; mat =(*fPXcov);</span>
+<span class="lineNum">    1571 </span><span class="lineNoCov">          0 :   for (Int_t irow=0; irow&lt;9; irow++){</span>
+<span class="lineNum">    1572 </span><span class="lineNoCov">          0 :     if (mat(irow,irow)&lt;=0.) return  irow*9;</span>
+<span class="lineNum">    1573 </span><span class="lineNoCov">          0 :     for (Int_t icol=0; icol&lt;irow; icol++){</span>
+<span class="lineNum">    1574 </span><span class="lineNoCov">          0 :       Double_t corel = mat(irow,irow)*mat(icol,icol);</span>
+<span class="lineNum">    1575 </span><span class="lineNoCov">          0 :       if (corel&lt;=0.) return irow*9+icol;</span>
+<span class="lineNum">    1576 </span><span class="lineNoCov">          0 :       corel=mat(irow,icol)/TMath::Sqrt(corel);</span>
+<span class="lineNum">    1577 </span><span class="lineNoCov">          0 :       if (TMath::Abs(corel)&gt;=1.) return irow*9+icol;</span>
+<span class="lineNum">    1578 </span><span class="lineNoCov">          0 :     }  </span>
+<span class="lineNum">    1579 </span>            :   }
+<span class="lineNum">    1580 </span><span class="lineNoCov">          0 :   return -1;</span>
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - EVGEN/AliGenMUONCocktail.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">EVGEN</a> - AliGenMUONCocktail.cxx<span style="font-size: 80%;"> (source / <a href="AliGenMUONCocktail.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">263</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">10.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //
+<span class="lineNum">      19 </span>            : // Classe to create the MUON coktail for physics in the Alice muon spectrometer
+<span class="lineNum">      20 </span>            : // The followoing muons sources are included in this cocktail: 
+<span class="lineNum">      21 </span>            : //     jpsi, upsilon, non-correlated open and beauty.
+<span class="lineNum">      22 </span>            : // The free parameeters are :
+<span class="lineNum">      23 </span>            : //      pp reaction cross-section
+<span class="lineNum">      24 </span>            : //      production cross-sections in pp collisions and 
+<span class="lineNum">      25 </span>            : //      branching ratios in the muon channel and shadowing
+<span class="lineNum">      26 </span>            : // Hard probes are supposed to scale with Ncoll and hadronic muon production with (0.8Ncoll+0.2*Npart)
+<span class="lineNum">      27 </span>            : // There is a primordial trigger which requires :
+<span class="lineNum">      28 </span>            : //      a minimum muon multiplicity above a pT cut in a theta acceptance cone
+<span class="lineNum">      29 </span>            : //
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;TObjArray.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;TParticle.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;TF1.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &quot;AliGenCocktailEntry.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;AliGenMUONCocktail.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;AliGenMUONlib.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;AliFastGlauber.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;AliGenParam.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;AliMC.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;AliRun.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;AliStack.h&quot;
+<a name="43"><span class="lineNum">      43 </span>            : #include &quot;AliLog.h&quot;</a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">          6 : ClassImp(AliGenMUONCocktail)</span>
+<span class="lineNum">      46 </span>            :   
+<a name="47"><span class="lineNum">      47 </span>            :   </a>
+<span class="lineNum">      48 </span>            : //________________________________________________________________________
+<span class="lineNum">      49 </span>            : AliGenMUONCocktail::AliGenMUONCocktail()
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     :AliGenCocktail(),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :      fFastGlauber (0x0),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :      fTotalRate(0),  </span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :      fMuonMultiplicity(1),</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :      fMuonPtCut(1.),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :      fMuonThetaMinCut(171.), </span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :      fMuonThetaMaxCut(178.),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :      fNSucceded(0), </span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :      fNGenerated(0), </span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :      fLowImpactParameter(0.),</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :      fHighImpactParameter(5.),</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :      fAverageImpactParameter(0.),</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :      fNumberOfCollisions(0.), </span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :      fNumberOfParticipants(0.),</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :      fHadronicMuons(kTRUE),</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :      fInvMassCut (kFALSE),</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :      fInvMassMinCut (0.),</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :      fInvMassMaxCut (100.)</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      69 </span>            : // Constructor
+<a name="70"><span class="lineNum">      70 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      71 </span>            : //_________________________________________________________________________
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 : AliGenMUONCocktail::~AliGenMUONCocktail()</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      74 </span>            : // Destructor
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   if (fFastGlauber) delete fFastGlauber;</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : }</span>
+<a name="77"><span class="lineNum">      77 </span>            : </a>
+<span class="lineNum">      78 </span>            : //_________________________________________________________________________
+<span class="lineNum">      79 </span>            : void AliGenMUONCocktail::Init()
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span>            :   // NN cross section
+<span class="lineNum">      82 </span>            :   Double_t sigmaReaction =   0.072;   // MinBias NN cross section for PbPb LHC energies  http://arxiv.org/pdf/nucl-ex/0302016
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :   // Initialising Fast Glauber object
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   fFastGlauber = AliFastGlauber::Instance();</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   fFastGlauber-&gt;SetPbPbLHC();</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   fFastGlauber-&gt;SetNNCrossSection(sigmaReaction*1000.); //Expected NN cross-section in mb at LHC with diffractive part http://arxiv.org/pdf/nucl-ex/0302016 )</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   fFastGlauber-&gt;Init(1);</span>
+<span class="lineNum">      89 </span>            :  
+<span class="lineNum">      90 </span>            :   // Calculating average number of collisions
+<span class="lineNum">      91 </span>            :   Int_t ib=0;
+<span class="lineNum">      92 </span>            :   Int_t ibmax=10000;
+<span class="lineNum">      93 </span>            :   Double_t b       = 0.;
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   fAverageImpactParameter=0.;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   fNumberOfCollisions   = 0.;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :   fNumberOfParticipants = 0.;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   for(ib=0; ib&lt;ibmax; ib++) {</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     b = fFastGlauber-&gt;GetRandomImpactParameter(fLowImpactParameter,fHighImpactParameter);</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     fAverageImpactParameter+=b;</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     fNumberOfCollisions    += fFastGlauber-&gt;GetNumberOfCollisions( b )/(1.-TMath::Exp(-fFastGlauber-&gt;GetNumberOfCollisions(b)));</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     fNumberOfParticipants  += fFastGlauber-&gt;GetNumberOfParticipants( b );</span>
+<span class="lineNum">     102 </span>            :   } 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   fAverageImpactParameter/= ((Double_t) ibmax);</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :   fNumberOfCollisions    /= ((Double_t) ibmax);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   fNumberOfParticipants  /= ((Double_t) ibmax);;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;&lt;b&gt;=%4.2f, &lt;Ncoll&gt;=%5.1f and and &lt;Npart&gt;=%5.1f&quot;,b, fNumberOfCollisions, fNumberOfParticipants));</span>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            :   // Estimating shadowing on charm a beaty production
+<span class="lineNum">     109 </span>            :   // -----------------------------------------------------
+<span class="lineNum">     110 </span>            :   // Extrapolation of the cross sections from $p-p$ to \mbox{Pb--Pb}
+<span class="lineNum">     111 </span>            :   // interactions
+<span class="lineNum">     112 </span>            :   // is done by means of the Glauber model. For the impact parameter dependence
+<span class="lineNum">     113 </span>            :   // of the shadowing factor we use a simple formula:
+<span class="lineNum">     114 </span>            :   // $C_{sh}(b) = C_{sh}(0) + (1 - C_{sh}(0))(b/16~fm)4$,
+<span class="lineNum">     115 </span>            :   // motivated by the theoretical predictions (see e.g.
+<span class="lineNum">     116 </span>            :   // V. Emelyanov et al., Phys. Rev. C61, 044904 (2000)) and HIJING
+<span class="lineNum">     117 </span>            :   // simulations showing an almost flat behaviour
+<span class="lineNum">     118 </span>            :   // up to 10~$fm$ and a rapid increase to 1 for larger impact parameters.
+<span class="lineNum">     119 </span>            :   // C_{sh}(0)  = 0.60 for Psi and 0.76 for Upsilon (Smba communication). 
+<span class="lineNum">     120 </span>            :   // for open charm and beauty is 0.65 and 0.84
+<span class="lineNum">     121 </span>            :   // ----------------------------------------------------- 
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   Double_t charmshadowing       = 0.65 + (1.0-0.65)*TMath::Power(fAverageImpactParameter/16.,4);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   Double_t beautyshadowing      = 0.84 + (1.0-0.84)*TMath::Power(fAverageImpactParameter/16.,4);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   Double_t charmoniumshadowing  = 0.60 + (1.0-0.60)*TMath::Power(fAverageImpactParameter/16.,4);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   Double_t beautoniumshadowing  = 0.76 + (1.0-0.76)*TMath::Power(fAverageImpactParameter/16.,4);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   if (fAverageImpactParameter&gt;16.) {</span>
+<span class="lineNum">     127 </span>            :     charmoniumshadowing = 1.0;
+<span class="lineNum">     128 </span>            :     beautoniumshadowing = 1.0;
+<span class="lineNum">     129 </span>            :     charmshadowing = 1.0;
+<span class="lineNum">     130 </span>            :     beautyshadowing= 1.0;
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Shadowing for charmonium and beautonium production are %4.2f and %4.2f respectively&quot;,charmoniumshadowing,beautoniumshadowing));</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Shadowing for charm and beauty production are %4.2f and %4.2f respectively&quot;,charmshadowing,beautyshadowing));</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :   // Defining MUON physics cocktail
+<span class="lineNum">     136 </span>            :   // Kinematical limits for particle generation
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   Double_t ptMin  = fPtMin;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   Double_t ptMax  = fPtMax;</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   Double_t yMin   = fYMin;;</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   Double_t yMax   = fYMax;;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   Double_t phiMin = fPhiMin*180./TMath::Pi();</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   Double_t phiMax = fPhiMax*180./TMath::Pi();</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Ranges pT:%4.1f : %4.1f GeV/c, y:%4.2f : %4.2f, Phi:%5.1f : %5.1f degres&quot;,ptMin,ptMax,yMin,yMax,phiMin,phiMax));</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :   // Generating J/Psi Physics 
+<span class="lineNum">     146 </span>            :   // Using CFD scaled distribution (see http://clrwww.in2p3.fr/DIMUON2004/talks/sgrigoryan.pdf )
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   AliGenParam * genjpsi = new AliGenParam(1, AliGenMUONlib::kJpsi, &quot;CDF scaled&quot;, &quot;Jpsi&quot;);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetPtRange(0,100.); // 4pi generation</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetForceDecay(kDiMuon);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     153 </span>            :   // Calculation of the particle multiplicity per event in the muonic channel
+<span class="lineNum">     154 </span>            :   Double_t ratiojpsi; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   Double_t sigmajpsi  = 31.0e-6 * charmoniumshadowing;   //   section &quot;6.7 Quarkonia Production&quot; table 6.5 for pp  times shadowing</span>
+<span class="lineNum">     156 </span>            :   Double_t brjpsi     = 0.0588;              // Branching Ratio for JPsi PDG PRC15 (200)
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   genjpsi-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   ratiojpsi = sigmajpsi * brjpsi * fNumberOfCollisions / sigmaReaction * genjpsi-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Jpsi production cross-section in pp with shadowing %5.3g barns&quot;,sigmajpsi));</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Jpsi production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratiojpsi));</span>
+<span class="lineNum">     161 </span>            :   // Generation in the kinematical limits of AliGenMUONCocktail
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   genjpsi-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :   genjpsi-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     166 </span>            :   // Adding Generator 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   AddGenerator(genjpsi, &quot;Jpsi&quot;, ratiojpsi);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   fTotalRate+=ratiojpsi;</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :  // Generating Psi prime Physics
+<span class="lineNum">     171 </span>            :  // Using CFD scaled distribution (see http://clrwww.in2p3.fr/DIMUON2004/talks/sgrigoryan.pdf )
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   AliGenParam * genpsiP = new AliGenParam(1, AliGenMUONlib::kPsiP, &quot;CDF scaled&quot;, &quot;PsiP&quot;);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetPtRange(0,100.);// 4pi generation</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetForceDecay(kDiMuon);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     178 </span>            :   // Calculation of the paritcle multiplicity per event in the muonic channel
+<span class="lineNum">     179 </span>            :   Double_t ratiopsiP; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   Double_t sigmapsiP     = 4.68e-6 * charmoniumshadowing;   //   section &quot;6.7 Quarkonia Production&quot; table 6.5 for pp  times shadowing</span>
+<span class="lineNum">     181 </span>            :   Double_t brpsiP        = 0.0103;           // Branching Ratio for PsiP
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   genpsiP-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   ratiopsiP = sigmapsiP * brpsiP * fNumberOfCollisions / sigmaReaction * genpsiP-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Psi prime production cross-section in pp with shadowing %5.3g barns&quot;,sigmapsiP));</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Psi prime production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratiopsiP));</span>
+<span class="lineNum">     186 </span>            :   // Generation in the kinematical limits of AliGenMUONCocktail
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   genpsiP-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   genpsiP-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     191 </span>            :   // Adding Generator 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   AddGenerator(genpsiP, &quot;PsiP&quot;, ratiopsiP);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   fTotalRate+=ratiopsiP;</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :   // Generating Upsilon Physics
+<span class="lineNum">     196 </span>            :   // Using CFD scaled distribution (see http://clrwww.in2p3.fr/DIMUON2004/talks/sgrigoryan.pdf )
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   AliGenParam * genupsilon = new AliGenParam(1, AliGenMUONlib::kUpsilon, &quot;CDF scaled&quot;, &quot;Upsilon&quot;);  </span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetForceDecay(kDiMuon);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     203 </span>            :   Double_t ratioupsilon; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   Double_t sigmaupsilon     = 0.501e-6 * beautoniumshadowing;   //  section &quot;6.7 Quarkonia Production&quot; table 6.5 for pp  times shadowing</span>
+<span class="lineNum">     205 </span>            :   Double_t brupsilon        = 0.0248;  // Branching Ratio for Upsilon
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   genupsilon-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   ratioupsilon = sigmaupsilon * brupsilon * fNumberOfCollisions / sigmaReaction * genupsilon-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Upsilon 1S production cross-section in pp with shadowing %5.3g barns&quot;,sigmaupsilon));</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Upsilon 1S production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratioupsilon));</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   genupsilon-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   genupsilon-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   AddGenerator(genupsilon,&quot;Upsilon&quot;, ratioupsilon);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   fTotalRate+=ratioupsilon;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :   // Generating UpsilonP Physics
+<span class="lineNum">     218 </span>            :   // Using CFD scaled distribution (see http://clrwww.in2p3.fr/DIMUON2004/talks/sgrigoryan.pdf )
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   AliGenParam * genupsilonP = new AliGenParam(1, AliGenMUONlib::kUpsilonP, &quot;CDF Scaled&quot;, &quot;UpsilonP&quot;);  </span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetForceDecay(kDiMuon);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     225 </span>            :   Double_t ratioupsilonP; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   Double_t sigmaupsilonP     = 0.246e-6 * beautoniumshadowing;   //  section &quot;6.7 Quarkonia Production&quot; table 6.5 for pp  times shadowing</span>
+<span class="lineNum">     227 </span>            :   Double_t brupsilonP        = 0.0131;  // Branching Ratio for UpsilonP
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   ratioupsilonP = sigmaupsilonP * brupsilonP * fNumberOfCollisions / sigmaReaction * genupsilonP-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Upsilon 2S production cross-section in pp with shadowing %5.3g barns&quot;,sigmaupsilonP));</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Upsilon 2S production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratioupsilonP));</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   genupsilonP-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   AddGenerator(genupsilonP,&quot;UpsilonP&quot;, ratioupsilonP);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   fTotalRate+=ratioupsilonP;</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :   // Generating UpsilonPP Physics
+<span class="lineNum">     240 </span>            :   // Using CFD scaled distribution (see http://clrwww.in2p3.fr/DIMUON2004/talks/sgrigoryan.pdf )
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   AliGenParam * genupsilonPP = new AliGenParam(1, AliGenMUONlib::kUpsilonPP, &quot;CDF Scaled&quot;, &quot;UpsilonPP&quot;);  </span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetForceDecay(kDiMuon);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     247 </span>            :   Double_t ratioupsilonPP; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   Double_t sigmaupsilonPP     = 0.100e-6 * beautoniumshadowing;  //  section &quot;6.7 Quarkonia Production&quot; table 6.5 for pp  times shadowing</span>
+<span class="lineNum">     249 </span>            :   Double_t brupsilonPP        = 0.0181;  // Branching Ratio for UpsilonPP
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   ratioupsilonPP = sigmaupsilonPP * brupsilonPP * fNumberOfCollisions / sigmaReaction * genupsilonPP-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Upsilon 3S production cross-section in pp with shadowing %5.3g barns&quot;,sigmaupsilonPP));</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Upsilon 3S production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratioupsilonPP));</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   genupsilonPP-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   AddGenerator(genupsilonPP,&quot;UpsilonPP&quot;, ratioupsilonPP);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   fTotalRate+=ratioupsilonPP;</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : // Generating non-correlated Charm Physics 
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   AliGenParam * gencharm = new AliGenParam(1, AliGenMUONlib::kCharm, &quot;pp&quot;, &quot;Charm&quot;);  </span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetForceDecay(kSemiMuonic);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     268 </span>            :   Double_t ratiocharm; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   Double_t sigmacharm     = 2. * 6.64e-3 * charmshadowing ;   // </span>
+<span class="lineNum">     270 </span>            :   Double_t brcharm        = 0.12;  // Branching Ratio for Charm
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   gencharm-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   ratiocharm = sigmacharm * brcharm * fNumberOfCollisions / sigmaReaction * gencharm-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Charm production cross-section in pp with shadowing %5.3g barns&quot;,sigmacharm));</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Charm production probability per collisions in acceptance via the semi-muonic channel %5.3g&quot;,ratiocharm));</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   gencharm-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   gencharm-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   AddGenerator(gencharm,&quot;Charm&quot;, ratiocharm);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   fTotalRate+=ratiocharm;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            : // Generating non-correlated Beauty Physics 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   AliGenParam * genbeauty = new AliGenParam(1, AliGenMUONlib::kBeauty, &quot;pp&quot;, &quot;Beauty&quot;);  </span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetForceDecay(kSemiMuonic);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     289 </span>            :   Double_t ratiobeauty; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   Double_t sigmabeauty     = 2. * 0.210e-3 * beautyshadowing;   // </span>
+<span class="lineNum">     291 </span>            :   Double_t brbeauty        = 0.15;  // Branching Ratio for Beauty
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   genbeauty-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   ratiobeauty = sigmabeauty * brbeauty * fNumberOfCollisions / sigmaReaction * </span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     genbeauty-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Beauty production cross-section in pp with shadowing %5.3g barns&quot;,sigmabeauty));</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Beauty production probability per collisions in acceptance via the semi-muonic channel %5.3g&quot;,ratiobeauty));</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :   genbeauty-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   genbeauty-&gt;Init(); // Generating pT and Y parametrisation in the desired kinematic range</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :   AddGenerator(genbeauty,&quot;Beauty&quot;, ratiobeauty);</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   fTotalRate+=ratiobeauty;</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            :   // Only if hadronic muons are included in the cocktail
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   if(fHadronicMuons) { </span>
+<span class="lineNum">     306 </span>            :     // Generating Pion Physics
+<span class="lineNum">     307 </span>            :     // The scaling with Npart and Ncoll has been obtained to reproduced tha values presented by Valeri lors de presentatation 
+<span class="lineNum">     308 </span>            :     // a Clermont Ferrand http://pcrochet.home.cern.ch/pcrochet/files/valerie.pdf
+<span class="lineNum">     309 </span>            :     //  b range(fm)   Ncoll Npart N_mu pT&gt;0.4 GeV/c
+<span class="lineNum">     310 </span>            :     //    0 -  3      1982   381    3.62
+<span class="lineNum">     311 </span>            :     //    3 -  6      1388   297    3.07
+<span class="lineNum">     312 </span>            :     //    6 -  9       674   177    1.76
+<span class="lineNum">     313 </span>            :     //    9 - 12       188    71    0.655
+<span class="lineNum">     314 </span>            :     //   12 - 16        15    10    0.086
+<span class="lineNum">     315 </span>            :     // We found the hadronic muons scales quite well with the number of participants  
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     AliGenParam * genpion = new AliGenParam(1, AliGenMUONlib::kPion, &quot;default&quot;, &quot;Pion&quot;);  </span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     genpion-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     genpion-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     genpion-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     genpion-&gt;SetForceDecay(kPiToMu);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     genpion-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     322 </span>            :     Double_t ratiopion; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     323 </span>            :     Double_t sigmapion     = 1.80e-2; // Just for reproducing Valeries's data
+<span class="lineNum">     324 </span>            :     Double_t brpion        = 0.9999;  // Branching Ratio for Pion 
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     genpion-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     ratiopion = sigmapion * brpion * (0.93*fNumberOfParticipants+0.07*fNumberOfCollisions) / sigmaReaction * genpion-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Pseudo-Pion production cross-section in pp with shadowing %5.3g barns&quot;,sigmapion));</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Pion production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratiopion));</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     genpion-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     genpion-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     genpion-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     genpion-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     AddGenerator(genpion,&quot;Pion&quot;, ratiopion);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     fTotalRate+=ratiopion;</span>
+<span class="lineNum">     335 </span>            :     
+<span class="lineNum">     336 </span>            :     // Generating Kaon Physics
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     AliGenParam * genkaon = new AliGenParam(1, AliGenMUONlib::kKaon, &quot;default&quot;, &quot;Kaon&quot;);  </span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetPtRange(0,100.);  </span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetYRange(-8.,8);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetPhiRange(0.,360.);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetForceDecay(kKaToMu);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetTrackingFlag(1);</span>
+<span class="lineNum">     343 </span>            :     Double_t ratiokaon; // Ratio with respect to the reaction cross-section for the muonic channel in the kinematics limit of the MUONCocktail
+<span class="lineNum">     344 </span>            :     Double_t sigmakaon     = 2.40e-4;   // Valerie presentation Clermont-16-jan-2004 and Alice-int-2002-06 
+<span class="lineNum">     345 </span>            :     Double_t brkaon        = 0.6351 ;  // Branching Ratio for Kaon 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     genkaon-&gt;Init();  // Generating pT and Y parametrsation for the 4pi</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     ratiokaon = sigmakaon * brkaon * (0.93*fNumberOfParticipants+0.07*fNumberOfCollisions)/ sigmaReaction * genkaon-&gt;GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Pseudo-kaon production cross-section in pp with shadowing %5.3g barns&quot;,sigmakaon));</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;Kaon production probability per collisions in acceptance via the muonic channel %5.3g&quot;,ratiokaon));</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetPtRange(ptMin, ptMax);  </span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetYRange(yMin, yMax);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     genkaon-&gt;SetPhiRange(phiMin, phiMax);</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     genkaon-&gt;Init(); // Generating pT and Y parametrsation in the desired kinematic range</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     AddGenerator(genkaon,&quot;Kaon&quot;, ratiokaon);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     fTotalRate+=ratiokaon;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 : }</span>
+<a name="358"><span class="lineNum">     358 </span>            : </a>
+<span class="lineNum">     359 </span>            : //_________________________________________________________________________
+<span class="lineNum">     360 </span>            : void AliGenMUONCocktail::Generate()
+<span class="lineNum">     361 </span>            : {
+<span class="lineNum">     362 </span>            :   //
+<span class="lineNum">     363 </span>            : // Generate event 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     TIter next(fEntries);</span>
+<span class="lineNum">     365 </span>            :     AliGenCocktailEntry *entry = 0;
+<span class="lineNum">     366 </span>            :     AliGenerator* gen = 0;
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     const TObjArray *partArray = gAlice-&gt;GetMCApp()-&gt;Particles();</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            : //  Generate the vertex position used by all generators    
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     if(fVertexSmear == kPerEvent) Vertex();</span>
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :     // Loop on primordialTrigger
+<span class="lineNum">     373 </span>            :     Bool_t primordialTrigger = kFALSE;
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     while(!primordialTrigger) {</span>
+<span class="lineNum">     375 </span>            :                 //Reseting stack
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                 AliRunLoader * runloader = AliRunLoader::Instance();</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 if (runloader)</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                         if (runloader-&gt;Stack())</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :                                 runloader-&gt;Stack()-&gt;Clean();</span>
+<span class="lineNum">     380 </span>            :                 // Loop over generators and generate events
+<span class="lineNum">     381 </span>            :                 Int_t igen=0;
+<span class="lineNum">     382 </span>            :                 Int_t npart =0;
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 while((entry = (AliGenCocktailEntry*)next())) {</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                         gen = entry-&gt;Generator();</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                         gen-&gt;SetVertex(fVertex.At(0), fVertex.At(1), fVertex.At(2));</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                         gen-&gt;SetTime(fTime);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :                         if ( (npart = gRandom-&gt;Poisson(entry-&gt;Rate())) &gt;0 ) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :                                 igen++; </span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :                                 if (igen == 1) entry-&gt;SetFirst(0);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :                                 else  entry-&gt;SetFirst((partArray-&gt;GetEntriesFast())+1);</span>
+<span class="lineNum">     391 </span>            :                                 // if ( (fHadronicMuons == kFALSE) &amp;&amp; ( (gen-&gt;GetName() == &quot;Pions&quot;) || (gen-&gt;GetName() == &quot;Kaons&quot;) ) )
+<span class="lineNum">     392 </span>            :                                 //  { AliInfo(Form(&quot;This generator %s is finally not generated. This is option for hadronic muons.&quot;,gen-&gt;GetName() ) ); }
+<span class="lineNum">     393 </span>            :                                 // else {
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :                                 gen-&gt;SetNumberParticles(npart);</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                                 gen-&gt;Generate();</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                                 entry-&gt;SetLast(partArray-&gt;GetEntriesFast());</span>
+<span class="lineNum">     397 </span>            :                           // }
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                         }</span>
+<span class="lineNum">     399 </span>            :                 }  
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                 next.Reset();</span>
+<span class="lineNum">     401 </span>            :                 // Testing primordial trigger : Muon  pair in the MUON spectrometer acceptance and pTCut
+<span class="lineNum">     402 </span>            :                 Int_t iPart;
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 fNGenerated++;</span>
+<span class="lineNum">     404 </span>            :                 Int_t numberOfMuons=0;
+<span class="lineNum">     405 </span>            :                 //      printf(&quot;&gt;&gt;&gt;fNGenerated is %d\n&quot;,fNGenerated);
+<span class="lineNum">     406 </span>            :                 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 TObjArray GoodMuons; // Used in the Invariant Mass selection cut</span>
+<span class="lineNum">     408 </span>            :                 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 for(iPart=0; iPart&lt;partArray-&gt;GetEntriesFast(); iPart++){      </span>
+<span class="lineNum">     410 </span>            :                         
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                         if ( (TMath::Abs(gAlice-&gt;GetMCApp()-&gt;Particle(iPart)-&gt;GetPdgCode())==13)  &amp;&amp;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                         (gAlice-&gt;GetMCApp()-&gt;Particle(iPart)-&gt;Theta()*180./TMath::Pi()&gt;fMuonThetaMinCut) &amp;&amp;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                         (gAlice-&gt;GetMCApp()-&gt;Particle(iPart)-&gt;Theta()*180./TMath::Pi()&lt;fMuonThetaMaxCut) &amp;&amp;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                         (gAlice-&gt;GetMCApp()-&gt;Particle(iPart)-&gt;Pt()&gt;fMuonPtCut)                             ) { </span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                                         gAlice-&gt;GetMCApp()-&gt;Particle(iPart)-&gt;SetProductionVertex(fVertex.At(0), fVertex.At(1), fVertex.At(2), fTime);   </span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :                                         GoodMuons.AddLast(gAlice-&gt;GetMCApp()-&gt;Particle(iPart));</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :                                         numberOfMuons++;</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :                         }                       </span>
+<span class="lineNum">     419 </span>            :                 }
+<span class="lineNum">     420 </span>            :                 
+<span class="lineNum">     421 </span>            :                 // Test the invariant mass of each pair (if cut on Invariant mass is required)
+<span class="lineNum">     422 </span>            :                 Bool_t InvMassRangeOK = kTRUE;
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                 if(fInvMassCut &amp;&amp; (numberOfMuons&gt;=2) ){</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :                         TLorentzVector fV1, fV2, fVtot;</span>
+<span class="lineNum">     425 </span>            :                         InvMassRangeOK = kFALSE;
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                         for(iPart=0; iPart&lt;GoodMuons.GetEntriesFast(); iPart++){      </span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                         TParticle * mu1 = ((TParticle *)GoodMuons.At(iPart));</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                                 for(int iPart2=iPart+1; iPart2&lt;GoodMuons.GetEntriesFast(); iPart2++){      </span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                                         TParticle * mu2 = ((TParticle *)GoodMuons.At(iPart2));</span>
+<span class="lineNum">     431 </span>            :                                                 
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                                                 fV1.SetPxPyPzE(mu1-&gt;Px() ,mu1-&gt;Py() ,mu1-&gt;Pz() ,mu1-&gt;Energy() );</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                                                 fV2.SetPxPyPzE(mu2-&gt;Px() ,mu2-&gt;Py() ,mu2-&gt;Pz() ,mu2-&gt;Energy() );</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :                                                 fVtot = fV1 + fV2;</span>
+<span class="lineNum">     435 </span>            :                                                 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                                                 if(fVtot.M()&gt;fInvMassMinCut &amp;&amp; fVtot.M()&lt;fInvMassMaxCut) {</span>
+<span class="lineNum">     437 </span>            :                                                         InvMassRangeOK = kTRUE;
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                                                         break;</span>
+<span class="lineNum">     439 </span>            :                                                 }
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                                 }</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                                 if(InvMassRangeOK) break; // Invariant Mass Cut pass as soon as one pair satisfy the criterion</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                         }       </span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     444 </span>            :                 
+<span class="lineNum">     445 </span>            :                 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                 if ((numberOfMuons &gt;= fMuonMultiplicity) &amp;&amp;  InvMassRangeOK ) primordialTrigger = kTRUE;</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     fNSucceded++;</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     AliDebug(5,Form(&quot;Generated Events are %d and Succeeded Events are %d&quot;,fNGenerated,fNSucceded));</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

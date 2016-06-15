@@ -1,0 +1,667 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/rec/AliRawReaderHLT.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">HLT/rec</a> - AliRawReaderHLT.cxx<span style="font-size: 80%;"> (source / <a href="AliRawReaderHLT.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">275</td>
+            <td class="headerCovTableEntryLo">0.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">41</td>
+            <td class="headerCovTableEntryLo">2.4 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : /**************************************************************************
+<span class="lineNum">       4 </span>            :  * This file is property of and copyright by the ALICE HLT Project        * 
+<span class="lineNum">       5 </span>            :  * ALICE Experiment at CERN, All rights reserved.                         *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Primary Authors: Matthias Richter &lt;Matthias.Richter@ift.uib.no&gt;        *
+<span class="lineNum">       8 </span>            :  *                  for The ALICE HLT Project.                            *
+<span class="lineNum">       9 </span>            :  *                                                                        *
+<span class="lineNum">      10 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">      11 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">      12 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      13 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      14 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      15 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      16 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      17 </span>            :  **************************************************************************/
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : /// @file   AliRawReaderHLT.cxx
+<span class="lineNum">      20 </span>            : /// @author Matthias Richter
+<span class="lineNum">      21 </span>            : /// @date   
+<span class="lineNum">      22 </span>            : /// @brief  AliRawReader implementation which replaces original input of
+<span class="lineNum">      23 </span>            : ///         detectors with the appropriate HLT output.
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;AliRawReaderHLT.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliHLTOUTRawReader.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliHLTModuleAgent.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliHLTOUTHandler.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliHLTOUTHandlerEquId.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliHLTSystem.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliHLTPluginBase.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliHLTCDHWrapper.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliDAQ.h&quot;            // RAW, for detector names and equipment ids
+<span class="lineNum">      35 </span>            : #include &quot;TObjString.h&quot;
+<span class="lineNum">      36 </span>            : #include &lt;cassert&gt;
+<a name="37"><span class="lineNum">      37 </span>            : </a>
+<span class="lineNum">      38 </span>            : /** ROOT macro for the implementation of ROOT specific class methods */
+<a name="39"><span class="lineNum">      39 </span><span class="lineCov">          6 : ClassImp(AliRawReaderHLT)</span></a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : AliRawReaderHLT::AliRawReaderHLT(AliRawReader* pRawreader, const char* options)
+<span class="lineNum">      42 </span>            :   :
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :   AliRawReader(),</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   fpParentReader(pRawreader),</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   fOptions(),</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :   fSystemOptions(),</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :   fpData(NULL),</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :   fDataSize(0),</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :   fOffset(0),</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   fPosition(0),</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :   fEquipmentId(-1),</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   fbHaveHLTData(false),</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   fDetectors(),</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   fpHLTOUT(NULL),</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   fbReadFirst(true),</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   fpDataHandler(NULL),</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   fpPluginBase(new AliHLTPluginBase)</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      59 </span>            :   // see header file for class documentation
+<span class="lineNum">      60 </span>            :   // or
+<span class="lineNum">      61 </span>            :   // refer to README to build package
+<span class="lineNum">      62 </span>            :   // or
+<span class="lineNum">      63 </span>            :   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   fOptions=options;</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   ScanOptions(options);</span>
+<a name="66"><span class="lineNum">      66 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : AliRawReaderHLT::~AliRawReaderHLT()
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      70 </span>            :   // see header file for class documentation
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :   ReleaseHLTData();</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :   if (fpPluginBase) delete fpPluginBase;</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :   fpPluginBase=NULL;</span>
+<a name="74"><span class="lineNum">      74 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : UInt_t AliRawReaderHLT::GetType() const
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :   // see header file for class documentation
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetType();</span>
+<a name="80"><span class="lineNum">      80 </span>            : }</a>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : UInt_t AliRawReaderHLT::GetRunNumber() const
+<span class="lineNum">      83 </span>            : {
+<span class="lineNum">      84 </span>            :   // see header file for class documentation
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetRunNumber();</span>
+<a name="86"><span class="lineNum">      86 </span>            : }</a>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : const UInt_t* AliRawReaderHLT::GetEventId() const
+<span class="lineNum">      89 </span>            : {
+<span class="lineNum">      90 </span>            :   // see header file for class documentation
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetEventId();</span>
+<a name="92"><span class="lineNum">      92 </span>            : }</a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : const UInt_t* AliRawReaderHLT::GetTriggerPattern() const
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span>            :   // see header file for class documentation
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetTriggerPattern();</span>
+<a name="98"><span class="lineNum">      98 </span>            : }</a>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : const UInt_t* AliRawReaderHLT::GetDetectorPattern() const
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span>            :   // see header file for class documentation
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetDetectorPattern();</span>
+<a name="104"><span class="lineNum">     104 </span>            : }</a>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : const UInt_t* AliRawReaderHLT::GetAttributes() const
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span>            :   // see header file for class documentation
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetAttributes();</span>
+<a name="110"><span class="lineNum">     110 </span>            : }</a>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : const UInt_t* AliRawReaderHLT::GetSubEventAttributes() const
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            :   // see header file for class documentation
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetSubEventAttributes();</span>
+<a name="116"><span class="lineNum">     116 </span>            : }</a>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : UInt_t AliRawReaderHLT::GetLDCId() const
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span>            :   // see header file for class documentation
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetLDCId();</span>
+<a name="122"><span class="lineNum">     122 </span>            : }</a>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : UInt_t AliRawReaderHLT::GetGDCId() const
+<span class="lineNum">     125 </span>            : {
+<span class="lineNum">     126 </span>            :   // see header file for class documentation
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetGDCId();</span>
+<a name="128"><span class="lineNum">     128 </span>            : }</a>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : UInt_t AliRawReaderHLT::GetTimestamp() const
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span>            :   // see header file for class documentation
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetTimestamp();</span>
+<a name="134"><span class="lineNum">     134 </span>            : }</a>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : const UInt_t* AliRawReaderHLT::GetEquipmentAttributes() const
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :   // see header file for class documentation
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetEquipmentAttributes();</span>
+<a name="140"><span class="lineNum">     140 </span>            : }</a>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            : Int_t    AliRawReaderHLT::GetEquipmentElementSize() const
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :   // don't know what it really means, bu the AliRawReaderFile
+<span class="lineNum">     145 </span>            :   // just sets it to 0
+<span class="lineNum">     146 </span>            :   // do the same if we have a valid equipment data set from
+<span class="lineNum">     147 </span>            :   // the HLT stream
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   if (fEquipmentId&gt;=0) return 0;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetEquipmentElementSize();</span>
+<a name="150"><span class="lineNum">     150 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            : Int_t    AliRawReaderHLT::GetEquipmentHeaderSize() const
+<span class="lineNum">     153 </span>            : {
+<span class="lineNum">     154 </span>            :   // equipment header means the additional data header?
+<span class="lineNum">     155 </span>            :   // if we have a valid equipment data set from the HLT stream
+<span class="lineNum">     156 </span>            :   // there is no additional header
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :   if (fEquipmentId&gt;=0) return 0;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetEquipmentHeaderSize();</span>
+<a name="159"><span class="lineNum">     159 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : Int_t    AliRawReaderHLT::GetEquipmentSize() const
+<span class="lineNum">     162 </span>            : {
+<span class="lineNum">     163 </span>            :   // return the equipment size, that's including the CDH
+<span class="lineNum">     164 </span>            :   // fDataSize has been set to the full size of the block if it is from HLTOUT
+<span class="lineNum">     165 </span>            :   // if the data block is from the parent rawreader it is only the pointer
+<span class="lineNum">     166 </span>            :   // to the payload and the size of the CDH must be added
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   if (fEquipmentId&gt;=0) return fDataSize + (fbHaveHLTData?0:GetEquipmentHeaderSize());</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetEquipmentSize();</span>
+<a name="169"><span class="lineNum">     169 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : Int_t    AliRawReaderHLT::GetEquipmentType() const
+<span class="lineNum">     172 </span>            : {
+<span class="lineNum">     173 </span>            :   // see header file for class documentation
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;GetEquipmentType();</span>
+<a name="175"><span class="lineNum">     175 </span>            : }</a>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : Int_t    AliRawReaderHLT::GetEquipmentId() const
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span>            :   // id of current equipment
+<span class="lineNum">     180 </span>            :   Int_t id=-1;
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   if (fEquipmentId&gt;=0) id=fEquipmentId;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   else id=fpParentReader-&gt;GetEquipmentId();</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   return id;</span>
+<a name="184"><span class="lineNum">     184 </span>            : }</a>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : Bool_t   AliRawReaderHLT::ReadHeader()
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span>            :   // read the header of the next equipment
+<span class="lineNum">     189 </span>            :   // depending on whether there is data redirected from HLT for the current event
+<span class="lineNum">     190 </span>            :   // first the data in the HLTOUT is tried
+<span class="lineNum">     191 </span>            :   Bool_t result=kFALSE;
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   Bool_t firstParentCycle=fbHaveHLTData;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   while ((fbHaveHLTData=(fbHaveHLTData &amp;&amp; ReadNextHLTData()))) {</span>
+<span class="lineNum">     194 </span>            :     // all internal data variables set
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     assert(fpData!=NULL);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     AliHLTCDHWrapper cdh((void*)fpData);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     if(cdh.GetVersion()==2){</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :       fHeader=reinterpret_cast&lt;AliRawDataHeader*&gt;(const_cast&lt;AliHLTUInt8_t*&gt;(fpData));</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :       fHeaderV3=NULL;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :       fHeader=NULL;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :       fHeaderV3=reinterpret_cast&lt;AliRawDataHeaderV3*&gt;(const_cast&lt;AliHLTUInt8_t*&gt;(fpData));</span>
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     fOffset=cdh.GetHeaderSize();</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     fPosition=fOffset;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     if ((result=IsSelected())) break;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :   firstParentCycle&amp;=!fbHaveHLTData; // true if it just changed from true to false</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   while (!result) {</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     if (firstParentCycle) {</span>
+<span class="lineNum">     211 </span>            :       firstParentCycle=kFALSE;
+<span class="lineNum">     212 </span>            :       // reset and set the selection back to the original one
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :       fpParentReader-&gt;Reset();</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       fpParentReader-&gt;SelectEquipment(fSelectEquipmentType, fSelectMinEquipmentId, fSelectMaxEquipmentId);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     if (!(result=fpParentReader-&gt;ReadHeader())) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :       fHeader=NULL;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :       fHeaderV3=NULL;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     fHeader=const_cast&lt;AliRawDataHeader*&gt;(fpParentReader-&gt;GetDataHeader());</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     fHeaderV3=const_cast&lt;AliRawDataHeaderV3*&gt;(fpParentReader-&gt;GetDataHeaderV3());</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     fDataSize=fpParentReader-&gt;GetDataSize();</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     fPosition=0;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     fpData=NULL;</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            :     // filter out all equipment ids which should be taken from the HLT stream
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     int id=fpParentReader-&gt;GetEquipmentId();</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     if ((result=!IsHLTInput(id))) break;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   return result;</span>
+<a name="233"><span class="lineNum">     233 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            : Bool_t   AliRawReaderHLT::ReadNextData(UChar_t*&amp; data)
+<span class="lineNum">     236 </span>            : {
+<span class="lineNum">     237 </span>            :   // read data from equipment, return pointer to data, GetDataSize
+<span class="lineNum">     238 </span>            :   // provides the data size
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :   return ReadNextData(data, kTRUE);</span>
+<a name="240"><span class="lineNum">     240 </span>            : }</a>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : Bool_t   AliRawReaderHLT::ReadNextData(UChar_t*&amp; data, Bool_t readHeader)
+<span class="lineNum">     243 </span>            : {
+<span class="lineNum">     244 </span>            :   // this function is the backbone of the ReadNext functions, it gets the
+<span class="lineNum">     245 </span>            :   // whole data block either from the HLT stream or the parent raw reader.
+<span class="lineNum">     246 </span>            :   // Each call of ReadNextData directly jumps to the next data set.
+<span class="lineNum">     247 </span>            :   Bool_t result=kTRUE;
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :   // read new header if data already read
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   if (fPosition&lt;fDataSize || (result=(readHeader &amp;&amp; ReadHeader()))) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     if (fbHaveHLTData &amp;&amp; fpHLTOUT!=NULL) {</span>
+<span class="lineNum">     252 </span>            :       // all internal data variables set
+<span class="lineNum">     253 </span>            :       result=kTRUE;
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       AliHLTCDHWrapper cdh((void*) fpData);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :       data=const_cast&lt;AliHLTUInt8_t*&gt;(fpData+cdh.GetHeaderSize());</span>
+<span class="lineNum">     256 </span>            :       // fpData includes the CDH, set offset behind CDH
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       fOffset=cdh.GetHeaderSize();</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     259 </span>            :       // no data in the HLT stream, read real data
+<span class="lineNum">     260 </span>            :       //AliInfo(Form(&quot;read from parent reader: min=%d max=%d&quot;, fSelectMinEquipmentId, fSelectMaxEquipmentId));
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            :       // read data
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :       result=fpParentReader-&gt;ReadNextData(data);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       if (result) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         fpData=data;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         fDataSize=fpParentReader-&gt;GetDataSize();</span>
+<span class="lineNum">     267 </span>            :         // fpData is without CDH
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         fOffset=0;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         fpData=NULL;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         fDataSize=0;</span>
+<span class="lineNum">     272 </span>            :       }
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :       fEquipmentId=-1;</span>
+<span class="lineNum">     275 </span>            :     }
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     fPosition=fDataSize;</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   return result;</span>
+<a name="279"><span class="lineNum">     279 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            : Bool_t   AliRawReaderHLT::ReadNextInt(UInt_t&amp; data)
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span>            :   // see header file for class documentation
+<span class="lineNum">     284 </span>            :   int iCopy=sizeof(UInt_t);
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   UChar_t* dummy=NULL;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     if (fpData &amp;&amp; (fDataSize-fOffset)&gt;=iCopy) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :       data=*reinterpret_cast&lt;const UInt_t*&gt;(fpData+fOffset);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :       fOffset+=iCopy;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   } while (ReadNextData(dummy, kTRUE));</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="294"><span class="lineNum">     294 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            : Bool_t   AliRawReaderHLT::ReadNextShort(UShort_t&amp; data)
+<span class="lineNum">     297 </span>            : {
+<span class="lineNum">     298 </span>            :   // see header file for class documentation
+<span class="lineNum">     299 </span>            :   int iCopy=sizeof(UShort_t);
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :   UChar_t* dummy=NULL;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     if (fpData &amp;&amp; (fDataSize-fOffset)&gt;=iCopy) {</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :       data=*reinterpret_cast&lt;const UShort_t*&gt;(fpData+fOffset);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       fOffset+=iCopy;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">     306 </span>            :     }
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   } while (ReadNextData(dummy, kTRUE));</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="309"><span class="lineNum">     309 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            : Bool_t   AliRawReaderHLT::ReadNextChar(UChar_t&amp; data)
+<span class="lineNum">     312 </span>            : {
+<span class="lineNum">     313 </span>            :   // see header file for class documentation
+<span class="lineNum">     314 </span>            :   int iCopy=sizeof(UChar_t);
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :   UChar_t* dummy=NULL;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     if (fpData &amp;&amp; (fDataSize-fOffset)&gt;=iCopy) {</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :       data=*reinterpret_cast&lt;const UChar_t*&gt;(fpData+fOffset);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :       fOffset+=iCopy;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">     321 </span>            :     }
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   } while (ReadNextData(dummy, kTRUE));</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="324"><span class="lineNum">     324 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            : Bool_t   AliRawReaderHLT::ReadNext(UChar_t* data, Int_t size)
+<span class="lineNum">     327 </span>            : {
+<span class="lineNum">     328 </span>            :   // see header file for class documentation
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   UChar_t* dummy=NULL;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :   do {</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     if (fpData &amp;&amp; (fDataSize-fOffset)&gt;=size) {</span>
+<span class="lineNum">     332 </span>            :       // copy remaining data
+<span class="lineNum">     333 </span>            :       int iCopy=fDataSize-fOffset;
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :       if (iCopy&gt;size) iCopy=size;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :       memcpy(data, fpData+fOffset, iCopy);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :       fOffset+=iCopy;</span>
+<span class="lineNum">     337 </span>            :       return kTRUE;
+<span class="lineNum">     338 </span>            :     }
+<span class="lineNum">     339 </span>            :     // By convention, the ReadNextData function stays in the
+<span class="lineNum">     340 </span>            :     // current block and does not switch to the next one
+<span class="lineNum">     341 </span>            :     // automatically -&gt; kFALSE
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   } while (ReadNextData(dummy, kFALSE));</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="344"><span class="lineNum">     344 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : Bool_t   AliRawReaderHLT::Reset()
+<span class="lineNum">     347 </span>            : {
+<span class="lineNum">     348 </span>            :   // see header file for class documentation
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   ReleaseHLTData(false/* keep HLTOUT instance */);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   Bool_t result=fpParentReader-&gt;Reset();</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   fEquipmentId=-1;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :   // check if redirection is enabled for at least one detector in the selected range
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :   fbHaveHLTData=EvaluateSelection();</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            :   // start reading HLTOUT data blocks from the beginning
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   fbReadFirst=true;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :   return result;</span>
+<a name="360"><span class="lineNum">     360 </span>            : }</a>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : Bool_t   AliRawReaderHLT::NextEvent()
+<span class="lineNum">     363 </span>            : {
+<span class="lineNum">     364 </span>            :   // see header file for class documentation
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :   ReleaseHLTData();</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :   Bool_t result=fpParentReader-&gt;NextEvent();</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :   if (result) {</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     fEventNumber++;</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     Reset();</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :   return result;</span>
+<a name="374"><span class="lineNum">     374 </span>            : }</a>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            : Bool_t   AliRawReaderHLT::RewindEvents()
+<span class="lineNum">     377 </span>            : {
+<span class="lineNum">     378 </span>            :   // see header file for class documentation
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   fEventNumber=-1;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :   Reset();</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :   return fpParentReader-&gt;RewindEvents();</span>
+<a name="382"><span class="lineNum">     382 </span>            : }</a>
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : void AliRawReaderHLT::Select(Int_t detectorID, Int_t minDDLID, Int_t maxDDLID)
+<span class="lineNum">     385 </span>            : {
+<span class="lineNum">     386 </span>            :   // see header file for class documentation
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   AliRawReader::Select(detectorID, minDDLID, maxDDLID);</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   fpParentReader-&gt;Select(detectorID, minDDLID, maxDDLID);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   fbHaveHLTData=EvaluateSelection();</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            : // most likely we do not need this method since the base class directly forwards
+<span class="lineNum">     393 </span>            : // to this method
+<span class="lineNum">     394 </span>            : // void AliRawReaderHLT::Select(const char *detectorName, Int_t minDDLID, Int_t maxDDLID)
+<span class="lineNum">     395 </span>            : // {
+<span class="lineNum">     396 </span>            : //   AliInfo(Form(&quot;detectorName=%s, minDDLID=%d, maxDDLID=%d&quot;, detectorName, minDDLID, maxDDLID));
+<span class="lineNum">     397 </span>            : //   AliRawReader::Select(detectorName, minDDLID, maxDDLID);
+<span class="lineNum">     398 </span>            : //   fpParentReader-&gt;Select(detectorName, minDDLID, maxDDLID);
+<a name="399"><span class="lineNum">     399 </span>            : // }</a>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            : void AliRawReaderHLT::SelectEquipment(Int_t equipmentType, Int_t minEquipmentId, Int_t maxEquipmentId)
+<span class="lineNum">     402 </span>            : {
+<span class="lineNum">     403 </span>            :   // see header file for class documentation
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span>            :   //AliInfo(Form(&quot;equipmentType=%d, minEquipmentId=%d, maxEquipmentId=%d&quot;, equipmentType, minEquipmentId, maxEquipmentId));
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   AliRawReader::SelectEquipment(equipmentType, minEquipmentId, maxEquipmentId);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   fpParentReader-&gt;SelectEquipment(equipmentType, minEquipmentId, maxEquipmentId);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   fbHaveHLTData=EvaluateSelection();</span>
+<a name="409"><span class="lineNum">     409 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            : void AliRawReaderHLT::SkipInvalid(Bool_t skip)
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span>            :   // see header file for class documentation
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :   AliRawReader::SkipInvalid(skip);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   fpParentReader-&gt;SkipInvalid(skip);</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            : /*
+<span class="lineNum">     420 </span>            : void AliRawReaderHLT::SelectEvents(Int_t type)
+<span class="lineNum">     421 </span>            : {
+<span class="lineNum">     422 </span>            :   // see header file for class documentation
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            :   //AliInfo(Form(&quot;type=%d&quot;, type));
+<span class="lineNum">     425 </span>            :   AliRawReader::SelectEvents(type);
+<span class="lineNum">     426 </span>            :   fpParentReader-&gt;SelectEvents(type);
+<span class="lineNum">     427 </span>            : }
+<a name="428"><span class="lineNum">     428 </span>            : */</a>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            : int AliRawReaderHLT::ScanOptions(const char* options)
+<span class="lineNum">     431 </span>            : {
+<span class="lineNum">     432 </span>            :   // see header file for class documentation
+<span class="lineNum">     433 </span>            :   int iResult=0;
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :   TString optString(options);</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   TString argument;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :   TString parameter;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   TString detectors;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :   TObjArray* pTokens=optString.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   if (pTokens) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     int iEntries=pTokens-&gt;GetEntries();</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     for (int i =0; i&lt;iEntries; i++) {</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       argument=((TObjString*)pTokens-&gt;At(i))-&gt;GetString();</span>
+<span class="lineNum">     443 </span>            :       // first scan all the other options
+<span class="lineNum">     444 </span>            :       // no other options for the moment
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            :       // it must be a detector name
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :       int detId=AliDAQ::DetectorID(argument.Data());</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :       if (detId&gt;=0) {</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :         fDetectors.push_back(detId);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         if (!detectors.IsNull()) detectors+=&quot; &quot;;</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         detectors+=argument;</span>
+<span class="lineNum">     452 </span>            :       } else {
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         if (!fSystemOptions.IsNull()) fSystemOptions+=&quot; &quot;;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         fSystemOptions+=argument;</span>
+<span class="lineNum">     455 </span>            :       }
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     delete pTokens;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   if (iResult&gt;=0 &amp;&amp; !detectors.IsNull()) {</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     AliInfo(Form(&quot;running reconstruction from HLT data: %s&quot;, detectors.Data()));</span>
+<span class="lineNum">     462 </span>            :   }
+<span class="lineNum">     463 </span>            :   return iResult;
+<a name="464"><span class="lineNum">     464 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            : Bool_t   AliRawReaderHLT::ReadNextHLTData()
+<span class="lineNum">     467 </span>            : {
+<span class="lineNum">     468 </span>            :   // see header file for class documentation
+<span class="lineNum">     469 </span>            :   bool result=kTRUE;
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   if (fbReadFirst || !fpHLTOUT) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     if (!fpHLTOUT) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     fpHLTOUT=new AliHLTOUTRawReader(fpParentReader);</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     if ((result=(fpHLTOUT!=NULL))) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :       if (!fpPluginBase) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         AliFatal(&quot;internal data error: can not get AliHLTSystem instance from plugin&quot;);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     477 </span>            :       }
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :       AliHLTSystem* pSystem=fpPluginBase-&gt;GetInstance();</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :       if (pSystem) {</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         pSystem-&gt;ScanOptions(fSystemOptions.Data());</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :       if ((result=(fpHLTOUT-&gt;Init())&gt;=0)) {</span>
+<span class="lineNum">     483 </span>            :       }
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     485 </span>            :     }
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     if (result) {</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :       result=fpHLTOUT-&gt;SelectFirstDataBlock(kAliHLTAnyDataType, kAliHLTVoidDataSpec,</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                                             AliHLTModuleAgent::kRawReader)&gt;=0;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     fbReadFirst=false;</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     492 </span>            :     // first release the data buffer
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     ReleaseHLTData(false /* keep HLTOUT instance */);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     result=fpHLTOUT-&gt;SelectNextDataBlock()&gt;=0;</span>
+<span class="lineNum">     495 </span>            :   }
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   if (result) {</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     AliHLTComponentDataType dt=kAliHLTVoidDataType;</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     AliHLTUInt32_t spec=kAliHLTVoidDataSpec;</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     fpHLTOUT-&gt;GetDataBlockDescription(dt, spec);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     AliHLTUInt32_t size=0;</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     AliHLTOUTHandler* pHandler=fpHLTOUT-&gt;GetHandler();</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     if (pHandler) {</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :       if (dynamic_cast&lt;AliHLTOUTHandlerEquId*&gt;(pHandler)!=NULL) {</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         AliHLTOUT::AliHLTOUTSelectionGuard g(fpHLTOUT);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         fEquipmentId=pHandler-&gt;ProcessData(fpHLTOUT);</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         fpData=NULL;</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         fDataSize=pHandler-&gt;GetProcessedData(fpData);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         if (!fpData) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :           result=fpHLTOUT-&gt;GetDataBuffer(fpData, size)&gt;=0;</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :           fpDataHandler=NULL;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :           AliDebug(AliLog::kDebug, Form(&quot;forward data block from HLTOUT stream to equipment %d&quot;, fEquipmentId));</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :           fDataSize=(int)size;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     514 </span>            :           // remember the current handler in order to properly release the data buffer
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :           fpDataHandler=pHandler;</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :           AliDebug(AliLog::kDebug, Form(&quot;forward decoded data block provided by handler to equipment %d&quot;, fEquipmentId));</span>
+<span class="lineNum">     517 </span>            :         }
+<span class="lineNum">     518 </span>            :         return kTRUE;
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         AliError(Form(&quot;handler is not of type AliHLTOUTHandlerEquId for block %x data type %s spec %#x; data block skipped&quot;,</span>
+<span class="lineNum">     521 </span>            :                       fpHLTOUT-&gt;GetDataBlockIndex(), AliHLTComponent::DataType2Text(dt).c_str(), spec));
+<span class="lineNum">     522 </span>            :       }
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :       AliWarning(Form(&quot;no data handler found for block %x data type %s spec %#x; data block skipped&quot;,</span>
+<span class="lineNum">     525 </span>            :                       fpHLTOUT-&gt;GetDataBlockIndex(), AliHLTComponent::DataType2Text(dt).c_str(), spec));
+<span class="lineNum">     526 </span>            :     }
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   } else {</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     ReleaseHLTData(false /* keep HLTOUT instance */);</span>
+<span class="lineNum">     529 </span>            :   }
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="531"><span class="lineNum">     531 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span>            : Bool_t AliRawReaderHLT::IsHLTInput(int ddlid)
+<span class="lineNum">     534 </span>            : {
+<span class="lineNum">     535 </span>            :   // see header file for class documentation
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   vector&lt;int&gt;::iterator detector=fDetectors.begin();</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   for (; detector!=fDetectors.end(); detector++) {</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     int ddlOffset=AliDAQ::DdlIDOffset(*detector);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     int nofDDLs=AliDAQ::NumberOfDdls(*detector);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     if (ddlid&gt;=ddlOffset &amp;&amp; ddlid&lt;ddlOffset+nofDDLs)</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :       return kTRUE;</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<a name="544"><span class="lineNum">     544 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            : int AliRawReaderHLT::ReleaseHLTData(bool bReleaseHLTOUT)
+<span class="lineNum">     547 </span>            : {
+<span class="lineNum">     548 </span>            :   // see header file for class documentation
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :   if (fpHLTOUT) {</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     if (fpDataHandler) fpDataHandler-&gt;ReleaseProcessedData(fpData, fDataSize);</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     else fpHLTOUT-&gt;ReleaseDataBuffer(fpData);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     fpDataHandler=NULL;</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     if (bReleaseHLTOUT) {</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :       delete fpHLTOUT;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :       fpHLTOUT=NULL;</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     557 </span>            :   }
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :   fpData=NULL;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   fDataSize=0;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   fOffset=0;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :   fPosition=0;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :   fEquipmentId=-1;</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="566"><span class="lineNum">     566 </span>            : }</a>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span>            : Bool_t AliRawReaderHLT::EvaluateSelection()
+<span class="lineNum">     569 </span>            : {
+<span class="lineNum">     570 </span>            :   // see header file for class documentation
+<span class="lineNum">     571 </span>            :   Bool_t bHaveHLTData=kFALSE;
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :   if ((bHaveHLTData=(fDetectors.size())&gt;0)) {</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     vector&lt;int&gt;::iterator detector=fDetectors.begin();</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     for (; detector!=fDetectors.end(); detector++) {</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       int ddlOffset=AliDAQ::DdlIDOffset(*detector);</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :       int nofDDLs=AliDAQ::NumberOfDdls(*detector);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :       if ((fSelectMinEquipmentId&lt;0 || fSelectMinEquipmentId&lt;ddlOffset+nofDDLs) &amp;&amp;</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :           (fSelectMaxEquipmentId&lt;0 || fSelectMaxEquipmentId&gt;=ddlOffset))</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     bHaveHLTData=detector!=fDetectors.end();</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :   return bHaveHLTData;</span>
+<a name="584"><span class="lineNum">     584 </span>            : }</a>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span>            : AliRawReader* AliRawReaderHLTCreateInstance(AliRawReader* pParentReader, const char* options)
+<span class="lineNum">     587 </span>            : {
+<span class="lineNum">     588 </span>            :   // see header file for class documentation
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :   if (!pParentReader) return NULL;</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :   return new AliRawReaderHLT(pParentReader, options);</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

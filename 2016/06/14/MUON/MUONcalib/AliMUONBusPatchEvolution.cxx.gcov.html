@@ -1,0 +1,914 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - MUON/MUONcalib/AliMUONBusPatchEvolution.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">MUON/MUONcalib</a> - AliMUONBusPatchEvolution.cxx<span style="font-size: 80%;"> (source / <a href="AliMUONBusPatchEvolution.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">388</td>
+            <td class="headerCovTableEntryLo">0.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryLo">5.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #include &quot;AliMUONBusPatchEvolution.h&quot;</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : /// \class AliMUONBusPatchEvolution
+<span class="lineNum">       4 </span>            : ///
+<span class="lineNum">       5 </span>            : /// This utility class can be used to perform two operations on  the output of the MCHBPEVO DA
+<span class="lineNum">       6 </span>            : /// (which is, on purpose, limited to the strict minimum) : extract alarm information
+<span class="lineNum">       7 </span>            : /// from it, and augment it with derived information.
+<span class="lineNum">       8 </span>            : ///
+<span class="lineNum">       9 </span>            : /// The GetListOfFaultyBusPatches() can be used to get the list of bus patches with an occupancy above
+<span class="lineNum">      10 </span>            : /// a given threshold.
+<span class="lineNum">      11 </span>            : ///
+<span class="lineNum">      12 </span>            : /// The Augment() method goes from the list of histograms (in the form of an AliMergeableCollection)
+<span class="lineNum">      13 </span>            : /// describing the time evolution of the bus patches hit count, this class
+<span class="lineNum">      14 </span>            : /// adds histograms to get the bus patches occupancy (=hit count / nevents / npads).
+<span class="lineNum">      15 </span>            : /// Then the occupancy is also computed at different levels of the detector : detection
+<span class="lineNum">      16 </span>            : /// element, DDL, chamber, station, in order to allow a global view of issues (if any)
+<span class="lineNum">      17 </span>            : ///
+<span class="lineNum">      18 </span>            : /// \author Laurent Aphecetche, Subatech
+<a name="19"><span class="lineNum">      19 </span>            : </a>
+<span class="lineNum">      20 </span>            : ///\cond CLASSIMP
+<span class="lineNum">      21 </span><span class="lineCov">         18 : ClassImp(AliMUONBusPatchEvolution)</span>
+<span class="lineNum">      22 </span>            : ///\endcond
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;AliCDBManager.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;AliDAQ.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliMergeableCollection.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliMpBusPatch.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;AliMpCDB.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;AliMpDCSNamer.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;AliMpDDL.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;AliMpDDLStore.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;AliMpDEIterator.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;AliMpDEManager.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;AliMpDetElement.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;TH1F.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;TList.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;TMath.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;TObjArray.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;TObjString.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;TString.h&quot;
+<span class="lineNum">      42 </span>            : #include &lt;cassert&gt;
+<span class="lineNum">      43 </span>            : #include &lt;set&gt;
+<span class="lineNum">      44 </span>            : #include &lt;iostream&gt;
+<a name="45"><span class="lineNum">      45 </span>            : </a>
+<span class="lineNum">      46 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">      47 </span>            : AliMUONBusPatchEvolution::AliMUONBusPatchEvolution(AliMergeableCollection&amp; hc)
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 : : TObject(), fBPEVO(hc),fNofPads()</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :         ComputeNumberOfPads();</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 : }</span>
+<a name="52"><span class="lineNum">      52 </span>            : </a>
+<span class="lineNum">      53 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">      54 </span>            : AliMUONBusPatchEvolution::AliMUONBusPatchEvolution(AliMergeableCollection&amp; hc,
+<span class="lineNum">      55 </span>            :                 const std::map&lt;int,int&gt;&amp; nofPadsPerBusPatch)
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 : : TObject(), fBPEVO(hc), fNofPads(nofPadsPerBusPatch)</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : }</span>
+<a name="60"><span class="lineNum">      60 </span>            : </a>
+<span class="lineNum">      61 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">      62 </span>            : void AliMUONBusPatchEvolution::Augment()
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span>            :         /// From the list of histograms (in the form of an AliMergeableCollection)
+<span class="lineNum">      65 </span>            :         /// describing the time evolution of the bus patches hit count, this class
+<span class="lineNum">      66 </span>            :         /// adds histograms to get the bus patches occupancy (=hit count / nevents / npads).
+<span class="lineNum">      67 </span>            :         /// Then the occupancy is also computed at different levels of the detector : detection
+<span class="lineNum">      68 </span>            :         /// element, DDL, chamber, station, in order to allow a global view of issues (if any)
+<span class="lineNum">      69 </span>            :         ///
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         if (FillNumberOfPads())</span>
+<span class="lineNum">      72 </span>            :         {
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :                 std::vector&lt;int&gt; timeResolutions;</span>
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :                 GetTimeResolutions(timeResolutions);</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :                 AliInfo(Form(&quot;Number of time resolutions found : %lu&quot;,timeResolutions.size()));</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :                 ShrinkTimeAxis();</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :                 for ( std::vector&lt;int&gt;::size_type i = 0; i &lt; timeResolutions.size(); ++i )</span>
+<span class="lineNum">      82 </span>            :                 {
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :                         AliInfo(Form(&quot;TimeResolution: %ds&quot;,timeResolutions[i]));</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :                         const int tr = timeResolutions[i];</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :                         GroupByDE(tr);</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :                         GroupByDDL(tr);</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :                         GroupByChamber(tr);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :                         GroupByStation(tr);</span>
+<span class="lineNum">      89 </span>            :                 }
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :                 Normalize();</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 : }</span>
+<a name="93"><span class="lineNum">      93 </span>            : </a>
+<span class="lineNum">      94 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">      95 </span>            : void AliMUONBusPatchEvolution::ComputeNumberOfPads()
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span>            :         /// Compute the number of pads in each bus patch
+<span class="lineNum">      98 </span>            :         /// from the mapping
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         if (!fNofPads.empty()) return;</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         AliCDBManager* cdbm = AliCDBManager::Instance();</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         if (!cdbm-&gt;IsDefaultStorageSet())</span>
+<span class="lineNum">     105 </span>            :         {
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :             Long_t id, size, flags, modtime;</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :             TDatime now;</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :             TString testPath;</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :             testPath.Form(&quot;/cvmfs/alice-ocdb.cern.ch/calibration/data/%d/OCDB&quot;,now.GetYear());</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :             if ( !gSystem-&gt;GetPathInfo(testPath.Data(),&amp;id,&amp;size,&amp;flags,&amp;modtime) )</span>
+<span class="lineNum">     114 </span>            :             {
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :               if ( flags &amp; 0x1 )</span>
+<span class="lineNum">     116 </span>            :               {
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :                 cdbm-&gt;SetDefaultStorage(Form(&quot;local://%s&quot;,testPath.Data()));</span>
+<span class="lineNum">     118 </span>            :               }
+<span class="lineNum">     119 </span>            :             }
+<span class="lineNum">     120 </span>            :                 else
+<span class="lineNum">     121 </span>            :                 {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                         cdbm-&gt;SetDefaultStorage(&quot;raw://&quot;);</span>
+<span class="lineNum">     123 </span>            :                 }
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         cdbm-&gt;SetRun(0);</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         AliMpCDB::LoadAll();</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         TIter next(AliMpDDLStore::Instance()-&gt;CreateBusPatchIterator());</span>
+<span class="lineNum">     131 </span>            :         AliMpBusPatch* bp;
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :         Int_t total(0);
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         while ((bp = static_cast&lt;AliMpBusPatch*&gt;(next())))</span>
+<span class="lineNum">     136 </span>            :         {
+<span class="lineNum">     137 </span>            :                 Int_t npads(0);
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :                 Int_t detElemId = AliMpDDLStore::Instance()-&gt;GetDEfromBus(bp-&gt;GetId());</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                 AliMpDetElement* de = AliMpDDLStore::Instance()-&gt;GetDetElement(</span>
+<span class="lineNum">     142 </span>            :                                 detElemId);
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                 for (Int_t i = 0; i &lt; bp-&gt;GetNofManus(); ++i)</span>
+<span class="lineNum">     145 </span>            :                 {
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :                         Int_t manuId = bp-&gt;GetManuId(i);</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                         npads += de-&gt;NofChannelsInManu(manuId);</span>
+<span class="lineNum">     149 </span>            :                 }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                 fNofPads[bp-&gt;GetId()] = npads;</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                 total += npads;</span>
+<span class="lineNum">     154 </span>            :         }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         assert(total==1064008);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 : }</span>
+<a name="158"><span class="lineNum">     158 </span>            : </a>
+<span class="lineNum">     159 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     160 </span>            : TH1* AliMUONBusPatchEvolution::ExpandTimeAxis(const TH1&amp; h, Int_t expansionTime, Int_t timeResolution)
+<span class="lineNum">     161 </span>            : {
+<span class="lineNum">     162 </span>            :         /// Extend (by increasing the number of bins) the time range of h by nbins
+<span class="lineNum">     163 </span>            :         /// if expansion &lt; 0 expansion is from before the start of x-axis, otherwise from the end.
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         if (timeResolution&lt;0)</span>
+<span class="lineNum">     166 </span>            :         {
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :                 timeResolution=GetTimeResolution(h);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         if ( timeResolution&lt;=0) return 0x0;</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         const TAxis* timeAxis = h.GetXaxis();</span>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         Int_t extraBins =  TMath::Nint(TMath::Abs(expansionTime)/timeResolution);</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :         Int_t nbins = timeAxis-&gt;GetNbins() + extraBins;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         Double_t xmin = timeAxis-&gt;GetXmin();</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         Double_t xmax = timeAxis-&gt;GetXmax();</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         if ( expansionTime &lt; 0 )</span>
+<span class="lineNum">     181 </span>            :         {
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :                 xmin += expansionTime;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     184 </span>            :         else
+<span class="lineNum">     185 </span>            :         {
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                 xmax += expansionTime;</span>
+<span class="lineNum">     187 </span>            :         }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :         TH1* hnew = new TH1F(h.GetName(),h.GetTitle(),nbins,xmin,xmax);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         hnew-&gt;SetDirectory(0);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         hnew-&gt;GetXaxis()-&gt;SetTimeDisplay(1);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         hnew-&gt;GetXaxis()-&gt;SetTimeFormat(timeAxis-&gt;GetTimeFormat());</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         for ( Int_t i = 1; i &lt;= timeAxis-&gt;GetNbins(); ++i )</span>
+<span class="lineNum">     195 </span>            :         {
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                 hnew-&gt;SetBinContent(i+extraBins,h.GetBinContent(i));</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                 hnew-&gt;SetBinError(i+extraBins,h.GetBinError(i));</span>
+<span class="lineNum">     198 </span>            :         }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         if ( expansionTime &lt; 0 )</span>
+<span class="lineNum">     201 </span>            :         {
+<span class="lineNum">     202 </span>            :                 /// Must update the time offset
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                 TTimeStamp origin;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                 GetTimeOffset(h,origin);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                 UInt_t ot = origin.GetSec();</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 ot += expansionTime;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                 origin.SetSec(ot);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                 hnew-&gt;GetXaxis()-&gt;SetTimeOffset(origin.GetSec(),&quot;gmt&quot;);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                 GetTimeOffset(*hnew,origin);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :         return hnew;
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 : }</span>
+<a name="214"><span class="lineNum">     214 </span>            : </a>
+<span class="lineNum">     215 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     216 </span>            : Bool_t AliMUONBusPatchEvolution::FillNumberOfPads()
+<span class="lineNum">     217 </span>            : {
+<span class="lineNum">     218 </span>            :         /// Fill histograms with the number of pads per element
+<span class="lineNum">     219 </span>            :         /// (BP, DE, DDL, chamber, station)
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         assert(fNofPads.size()==888);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         if ( fBPEVO.Histo(&quot;/BUSPATCH/NPADS/BP0001&quot;))</span>
+<span class="lineNum">     224 </span>            :         {
+<span class="lineNum">     225 </span>            :                 // work already done
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 AliWarning(&quot;Already done. Not re-doing it...&quot;);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     228 </span>            :         }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            :         Int_t total(0);
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         AliMpDCSNamer dcs(&quot;TRACKER&quot;);</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         std::map&lt;int,int&gt;::const_iterator it;</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         for ( it = fNofPads.begin(); it != fNofPads.end(); ++it )</span>
+<span class="lineNum">     237 </span>            :         {
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 int busPatchId = it-&gt;first;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 int npads = it-&gt;second;</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 TH1* h = new TH1F(Form(&quot;BP%04d&quot;, busPatchId), &quot;number of pads&quot;, 1, 0,1);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                 Int_t detElemId = AliMpDDLStore::Instance()-&gt;GetDEfromBus(busPatchId);</span>
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                 AliMpDetElement* de = AliMpDDLStore::Instance()-&gt;GetDetElement(</span>
+<span class="lineNum">     246 </span>            :                                 detElemId);
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                 h-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                 TH1* hde = fBPEVO.Histo(Form(&quot;/DE/NPADS/DE%04d&quot;, detElemId));</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                 if (!hde) {</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :                         hde = new TH1F(Form(&quot;DE%04d&quot;, detElemId), &quot;number of pads&quot;, 1, 0,</span>
+<span class="lineNum">     253 </span>            :                                         1);
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(&quot;/DE/NPADS/&quot;, hde);</span>
+<span class="lineNum">     255 </span>            :                 }
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                 hde-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :                 Int_t ddlId = de-&gt;GetDdlId() + AliDAQ::DdlIDOffset(&quot;MUONTRK&quot;);</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :                 TH1* hddl = fBPEVO.Histo(Form(&quot;/DDL/NPADS/DDL%d&quot;, ddlId));</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :                 if (!hddl) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                         hddl = new TH1F(Form(&quot;DDL%d&quot;, ddlId), &quot;number of pads&quot;, 1, 0, 1);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(&quot;/DDL/NPADS/&quot;, hddl);</span>
+<span class="lineNum">     264 </span>            :                 }
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                 hddl-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                 Int_t chamberId = 1 + AliMpDEManager::GetChamberId(detElemId);</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 Int_t stationId = 1 + AliMpDEManager::GetChamberId(detElemId) / 2;</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :                 TH1* hchamberSide(0x0);
+<span class="lineNum">     271 </span>            :                 TH1* hstationSide(0x0);
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                 if (dcs.DCSAliasName(detElemId).Contains(&quot;Left&quot;)) {</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                         hchamberSide = fBPEVO.Histo(</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                                         Form(&quot;/CHAMBER/NPADS/CHAMBER%dLEFT&quot;, chamberId));</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                         if (!hchamberSide) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :                                 hchamberSide = new TH1F(Form(&quot;CHAMBER%dLEFT&quot;, chamberId),</span>
+<span class="lineNum">     278 </span>            :                                                 &quot;number of pads&quot;, 1, 0, 1);
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                                 fBPEVO.Adopt(&quot;/CHAMBER/NPADS/&quot;, hchamberSide);</span>
+<span class="lineNum">     280 </span>            :                         }
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                         hstationSide = fBPEVO.Histo(</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                                         Form(&quot;/STATION/NPADS/STATION%dLEFT&quot;, stationId));</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                         if (!hstationSide) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :                                 hstationSide = new TH1F(Form(&quot;STATION%dLEFT&quot;, stationId),</span>
+<span class="lineNum">     285 </span>            :                                                 &quot;number of pads&quot;, 1, 0, 1);
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                                 fBPEVO.Adopt(&quot;/STATION/NPADS/&quot;, hstationSide);</span>
+<span class="lineNum">     287 </span>            :                         }
+<span class="lineNum">     288 </span>            :                 } else {
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                         if (dcs.DCSAliasName(detElemId).Contains(&quot;Right&quot;)) {</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                                 hchamberSide = fBPEVO.Histo(</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                                                 Form(&quot;/CHAMBER/NPADS/CHAMBER%dRIGHT&quot;, chamberId));</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                                 if (!hchamberSide) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                                         hchamberSide = new TH1F(Form(&quot;CHAMBER%dRIGHT&quot;, chamberId),</span>
+<span class="lineNum">     294 </span>            :                                                         &quot;number of pads&quot;, 1, 0, 1);
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                                         fBPEVO.Adopt(&quot;/CHAMBER/NPADS/&quot;, hchamberSide);</span>
+<span class="lineNum">     296 </span>            :                                 }
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                                 hstationSide = fBPEVO.Histo(</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                                                 Form(&quot;/STATION/NPADS/STATION%dRIGHT&quot;, stationId));</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                                 if (!hstationSide) {</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                                         hstationSide = new TH1F(Form(&quot;STATION%dRIGHT&quot;, stationId),</span>
+<span class="lineNum">     301 </span>            :                                                         &quot;number of pads&quot;, 1, 0, 1);
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                                         fBPEVO.Adopt(&quot;/STATION/NPADS/&quot;, hstationSide);</span>
+<span class="lineNum">     303 </span>            :                                 }
+<span class="lineNum">     304 </span>            :                         }
+<span class="lineNum">     305 </span>            :                 }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                 hchamberSide-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 hstationSide-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                 TH1* hchamber = fBPEVO.Histo(Form(&quot;/CHAMBER/NPADS/CHAMBER%d&quot;, chamberId));</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :                 if (!hchamber) {</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :                         hchamber = new TH1F(Form(&quot;CHAMBER%d&quot;, chamberId), &quot;number of pads&quot;,</span>
+<span class="lineNum">     313 </span>            :                                         1, 0, 1);
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(&quot;/CHAMBER/NPADS/&quot;, hchamber);</span>
+<span class="lineNum">     315 </span>            :                 }
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 hchamber-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 TH1* hstation = fBPEVO.Histo(Form(&quot;/STATION/NPADS/STATION%d&quot;, stationId));</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 if (!hstation) {</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                         hstation = new TH1F(Form(&quot;STATION%d&quot;, stationId), &quot;number of pads&quot;,</span>
+<span class="lineNum">     321 </span>            :                                         1, 0, 1);
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(&quot;/STATION/NPADS/&quot;, hstation);</span>
+<span class="lineNum">     323 </span>            :                 }
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                 hstation-&gt;Fill(0.0, 1.0 * npads);</span>
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                 total += npads;</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(&quot;/BUSPATCH/NPADS/&quot;, h);</span>
+<span class="lineNum">     329 </span>            :         }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :         return kTRUE;
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     333 </span>            : 
+<a name="334"><span class="lineNum">     334 </span>            : </a>
+<span class="lineNum">     335 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     336 </span>            : Bool_t AliMUONBusPatchEvolution::GetTimeOffset(const TH1&amp; h, TTimeStamp&amp; origin)
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span>            :         /// Assuming histogram h has a time axis, fills origin with its time offset and returns
+<span class="lineNum">     339 </span>            :         /// kTRUE. Otherwise returns kFALSE
+<span class="lineNum">     340 </span>            :         /// Assumes that the time offset is indicated in GMT
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         const TAxis* x = h.GetXaxis();</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         if ( x-&gt;GetTimeDisplay() )</span>
+<span class="lineNum">     345 </span>            :         {
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :                 TString tf = x-&gt;GetTimeFormat();</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :                 Int_t ix = tf.Index('F');</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                 Int_t year,month,day;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                 Int_t hour,minute,second;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :                 sscanf(tf(ix+1,tf.Length()-ix-1).Data(),&quot;%4d-%02d-%02d %02d:%02d:%02d&quot;,&amp;year,&amp;month,&amp;day,</span>
+<span class="lineNum">     351 </span>            :                                 &amp;hour,&amp;minute,&amp;second);
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 origin.Set(year,month,day,hour,minute,second,0,kTRUE,0);</span>
+<span class="lineNum">     353 </span>            :                 return kTRUE;
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     355 </span>            :         else
+<span class="lineNum">     356 </span>            :         {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     358 </span>            :         }
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 : }</span>
+<a name="360"><span class="lineNum">     360 </span>            : </a>
+<span class="lineNum">     361 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     362 </span>            : int AliMUONBusPatchEvolution::GetTimeResolution(const TH1&amp; h)
+<span class="lineNum">     363 </span>            : {
+<span class="lineNum">     364 </span>            :         // we assume the title ends with &quot;xxx s bins&quot;
+<span class="lineNum">     365 </span>            :         // and we try to find xxx ...
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         TString title = h.GetTitle();</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            :         int timeResolution(-1);
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         TObjArray* a = title.Tokenize(&quot; &quot;);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         TString last = static_cast&lt;TObjString*&gt;(a-&gt;Last())-&gt;String();</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         TString m = static_cast&lt;TObjString*&gt;(a-&gt;At(a-&gt;GetLast() - 1))-&gt;String();</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         if (last != &quot;bins&quot; || m != &quot;s&quot;) {</span>
+<span class="lineNum">     376 </span>            :                 std::cerr
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 &lt;&lt; &quot;Histogram title does not match the expected pattern (... xxx s bins) : &quot;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 &lt;&lt; std::endl &lt;&lt; h.GetTitle() &lt;&lt; std::endl;</span>
+<span class="lineNum">     379 </span>            :         } else {
+<span class="lineNum">     380 </span>            :                 timeResolution =
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                                 static_cast&lt;TObjString*&gt;(a-&gt;At(a-&gt;GetLast() - 2))-&gt;String().Atoi();</span>
+<span class="lineNum">     382 </span>            :         }
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         delete a;</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :         return timeResolution;
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     387 </span>            : 
+<a name="388"><span class="lineNum">     388 </span>            : </a>
+<span class="lineNum">     389 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     390 </span>            : void AliMUONBusPatchEvolution::GetTimeResolutions(std::vector&lt;int&gt;&amp; timeResolutions)
+<span class="lineNum">     391 </span>            : {
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         TIter next(fBPEVO.CreateIterator());</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :         TH1F* h(0x0);
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         while ((h = static_cast&lt;TH1F*&gt;(next()))) {</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :                 if ( TString(h-&gt;GetName()).BeginsWith(&quot;Nevents&quot;) )</span>
+<span class="lineNum">     398 </span>            :                 {
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :                         int tr = GetTimeResolution(*h);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                         if (tr &gt; 0 )</span>
+<span class="lineNum">     401 </span>            :                         {
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :                                 timeResolutions.push_back(tr);</span>
+<span class="lineNum">     403 </span>            :                         }
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 : }</span>
+<a name="408"><span class="lineNum">     408 </span>            : </a>
+<span class="lineNum">     409 </span>            : //______________________________________________________________________________
+<span class="lineNum">     410 </span>            : Bool_t AliMUONBusPatchEvolution::GetFaultyBusPatches(int timeResolution,
+<span class="lineNum">     411 </span>            :                 int requiredEvents,
+<span class="lineNum">     412 </span>            :                 float occupancyThreshold,
+<span class="lineNum">     413 </span>            :                 std::map&lt;int,double&gt;&amp; faultyBusPatchOccupancies)
+<span class="lineNum">     414 </span>            : {
+<span class="lineNum">     415 </span>            :         /// Loop over all bus patches and compute their occupancy in the last nevents
+<span class="lineNum">     416 </span>            :         /// Return kFALSE if the number of required events was not reached
+<span class="lineNum">     417 </span>            :         ///
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :         // find how many bins should be considered, by finding in the Nevents histogram
+<span class="lineNum">     420 </span>            :         // how many of the latest bins are required to get an integral &gt;= requiredEvents
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         TH1* hnevents = fBPEVO.Histo(Form(&quot;Nevents%ds&quot;,timeResolution));</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            :         int lastbin(0);
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         for ( int i = hnevents-&gt;GetXaxis()-&gt;GetNbins()-1 ; i &gt; 0 &amp;&amp; lastbin == 0; --i )</span>
+<span class="lineNum">     426 </span>            :         {
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 if ( hnevents-&gt;GetBinContent(i) &gt; 1 ) lastbin = i;</span>
+<span class="lineNum">     428 </span>            :         }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :         float nevents(0);
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            :         int firstbin = lastbin;
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         for ( firstbin = lastbin; firstbin &gt; 0; --firstbin )</span>
+<span class="lineNum">     435 </span>            :         {
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                 nevents += hnevents-&gt;GetBinContent(firstbin);</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                 if ( nevents &gt; requiredEvents ) break;</span>
+<span class="lineNum">     438 </span>            :         }
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         if ( nevents &lt; requiredEvents)</span>
+<span class="lineNum">     441 </span>            :         {
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                 return kFALSE;</span>
+<span class="lineNum">     443 </span>            :         }
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         double dnevents = hnevents-&gt;Integral(firstbin,lastbin);</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         for ( std::map&lt;int,int&gt;::const_iterator it = fNofPads.begin(); it != fNofPads.end(); ++it )</span>
+<span class="lineNum">     448 </span>            :         {
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                 const int&amp; buspatchId = it-&gt;first;</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                 const int&amp; npads = it-&gt;second;</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                 TString bpName = Form(&quot;BP%04d&quot;,buspatchId);</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                 TH1* hbp = fBPEVO.Histo(Form(&quot;/BUSPATCH/HITS/%ds/%s&quot;,timeResolution,bpName.Data()));</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 double occ = hbp-&gt;Integral(firstbin,lastbin) / dnevents / npads;</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                 if (occ &gt; occupancyThreshold)</span>
+<span class="lineNum">     459 </span>            :                 {
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                         faultyBusPatchOccupancies[buspatchId] = occ;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            :         return kTRUE;
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 : }</span>
+<a name="466"><span class="lineNum">     466 </span>            : </a>
+<span class="lineNum">     467 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     468 </span>            : void AliMUONBusPatchEvolution::GroupByStation(int timeResolution)
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :         /// From the histograms at chamber level, make the corresponding ones at station level
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :         int station(1);
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         for (Int_t ich = 1; ich &lt; 10; ich += 2) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 TH1* h = fBPEVO.Histo(</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                                 Form(&quot;/CHAMBER/HITS/%ds/CHAMBER%d&quot;, timeResolution, ich));</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                 TH1* h1 = fBPEVO.Histo(</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                                 Form(&quot;/CHAMBER/HITS/%ds/CHAMBER%d&quot;, timeResolution, ich + 1));</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                 TH1* hstation = static_cast&lt;TH1*&gt;(h-&gt;Clone(Form(&quot;STATION%d&quot;, station)));</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 hstation-&gt;Add(h1);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/STATION/HITS/%ds&quot;, timeResolution), hstation);</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :                 h = fBPEVO.Histo(</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :                                 Form(&quot;/CHAMBER/HITS/%ds/CHAMBER%dLEFT&quot;, timeResolution, ich));</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 h1 = fBPEVO.Histo(</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                                 Form(&quot;/CHAMBER/HITS/%ds/CHAMBER%dLEFT&quot;, timeResolution,</span>
+<span class="lineNum">     489 </span>            :                                                 ich + 1));
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                 hstation = static_cast&lt;TH1*&gt;(h-&gt;Clone(Form(&quot;STATION%dLEFT&quot;, station)));</span>
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :                 hstation-&gt;Add(h1);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/STATION/HITS/%ds&quot;, timeResolution), hstation);</span>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                 h = fBPEVO.Histo(</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                                 Form(&quot;/CHAMBER/HITS/%ds/CHAMBER%dRIGHT&quot;, timeResolution, ich));</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :                 h1 = fBPEVO.Histo(</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :                                 Form(&quot;/CHAMBER/HITS/%ds/CHAMBER%dRIGHT&quot;, timeResolution,</span>
+<span class="lineNum">     500 </span>            :                                                 ich + 1));
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :                 hstation = static_cast&lt;TH1*&gt;(h-&gt;Clone(Form(&quot;STATION%dRIGHT&quot;, station)));</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                 hstation-&gt;Add(h1);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/STATION/HITS/%ds&quot;, timeResolution), hstation);</span>
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                 ++station;</span>
+<span class="lineNum">     508 </span>            :         }
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 : }</span>
+<a name="510"><span class="lineNum">     510 </span>            : </a>
+<span class="lineNum">     511 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     512 </span>            : void AliMUONBusPatchEvolution::GroupByChamber(int timeResolution)
+<span class="lineNum">     513 </span>            : {
+<span class="lineNum">     514 </span>            :         /// From the histograms at DE level, make the corresponding ones at chamber level
+<span class="lineNum">     515 </span>            :         /// with left and right separated as well.
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         for (Int_t ich = 1; ich &lt;= 10; ++ich) {</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 AliMpDEIterator it;</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :                 it.First(ich - 1);</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            :                 TH1* hchamberLeft(0x0);
+<span class="lineNum">     523 </span>            :                 TH1* hchamberRight(0x0);
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                 TList listLeft;</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                 TList listRight;</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                 listLeft.SetOwner(kFALSE);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                 listRight.SetOwner(kFALSE);</span>
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                 AliMpDCSNamer dcs(&quot;TRACKER&quot;);</span>
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 while (!it.IsDone()) {</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                         Int_t detElemId = it.CurrentDEId();</span>
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                         AliMpDetElement* de = AliMpDDLStore::Instance()-&gt;GetDetElement(</span>
+<span class="lineNum">     535 </span>            :                                         detElemId);
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                         TH1* h = fBPEVO.Histo(</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                                         Form(&quot;/DE/HITS/%ds/DE%04d&quot;, timeResolution, detElemId));</span>
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                         if (dcs.DCSAliasName(detElemId).Contains(&quot;Left&quot;)) {</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :                                 if (!hchamberLeft) {</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :                                         hchamberLeft = static_cast&lt;TH1*&gt;(h-&gt;Clone(</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :                                                         Form(&quot;CHAMBER%dLEFT&quot;, ich)));</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                                 } else {</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :                                         listLeft.Add(h);</span>
+<span class="lineNum">     546 </span>            :                                 }
+<span class="lineNum">     547 </span>            :                         } else {
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :                                 if (!hchamberRight) {</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :                                         hchamberRight = static_cast&lt;TH1*&gt;(h-&gt;Clone(</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :                                                         Form(&quot;CHAMBER%dRIGHT&quot;, ich)));</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :                                 } else {</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :                                         listRight.Add(h);</span>
+<span class="lineNum">     553 </span>            :                                 }
+<span class="lineNum">     554 </span>            :                         }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                         it.Next();</span>
+<span class="lineNum">     557 </span>            :                 }
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :                 hchamberLeft-&gt;Merge(&amp;listLeft);</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :                 hchamberRight-&gt;Merge(&amp;listRight);</span>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                 hchamberLeft-&gt;SetLineColor(4);</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :                 hchamberRight-&gt;SetLineColor(2);</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/CHAMBER/HITS/%ds&quot;, timeResolution), hchamberLeft);</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/CHAMBER/HITS/%ds&quot;, timeResolution), hchamberRight);</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :                 TH1* hchamber = static_cast&lt;TH1*&gt;(hchamberLeft-&gt;Clone(</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                                 Form(&quot;CHAMBER%d&quot;, ich)));</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                 hchamber-&gt;Add(hchamberRight);</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                 hchamber-&gt;SetLineColor(1);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/CHAMBER/HITS/%ds&quot;, timeResolution), hchamber);</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 : }</span>
+<a name="574"><span class="lineNum">     574 </span>            : </a>
+<span class="lineNum">     575 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     576 </span>            : void AliMUONBusPatchEvolution::GroupByDDL(int timeResolution)
+<span class="lineNum">     577 </span>            : {
+<span class="lineNum">     578 </span>            :         /// From the histograms at DE level, make the corresponding ones at DDL level
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         Int_t nddls = AliDAQ::NumberOfDdls(&quot;MUONTRK&quot;);</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         Int_t offset = AliDAQ::DdlIDOffset(&quot;MUONTRK&quot;);</span>
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         for (Int_t i = 0; i &lt; nddls; ++i) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                 Int_t ddlId = offset + i;</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :                 AliMpDDL* ddl = AliMpDDLStore::Instance()-&gt;GetDDL(i);</span>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            :                 TH1* hddl(0x0);
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :                 TList list;</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :                 list.SetOwner(kFALSE);</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :                 for (Int_t ide = 0; ide &lt; ddl-&gt;GetNofDEs(); ++ide) {</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :                         Int_t detElemId = ddl-&gt;GetDEId(ide);</span>
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :                         TH1* h = fBPEVO.Histo(</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :                                         Form(&quot;/DE/HITS/%ds/DE%04d&quot;, timeResolution, detElemId));</span>
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :                         if (!hddl) {</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :                                 hddl = static_cast&lt;TH1*&gt;(h-&gt;Clone(Form(&quot;DDL%d&quot;, ddlId)));</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :                         } else {</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :                                 list.Add(h);</span>
+<span class="lineNum">     602 </span>            :                         }
+<span class="lineNum">     603 </span>            :                 }
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :                 hddl-&gt;Merge(&amp;list);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :                 fBPEVO.Adopt(Form(&quot;/DDL/HITS/%ds&quot;, timeResolution), hddl);</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 : }</span>
+<a name="609"><span class="lineNum">     609 </span>            : </a>
+<span class="lineNum">     610 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     611 </span>            : void AliMUONBusPatchEvolution::GroupByDE(int timeResolution)
+<span class="lineNum">     612 </span>            : {
+<span class="lineNum">     613 </span>            :         /// From the histograms at Bus Patch level (which is the original DA output)
+<span class="lineNum">     614 </span>            :         /// make the corresponding histograms at DE level
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         AliMpDEIterator it;</span>
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :         it.First();</span>
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :         while (!it.IsDone()) {</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :                 Int_t detElemId = it.CurrentDEId();</span>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :                 AliMpDetElement* de = AliMpDDLStore::Instance()-&gt;GetDetElement(</span>
+<span class="lineNum">     624 </span>            :                                 detElemId);
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :                 TList list;</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :                 list.SetOwner(kFALSE);</span>
+<span class="lineNum">     628 </span>            :                 TH1* hde(0x0);
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :                 if (de-&gt;GetStationType() != AliMp::kStationTrigger) {</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                         for (Int_t i = 0; i &lt; de-&gt;GetNofBusPatches(); ++i) {</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :                                 Int_t busPatchId = de-&gt;GetBusPatchId(i);</span>
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :                                 TH1* h = fBPEVO.Histo(</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :                                                 Form(&quot;/BUSPATCH/HITS/%ds/BP%04d&quot;, timeResolution,</span>
+<span class="lineNum">     636 </span>            :                                                                 busPatchId));
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :                                 h-&gt;SetLineColor(1);</span>
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :                                 if (!hde) {</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :                                         hde = static_cast&lt;TH1*&gt;(h-&gt;Clone());</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :                                         hde-&gt;SetName(Form(&quot;DE%04d&quot;, detElemId));</span>
+<span class="lineNum">     643 </span>            :                                 } else {
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :                                         list.Add(h);</span>
+<span class="lineNum">     645 </span>            :                                 }
+<span class="lineNum">     646 </span>            :                         }
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :                         hde-&gt;Merge(&amp;list);</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(Form(&quot;/DE/HITS/%ds&quot;, timeResolution), hde);</span>
+<span class="lineNum">     650 </span>            :                 }
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :                 it.Next();</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     656 </span>            : 
+<a name="657"><span class="lineNum">     657 </span>            : </a>
+<span class="lineNum">     658 </span>            : //_________________________________________________________________________________________________
+<span class="lineNum">     659 </span>            : void AliMUONBusPatchEvolution::Normalize()
+<span class="lineNum">     660 </span>            : {
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :         TObjArray* a = fBPEVO.SortAllIdentifiers();</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :         TIter nextId(a);</span>
+<span class="lineNum">     663 </span>            :         TObjString* sid;
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :         while ((sid = static_cast&lt;TObjString*&gt;(nextId()))) {</span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :                 if (!sid-&gt;String().Contains(&quot;HITS&quot;))</span>
+<span class="lineNum">     668 </span>            :                         continue;
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :                 TObjArray* parts = sid-&gt;String().Tokenize(&quot;/&quot;);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :                 TString npadsId(&quot;/&quot;);</span>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                 npadsId += static_cast&lt;TObjString*&gt;(parts-&gt;At(0))-&gt;String();</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                 npadsId += &quot;/NPADS&quot;;</span>
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :                 TString sduration = static_cast&lt;TObjString*&gt;(parts-&gt;Last())-&gt;String();</span>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :                 delete parts;</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :                 Int_t duration = sduration.Atoi();</span>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :                 TList* list = fBPEVO.CreateListOfObjectNames(sid-&gt;String().Data());</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :                 TIter nextObject(list);</span>
+<span class="lineNum">     684 </span>            :                 TObjString* sobject;
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :                 while ((sobject = static_cast&lt;TObjString*&gt;(nextObject())))</span>
+<span class="lineNum">     686 </span>            :                 {
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                         TString hname;</span>
+<span class="lineNum">     688 </span>            : 
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :                         hname.Form(&quot;%s%s&quot;, sid-&gt;String().Data(), sobject-&gt;String().Data());</span>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :                         TH1* hnhits = fBPEVO.Histo(hname.Data());</span>
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :                         TString padname;</span>
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :                         padname.Form(&quot;%s/%s&quot;, npadsId.Data(), sobject-&gt;String().Data());</span>
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :                         TH1* hnpads = fBPEVO.Histo(padname.Data());</span>
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :                         Double_t npads = hnpads-&gt;GetBinContent(1);</span>
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :                         TH1* hocchz = static_cast&lt;TH1*&gt;(hnhits-&gt;Clone());</span>
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :                         hocchz-&gt;SetDirectory(0);</span>
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :                         hocchz-&gt;SetTitle(&quot;Occupancy (Hz)&quot;);</span>
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :                         hocchz-&gt;Scale(1.0 / npads / duration);</span>
+<span class="lineNum">     708 </span>            : 
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                         TString occ = sid-&gt;String();</span>
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :                         occ.ReplaceAll(&quot;HITS&quot;, &quot;OCCHZ&quot;);</span>
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(occ.Data(), hocchz);</span>
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :                         TH1* hocc = static_cast&lt;TH1*&gt;(hnhits-&gt;Clone());</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :                         hocc-&gt;SetDirectory(0);</span>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :                         hocc-&gt;SetTitle(&quot;Occupancy&quot;);</span>
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :                         occ.ReplaceAll(&quot;HZ&quot;, &quot;&quot;);</span>
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :                         TH1* hnevents = fBPEVO.Histo(Form(&quot;Nevents%s&quot;, sduration.Data()));</span>
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :                         hocc-&gt;GetXaxis()-&gt;SetTimeDisplay(0); // to avoid bin inflation in Divide...</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :                         hocc-&gt;Divide(hnhits,hnevents,1.0/npads,1.0);</span>
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :                         hocc-&gt;GetXaxis()-&gt;SetTimeDisplay(1);</span>
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :                         fBPEVO.Adopt(occ.Data(), hocc);</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :                 delete list;</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         delete a;</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            : 
+<a name="741"><span class="lineNum">     741 </span>            : //_____________________________________________________________________________</a>
+<span class="lineNum">     742 </span>            : void
+<span class="lineNum">     743 </span>            : AliMUONBusPatchEvolution::ShrinkTimeAxis()
+<span class="lineNum">     744 </span>            : {
+<span class="lineNum">     745 </span>            :         /// remove unused bins (after the last used bin) in all histograms that
+<span class="lineNum">     746 </span>            :         /// have a time axis. Note that we _assume_ that at this
+<span class="lineNum">     747 </span>            :         /// point the collection indeed contains only histograms that have time bins
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :         TIter next(fBPEVO.CreateIterator());</span>
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         TH1F* h(0x0);</span>
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :         std::map&lt;int, int&gt; lastbins;</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :         std::map&lt;int, int&gt; firstbins;</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :         std::map&lt;int, int&gt; nbins;</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         std::map&lt;int, std::vector&lt;TH1F*&gt; &gt; histos;</span>
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :         std::set&lt;int&gt; timeResolutions;</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span>            :         // get the upper bin per time resolution (only one in order to stick to a common bin
+<span class="lineNum">     761 </span>            :         // definition for all histograms
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :         while ((h = static_cast&lt;TH1F*&gt;(next()))) {</span>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :                 if (!h-&gt;GetXaxis()-&gt;GetTimeDisplay())</span>
+<span class="lineNum">     766 </span>            :                         continue;
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :                 int timeResolution = GetTimeResolution(*h);</span>
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :                 if (timeResolution &lt;= 0)</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     772 </span>            : 
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :                 timeResolutions.insert(timeResolution);</span>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                 if (h-&gt;GetEntries()) {</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :                         lastbins[timeResolution] = TMath::Max(lastbins[timeResolution],</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :                                         h-&gt;FindLastBinAbove(0.0));</span>
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                         if (firstbins.count(timeResolution)) {</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :                                 firstbins[timeResolution] = TMath::Min(</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :                                                 firstbins[timeResolution], h-&gt;FindFirstBinAbove(0.0));</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :                         } else {</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :                                 firstbins[timeResolution] = h-&gt;FindFirstBinAbove(0.0);</span>
+<span class="lineNum">     784 </span>            :                         }
+<span class="lineNum">     785 </span>            :                 }
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                 int nb = h-&gt;GetNbinsX();</span>
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :                 if (nbins.count(timeResolution)) {</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :                         assert(nbins[timeResolution] = nb);</span>
+<span class="lineNum">     791 </span>            :                 } else {
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :                         nbins[timeResolution] = nb;</span>
+<span class="lineNum">     793 </span>            :                 }
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :                 histos[timeResolution].push_back(h);</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :         std::set&lt;int, int&gt;::const_iterator it;</span>
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :         TH1::AddDirectory (kFALSE);</span>
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         for (it = timeResolutions.begin(); it != timeResolutions.end(); ++it) {</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :                 int timeRes = *it;</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :                 int firstbin = firstbins[timeRes];</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :                 int lastbin = lastbins[timeRes];</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :                 int nb = nbins[timeRes];</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :                 const std::vector&lt;TH1F*&gt;&amp; v = histos[timeRes];</span>
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :                 std::map&lt;int, std::vector&lt;TH1F*&gt; &gt;::const_iterator hit;</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :                 for (std::vector&lt;TH1F*&gt;::size_type iv = 0; iv &lt; v.size(); ++iv) {</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :                         TH1F* hold = static_cast&lt;TH1F*&gt;(v[iv]);</span>
+<span class="lineNum">     813 </span>            : 
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :                         TH1F* hnew = new TH1F(hold-&gt;GetName(), hold-&gt;GetTitle(),</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :                                         lastbin - firstbin + 1, hold-&gt;GetBinLowEdge(firstbin),</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :                                         hold-&gt;GetBinLowEdge(lastbin) + hold-&gt;GetBinWidth(lastbin));</span>
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :                         Double_t nentries = hold-&gt;GetEntries();</span>
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :                         for (int i = firstbin; i &lt;= lastbin; ++i) {</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :                                 hnew-&gt;SetBinContent(i - firstbin + 1, hold-&gt;GetBinContent(i));</span>
+<span class="lineNum">     822 </span>            :                         }
+<span class="lineNum">     823 </span>            : 
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :                         TString timeFormat = hold-&gt;GetXaxis()-&gt;GetTimeFormat();</span>
+<span class="lineNum">     825 </span>            : 
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :                         hnew-&gt;Copy(*hold);</span>
+<span class="lineNum">     827 </span>            : 
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                         hold-&gt;SetEntries(nentries);</span>
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :                         hold-&gt;GetXaxis()-&gt;SetTimeFormat(timeFormat.Data());</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :                         hold-&gt;GetXaxis()-&gt;SetTimeDisplay(1);</span>
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :                         delete hnew;</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

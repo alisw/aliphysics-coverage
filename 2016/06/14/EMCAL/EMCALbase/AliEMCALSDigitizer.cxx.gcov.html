@@ -1,0 +1,610 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - EMCAL/EMCALbase/AliEMCALSDigitizer.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">EMCAL/EMCALbase</a> - AliEMCALSDigitizer.cxx<span style="font-size: 80%;"> (source / <a href="AliEMCALSDigitizer.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">142</td>
+            <td class="headerCovTableEntry">244</td>
+            <td class="headerCovTableEntryLo">58.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">63.6 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* $Id$ */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : //_________________________________________________________________________
+<span class="lineNum">      19 </span>            : // This is a Class that makes SDigits out of Hits
+<span class="lineNum">      20 </span>            : // A Summable Digits is the sum of all hits originating 
+<span class="lineNum">      21 </span>            : // from one in one tower of the EMCAL 
+<span class="lineNum">      22 </span>            : // A threshold for assignment of the primary to SDigit is applied 
+<span class="lineNum">      23 </span>            : //
+<span class="lineNum">      24 </span>            : // JLK 26-Jun-2008 Added explanation:
+<span class="lineNum">      25 </span>            : // SDigits need to hold the energy sum of the hits, but AliEMCALDigit
+<span class="lineNum">      26 </span>            : // can (should) only store amplitude.  Therefore, the SDigit energy is
+<span class="lineNum">      27 </span>            : // &quot;digitized&quot; before being stored and must be &quot;calibrated&quot; back to an
+<span class="lineNum">      28 </span>            : // energy before SDigits are summed to form true Digits
+<span class="lineNum">      29 </span>            : //
+<span class="lineNum">      30 </span>            : // SDigits are written to TreeS, branch &quot;EMCAL&quot;
+<span class="lineNum">      31 </span>            : // AliEMCALSDigitizer with all current parameters is written 
+<span class="lineNum">      32 </span>            : // to TreeS branch &quot;AliEMCALSDigitizer&quot;.
+<span class="lineNum">      33 </span>            : // Both branches have the same title. If necessary one can produce 
+<span class="lineNum">      34 </span>            : // another set of SDigits with different parameters. Two versions
+<span class="lineNum">      35 </span>            : // can be distunguished using titles of the branches.
+<span class="lineNum">      36 </span>            : // User case:
+<span class="lineNum">      37 </span>            : // root [0] AliEMCALSDigitizer * s = new AliEMCALSDigitizer(&quot;galice.root&quot;)
+<span class="lineNum">      38 </span>            : // Warning in &lt;TDatabasePDG::TDatabasePDG&gt;: object already instantiated
+<span class="lineNum">      39 </span>            : // root [1] s-&gt;Digitize()
+<span class="lineNum">      40 </span>            : //             // Makes SDigitis for all events stored in galice.root
+<span class="lineNum">      41 </span>            : // root [2] s-&gt;SetPedestalParameter(0.001)
+<span class="lineNum">      42 </span>            : //             // One can change parameters of digitization
+<span class="lineNum">      43 </span>            : // root [3] s-&gt;SetSDigitsBranch(&quot;Redestal 0.001&quot;)
+<span class="lineNum">      44 </span>            : //             // and write them into the new branch
+<span class="lineNum">      45 </span>            : // root [4] s-&gt;Digitize(&quot;deb all tim&quot;)
+<span class="lineNum">      46 </span>            : //             // available parameters:
+<span class="lineNum">      47 </span>            : //             deb - print # of produced SDigitis
+<span class="lineNum">      48 </span>            : //             deb all  - print # and list of produced SDigits
+<span class="lineNum">      49 </span>            : //             tim - print benchmarking information
+<span class="lineNum">      50 </span>            : //
+<span class="lineNum">      51 </span>            : //*-- Author : Sahal Yacoob (LBL)
+<span class="lineNum">      52 </span>            : // based on  : AliPHOSSDigitzer 
+<span class="lineNum">      53 </span>            : //////////////////////////////////////////////////////////////////////////////
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : // --- ROOT system ---
+<span class="lineNum">      56 </span>            : #include &lt;TBenchmark.h&gt;
+<span class="lineNum">      57 </span>            : #include &lt;TBrowser.h&gt;
+<span class="lineNum">      58 </span>            : //#include &lt;Riostream.h&gt;
+<span class="lineNum">      59 </span>            : #include &lt;TMath.h&gt;
+<span class="lineNum">      60 </span>            : #include &lt;TROOT.h&gt;
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : // --- Standard library ---
+<span class="lineNum">      63 </span>            : #include &quot;stdlib.h&quot;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : // --- AliRoot header files ---
+<span class="lineNum">      66 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;AliRunLoader.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;AliStack.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;AliEMCALDigit.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;AliEMCALLoader.h&quot;
+<span class="lineNum">      71 </span>            : #include &quot;AliEMCALHit.h&quot;
+<span class="lineNum">      72 </span>            : #include &quot;AliEMCALSDigitizer.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;AliEMCALGeometry.h&quot;
+<a name="74"><span class="lineNum">      74 </span>            : #include &quot;AliEMCALSimParam.h&quot;</a>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span><span class="lineCov">         42 : ClassImp(AliEMCALSDigitizer)</span>
+<a name="77"><span class="lineNum">      77 </span>            :            </a>
+<span class="lineNum">      78 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">      79 </span>            : AliEMCALSDigitizer::AliEMCALSDigitizer()
+<span class="lineNum">      80 </span><span class="lineCov">          4 :   : TNamed(&quot;&quot;,&quot;&quot;),</span>
+<span class="lineNum">      81 </span><span class="lineCov">          4 :     fA(0.),fB(0.),fECPrimThreshold(0.),</span>
+<span class="lineNum">      82 </span><span class="lineCov">          4 :     fDefaultInit(kTRUE),</span>
+<span class="lineNum">      83 </span><span class="lineCov">          4 :     fEventFolderName(0),</span>
+<span class="lineNum">      84 </span><span class="lineCov">          4 :     fInit(0),</span>
+<span class="lineNum">      85 </span><span class="lineCov">          4 :     fSDigitsInRun(0),</span>
+<span class="lineNum">      86 </span><span class="lineCov">          4 :     fFirstEvent(0),</span>
+<span class="lineNum">      87 </span><span class="lineCov">          4 :     fLastEvent(0),</span>
+<span class="lineNum">      88 </span><span class="lineCov">          4 :     fSampling(0.),</span>
+<span class="lineNum">      89 </span><span class="lineCov">          4 :         fHits(0)</span>
+<span class="lineNum">      90 </span><span class="lineCov">         20 : {</span>
+<span class="lineNum">      91 </span>            :   // ctor
+<span class="lineNum">      92 </span><span class="lineCov">          4 :   InitParameters();</span>
+<span class="lineNum">      93 </span><span class="lineCov">          8 : }</span>
+<a name="94"><span class="lineNum">      94 </span>            : </a>
+<span class="lineNum">      95 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">      96 </span>            : AliEMCALSDigitizer::AliEMCALSDigitizer(const char * alirunFileName, 
+<span class="lineNum">      97 </span>            :                                        const char * eventFolderName)
+<span class="lineNum">      98 </span><span class="lineCov">          2 :   : TNamed(&quot;EMCALSDigitizer&quot;, alirunFileName),</span>
+<span class="lineNum">      99 </span><span class="lineCov">          2 :     fA(0.),fB(0.),fECPrimThreshold(0.),</span>
+<span class="lineNum">     100 </span><span class="lineCov">          2 :     fDefaultInit(kFALSE),</span>
+<span class="lineNum">     101 </span><span class="lineCov">          2 :     fEventFolderName(eventFolderName),</span>
+<span class="lineNum">     102 </span><span class="lineCov">          2 :     fInit(0),</span>
+<span class="lineNum">     103 </span><span class="lineCov">          2 :     fSDigitsInRun(0),</span>
+<span class="lineNum">     104 </span><span class="lineCov">          2 :     fFirstEvent(0),</span>
+<span class="lineNum">     105 </span><span class="lineCov">          2 :     fLastEvent(0),</span>
+<span class="lineNum">     106 </span><span class="lineCov">          2 :     fSampling(0.),</span>
+<span class="lineNum">     107 </span><span class="lineCov">          2 :     fHits(0)</span>
+<span class="lineNum">     108 </span><span class="lineCov">         10 : {</span>
+<span class="lineNum">     109 </span>            :   // ctor
+<span class="lineNum">     110 </span><span class="lineCov">          2 :   Init();</span>
+<span class="lineNum">     111 </span><span class="lineCov">          2 :   InitParameters() ; </span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     114 </span>            : 
+<a name="115"><span class="lineNum">     115 </span>            : </a>
+<span class="lineNum">     116 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">     117 </span>            : AliEMCALSDigitizer::AliEMCALSDigitizer(const AliEMCALSDigitizer &amp; sd) 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   : TNamed(sd.GetName(),sd.GetTitle()),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     fA(sd.fA),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     fB(sd.fB),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     fECPrimThreshold(sd.fECPrimThreshold),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     fDefaultInit(sd.fDefaultInit),</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     fEventFolderName(sd.fEventFolderName),</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     fInit(sd.fInit),</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     fSDigitsInRun(sd.fSDigitsInRun),</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     fFirstEvent(sd.fFirstEvent),</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     fLastEvent(sd.fLastEvent),</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     fSampling(sd.fSampling),</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     fHits(0)</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     131 </span>            :   //cpy ctor 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 : }</span>
+<a name="133"><span class="lineNum">     133 </span>            : </a>
+<span class="lineNum">     134 </span>            : //_____________________________________________________________________
+<span class="lineNum">     135 </span>            : AliEMCALSDigitizer&amp; AliEMCALSDigitizer::operator = (const AliEMCALSDigitizer&amp; source)
+<span class="lineNum">     136 </span>            : { // assignment operator; use copy ctor
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   if (&amp;source == this) return *this;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   new (this) AliEMCALSDigitizer(source);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   return *this;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 : }</span>
+<a name="142"><span class="lineNum">     142 </span>            : </a>
+<span class="lineNum">     143 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">     144 </span><span class="lineCov">         34 : AliEMCALSDigitizer::~AliEMCALSDigitizer() {</span>
+<span class="lineNum">     145 </span>            :   //dtor
+<span class="lineNum">     146 </span>            :         
+<span class="lineNum">     147 </span><span class="lineCov">          6 :   if(fHits){</span>
+<span class="lineNum">     148 </span><span class="lineCov">          1 :           fHits-&gt;Clear();</span>
+<span class="lineNum">     149 </span><span class="lineCov">          2 :           delete fHits;</span>
+<span class="lineNum">     150 </span>            :   }
+<span class="lineNum">     151 </span><span class="lineCov">         17 : }</span>
+<a name="152"><span class="lineNum">     152 </span>            : </a>
+<span class="lineNum">     153 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">     154 </span>            : void AliEMCALSDigitizer::Init(){
+<span class="lineNum">     155 </span>            :   // Initialization: open root-file, allocate arrays for hits and sdigits
+<span class="lineNum">     156 </span>            :   // 
+<span class="lineNum">     157 </span>            :   // Initialization can not be done in the default constructor
+<span class="lineNum">     158 </span>            :   //============================================================= YS
+<span class="lineNum">     159 </span>            :   //  The initialisation is now done by the getter
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">          4 :   fInit = kTRUE; </span>
+<span class="lineNum">     162 </span>            :    
+<span class="lineNum">     163 </span><span class="lineCov">          6 :   AliEMCALLoader *emcalLoader = dynamic_cast&lt;AliEMCALLoader*&gt;(AliRunLoader::Instance()-&gt;GetDetectorLoader(&quot;EMCAL&quot;));</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">          2 :   if ( emcalLoader == 0 ) {</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     Fatal(&quot;Init&quot;, &quot;Could not obtain the AliEMCALLoader&quot;);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     return ;</span>
+<span class="lineNum">     168 </span>            :   } 
+<span class="lineNum">     169 </span>            :   
+<span class="lineNum">     170 </span><span class="lineCov">          4 : }</span>
+<a name="171"><span class="lineNum">     171 </span>            : </a>
+<span class="lineNum">     172 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">     173 </span>            : void AliEMCALSDigitizer::InitParameters()
+<span class="lineNum">     174 </span>            : {
+<span class="lineNum">     175 </span>            :   //initialize parameters for sdigitization
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">         12 :   const AliEMCALGeometry * geom = AliEMCALGeometry::GetInstance();</span>
+<span class="lineNum">     178 </span><span class="lineCov">          6 :   if (geom-&gt;GetSampling() == 0.) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     Fatal(&quot;InitParameters&quot;, &quot;Sampling factor not set !&quot;) ; </span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :   // Get the parameters from the OCDB via the loader
+<span class="lineNum">     183 </span><span class="lineCov">          6 :   AliRunLoader *rl = AliRunLoader::Instance();</span>
+<span class="lineNum">     184 </span><span class="lineCov">         18 :   AliEMCALLoader *emcalLoader = dynamic_cast&lt;AliEMCALLoader*&gt;(rl-&gt;GetDetectorLoader(&quot;EMCAL&quot;));</span>
+<span class="lineNum">     185 </span>            :   AliEMCALSimParam * simParam = 0x0;
+<span class="lineNum">     186 </span><span class="lineCov">         12 :   if(emcalLoader) simParam = emcalLoader-&gt;SimulationParameters();</span>
+<span class="lineNum">     187 </span>            :         
+<span class="lineNum">     188 </span><span class="lineCov">          6 :   if(!simParam){</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :         simParam = AliEMCALSimParam::GetInstance();</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         AliWarning(&quot;Simulation Parameters not available in OCDB?&quot;);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     192 </span>            :         
+<span class="lineNum">     193 </span>            :   //
+<span class="lineNum">     194 </span>            :   //JLK 26-Jun-2008 THIS SHOULD HAVE BEEN EXPLAINED AGES AGO:
+<span class="lineNum">     195 </span>            :   //
+<span class="lineNum">     196 </span>            :   //In order to be able to store SDigit Energy info into
+<span class="lineNum">     197 </span>            :   //AliEMCALDigit, we need to convert it temporarily to an ADC amplitude
+<span class="lineNum">     198 </span>            :   //and later when summing SDigits to form digits, convert it back to
+<span class="lineNum">     199 </span>            :   //energy.  These fA and fB parameters accomplish this through the
+<span class="lineNum">     200 </span>            :   //Digitize() and Calibrate() methods
+<span class="lineNum">     201 </span>            :   //
+<span class="lineNum">     202 </span>            :   // Initializes parameters
+<span class="lineNum">     203 </span><span class="lineCov">          6 :   fA         = simParam-&gt;GetA(); //0;</span>
+<span class="lineNum">     204 </span><span class="lineCov">          6 :   fB         = simParam-&gt;GetB(); //1.e+6;  // Changed 24 Apr 2007. Dynamic range now 2 TeV</span>
+<span class="lineNum">     205 </span><span class="lineCov">          6 :   fSampling  = geom-&gt;GetSampling();</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :   // threshold for deposit energy of hit
+<span class="lineNum">     208 </span><span class="lineCov">          6 :   fECPrimThreshold  = simParam-&gt;GetECPrimaryThreshold();//0.05;// GeV // 22-may-07 was 0// 24-nov-04 - was 1.e-6;</span>
+<span class="lineNum">     209 </span>            :   
+<span class="lineNum">     210 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;Print: \n------------------- %s -------------\n&quot;,GetName()));</span>
+<span class="lineNum">     211 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   fInit                                 %i\n&quot;, int(fInit)));</span>
+<span class="lineNum">     212 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   fFirstEvent                           %i\n&quot;, fFirstEvent));</span>
+<span class="lineNum">     213 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   fLastEvent                            %i\n&quot;, fLastEvent));</span>
+<span class="lineNum">     214 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   Writing SDigits to branch with title  %s\n&quot;, fEventFolderName.Data()));</span>
+<span class="lineNum">     215 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   with digitization parameters       A = %f\n&quot;, fA));</span>
+<span class="lineNum">     216 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;                                      B = %f\n&quot;, fB));</span>
+<span class="lineNum">     217 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   Threshold for EC Primary assignment  = %f\n&quot;, fECPrimThreshold));</span>
+<span class="lineNum">     218 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;   Sampling                             = %f\n&quot;, fSampling));</span>
+<span class="lineNum">     219 </span><span class="lineCov">         18 :   AliDebug(2,Form(&quot;---------------------------------------------------\n&quot;));</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineCov">          6 : }</span>
+<a name="222"><span class="lineNum">     222 </span>            : </a>
+<span class="lineNum">     223 </span>            : //____________________________________________________________________________
+<span class="lineNum">     224 </span>            : void AliEMCALSDigitizer::Digitize(Option_t *option) 
+<span class="lineNum">     225 </span>            : { 
+<span class="lineNum">     226 </span>            :         // Collects all hit of the same tower into digits
+<span class="lineNum">     227 </span><span class="lineCov">          2 :         TString o(option); o.ToUpper();</span>
+<span class="lineNum">     228 </span><span class="lineCov">          2 :         if (strstr(option, &quot;print&quot;) ) {</span>
+<span class="lineNum">     229 </span>            :                 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;Print: \n------------------- %s -------------\n&quot;,GetName()));</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   fInit                                 %i\n&quot;, int(fInit)));</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   fFirstEvent                           %i\n&quot;, fFirstEvent));</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   fLastEvent                            %i\n&quot;, fLastEvent));</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   Writing SDigits to branch with title  %s\n&quot;, fEventFolderName.Data()));</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   with digitization parameters       A = %f\n&quot;, fA));</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;                                      B = %f\n&quot;, fB));</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   Threshold for EC Primary assignment  = %f\n&quot;, fECPrimThreshold));</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;   Sampling                             = %f\n&quot;, fSampling));</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 AliDebug(2,Form(&quot;---------------------------------------------------\n&quot;));</span>
+<span class="lineNum">     240 </span>            :                 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 return ; </span>
+<span class="lineNum">     242 </span>            :         }
+<span class="lineNum">     243 </span>            :         
+<span class="lineNum">     244 </span>            :         
+<span class="lineNum">     245 </span><span class="lineCov">          2 :         if(strstr(option,&quot;tim&quot;))</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 gBenchmark-&gt;Start(&quot;EMCALSDigitizer&quot;);</span>
+<span class="lineNum">     247 </span>            :         
+<span class="lineNum">     248 </span><span class="lineCov">          1 :         AliRunLoader *rl = AliRunLoader::Instance();</span>
+<span class="lineNum">     249 </span><span class="lineCov">          4 :         AliEMCALLoader *emcalLoader = dynamic_cast&lt;AliEMCALLoader*&gt;(rl-&gt;GetDetectorLoader(&quot;EMCAL&quot;));</span>
+<span class="lineNum">     250 </span>            :         
+<span class="lineNum">     251 </span><span class="lineCov">          1 :         if (!fInit) { // to prevent overwrite existing file</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :           AliError( Form(&quot;Give a version name different from %s&quot;, fEventFolderName.Data()) ) ;</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :           return ;</span>
+<span class="lineNum">     254 </span>            :         }
+<span class="lineNum">     255 </span>            :         
+<span class="lineNum">     256 </span><span class="lineCov">          1 :         if (fLastEvent == -1) </span>
+<span class="lineNum">     257 </span><span class="lineCov">          2 :                 fLastEvent = rl-&gt;GetNumberOfEvents() - 1 ;</span>
+<span class="lineNum">     258 </span>            :         else {
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                 fLastEvent = TMath::Min(fLastEvent, rl-&gt;GetNumberOfEvents()-1);</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span><span class="lineCov">          1 :         Int_t nEvents   = fLastEvent - fFirstEvent + 1;</span>
+<span class="lineNum">     262 </span>            :         
+<span class="lineNum">     263 </span>            :         Float_t energy=0.; // de * fSampling - 23-nov-04
+<span class="lineNum">     264 </span><span class="lineCov">          1 :         rl-&gt;LoadKinematics();</span>
+<span class="lineNum">     265 </span><span class="lineCov">          1 :         rl-&gt;LoadHits(&quot;EMCAL&quot;);</span>
+<span class="lineNum">     266 </span>            :   
+<span class="lineNum">     267 </span>            :   Int_t ievent;
+<span class="lineNum">     268 </span><span class="lineCov">         10 :         for (ievent = fFirstEvent; ievent &lt;= fLastEvent; ievent++) {</span>
+<span class="lineNum">     269 </span><span class="lineCov">          4 :                 rl-&gt;GetEvent(ievent);</span>
+<span class="lineNum">     270 </span><span class="lineCov">          4 :                 TTree * treeS = emcalLoader-&gt;TreeS();</span>
+<span class="lineNum">     271 </span><span class="lineCov">          4 :                 if ( !treeS ) { </span>
+<span class="lineNum">     272 </span><span class="lineCov">          4 :                         emcalLoader-&gt;MakeSDigitsContainer();</span>
+<span class="lineNum">     273 </span><span class="lineCov">          4 :                         treeS = emcalLoader-&gt;TreeS();</span>
+<span class="lineNum">     274 </span><span class="lineCov">          4 :                 }</span>
+<span class="lineNum">     275 </span>            :     
+<span class="lineNum">     276 </span><span class="lineCov">          8 :                 TClonesArray * sdigits = emcalLoader-&gt;SDigits() ;</span>
+<span class="lineNum">     277 </span><span class="lineCov">          4 :                 sdigits-&gt;Clear(&quot;C&quot;);</span>
+<span class="lineNum">     278 </span>            :                 
+<span class="lineNum">     279 </span>            :                 Int_t nSdigits = 0 ;
+<span class="lineNum">     280 </span>            :                 Int_t iHit, iTrack, iSDigit;
+<span class="lineNum">     281 </span>            :                 
+<span class="lineNum">     282 </span><span class="lineCov">          4 :                 AliEMCALGeometry *geom = AliEMCALGeometry::GetInstance(); </span>
+<span class="lineNum">     283 </span>            :                 
+<span class="lineNum">     284 </span><span class="lineCov">          4 :                 TTree *treeH = emcalLoader-&gt;TreeH(); </span>
+<span class="lineNum">     285 </span><span class="lineCov">          4 :                 if (treeH) {</span>
+<span class="lineNum">     286 </span><span class="lineCov">          8 :                         Int_t nTrack = treeH-&gt;GetEntries();  // TreeH has array of hits for every primary</span>
+<span class="lineNum">     287 </span><span class="lineCov">          4 :                         TBranch * branchH = treeH-&gt;GetBranch(&quot;EMCAL&quot;);</span>
+<span class="lineNum">     288 </span>            :                         //if(fHits)fHits-&gt;Clear();
+<span class="lineNum">     289 </span><span class="lineCov">          4 :                         branchH-&gt;SetAddress(&amp;fHits);</span>
+<span class="lineNum">     290 </span><span class="lineCov">        232 :                         for (iTrack = 0; iTrack &lt; nTrack; iTrack++) {</span>
+<span class="lineNum">     291 </span><span class="lineCov">        112 :                                 branchH-&gt;GetEntry(iTrack); </span>
+<span class="lineNum">     292 </span>            :         
+<span class="lineNum">     293 </span><span class="lineCov">        112 :         if(fHits){</span>
+<span class="lineNum">     294 </span>            :           
+<span class="lineNum">     295 </span><span class="lineCov">        112 :           Int_t nHit = fHits-&gt;GetEntriesFast();</span>
+<span class="lineNum">     296 </span><span class="lineCov">        808 :           for(iHit = 0; iHit&lt; nHit;iHit++){</span>
+<span class="lineNum">     297 </span>            :             
+<span class="lineNum">     298 </span><span class="lineCov">       1168 :             AliEMCALHit * hit = dynamic_cast&lt;AliEMCALHit*&gt;(fHits-&gt;At(iHit)) ;</span>
+<span class="lineNum">     299 </span>            :             AliEMCALDigit * curSDigit = 0 ;
+<span class="lineNum">     300 </span>            :             AliEMCALDigit * sdigit = 0 ;
+<span class="lineNum">     301 </span>            :             Bool_t newsdigit = kTRUE; 
+<span class="lineNum">     302 </span>            :             
+<span class="lineNum">     303 </span>            :             // hit-&gt;GetId() - Absolute Id number EMCAL segment
+<span class="lineNum">     304 </span><span class="lineCov">        292 :             if(hit){</span>
+<span class="lineNum">     305 </span><span class="lineCov">        584 :               if(geom-&gt;CheckAbsCellId(hit-&gt;GetId())) { // was IsInECA(hit-&gt;GetId())</span>
+<span class="lineNum">     306 </span><span class="lineCov">        292 :                 energy = hit-&gt;GetEnergy() * fSampling; // 23-nov-04</span>
+<span class="lineNum">     307 </span><span class="lineCov">        292 :                 if(energy &gt;  fECPrimThreshold )</span>
+<span class="lineNum">     308 </span>            :                   // Assign primary number only if deposited energy is significant
+<span class="lineNum">     309 </span><span class="lineCov">        224 :                   curSDigit =  new AliEMCALDigit(hit-&gt;GetPrimary(),</span>
+<span class="lineNum">     310 </span><span class="lineCov">         56 :                                                  hit-&gt;GetIparent(), hit-&gt;GetId(), </span>
+<span class="lineNum">     311 </span><span class="lineCov">        112 :                                                  Digitize(energy), hit-&gt;GetTime(),kFALSE,</span>
+<span class="lineNum">     312 </span>            :                                                  -1, 0,0,energy ) ;
+<span class="lineNum">     313 </span>            :                 else
+<span class="lineNum">     314 </span><span class="lineCov">        708 :                   curSDigit =  new AliEMCALDigit(-1, </span>
+<span class="lineNum">     315 </span>            :                                                  -1,
+<span class="lineNum">     316 </span><span class="lineCov">        236 :                                                  hit-&gt;GetId(), </span>
+<span class="lineNum">     317 </span><span class="lineCov">        472 :                                                  Digitize(energy), hit-&gt;GetTime(),kFALSE,</span>
+<span class="lineNum">     318 </span>            :                                                  -1, 0,0,energy ) ;
+<span class="lineNum">     319 </span>            :               } else {
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                 Warning(&quot;Digitize&quot;,&quot; abs id %i is bad \n&quot;, hit-&gt;GetId());</span>
+<span class="lineNum">     321 </span>            :                 newsdigit = kFALSE;
+<span class="lineNum">     322 </span>            :                 curSDigit = 0;
+<span class="lineNum">     323 </span>            :               }
+<span class="lineNum">     324 </span>            :               
+<span class="lineNum">     325 </span><span class="lineCov">        292 :               if(curSDigit != 0){</span>
+<span class="lineNum">     326 </span><span class="lineCov">      24466 :                 for(Int_t check= 0; check &lt; nSdigits ; check++) {</span>
+<span class="lineNum">     327 </span><span class="lineCov">      47764 :                   sdigit = dynamic_cast&lt;AliEMCALDigit *&gt;(sdigits-&gt;At(check)) ;</span>
+<span class="lineNum">     328 </span><span class="lineCov">      11941 :                   if(sdigit){</span>
+<span class="lineNum">     329 </span><span class="lineCov">      11941 :                     if( sdigit-&gt;GetId() == curSDigit-&gt;GetId()) { // Are we in the same ECAL tower ?              </span>
+<span class="lineNum">     330 </span><span class="lineCov">         72 :                       *sdigit = *sdigit + *curSDigit;</span>
+<span class="lineNum">     331 </span>            :                       newsdigit = kFALSE;
+<span class="lineNum">     332 </span><span class="lineCov">         24 :                     }</span>
+<span class="lineNum">     333 </span>            :                   }// sdigit exists
+<span class="lineNum">     334 </span>            :                   else {
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :                     AliWarning(&quot;Sdigit do not exist&quot;);</span>
+<span class="lineNum">     336 </span>            :                     newsdigit = kFALSE;  
+<span class="lineNum">     337 </span>            :                   }// sdigit does not exist
+<span class="lineNum">     338 </span>            :                 }//sdigit loop
+<span class="lineNum">     339 </span><span class="lineCov">        292 :               }// currsdigit exists</span>
+<span class="lineNum">     340 </span>            :               
+<span class="lineNum">     341 </span><span class="lineCov">        292 :               if (newsdigit) {</span>
+<span class="lineNum">     342 </span><span class="lineCov">        804 :                 new((*sdigits)[nSdigits])  AliEMCALDigit(*curSDigit);</span>
+<span class="lineNum">     343 </span><span class="lineCov">        268 :                 nSdigits++ ;  </span>
+<span class="lineNum">     344 </span><span class="lineCov">        268 :               }</span>
+<span class="lineNum">     345 </span><span class="lineCov">        584 :               delete curSDigit ;</span>
+<span class="lineNum">     346 </span>            :               
+<span class="lineNum">     347 </span>            :             }// hit exists
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             else AliFatal(&quot;Hit is NULL!&quot;);</span>
+<span class="lineNum">     349 </span>            :             
+<span class="lineNum">     350 </span>            :           }  // loop over all hits (hit = deposited energy/entering particle)
+<span class="lineNum">     351 </span>            :           
+<span class="lineNum">     352 </span><span class="lineCov">        112 :         }//fHits is not NULL</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         else AliFatal(&quot;fHit is NULL!&quot;);</span>
+<span class="lineNum">     354 </span>            :         
+<span class="lineNum">     355 </span><span class="lineCov">        112 :                                 sdigits-&gt;Sort() ;</span>
+<span class="lineNum">     356 </span>            :                                 
+<span class="lineNum">     357 </span><span class="lineCov">        112 :                                 nSdigits = sdigits-&gt;GetEntriesFast() ;</span>
+<span class="lineNum">     358 </span><span class="lineCov">        112 :                                 fSDigitsInRun += nSdigits ;  </span>
+<span class="lineNum">     359 </span>            :                                 
+<span class="lineNum">     360 </span><span class="lineCov">      10068 :                                 for (iSDigit = 0 ; iSDigit &lt; sdigits-&gt;GetEntriesFast() ; iSDigit++) { </span>
+<span class="lineNum">     361 </span><span class="lineCov">      12976 :                                         AliEMCALDigit * sdigit = dynamic_cast&lt;AliEMCALDigit *&gt;(sdigits-&gt;At(iSDigit)) ;</span>
+<span class="lineNum">     362 </span><span class="lineCov">       6488 :                                         if(sdigit)sdigit-&gt;SetIndexInList(iSDigit) ;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :           else AliFatal(&quot;sdigit is NULL!&quot;);</span>
+<span class="lineNum">     364 </span>            :                                 }       
+<span class="lineNum">     365 </span><span class="lineCov">        224 :                                 if(fHits)fHits-&gt;Clear();</span>
+<span class="lineNum">     366 </span>            :                         }//track loop
+<span class="lineNum">     367 </span><span class="lineCov">          4 :                 }// tree exists</span>
+<span class="lineNum">     368 </span>            :                 
+<span class="lineNum">     369 </span>            :                 // Now write SDigits    
+<span class="lineNum">     370 </span>            :                 
+<span class="lineNum">     371 </span>            :                 Int_t bufferSize = 32000 ;    
+<span class="lineNum">     372 </span><span class="lineCov">          4 :                 TBranch * sdigitsBranch = treeS-&gt;GetBranch(&quot;EMCAL&quot;);</span>
+<span class="lineNum">     373 </span><span class="lineCov">          4 :                 if (sdigitsBranch)</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :                         sdigitsBranch-&gt;SetAddress(&amp;sdigits);</span>
+<span class="lineNum">     375 </span>            :                 else
+<span class="lineNum">     376 </span><span class="lineCov">          4 :                         treeS-&gt;Branch(&quot;EMCAL&quot;,&amp;sdigits,bufferSize);</span>
+<span class="lineNum">     377 </span>            :                 
+<span class="lineNum">     378 </span><span class="lineCov">          4 :                 treeS-&gt;Fill();</span>
+<span class="lineNum">     379 </span>            :                 
+<span class="lineNum">     380 </span><span class="lineCov">          4 :                 emcalLoader-&gt;WriteSDigits(&quot;OVERWRITE&quot;);</span>
+<span class="lineNum">     381 </span>            :                 
+<span class="lineNum">     382 </span>            :                 //NEXT - SDigitizer
+<span class="lineNum">     383 </span>            :                 //emcalLoader-&gt;WriteSDigitizer(&quot;OVERWRITE&quot;);  // why in event cycle ?
+<span class="lineNum">     384 </span>            :                 
+<span class="lineNum">     385 </span><span class="lineCov">          8 :                 if(strstr(option,&quot;deb&quot;))</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                         PrintSDigits(option) ;  </span>
+<span class="lineNum">     387 </span><span class="lineCov">          4 :         }</span>
+<span class="lineNum">     388 </span>            :         
+<span class="lineNum">     389 </span><span class="lineCov">          1 :         Unload();</span>
+<span class="lineNum">     390 </span>            :                 
+<span class="lineNum">     391 </span><span class="lineCov">          2 :         if(strstr(option,&quot;tim&quot;)){</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                 gBenchmark-&gt;Stop(&quot;EMCALSDigitizer&quot;); </span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                 printf(&quot;\n Digitize: took %f seconds for SDigitizing %f seconds per event\n&quot;, </span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :            gBenchmark-&gt;GetCpuTime(&quot;EMCALSDigitizer&quot;), gBenchmark-&gt;GetCpuTime(&quot;EMCALSDigitizer&quot;)/nEvents ) ; </span>
+<span class="lineNum">     395 </span>            :         }
+<span class="lineNum">     396 </span><span class="lineCov">          2 : }</span>
+<a name="397"><span class="lineNum">     397 </span>            : </a>
+<span class="lineNum">     398 </span>            : //__________________________________________________________________
+<span class="lineNum">     399 </span>            : Float_t AliEMCALSDigitizer::Digitize(Float_t energy)const {
+<span class="lineNum">     400 </span>            :   // Digitize the energy
+<span class="lineNum">     401 </span>            :   //
+<span class="lineNum">     402 </span>            :   //JLK 26-Jun-2008 EXPLANATION LONG OVERDUE:
+<span class="lineNum">     403 </span>            :   //
+<span class="lineNum">     404 </span>            :   //We have to digitize the SDigit energy so that it can be stored in
+<span class="lineNum">     405 </span>            :   //AliEMCALDigit, which has only an ADC amplitude member and
+<span class="lineNum">     406 </span>            :   //(rightly) no energy member.  This method converts the energy to an
+<span class="lineNum">     407 </span>            :   //integer which can be re-converted back to an energy with the
+<span class="lineNum">     408 </span>            :   //Calibrate(energy) method when it is time to create Digits from SDigits 
+<span class="lineNum">     409 </span>            :   //
+<span class="lineNum">     410 </span><span class="lineCov">     141896 :   Double_t aSignal = fA + energy*fB;</span>
+<span class="lineNum">     411 </span><span class="lineCov">      70948 :   if (TMath::Abs(aSignal)&gt;2147483647.0) { </span>
+<span class="lineNum">     412 </span>            :     //PH 2147483647 is the max. integer
+<span class="lineNum">     413 </span>            :     //PH This apparently is a problem which needs investigation
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     AliWarning(Form(&quot;Too big or too small energy %f&quot;,aSignal));</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     aSignal = TMath::Sign((Double_t)2147483647,aSignal);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineCov">      70948 :   return (Float_t ) aSignal;</span>
+<span class="lineNum">     419 </span>            : }
+<a name="420"><span class="lineNum">     420 </span>            : </a>
+<span class="lineNum">     421 </span>            : //__________________________________________________________________
+<span class="lineNum">     422 </span>            : Float_t AliEMCALSDigitizer::Calibrate(Float_t amp)const {
+<span class="lineNum">     423 </span>            :   //
+<span class="lineNum">     424 </span>            :   // Convert the amplitude back to energy in GeV
+<span class="lineNum">     425 </span>            :   //
+<span class="lineNum">     426 </span>            :   //JLK 26-Jun-2008 EXPLANATION LONG OVERDUE:
+<span class="lineNum">     427 </span>            :   //
+<span class="lineNum">     428 </span>            :   //We have to digitize the SDigit energy with the method Digitize() 
+<span class="lineNum">     429 </span>            :   //so that it can be stored in AliEMCALDigit, which has only an ADC 
+<span class="lineNum">     430 </span>            :   //amplitude member and (rightly) no energy member.  This method is
+<span class="lineNum">     431 </span>            :   //just the reverse of Digitize(): it converts the stored amplitude 
+<span class="lineNum">     432 </span>            :   //back to an energy value in GeV so that the SDigit energies can be 
+<span class="lineNum">     433 </span>            :   //summed before adding noise and creating digits out of them
+<span class="lineNum">     434 </span>            :   //
+<span class="lineNum">     435 </span><span class="lineCov">     142384 :   return (Float_t)(amp - fA)/fB;</span>
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span>            : }
+<span class="lineNum">     438 </span>            :  
+<a name="439"><span class="lineNum">     439 </span>            : </a>
+<span class="lineNum">     440 </span>            : //__________________________________________________________________
+<span class="lineNum">     441 </span>            : void AliEMCALSDigitizer::Print1(Option_t * option)
+<span class="lineNum">     442 </span>            : {
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :   Print(); </span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   PrintSDigits(option);</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 : }</span>
+<a name="446"><span class="lineNum">     446 </span>            : </a>
+<span class="lineNum">     447 </span>            : //__________________________________________________________________
+<span class="lineNum">     448 </span>            : void AliEMCALSDigitizer::Print(Option_t *option) const
+<span class="lineNum">     449 </span>            : { 
+<span class="lineNum">     450 </span>            :   // Prints parameters of SDigitizer
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   printf(&quot;Print: \n------------------- %s ------------- option %s\n&quot;, GetName() , option) ; </span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   printf(&quot;   fInit                                 %i\n&quot;, int(fInit));</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :   printf(&quot;   fFirstEvent                           %i\n&quot;, fFirstEvent);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :   printf(&quot;   fLastEvent                            %i\n&quot;, fLastEvent);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :   printf(&quot;   Writing SDigits to branch with title  %s\n&quot;, fEventFolderName.Data()) ;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :   printf(&quot;   with digitization parameters       A = %f\n&quot;, fA) ; </span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :   printf(&quot;                                      B = %f\n&quot;, fB) ;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   printf(&quot;   Threshold for EC Primary assignment  = %f\n&quot;, fECPrimThreshold)  ;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   printf(&quot;   Sampling                             = %f\n&quot;, fSampling);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   printf(&quot;---------------------------------------------------\n&quot;) ;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 : }</span>
+<a name="462"><span class="lineNum">     462 </span>            : </a>
+<span class="lineNum">     463 </span>            : //__________________________________________________________________
+<span class="lineNum">     464 </span>            : Bool_t AliEMCALSDigitizer::operator==( AliEMCALSDigitizer const &amp;sd )const
+<span class="lineNum">     465 </span>            : {
+<span class="lineNum">     466 </span>            :   // Equal operator.
+<span class="lineNum">     467 </span>            :   // SDititizers are equal if their pedestal, slope and threshold are equal
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   if( (fA==sd.fA)&amp;&amp;(fB==sd.fB)&amp;&amp;</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :       (fECPrimThreshold==sd.fECPrimThreshold))</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :     return kTRUE ;</span>
+<span class="lineNum">     471 </span>            :   else
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     return kFALSE ;</span>
+<a name="473"><span class="lineNum">     473 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     474 </span>            : //__________________________________________________________________
+<span class="lineNum">     475 </span>            : void AliEMCALSDigitizer::PrintSDigits(Option_t * option)
+<span class="lineNum">     476 </span>            : {
+<span class="lineNum">     477 </span>            :   //Prints list of digits produced at the current pass of AliEMCALDigitizer
+<span class="lineNum">     478 </span>            :   
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :   AliEMCALLoader *rl = dynamic_cast&lt;AliEMCALLoader*&gt;(AliRunLoader::Instance()-&gt;GetDetectorLoader(&quot;EMCAL&quot;));</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   if(rl){</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     const TClonesArray * sdigits = rl-&gt;SDigits() ; </span>
+<span class="lineNum">     482 </span>            :     
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     printf(&quot;\n&quot;) ;  </span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     printf(&quot;event %i&quot;, rl-&gt;GetRunLoader()-&gt;GetEventNumber());</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     printf(&quot; Number of entries in SDigits list %i&quot;, sdigits-&gt;GetEntriesFast()); </span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     if(strstr(option,&quot;all&quot;)||strstr(option,&quot;EMC&quot;)){</span>
+<span class="lineNum">     487 </span>            :       
+<span class="lineNum">     488 </span>            :       //loop over digits
+<span class="lineNum">     489 </span>            :       AliEMCALDigit * digit;
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :       printf(&quot;\n   Id  Amplitude    Time          Index Nprim: Primaries list \n&quot;) ;    </span>
+<span class="lineNum">     491 </span>            :       Int_t   index = 0;
+<span class="lineNum">     492 </span>            :       Float_t isum  = 0.;
+<span class="lineNum">     493 </span>            :       const Int_t bufferSize = 8192;
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :       char * tempo = new char[bufferSize]; </span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :       for (index = 0 ; index &lt; sdigits-&gt;GetEntries() ; index++) {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         digit = dynamic_cast&lt;AliEMCALDigit *&gt;( sdigits-&gt;At(index) ) ;</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :         if(digit){</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :           snprintf(tempo, bufferSize,&quot;\n%6d  %8f    %6.5e %4d      %2d :&quot;,</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :                   digit-&gt;GetId(), digit-&gt;GetAmplitude(), digit-&gt;GetTime(), digit-&gt;GetIndexInList(), digit-&gt;GetNprimary()) ;  </span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :           printf(&quot;%s&quot;,tempo);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :           isum += digit-&gt;GetAmplitude();</span>
+<span class="lineNum">     502 </span>            :           
+<span class="lineNum">     503 </span>            :           Int_t iprimary;
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :           for (iprimary=0; iprimary&lt;digit-&gt;GetNprimary(); iprimary++) {</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :             snprintf(tempo,bufferSize, &quot;%d &quot;,digit-&gt;GetPrimary(iprimary+1) ) ; </span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :             printf(&quot;%s&quot;,tempo); </span>
+<span class="lineNum">     507 </span>            :           }  
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         } //sdigit exists</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         else AliFatal(&quot;SDigit is NULL!&quot;);</span>
+<span class="lineNum">     510 </span>            :       }//loop
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :       delete [] tempo ;</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :       printf(&quot;\n** Sum %2.3f : %10.3f GeV/c **\n &quot;, isum, Calibrate(isum));</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     } else printf(&quot;\n&quot;);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :   else AliFatal(&quot;EMCALLoader is NULL!&quot;);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 : }</span>
+<a name="517"><span class="lineNum">     517 </span>            : </a>
+<span class="lineNum">     518 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">     519 </span>            : void AliEMCALSDigitizer::Unload() const
+<span class="lineNum">     520 </span>            : {
+<span class="lineNum">     521 </span>            :   // Unload Hits and SDigits from the folder
+<span class="lineNum">     522 </span><span class="lineCov">          4 :   AliEMCALLoader *rl = dynamic_cast&lt;AliEMCALLoader*&gt;(AliRunLoader::Instance()-&gt;GetDetectorLoader(&quot;EMCAL&quot;));</span>
+<span class="lineNum">     523 </span><span class="lineCov">          1 :   if(rl){</span>
+<span class="lineNum">     524 </span><span class="lineCov">          1 :     rl-&gt;UnloadHits() ; </span>
+<span class="lineNum">     525 </span><span class="lineCov">          1 :     rl-&gt;UnloadSDigits() ;</span>
+<span class="lineNum">     526 </span><span class="lineCov">          1 :   }</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   else AliFatal(&quot;EMCALLoader is NULL!&quot;);</span>
+<span class="lineNum">     528 </span><span class="lineCov">          1 : }</span>
+<a name="529"><span class="lineNum">     529 </span>            : </a>
+<span class="lineNum">     530 </span>            : //____________________________________________________________________________ 
+<span class="lineNum">     531 </span>            : void AliEMCALSDigitizer::Browse(TBrowser* b)
+<span class="lineNum">     532 </span>            : {
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   TNamed::Browse(b);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

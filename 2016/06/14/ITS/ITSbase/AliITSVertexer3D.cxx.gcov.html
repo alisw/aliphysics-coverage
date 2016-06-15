@@ -1,0 +1,1458 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - ITS/ITSbase/AliITSVertexer3D.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ITS/ITSbase</a> - AliITSVertexer3D.cxx<span style="font-size: 80%;"> (source / <a href="AliITSVertexer3D.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">431</td>
+            <td class="headerCovTableEntry">985</td>
+            <td class="headerCovTableEntryLo">43.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntryLo">61.5 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /**************************************************************************</a>
+<span class="lineNum">       2 </span>            :  * Copyright(c) 2006-2008, ALICE Experiment at CERN, All rights reserved. *
+<span class="lineNum">       3 </span>            :  *                                                                        *
+<span class="lineNum">       4 </span>            :  * Author: The ALICE Off-line Project.                                    *
+<span class="lineNum">       5 </span>            :  * Contributors are mentioned in the code where appropriate.              *
+<span class="lineNum">       6 </span>            :  *                                                                        *
+<span class="lineNum">       7 </span>            :  * Permission to use, copy, modify and distribute this software and its   *
+<span class="lineNum">       8 </span>            :  * documentation strictly for non-commercial purposes is hereby granted   *
+<span class="lineNum">       9 </span>            :  * without fee, provided that the above copyright notice appears in all   *
+<span class="lineNum">      10 </span>            :  * copies and that both the copyright notice and this permission notice   *
+<span class="lineNum">      11 </span>            :  * appear in the supporting documentation. The authors make no claims     *
+<span class="lineNum">      12 </span>            :  * about the suitability of this software for any purpose. It is          *
+<span class="lineNum">      13 </span>            :  * provided &quot;as is&quot; without express or implied warranty.                  *
+<span class="lineNum">      14 </span>            :  **************************************************************************/
+<span class="lineNum">      15 </span>            : #include &lt;TTree.h&gt;
+<span class="lineNum">      16 </span>            : #include &quot;AliRunLoader.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;AliESDVertex.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;AliLog.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;AliStrLine.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;AliTracker.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;AliITSDetTypeRec.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;AliITSRecPoint.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliITSRecPointContainer.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;AliITSgeomTGeo.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;AliVertexerTracks.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;AliITSVertexer3D.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;AliITSVertexerZ.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;AliITSSortTrkl.h&quot;
+<span class="lineNum">      29 </span>            : /////////////////////////////////////////////////////////////////
+<span class="lineNum">      30 </span>            : // this class implements a method to determine
+<span class="lineNum">      31 </span>            : // the 3 coordinates of the primary vertex
+<span class="lineNum">      32 </span>            : // optimized for 
+<span class="lineNum">      33 </span>            : // p-p collisions
+<span class="lineNum">      34 </span>            : ////////////////////////////////////////////////////////////////
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : const Int_t    AliITSVertexer3D::fgkMaxNumOfClDefault = 300;
+<span class="lineNum">      37 </span>            : const Int_t    AliITSVertexer3D::fgkMaxNumOfClRebinDefault = 500;
+<span class="lineNum">      38 </span>            : const Int_t    AliITSVertexer3D::fgkMaxNumOfClDownscaleDefault = 1000;
+<a name="39"><span class="lineNum">      39 </span>            : const Float_t  AliITSVertexer3D::fgk3DBinSizeDefault = 0.1;</a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineCov">        118 : ClassImp(AliITSVertexer3D)</span>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /* $Id$ */
+<a name="44"><span class="lineNum">      44 </span>            : </a>
+<span class="lineNum">      45 </span>            : //______________________________________________________________________
+<span class="lineNum">      46 </span>            : AliITSVertexer3D::AliITSVertexer3D(Double_t zcut):
+<span class="lineNum">      47 </span><span class="lineCov">          8 :   AliITSVertexer(),</span>
+<span class="lineNum">      48 </span><span class="lineCov">          8 :   fLines(&quot;AliStrLine&quot;,1000),</span>
+<span class="lineNum">      49 </span><span class="lineCov">          8 :   fVert3D(),</span>
+<span class="lineNum">      50 </span><span class="lineCov">          8 :   fCoarseDiffPhiCut(0.),</span>
+<span class="lineNum">      51 </span><span class="lineCov">          8 :   fFineDiffPhiCut(0.),</span>
+<span class="lineNum">      52 </span><span class="lineCov">          8 :   fCutOnPairs(0.),</span>
+<span class="lineNum">      53 </span><span class="lineCov">          8 :   fCoarseMaxRCut(0.),</span>
+<span class="lineNum">      54 </span><span class="lineCov">          8 :   fMaxRCut(0.),</span>
+<span class="lineNum">      55 </span><span class="lineCov">          8 :   fMaxRCut2(0.),</span>
+<span class="lineNum">      56 </span><span class="lineCov">          8 :   fZCutDiamond(0.),</span>
+<span class="lineNum">      57 </span><span class="lineCov">          8 :   fMaxZCut(0.),</span>
+<span class="lineNum">      58 </span><span class="lineCov">          8 :   fDCAcut(0.),</span>
+<span class="lineNum">      59 </span><span class="lineCov">          8 :   fDiffPhiMax(0.),</span>
+<span class="lineNum">      60 </span><span class="lineCov">          8 :   fMeanPSelTrk(0.),</span>
+<span class="lineNum">      61 </span><span class="lineCov">          8 :   fMeanPtSelTrk(0.),</span>
+<span class="lineNum">      62 </span><span class="lineCov">          8 :   fUsedCluster(kMaxCluPerMod*kNSPDMod),</span>
+<span class="lineNum">      63 </span><span class="lineCov">          8 :   fZHisto(0),</span>
+<span class="lineNum">      64 </span><span class="lineCov">          8 :   fDCAforPileup(0.),</span>
+<span class="lineNum">      65 </span><span class="lineCov">          8 :   fDiffPhiforPileup(0.),</span>
+<span class="lineNum">      66 </span><span class="lineCov">          8 :   fBinSizeR(0.),</span>
+<span class="lineNum">      67 </span><span class="lineCov">          8 :   fBinSizeZ(0.),</span>
+<span class="lineNum">      68 </span><span class="lineCov">          8 :   fPileupAlgo(0),</span>
+<span class="lineNum">      69 </span><span class="lineCov">          8 :   fMaxNumOfCl(fgkMaxNumOfClDefault),</span>
+<span class="lineNum">      70 </span><span class="lineCov">          8 :   fMaxNumOfClForRebin(fgkMaxNumOfClRebinDefault),</span>
+<span class="lineNum">      71 </span><span class="lineCov">          8 :   fMaxNumOfClForDownScale(fgkMaxNumOfClDownscaleDefault),</span>
+<span class="lineNum">      72 </span><span class="lineCov">          8 :   fNRecPLay1(0),</span>
+<span class="lineNum">      73 </span><span class="lineCov">          8 :   fNRecPLay2(0),</span>
+<span class="lineNum">      74 </span><span class="lineCov">          8 :   f3DBinSize(fgk3DBinSizeDefault),</span>
+<span class="lineNum">      75 </span><span class="lineCov">          8 :   fDoDownScale(kFALSE),</span>
+<span class="lineNum">      76 </span><span class="lineCov">          8 :   fGenerForDownScale(0),</span>
+<span class="lineNum">      77 </span><span class="lineCov">          8 :   f3DPeak(),</span>
+<span class="lineNum">      78 </span><span class="lineCov">          8 :   fHighMultAlgo(1),</span>
+<span class="lineNum">      79 </span><span class="lineCov">          8 :   fSwitchAlgorithm(kFALSE),</span>
+<span class="lineNum">      80 </span><span class="lineCov">          8 :   fFallBack(kFALSE),</span>
+<span class="lineNum">      81 </span><span class="lineCov">          8 :   fFallBackThreshold(0),</span>
+<span class="lineNum">      82 </span><span class="lineCov">          8 :   fH3d(NULL),</span>
+<span class="lineNum">      83 </span><span class="lineCov">          8 :   fH3dcs(NULL),</span>
+<span class="lineNum">      84 </span><span class="lineCov">          8 :   fH3dfs(NULL),</span>
+<span class="lineNum">      85 </span><span class="lineCov">          8 :   fH3dv(NULL)</span>
+<span class="lineNum">      86 </span><span class="lineCov">         40 : {</span>
+<span class="lineNum">      87 </span>            :   // Default constructor
+<span class="lineNum">      88 </span><span class="lineCov">          8 :   SetCoarseDiffPhiCut();</span>
+<span class="lineNum">      89 </span><span class="lineCov">          8 :   SetFineDiffPhiCut();</span>
+<span class="lineNum">      90 </span><span class="lineCov">          8 :   SetCutOnPairs();</span>
+<span class="lineNum">      91 </span><span class="lineCov">          8 :   SetCoarseMaxRCut();</span>
+<span class="lineNum">      92 </span><span class="lineCov">          8 :   SetMaxRCut();</span>
+<span class="lineNum">      93 </span><span class="lineCov">          8 :   SetMaxRCutAlgo2();</span>
+<span class="lineNum">      94 </span><span class="lineCov">          8 :   if(zcut&gt;0.){</span>
+<span class="lineNum">      95 </span><span class="lineCov">          8 :     SetZCutDiamond(zcut);</span>
+<span class="lineNum">      96 </span>            :   }
+<span class="lineNum">      97 </span>            :   else {
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     SetZCutDiamond();</span>
+<span class="lineNum">      99 </span>            :   }
+<span class="lineNum">     100 </span><span class="lineCov">          8 :   SetMaxZCut();</span>
+<span class="lineNum">     101 </span><span class="lineCov">          8 :   SetDCACut();</span>
+<span class="lineNum">     102 </span><span class="lineCov">          8 :   SetDiffPhiMax();</span>
+<span class="lineNum">     103 </span><span class="lineCov">          8 :   SetMeanPSelTracks();</span>
+<span class="lineNum">     104 </span><span class="lineCov">          8 :   SetMeanPtSelTracks();</span>
+<span class="lineNum">     105 </span><span class="lineCov">          8 :   SetMinDCAforPileup();</span>
+<span class="lineNum">     106 </span><span class="lineCov">          8 :   SetDeltaPhiforPileup();</span>
+<span class="lineNum">     107 </span><span class="lineCov">          8 :   SetPileupAlgo();</span>
+<span class="lineNum">     108 </span><span class="lineCov">          8 :   SetBinSizeR();</span>
+<span class="lineNum">     109 </span><span class="lineCov">          8 :   SetBinSizeZ();</span>
+<span class="lineNum">     110 </span><span class="lineCov">         24 :   fGenerForDownScale=new TRandom3(987654321);</span>
+<span class="lineNum">     111 </span><span class="lineCov">         16 : }</span>
+<a name="112"><span class="lineNum">     112 </span>            : </a>
+<span class="lineNum">     113 </span>            : //______________________________________________________________________
+<span class="lineNum">     114 </span>            : AliITSVertexer3D::AliITSVertexer3D(TRootIOCtor*):
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   AliITSVertexer(),</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   fLines(&quot;AliStrLine&quot;,1000),</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   fVert3D(),</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   fCoarseDiffPhiCut(0.),</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   fFineDiffPhiCut(0.),</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   fCutOnPairs(0.),</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   fCoarseMaxRCut(0.),</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   fMaxRCut(0.),</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   fMaxRCut2(0.),</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   fZCutDiamond(0.),</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   fMaxZCut(0.),</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   fDCAcut(0.),</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   fDiffPhiMax(0.),</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   fMeanPSelTrk(0.),</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   fMeanPtSelTrk(0.),</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   fUsedCluster(kMaxCluPerMod*kNSPDMod),</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   fZHisto(0),</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   fDCAforPileup(0.),</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   fDiffPhiforPileup(0.),</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :   fBinSizeR(0.),</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   fBinSizeZ(0.),</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :   fPileupAlgo(0),</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   fMaxNumOfCl(fgkMaxNumOfClDefault),</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   fMaxNumOfClForRebin(fgkMaxNumOfClRebinDefault),</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :   fMaxNumOfClForDownScale(fgkMaxNumOfClDownscaleDefault),</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   fNRecPLay1(0),</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   fNRecPLay2(0),</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   f3DBinSize(fgk3DBinSizeDefault),</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   fDoDownScale(kFALSE),</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   fGenerForDownScale(0),</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   f3DPeak(),</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :   fHighMultAlgo(1),</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   fSwitchAlgorithm(kFALSE),</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   fFallBack(kFALSE),</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   fFallBackThreshold(0),</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   fH3d(NULL),</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   fH3dcs(NULL),</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :   fH3dfs(NULL),</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :   fH3dv(NULL)</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     155 </span>            :   // I/O constructor
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 : }</span>
+<a name="159"><span class="lineNum">     159 </span>            : </a>
+<span class="lineNum">     160 </span>            : //______________________________________________________________________
+<span class="lineNum">     161 </span><span class="lineCov">         48 : AliITSVertexer3D::~AliITSVertexer3D() {</span>
+<span class="lineNum">     162 </span>            :   // Destructor
+<span class="lineNum">     163 </span><span class="lineCov">         24 :   if(fH3d) delete fH3d;</span>
+<span class="lineNum">     164 </span><span class="lineCov">         24 :   if(fH3dcs) delete fH3dcs;</span>
+<span class="lineNum">     165 </span><span class="lineCov">          8 :   if(fH3dfs) delete fH3dfs;</span>
+<span class="lineNum">     166 </span><span class="lineCov">          8 :   if(fH3dv) delete fH3dv;</span>
+<span class="lineNum">     167 </span><span class="lineCov">          8 :   fLines.Clear(&quot;C&quot;);</span>
+<span class="lineNum">     168 </span><span class="lineCov">         24 :   if(fZHisto) delete fZHisto;</span>
+<span class="lineNum">     169 </span><span class="lineCov">         24 :   if(fGenerForDownScale) delete fGenerForDownScale;</span>
+<span class="lineNum">     170 </span><span class="lineCov">         24 : }</span>
+<a name="171"><span class="lineNum">     171 </span>            : </a>
+<span class="lineNum">     172 </span>            : //______________________________________________________________________
+<span class="lineNum">     173 </span>            : void AliITSVertexer3D::ResetVert3D(){
+<span class="lineNum">     174 </span>            :   // Reset the fVert3D object and reset the used clusters
+<span class="lineNum">     175 </span><span class="lineCov">         16 :   ResetVertex();</span>
+<span class="lineNum">     176 </span><span class="lineCov">          8 :   fVert3D.SetXv(0.);</span>
+<span class="lineNum">     177 </span><span class="lineCov">          8 :   fVert3D.SetYv(0.);</span>
+<span class="lineNum">     178 </span><span class="lineCov">          8 :   fVert3D.SetZv(0.);</span>
+<span class="lineNum">     179 </span><span class="lineCov">          8 :   fVert3D.SetDispersion(0.);</span>
+<span class="lineNum">     180 </span><span class="lineCov">          8 :   fVert3D.SetNContributors(0);</span>
+<span class="lineNum">     181 </span><span class="lineCov">          8 :   fUsedCluster.ResetAllBits(0);</span>
+<a name="182"><span class="lineNum">     182 </span><span class="lineCov">          8 : }</span></a>
+<span class="lineNum">     183 </span>            : //______________________________________________________________________
+<span class="lineNum">     184 </span>            : AliESDVertex* AliITSVertexer3D::FindVertexForCurrentEvent(TTree *itsClusterTree){
+<span class="lineNum">     185 </span>            :   // Defines the AliESDVertex for the current event
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :   //cleanup
+<span class="lineNum">     188 </span><span class="lineCov">         24 :   if(fZHisto)fZHisto-&gt;Reset(); </span>
+<span class="lineNum">     189 </span><span class="lineCov">          8 :   ResetVert3D();</span>
+<span class="lineNum">     190 </span><span class="lineCov">         24 :   AliDebug(1,&quot;FindVertexForCurrentEvent - 3D - PROCESSING NEXT EVENT&quot;);</span>
+<span class="lineNum">     191 </span><span class="lineCov">          8 :   fLines.Clear(&quot;C&quot;);</span>
+<span class="lineNum">     192 </span><span class="lineCov">          8 :   fCurrentVertex = NULL;</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :   // fall back to VertexerZ if too many clusters on SPD first layer
+<span class="lineNum">     195 </span><span class="lineCov">          8 :   AliITSRecPointContainer* rpcont=AliITSRecPointContainer::Instance();</span>
+<span class="lineNum">     196 </span><span class="lineCov">          8 :   rpcont-&gt;FetchClusters(0,itsClusterTree);</span>
+<span class="lineNum">     197 </span><span class="lineCov">          8 :   if(!rpcont-&gt;IsSPDActive()){</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     AliWarning(&quot;No SPD rec points found, 3D vertex not calculated&quot;);</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     200 </span>            :   }
+<span class="lineNum">     201 </span>            :   Bool_t fallBack = kFALSE; // 3D algo , no fallback to vertexer Z
+<span class="lineNum">     202 </span><span class="lineCov">         16 :   if(fFallBack &amp;&amp; (rpcont-&gt;GetNClustersInLayerFast(1)) &gt; fFallBackThreshold) </span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :      fallBack = kTRUE;</span>
+<span class="lineNum">     204 </span><span class="lineCov">          8 :   if(!fallBack){</span>
+<span class="lineNum">     205 </span><span class="lineCov">          8 :     Int_t nolines = FindTracklets(itsClusterTree,0);</span>
+<span class="lineNum">     206 </span>            :     Int_t rc;
+<span class="lineNum">     207 </span><span class="lineCov">          8 :     if(nolines&gt;=2){</span>
+<span class="lineNum">     208 </span><span class="lineCov">          8 :       if(fSwitchAlgorithm) {</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         rc = Prepare3DVertexPbPb();</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         FindVertex3D(itsClusterTree);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       } else {</span>
+<span class="lineNum">     212 </span><span class="lineCov">          8 :         rc=Prepare3DVertex(0);</span>
+<span class="lineNum">     213 </span><span class="lineCov">          8 :         if(fVert3D.GetNContributors()&gt;0){</span>
+<span class="lineNum">     214 </span><span class="lineCov">          8 :           fLines.Clear(&quot;C&quot;);</span>
+<span class="lineNum">     215 </span><span class="lineCov">          8 :           nolines = FindTracklets(itsClusterTree,1);</span>
+<span class="lineNum">     216 </span><span class="lineCov">          8 :           if(nolines&gt;=2){</span>
+<span class="lineNum">     217 </span><span class="lineCov">          8 :             rc=Prepare3DVertex(1);</span>
+<span class="lineNum">     218 </span><span class="lineCov">          8 :             if(fPileupAlgo == 2 &amp;&amp; rc == 0) FindVertex3DIterative();</span>
+<span class="lineNum">     219 </span><span class="lineCov">         16 :             else if(fPileupAlgo!=2 &amp;&amp; rc == 0) FindVertex3D(itsClusterTree);</span>
+<span class="lineNum">     220 </span><span class="lineCov">          8 :             if(rc!=0) fVert3D.SetNContributors(0); // exclude this vertex      </span>
+<span class="lineNum">     221 </span>            :           }
+<span class="lineNum">     222 </span>            :         }
+<span class="lineNum">     223 </span>            :       }
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span><span class="lineCov">          8 :   }   // if(!fallBack)</span>
+<span class="lineNum">     226 </span><span class="lineCov">         16 :   if(fallBack  || (!fCurrentVertex)){</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     AliITSVertexerZ vertz(GetNominalPos()[0],GetNominalPos()[1]);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     vertz.SetDetTypeRec(GetDetTypeRec());</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     AliDebug(1,&quot;Call Vertexer Z\n&quot;);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     vertz.SetLowLimit(-fZCutDiamond);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     vertz.SetHighLimit(fZCutDiamond);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     AliESDVertex* vtxz = vertz.FindVertexForCurrentEvent(itsClusterTree);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     if(vtxz){</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :       Double_t position[3]={GetNominalPos()[0],GetNominalPos()[1],vtxz-&gt;GetZ()};</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :       Double_t covmatrix[6];</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :       vtxz-&gt;GetCovMatrix(covmatrix);</span>
+<span class="lineNum">     237 </span>            :       Double_t chi2=99999.;
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :       Int_t    nContr=vtxz-&gt;GetNContributors();</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nContr);    </span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetDispersion(vtxz-&gt;GetDispersion());</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetTitle(&quot;vertexer: Z&quot;);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetName(&quot;SPDVertexZ&quot;);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :       delete vtxz;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   }  </span>
+<span class="lineNum">     247 </span><span class="lineCov">          8 :   if(fComputeMultiplicity) FindMultiplicity(itsClusterTree);</span>
+<span class="lineNum">     248 </span><span class="lineCov">          8 :   return fCurrentVertex;</span>
+<span class="lineNum">     249 </span><span class="lineCov">          8 : }  </span>
+<a name="250"><span class="lineNum">     250 </span>            : </a>
+<span class="lineNum">     251 </span>            : //______________________________________________________________________
+<span class="lineNum">     252 </span>            : void AliITSVertexer3D::FindVertex3D(TTree *itsClusterTree){
+<span class="lineNum">     253 </span>            :   // Instantiates the fCurrentVertex object. calle by FindVertexForCurrenEvent
+<span class="lineNum">     254 </span><span class="lineCov">         16 :   Double_t vRadius=TMath::Sqrt(fVert3D.GetX()*fVert3D.GetX()+fVert3D.GetY()*fVert3D.GetY());</span>
+<span class="lineNum">     255 </span><span class="lineCov">         16 :   if(vRadius&lt;GetPipeRadius() &amp;&amp; fVert3D.GetNContributors()&gt;0){</span>
+<span class="lineNum">     256 </span><span class="lineCov">          8 :     Double_t position[3]={fVert3D.GetX(),fVert3D.GetY(),fVert3D.GetZ()};</span>
+<span class="lineNum">     257 </span><span class="lineCov">          8 :     Double_t covmatrix[6];</span>
+<span class="lineNum">     258 </span><span class="lineCov">          8 :     fVert3D.GetCovMatrix(covmatrix);</span>
+<span class="lineNum">     259 </span>            :     Double_t chi2=99999.;
+<span class="lineNum">     260 </span><span class="lineCov">          8 :     Int_t    nContr=fVert3D.GetNContributors();</span>
+<span class="lineNum">     261 </span><span class="lineCov">         24 :     fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nContr);    </span>
+<span class="lineNum">     262 </span><span class="lineCov">         16 :     fCurrentVertex-&gt;SetTitle(&quot;vertexer: 3D&quot;);</span>
+<span class="lineNum">     263 </span><span class="lineCov">         16 :     fCurrentVertex-&gt;SetName(&quot;SPDVertex3D&quot;);</span>
+<span class="lineNum">     264 </span><span class="lineCov">         16 :     fCurrentVertex-&gt;SetDispersion(fVert3D.GetDispersion());</span>
+<span class="lineNum">     265 </span><span class="lineCov">         16 :     fNoVertices=1;</span>
+<span class="lineNum">     266 </span>            :     
+<span class="lineNum">     267 </span><span class="lineCov">         16 :     switch(fPileupAlgo){</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     case 0: PileupFromZ(); break;</span>
+<span class="lineNum">     269 </span><span class="lineCov">          8 :     case 1: FindOther3DVertices(itsClusterTree); break;</span>
+<span class="lineNum">     270 </span>            :     case 3: break; // no pileup algo  
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     default: AliError(&quot;Wrong pileup algorithm&quot;); break;</span>
+<span class="lineNum">     272 </span>            :     }
+<span class="lineNum">     273 </span><span class="lineCov">          8 :     if(fNoVertices==1){</span>
+<span class="lineNum">     274 </span><span class="lineCov">        112 :       delete[] fVertArray;</span>
+<span class="lineNum">     275 </span><span class="lineCov">         32 :       fVertArray = new AliESDVertex[1];</span>
+<span class="lineNum">     276 </span><span class="lineCov">          8 :       fVertArray[0]=(*fCurrentVertex);    </span>
+<span class="lineNum">     277 </span><span class="lineCov">          8 :     }</span>
+<span class="lineNum">     278 </span><span class="lineCov">          8 :   }</span>
+<span class="lineNum">     279 </span><span class="lineCov">          8 : }</span>
+<a name="280"><span class="lineNum">     280 </span>            : </a>
+<span class="lineNum">     281 </span>            : //______________________________________________________________________
+<span class="lineNum">     282 </span>            : void AliITSVertexer3D::FindVertex3DIterative(){
+<span class="lineNum">     283 </span>            :   // find vertex if fPileupAlgo == 2
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   Int_t nLines=fLines.GetEntriesFast();</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :   Int_t maxPoints=nLines*(nLines-1)/2;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   Double_t* xP=new Double_t[maxPoints];</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   Double_t* yP=new Double_t[maxPoints];</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   Double_t* zP=new Double_t[maxPoints];</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   Int_t* index1=new Int_t[maxPoints];</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   Int_t* index2=new Int_t[maxPoints];</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   Double_t xbeam=fVert3D.GetX();</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :   Double_t ybeam=fVert3D.GetY();</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :   Int_t iPoint=0;
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :   for(Int_t ilin1=0; ilin1&lt;nLines; ilin1++){</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     AliStrLine *l1 = (AliStrLine*)fLines.At(ilin1);</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     for(Int_t ilin2=ilin1+1; ilin2&lt;nLines; ilin2++){</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :       AliStrLine *l2 = (AliStrLine*)fLines.At(ilin2);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :       Double_t dca=l1-&gt;GetDCA(l2);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :       if(dca &gt; fDCAcut || dca&lt;0.00001) continue;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :       Double_t point[3];</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :       Int_t retc = l1-&gt;Cross(l2,point);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       if(retc&lt;0)continue;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :       Double_t rad=TMath::Sqrt(point[0]*point[0]+point[1]*point[1]);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :       if(rad&gt;fCoarseMaxRCut)continue;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :       Double_t distFromBeam=TMath::Sqrt((point[0]-xbeam)*(point[0]-xbeam)+(point[1]-ybeam)*(point[1]-ybeam));</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :       if(distFromBeam&gt;fMaxRCut2) continue;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :       xP[iPoint]=point[0];</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :       yP[iPoint]=point[1];</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :       zP[iPoint]=point[2];</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :       index1[iPoint]=ilin1;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :       index2[iPoint]=ilin2;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :       iPoint++;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     316 </span>            :   }
+<span class="lineNum">     317 </span>            :   Int_t npoints=iPoint++;
+<span class="lineNum">     318 </span>            :   Int_t index=0;
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   Short_t* mask=new Short_t[npoints];</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   for(Int_t ip=0;ip&lt;npoints;ip++) mask[ip]=-1;</span>
+<span class="lineNum">     321 </span>            :  
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :   for(Int_t ip1=0;ip1&lt;npoints;ip1++){</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     if(mask[ip1]==-1) mask[ip1]=index++;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     for(Int_t ip2=ip1+1; ip2&lt;npoints; ip2++){</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :       if(mask[ip2]==mask[ip1] &amp;&amp; mask[ip2]!=-1) continue;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :       Double_t dist2=(xP[ip1]-xP[ip2])*(xP[ip1]-xP[ip2]);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :       dist2+=(yP[ip1]-yP[ip2])*(yP[ip1]-yP[ip2]);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :       dist2+=(zP[ip1]-zP[ip2])*(zP[ip1]-zP[ip2]);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :       if(dist2&lt;fCutOnPairs*fCutOnPairs){ </span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         if(mask[ip2]==-1) mask[ip2]=mask[ip1];</span>
+<span class="lineNum">     331 </span>            :         else{
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :           for(Int_t ip=0; ip&lt;npoints;ip++){</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             if(mask[ip]==mask[ip2]) mask[ip]=mask[ip1];</span>
+<span class="lineNum">     334 </span>            :           }
+<span class="lineNum">     335 </span>            :         }
+<span class="lineNum">     336 </span>            :       }
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     338 </span>            :   }
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            :   // Count multiplicity of trackelts in clusters
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   UInt_t* isIndUsed=new UInt_t[index+1];</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   for(Int_t ind=0;ind&lt;index+1;ind++) isIndUsed[ind]=0;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :   for(Int_t ip=0; ip&lt;npoints;ip++){</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     Int_t ind=mask[ip];</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     isIndUsed[ind]++;</span>
+<span class="lineNum">     347 </span>            :   }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :   // Count clusters/vertices and sort according to multiplicity
+<span class="lineNum">     350 </span>            :   Int_t nClusters=0;
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   Int_t* sortedIndex=new Int_t[index+1];</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :   for(Int_t ind1=0;ind1&lt;index+1;ind1++){</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     if(isIndUsed[ind1]&lt;=1) isIndUsed[ind1]=0;</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     else nClusters++;</span>
+<span class="lineNum">     355 </span>            :     UInt_t cap=9999999;
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     if(ind1&gt;0) cap=isIndUsed[sortedIndex[ind1-1]];</span>
+<span class="lineNum">     357 </span>            :     UInt_t bigger=0;
+<span class="lineNum">     358 </span>            :     Int_t biggerindex=-1;
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     for(Int_t ind2=0;ind2&lt;index+1;ind2++){</span>
+<span class="lineNum">     360 </span>            :       Bool_t use=kTRUE;
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :       for(Int_t ind3=0; ind3&lt;ind1; ind3++)</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         if(ind2==sortedIndex[ind3]) use=kFALSE;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :       if(use &amp;&amp; isIndUsed[ind2]&gt;bigger &amp;&amp; isIndUsed[ind2]&lt;=cap){</span>
+<span class="lineNum">     364 </span>            :         bigger=isIndUsed[ind2];
+<span class="lineNum">     365 </span>            :         biggerindex=ind2;
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     367 </span>            :     }
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     sortedIndex[ind1]=biggerindex;    </span>
+<span class="lineNum">     369 </span>            :   }
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   AliDebug(3,Form(&quot;Number of clusters before merging = %d\n&quot;,nClusters));</span>
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :   // Assign lines to clusters/vertices and merge clusters which share 1 line
+<span class="lineNum">     373 </span>            :   Int_t nClustersAfterMerge=nClusters;
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :   Int_t* belongsTo=new Int_t[nLines];</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :   for(Int_t ilin=0; ilin&lt;nLines; ilin++) belongsTo[ilin]=-1;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   for(Int_t iclu=0;iclu&lt;nClusters;iclu++){</span>
+<span class="lineNum">     377 </span>            :     Int_t actualCluIndex=iclu;
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     for(Int_t ip=0; ip&lt;npoints;ip++){</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :       if(mask[ip]==sortedIndex[iclu]){</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         Int_t ind1=index1[ip];</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         if(belongsTo[ind1]==-1) belongsTo[ind1]=actualCluIndex;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         else if(belongsTo[ind1]&lt;actualCluIndex){</span>
+<span class="lineNum">     383 </span>            :           Int_t newCluIndex=belongsTo[ind1];
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :           for(Int_t ilin=0; ilin&lt;nLines; ilin++){</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :             if(belongsTo[ilin]==actualCluIndex) belongsTo[ilin]=newCluIndex;</span>
+<span class="lineNum">     386 </span>            :           }
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :           AliDebug(10,Form(&quot;Merged cluster %d with %d\n&quot;,actualCluIndex,newCluIndex));</span>
+<span class="lineNum">     388 </span>            :           actualCluIndex=newCluIndex;
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :           nClustersAfterMerge--;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         Int_t ind2=index2[ip];      </span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         if(belongsTo[ind2]==-1) belongsTo[ind2]=actualCluIndex;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         else if(belongsTo[ind2]&lt;actualCluIndex){</span>
+<span class="lineNum">     394 </span>            :           Int_t newCluIndex=belongsTo[ind2];
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :           for(Int_t ilin=0; ilin&lt;nLines; ilin++){</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :             if(belongsTo[ilin]==actualCluIndex) belongsTo[ilin]=newCluIndex;</span>
+<span class="lineNum">     397 </span>            :           }
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :           AliDebug(10,Form(&quot;Merged cluster %d with %d\n&quot;,actualCluIndex,newCluIndex));</span>
+<span class="lineNum">     399 </span>            :           actualCluIndex=newCluIndex;
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :           nClustersAfterMerge--;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     403 </span>            :     }
+<span class="lineNum">     404 </span>            :   }
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   AliDebug(3,Form(&quot;Number of clusters after merging = %d\n&quot;,nClustersAfterMerge));</span>
+<span class="lineNum">     406 </span>            :   
+<span class="lineNum">     407 </span>            :   // Count lines associated to each cluster/vertex
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   UInt_t *cluSize=new UInt_t[nClusters];</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   for(Int_t iclu=0;iclu&lt;nClusters;iclu++){ </span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     cluSize[iclu]=0;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     for(Int_t ilin=0; ilin&lt;nLines; ilin++){</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :       if(belongsTo[ilin]==iclu) cluSize[iclu]++;</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            :   }
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            :   // Count good vertices (&gt;1 associated tracklet)
+<span class="lineNum">     417 </span>            :   UInt_t nGoodVert=0;
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :   for(Int_t iclu=0;iclu&lt;nClusters;iclu++){ </span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     AliDebug(3,Form(&quot;Vertex %d Size=%d\n&quot;,iclu,cluSize[iclu]));</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     if(cluSize[iclu]&gt;1) nGoodVert++;</span>
+<span class="lineNum">     421 </span>            :   }
+<span class="lineNum">     422 </span>            :     
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :   AliDebug(1,Form(&quot;Number of good vertices = %d\n&quot;,nGoodVert));</span>
+<span class="lineNum">     424 </span>            :   // Calculate vertex coordinates for each cluster
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :   if(nGoodVert&gt;0){</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     fVertArray = new AliESDVertex[nGoodVert];</span>
+<span class="lineNum">     427 </span>            :     Int_t iVert=0;
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     for(Int_t iclu=0;iclu&lt;nClusters;iclu++){</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :       Int_t size=cluSize[iclu];</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :       if(size&gt;1){</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         AliStrLine **arrlin = new AliStrLine*[size];</span>
+<span class="lineNum">     432 </span>            :         Int_t nFilled=0;
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         for(Int_t ilin=0; ilin&lt;nLines; ilin++){</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :           if(belongsTo[ilin]==iclu){</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             arrlin[nFilled++] = dynamic_cast&lt;AliStrLine*&gt;(fLines[ilin]);</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">     437 </span>            :         }      
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         AliDebug(3,Form(&quot;Vertex %d  N associated tracklets = %d out of %d\n&quot;,iVert,size,nFilled));</span>
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         fVertArray[iVert]=AliVertexerTracks::TrackletVertexFinder(arrlin,nFilled);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         Double_t peak[3];</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         fVertArray[iVert].GetXYZ(peak);</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         AliStrLine **arrlin2 = new AliStrLine*[size];</span>
+<span class="lineNum">     444 </span>            :         Int_t nFilled2=0;       
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         for(Int_t i=0; i&lt;nFilled;i++){</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :           AliStrLine *l1 = arrlin[i];     </span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :           if(l1-&gt;GetDistFromPoint(peak)&lt; fDCAcut)</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             arrlin2[nFilled2++] = dynamic_cast&lt;AliStrLine*&gt;(l1);</span>
+<span class="lineNum">     449 </span>            :         }
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         if(nFilled2&gt;1){</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :           AliDebug(3,Form(&quot;Vertex %d  recalculated with %d tracklets\n&quot;,iVert,nFilled2));</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :           fVertArray[iVert]=AliVertexerTracks::TrackletVertexFinder(arrlin2,nFilled2);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         delete [] arrlin;</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         delete [] arrlin2;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         ++iVert;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     458 </span>            :     }
+<span class="lineNum">     459 </span>            :     
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     if(nGoodVert &gt; 1){</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :       fIsPileup = kTRUE;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :       fNTrpuv = fVertArray[1].GetNContributors();</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :       fZpuv = fVertArray[1].GetZ();</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     465 </span>            :     
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     Double_t vRadius=TMath::Sqrt(fVertArray[0].GetX()*fVertArray[0].GetX()+fVertArray[0].GetY()*fVertArray[0].GetY());</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     if(vRadius&lt;GetPipeRadius() &amp;&amp; fVertArray[0].GetNContributors()&gt;0){</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :       Double_t position[3]={fVertArray[0].GetX(),fVertArray[0].GetY(),fVertArray[0].GetZ()};</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :       Double_t covmatrix[6];</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :       fVertArray[0].GetCovMatrix(covmatrix);</span>
+<span class="lineNum">     471 </span>            :       Double_t chi2=99999.;
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       Int_t    nContr=fVertArray[0].GetNContributors();</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :       fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nContr);    </span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetTitle(&quot;vertexer: 3D&quot;);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetName(&quot;SPDVertex3D&quot;);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetDispersion(fVertArray[0].GetDispersion());  </span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :   delete [] index1;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   delete [] index2;</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   delete [] mask;</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   delete [] isIndUsed;</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :   delete [] sortedIndex;</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   delete [] belongsTo;</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   delete [] cluSize;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   delete [] xP;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   delete [] yP;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   delete [] zP;</span>
+<a name="490"><span class="lineNum">     490 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     491 </span>            : //______________________________________________________________________
+<span class="lineNum">     492 </span>            : void AliITSVertexer3D::FindVertex3DIterativeMM(){
+<span class="lineNum">     493 </span>            :   // Defines the AliESDVertex for the current event
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :   Int_t numsor=fLines.GetEntriesFast()*(fLines.GetEntriesFast()-1)/2;</span>
+<span class="lineNum">     495 </span>            :   //cout&lt;&lt;&quot;AliITSVertexer3D::FindVertexForCurentEvent: Number of tracklets selected for vertexing &quot;&lt;&lt;fLines.GetEntriesFast()&lt;&lt;&quot;; Number of pairs: &quot;&lt;&lt;numsor&lt;&lt;endl;
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   AliITSSortTrkl srt(fLines,numsor,fCutOnPairs,fCoarseMaxRCut); </span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :   srt.FindClusters();   </span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :   AliInfo(Form(&quot;Number of vertices: %d&quot;,srt.GetNumberOfClusters()));</span>
+<span class="lineNum">     499 </span>            :       
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :   fNoVertices = srt.GetNumberOfClusters();</span>
+<span class="lineNum">     501 </span>            :   //printf(&quot;fNoVertices = %d \n&quot;,fNoVertices);
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :   if(fNoVertices&gt;0){</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     fVertArray = new AliESDVertex[fNoVertices];</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     for(Int_t kk=0; kk&lt;srt.GetNumberOfClusters(); kk++){</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :       Int_t size = 0;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :       Int_t *labels = srt.GetTrackletsLab(kk,size);</span>
+<span class="lineNum">     507 </span>            :       /*
+<span class="lineNum">     508 </span>            :         Int_t *pairs = srt.GetClusters(kk);
+<span class="lineNum">     509 </span>            :         Int_t nopai = srt.GetSizeOfCluster(kk);
+<span class="lineNum">     510 </span>            :         cout&lt;&lt;&quot;***** Vertex number &quot;&lt;&lt;kk&lt;&lt;&quot;.  Pairs: \n&quot;;
+<span class="lineNum">     511 </span>            :         for(Int_t jj=0;jj&lt;nopai;jj++){
+<span class="lineNum">     512 </span>            :         cout&lt;&lt;pairs[jj]&lt;&lt;&quot; - &quot;;
+<span class="lineNum">     513 </span>            :         if(jj&gt;0 &amp; jj%8==0)cout&lt;&lt;endl;
+<span class="lineNum">     514 </span>            :         }
+<span class="lineNum">     515 </span>            :         cout&lt;&lt;endl;
+<span class="lineNum">     516 </span>            :         cout&lt;&lt;&quot;***** Vertex number &quot;&lt;&lt;kk&lt;&lt;&quot;.  Labels: \n&quot;;
+<span class="lineNum">     517 </span>            :       */
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :       AliStrLine **tclo = new AliStrLine* [size];</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :       for(Int_t jj=0;jj&lt;size;jj++){</span>
+<span class="lineNum">     520 </span>            :         //          cout&lt;&lt;labels[jj]&lt;&lt;&quot; - &quot;;
+<span class="lineNum">     521 </span>            :         //          if(jj&gt;0 &amp; jj%8==0)cout&lt;&lt;endl;
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         tclo[jj] = dynamic_cast&lt;AliStrLine*&gt;(fLines[labels[jj]]);</span>
+<span class="lineNum">     523 </span>            :       }
+<span class="lineNum">     524 </span>            :       //          cout&lt;&lt;endl;
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :       delete []labels;</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :       fVertArray[kk]=AliVertexerTracks::TrackletVertexFinder(tclo,size);</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :       delete [] tclo;</span>
+<span class="lineNum">     529 </span>            :       //          fVertArray[kk].PrintStatus();
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :       if(kk == 1){</span>
+<span class="lineNum">     531 </span>            :         // at least one second vertex is present
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         fIsPileup = kTRUE;</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         fNTrpuv = fVertArray[kk].GetNContributors();</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         fZpuv = fVertArray[kk].GetZ();</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     Double_t vRadius=TMath::Sqrt(fVertArray[0].GetX()*fVertArray[0].GetX()+fVertArray[0].GetY()*fVertArray[0].GetY());</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     if(vRadius&lt;GetPipeRadius() &amp;&amp; fVertArray[0].GetNContributors()&gt;0){</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       Double_t position[3]={fVertArray[0].GetX(),fVertArray[0].GetY(),fVertArray[0].GetZ()};</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       Double_t covmatrix[6];</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :       fVertArray[0].GetCovMatrix(covmatrix);</span>
+<span class="lineNum">     542 </span>            :       Double_t chi2=99999.;
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       Int_t    nContr=fVertArray[0].GetNContributors();</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :       fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nContr);    </span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetTitle(&quot;vertexer: 3D&quot;);</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetName(&quot;SPDVertex3D&quot;);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :       fCurrentVertex-&gt;SetDispersion(fVertArray[0].GetDispersion());  </span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 : }  </span>
+<a name="552"><span class="lineNum">     552 </span>            : </a>
+<span class="lineNum">     553 </span>            : //______________________________________________________________________
+<span class="lineNum">     554 </span>            : Bool_t AliITSVertexer3D::DistBetweenVertices(AliESDVertex &amp;a, AliESDVertex &amp;b, Double_t test, Double_t &amp;dist){
+<span class="lineNum">     555 </span>            :   // method to compare the distance between vertices a and b with &quot;test&quot;
+<span class="lineNum">     556 </span>            :   //it returns kTRUE is the distance is less or equal to test
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :   dist = (a.GetX()-b.GetX()) * (a.GetX()-b.GetX());</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :   dist +=  (a.GetY()-b.GetY()) * (a.GetY()-b.GetY());</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :   dist +=  (a.GetZ()-b.GetZ()) * (a.GetZ()-b.GetZ());</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   dist = TMath::Sqrt(dist);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   if(dist &lt;= test)return kTRUE;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :   return kFALSE;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     564 </span>            : 
+<a name="565"><span class="lineNum">     565 </span>            : </a>
+<span class="lineNum">     566 </span>            : //______________________________________________________________________
+<span class="lineNum">     567 </span>            : Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
+<span class="lineNum">     568 </span>            :   // All the possible combinations between recpoints on layer 1and 2 are
+<span class="lineNum">     569 </span>            :   // considered. Straight lines (=tracklets)are formed. 
+<span class="lineNum">     570 </span>            :   // The tracklets are processed in Prepare3DVertex
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span>            :   TClonesArray *itsRec  = 0;
+<span class="lineNum">     573 </span><span class="lineCov">        200 :   if(optCuts==0) fZHisto-&gt;Reset();</span>
+<span class="lineNum">     574 </span>            :   // gc1 are local and global coordinates for layer 1
+<span class="lineNum">     575 </span><span class="lineCov">         96 :   Float_t gc1f[3]={0.,0.,0.};</span>
+<span class="lineNum">     576 </span><span class="lineCov">         96 :   Double_t gc1[3]={0.,0.,0.};</span>
+<span class="lineNum">     577 </span>            :   // gc2 are local and global coordinates for layer 2
+<span class="lineNum">     578 </span><span class="lineCov">         96 :   Float_t gc2f[3]={0.,0.,0.};</span>
+<span class="lineNum">     579 </span><span class="lineCov">         96 :   Double_t gc2[3]={0.,0.,0.};</span>
+<span class="lineNum">     580 </span><span class="lineCov">         96 :   AliITSRecPointContainer* rpcont=AliITSRecPointContainer::Instance();</span>
+<span class="lineNum">     581 </span><span class="lineCov">         96 :   rpcont-&gt;FetchClusters(0,itsClusterTree);</span>
+<span class="lineNum">     582 </span><span class="lineCov">         96 :   if(!rpcont-&gt;IsSPDActive()){</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     AliWarning(&quot;No SPD rec points found, 3D vertex not calculated&quot;);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     585 </span>            :   }
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            :   // Set values for cuts
+<span class="lineNum">     588 </span><span class="lineCov">         96 :   Double_t xbeam=GetNominalPos()[0]; </span>
+<span class="lineNum">     589 </span><span class="lineCov">         96 :   Double_t ybeam=GetNominalPos()[1];</span>
+<span class="lineNum">     590 </span>            :   Double_t zvert=0.;
+<span class="lineNum">     591 </span><span class="lineCov">         96 :   Double_t deltaPhi=fCoarseDiffPhiCut;</span>
+<span class="lineNum">     592 </span><span class="lineCov">         96 :   Double_t deltaR=fCoarseMaxRCut;</span>
+<span class="lineNum">     593 </span><span class="lineCov">         96 :   Double_t dZmax=fZCutDiamond;</span>
+<span class="lineNum">     594 </span><span class="lineCov">         96 :   if(optCuts==1){</span>
+<span class="lineNum">     595 </span><span class="lineCov">          8 :     xbeam=fVert3D.GetX();</span>
+<span class="lineNum">     596 </span><span class="lineCov">          8 :     ybeam=fVert3D.GetY();</span>
+<span class="lineNum">     597 </span><span class="lineCov">          8 :     zvert=fVert3D.GetZ();</span>
+<span class="lineNum">     598 </span><span class="lineCov">          8 :     deltaPhi = fDiffPhiMax; </span>
+<span class="lineNum">     599 </span><span class="lineCov">          8 :     deltaR=fMaxRCut;</span>
+<span class="lineNum">     600 </span><span class="lineCov">          8 :     dZmax=fMaxZCut;</span>
+<span class="lineNum">     601 </span><span class="lineCov">          8 :     if(fPileupAlgo == 2){</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :       dZmax=fZCutDiamond;</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :       deltaR=fMaxRCut2;</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     605 </span><span class="lineCov">         88 :   } else if(optCuts==2){</span>
+<span class="lineNum">     606 </span><span class="lineCov">         80 :     xbeam=fVert3D.GetX();</span>
+<span class="lineNum">     607 </span><span class="lineCov">         80 :     ybeam=fVert3D.GetY();</span>
+<span class="lineNum">     608 </span><span class="lineCov">         80 :     deltaPhi = fDiffPhiforPileup;</span>
+<span class="lineNum">     609 </span><span class="lineCov">         80 :     deltaR=fMaxRCut;</span>
+<span class="lineNum">     610 </span><span class="lineCov">         80 :   }</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineCov">         96 :   fNRecPLay1=rpcont-&gt;GetNClustersInLayerFast(1);</span>
+<span class="lineNum">     613 </span><span class="lineCov">         96 :   fNRecPLay2=rpcont-&gt;GetNClustersInLayerFast(2);</span>
+<span class="lineNum">     614 </span><span class="lineCov">        192 :   if(fNRecPLay1 == 0 || fNRecPLay2 == 0){</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     AliDebug(1,Form(&quot;No RecPoints in at least one SPD layer (%d %d)&quot;,fNRecPLay1,fNRecPLay2));</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     617 </span>            :   }
+<span class="lineNum">     618 </span><span class="lineCov">        288 :   AliDebug(1,Form(&quot;RecPoints on Layer 1,2 = %d, %d\n&quot;,fNRecPLay1,fNRecPLay2));</span>
+<span class="lineNum">     619 </span><span class="lineCov">        192 :   fDoDownScale=kFALSE;</span>
+<span class="lineNum">     620 </span><span class="lineCov">        192 :   fSwitchAlgorithm=kFALSE;</span>
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            :   Float_t factDownScal=1.;
+<span class="lineNum">     623 </span><span class="lineCov">        192 :   Int_t origLaddersOnLayer2=fLadOnLay2;</span>
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span><span class="lineCov">        192 :   switch(fHighMultAlgo){</span>
+<span class="lineNum">     626 </span>            :   case 0: 
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     if(fNRecPLay1&gt;fMaxNumOfClForDownScale || fNRecPLay2&gt;fMaxNumOfClForDownScale){</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :       if(optCuts==2) return -1; // do not try to search for pileup</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :       SetLaddersOnLayer2(2);</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :       fDoDownScale=kTRUE;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :       factDownScal=(Float_t)fMaxNumOfClForDownScale*(Float_t)fMaxNumOfClForDownScale/(Float_t)fNRecPLay1/(Float_t)fNRecPLay2;</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :       if(optCuts==1){</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :         factDownScal*=(fCoarseDiffPhiCut/fDiffPhiMax)*10;</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :         if(factDownScal&gt;1.){</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :           fDoDownScale=kFALSE;</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :           SetLaddersOnLayer2(origLaddersOnLayer2);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     638 </span>            :       }
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :       if(fDoDownScale)AliDebug(1,Form(&quot;Too many recpoints on SPD(%d %d ), downscale by %f&quot;,fNRecPLay1,fNRecPLay2,factDownScal));</span>
+<span class="lineNum">     640 </span>            :     }
+<span class="lineNum">     641 </span>            :     break;
+<span class="lineNum">     642 </span>            :   case 1: 
+<span class="lineNum">     643 </span><span class="lineCov">        192 :     if(fNRecPLay1&gt;fMaxNumOfCl || fNRecPLay2&gt;fMaxNumOfCl) {</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :       if(optCuts==2) return -1; // do not try to search for pileup</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :       fSwitchAlgorithm=kTRUE;</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     647 </span>            :     break;
+<span class="lineNum">     648 </span>            :   default: break; // no pileup algo  
+<span class="lineNum">     649 </span>            :   }
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span><span class="lineCov">        192 :   if(!fDoDownScale &amp;&amp; !fSwitchAlgorithm){</span>
+<span class="lineNum">     652 </span><span class="lineCov">        192 :     if(fNRecPLay1&gt;fMaxNumOfClForRebin || fNRecPLay2&gt;fMaxNumOfClForRebin){</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :       SetLaddersOnLayer2(2);</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     655 </span>            :   }
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span><span class="lineCov">         96 :   Double_t a[3]={xbeam,ybeam,0.}; </span>
+<span class="lineNum">     658 </span><span class="lineCov">         96 :   Double_t b[3]={xbeam,ybeam,10.};</span>
+<span class="lineNum">     659 </span><span class="lineCov">         96 :   AliStrLine zeta(a,b,kTRUE);</span>
+<span class="lineNum">     660 </span><span class="lineCov">        102 :   static Double_t bField=TMath::Abs(AliTracker::GetBz()/10.); //T</span>
+<span class="lineNum">     661 </span><span class="lineCov">         96 :   SetMeanPPtSelTracks(bField);</span>
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span>            :   Int_t nolines = 0;
+<span class="lineNum">     664 </span>            :   // Loop on modules of layer 1
+<span class="lineNum">     665 </span><span class="lineCov">        192 :   Int_t firstL1 = TMath::Max(0,AliITSgeomTGeo::GetModuleIndex(1,1,1));</span>
+<span class="lineNum">     666 </span><span class="lineCov">        192 :   Int_t lastL1 = AliITSgeomTGeo::GetModuleIndex(2,1,1)-1;</span>
+<span class="lineNum">     667 </span><span class="lineCov">      15552 :   for(Int_t modul1= firstL1; modul1&lt;=lastL1;modul1++){   // Loop on modules of layer 1</span>
+<span class="lineNum">     668 </span><span class="lineCov">       7680 :     if(!fUseModule[modul1]) continue;</span>
+<span class="lineNum">     669 </span>            :     
+<span class="lineNum">     670 </span><span class="lineCov">       7680 :     UShort_t ladder=modul1/4+1; // ladders are numbered starting from 1</span>
+<span class="lineNum">     671 </span><span class="lineCov">       7680 :     TClonesArray *prpl1=rpcont-&gt;UncheckedGetClusters(modul1);</span>
+<span class="lineNum">     672 </span><span class="lineCov">       7680 :     Int_t nrecp1 = prpl1-&gt;GetEntries();</span>
+<span class="lineNum">     673 </span><span class="lineCov">      17472 :     for(Int_t j=0;j&lt;nrecp1;j++){</span>
+<span class="lineNum">     674 </span><span class="lineCov">       1056 :       if(j&gt;kMaxCluPerMod) continue;</span>
+<span class="lineNum">     675 </span><span class="lineCov">       1056 :       UShort_t idClu1=modul1*kMaxCluPerMod+j;</span>
+<span class="lineNum">     676 </span><span class="lineCov">       1536 :       if(fUsedCluster.TestBitNumber(idClu1)) continue;</span>
+<span class="lineNum">     677 </span><span class="lineCov">        576 :       if(fDoDownScale &amp;&amp; !fSwitchAlgorithm){</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :         if(fGenerForDownScale-&gt;Rndm()&gt;factDownScal) continue;</span>
+<span class="lineNum">     679 </span>            :       }
+<span class="lineNum">     680 </span><span class="lineCov">       1152 :       AliITSRecPoint *recp1 = (AliITSRecPoint*)prpl1-&gt;At(j);</span>
+<span class="lineNum">     681 </span><span class="lineCov">        576 :       recp1-&gt;GetGlobalXYZ(gc1f);</span>
+<span class="lineNum">     682 </span><span class="lineCov">       4608 :       for(Int_t ico=0;ico&lt;3;ico++)gc1[ico]=gc1f[ico];</span>
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineCov">        576 :       Double_t phi1 = TMath::ATan2(gc1[1]-ybeam,gc1[0]-xbeam);</span>
+<span class="lineNum">     685 </span><span class="lineCov">        688 :       if(phi1&lt;0)phi1=2*TMath::Pi()+phi1;</span>
+<span class="lineNum">     686 </span><span class="lineCov">      11520 :       for(Int_t ladl2=0 ; ladl2&lt;fLadOnLay2*2+1;ladl2++){</span>
+<span class="lineNum">     687 </span><span class="lineCov">      51840 :         for(Int_t k=0;k&lt;4;k++){</span>
+<span class="lineNum">     688 </span><span class="lineCov">      20736 :           Int_t ladmod=fLadders[ladder-1]+ladl2;</span>
+<span class="lineNum">     689 </span><span class="lineCov">      28288 :           if(ladmod&gt;AliITSgeomTGeo::GetNLadders(2)) ladmod=ladmod-AliITSgeomTGeo::GetNLadders(2);</span>
+<span class="lineNum">     690 </span><span class="lineCov">      20736 :           Int_t modul2=AliITSgeomTGeo::GetModuleIndex(2,ladmod,k+1);</span>
+<span class="lineNum">     691 </span><span class="lineCov">      20736 :           if(modul2&lt;0)continue;</span>
+<span class="lineNum">     692 </span><span class="lineCov">      20736 :           if(!fUseModule[modul2]) continue;</span>
+<span class="lineNum">     693 </span><span class="lineCov">      20736 :           itsRec=rpcont-&gt;UncheckedGetClusters(modul2);</span>
+<span class="lineNum">     694 </span><span class="lineCov">      20736 :           Int_t nrecp2 = itsRec-&gt;GetEntries();</span>
+<span class="lineNum">     695 </span><span class="lineCov">      45152 :           for(Int_t j2=0;j2&lt;nrecp2;j2++){</span>
+<span class="lineNum">     696 </span><span class="lineCov">       1840 :             if(j2&gt;kMaxCluPerMod) continue;</span>
+<span class="lineNum">     697 </span><span class="lineCov">       1840 :             UShort_t idClu2=modul2*kMaxCluPerMod+j2;</span>
+<span class="lineNum">     698 </span><span class="lineCov">       3120 :             if(fUsedCluster.TestBitNumber(idClu2)) continue;</span>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineCov">       1120 :             AliITSRecPoint *recp2 = (AliITSRecPoint*)itsRec-&gt;At(j2);</span>
+<span class="lineNum">     701 </span><span class="lineCov">        560 :             recp2-&gt;GetGlobalXYZ(gc2f);</span>
+<span class="lineNum">     702 </span><span class="lineCov">       4480 :             for(Int_t ico=0;ico&lt;3;ico++)gc2[ico]=gc2f[ico];</span>
+<span class="lineNum">     703 </span><span class="lineCov">        560 :             Double_t phi2 = TMath::ATan2(gc2[1]-ybeam,gc2[0]-xbeam);</span>
+<span class="lineNum">     704 </span><span class="lineCov">        592 :             if(phi2&lt;0)phi2=2*TMath::Pi()+phi2;</span>
+<span class="lineNum">     705 </span><span class="lineCov">        560 :             Double_t diff = TMath::Abs(phi2-phi1); </span>
+<span class="lineNum">     706 </span><span class="lineCov">        576 :             if(diff&gt;TMath::Pi())diff=2.*TMath::Pi()-diff; </span>
+<span class="lineNum">     707 </span><span class="lineCov">        840 :             if(optCuts==0 &amp;&amp; diff&lt;fDiffPhiforPileup){</span>
+<span class="lineNum">     708 </span><span class="lineCov">        118 :               Double_t r1=TMath::Sqrt(gc1[0]*gc1[0]+gc1[1]*gc1[1]);</span>
+<span class="lineNum">     709 </span><span class="lineCov">        118 :               Double_t zc1=gc1[2];</span>
+<span class="lineNum">     710 </span><span class="lineCov">        118 :               Double_t r2=TMath::Sqrt(gc2[0]*gc2[0]+gc2[1]*gc2[1]);</span>
+<span class="lineNum">     711 </span><span class="lineCov">        118 :               Double_t zc2=gc2[2];</span>
+<span class="lineNum">     712 </span><span class="lineCov">        118 :               Double_t zr0=(r2*zc1-r1*zc2)/(r2-r1); //Z @ null radius</span>
+<span class="lineNum">     713 </span><span class="lineCov">        118 :               fZHisto-&gt;Fill(zr0);</span>
+<span class="lineNum">     714 </span><span class="lineCov">        118 :             }</span>
+<span class="lineNum">     715 </span><span class="lineCov">        752 :             if(diff&gt;deltaPhi)continue;</span>
+<span class="lineNum">     716 </span><span class="lineCov">        368 :             AliStrLine line(gc1,gc2,kTRUE);</span>
+<span class="lineNum">     717 </span><span class="lineCov">        368 :             Double_t cp[3];</span>
+<span class="lineNum">     718 </span><span class="lineCov">        368 :             Int_t retcode = line.Cross(&amp;zeta,cp);</span>
+<span class="lineNum">     719 </span><span class="lineCov">        368 :             if(retcode&lt;0)continue;</span>
+<span class="lineNum">     720 </span><span class="lineCov">        368 :             Double_t dca = line.GetDCA(&amp;zeta);</span>
+<span class="lineNum">     721 </span><span class="lineCov">        368 :             if(dca&lt;0.) continue;</span>
+<span class="lineNum">     722 </span><span class="lineCov">        432 :             if(dca&gt;deltaR)continue;</span>
+<span class="lineNum">     723 </span><span class="lineCov">        304 :             Double_t deltaZ=cp[2]-zvert;</span>
+<span class="lineNum">     724 </span><span class="lineCov">        376 :             if(TMath::Abs(deltaZ)&gt;dZmax)continue;</span>
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineCov">        232 :             if(nolines == 0){</span>
+<span class="lineNum">     728 </span><span class="lineCov">         32 :               if(fLines.GetEntriesFast()&gt;0)fLines.Clear(&quot;C&quot;);</span>
+<span class="lineNum">     729 </span>            :             }
+<span class="lineNum">     730 </span><span class="lineCov">        232 :             Float_t cov[6];</span>
+<span class="lineNum">     731 </span><span class="lineCov">        232 :             recp2-&gt;GetGlobalCov(cov);</span>
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineCov">        232 :             Double_t rad1=TMath::Sqrt(gc1[0]*gc1[0]+gc1[1]*gc1[1]);</span>
+<span class="lineNum">     735 </span><span class="lineCov">        232 :             Double_t rad2=TMath::Sqrt(gc2[0]*gc2[0]+gc2[1]*gc2[1]);</span>
+<span class="lineNum">     736 </span><span class="lineCov">        232 :             Double_t factor=(rad1+rad2)/(rad2-rad1); //factor to account for error on tracklet direction </span>
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span>            :             Double_t curvErr=0;
+<span class="lineNum">     739 </span><span class="lineCov">        232 :             if(bField&gt;0.00001){</span>
+<span class="lineNum">     740 </span><span class="lineCov">        232 :               Double_t curvRadius=fMeanPtSelTrk/(0.3*bField)*100; //cm </span>
+<span class="lineNum">     741 </span><span class="lineCov">        232 :               Double_t dRad=TMath::Sqrt((gc1[0]-gc2[0])*(gc1[0]-gc2[0])+(gc1[1]-gc2[1])*(gc1[1]-gc2[1]));</span>
+<span class="lineNum">     742 </span><span class="lineCov">        232 :               Double_t aux=dRad/2.+rad1;</span>
+<span class="lineNum">     743 </span><span class="lineCov">        232 :               curvErr=TMath::Sqrt(curvRadius*curvRadius-dRad*dRad/4.)-TMath::Sqrt(curvRadius*curvRadius-aux*aux); //cm</span>
+<span class="lineNum">     744 </span><span class="lineCov">        232 :             }</span>
+<span class="lineNum">     745 </span><span class="lineCov">        232 :             Double_t sigmasq[3];</span>
+<span class="lineNum">     746 </span><span class="lineCov">        232 :             sigmasq[0]=(cov[0]+curvErr*curvErr/2.)*factor*factor;</span>
+<span class="lineNum">     747 </span><span class="lineCov">        232 :             sigmasq[1]=(cov[3]+curvErr*curvErr/2.)*factor*factor;</span>
+<span class="lineNum">     748 </span><span class="lineCov">        232 :             sigmasq[2]=cov[5]*factor*factor;</span>
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :             // Multiple scattering
+<span class="lineNum">     751 </span><span class="lineCov">        232 :             Double_t pOverMass=fMeanPSelTrk/0.140;</span>
+<span class="lineNum">     752 </span><span class="lineCov">        232 :             Double_t beta2=pOverMass*pOverMass/(1+pOverMass*pOverMass);</span>
+<span class="lineNum">     753 </span><span class="lineCov">        232 :             Double_t p2=fMeanPSelTrk*fMeanPSelTrk;</span>
+<span class="lineNum">     754 </span><span class="lineCov">        232 :             Double_t rBP=GetPipeRadius();</span>
+<span class="lineNum">     755 </span>            :             Double_t dBP=0.08/35.3; // 800 um of Be
+<span class="lineNum">     756 </span>            :             Double_t dL1=0.01; //approx. 1% of radiation length  
+<span class="lineNum">     757 </span><span class="lineCov">        232 :             Double_t theta2BP=14.1*14.1/(beta2*p2*1e6)*dBP;</span>
+<span class="lineNum">     758 </span><span class="lineCov">        232 :             Double_t theta2L1=14.1*14.1/(beta2*p2*1e6)*dL1;</span>
+<span class="lineNum">     759 </span><span class="lineCov">        232 :             Double_t rtantheta1=(rad2-rad1)*TMath::Tan(TMath::Sqrt(theta2L1));</span>
+<span class="lineNum">     760 </span><span class="lineCov">        232 :             Double_t rtanthetaBP=(rad1-rBP)*TMath::Tan(TMath::Sqrt(theta2BP));</span>
+<span class="lineNum">     761 </span><span class="lineCov">       1856 :             for(Int_t ico=0; ico&lt;3;ico++){    </span>
+<span class="lineNum">     762 </span><span class="lineCov">        696 :               sigmasq[ico]+=rtantheta1*rtantheta1*factor*factor/3.;</span>
+<span class="lineNum">     763 </span><span class="lineCov">        696 :               sigmasq[ico]+=rtanthetaBP*rtanthetaBP*factor*factor/3.;</span>
+<span class="lineNum">     764 </span>            :             }
+<span class="lineNum">     765 </span><span class="lineCov">        232 :             Double_t wmat[9]={1.,0.,0.,0.,1.,0.,0.,0.,1.};</span>
+<span class="lineNum">     766 </span><span class="lineCov">        464 :             if(sigmasq[0]!=0.) wmat[0]=1./sigmasq[0];</span>
+<span class="lineNum">     767 </span><span class="lineCov">        464 :             if(sigmasq[1]!=0.) wmat[4]=1./sigmasq[1];</span>
+<span class="lineNum">     768 </span><span class="lineCov">        464 :             if(sigmasq[2]!=0.) wmat[8]=1./sigmasq[2];</span>
+<span class="lineNum">     769 </span><span class="lineCov">        696 :             new(fLines[nolines++])AliStrLine(gc1,sigmasq,wmat,gc2,kTRUE,idClu1,idClu2);</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span><span class="lineCov">        600 :           }</span>
+<span class="lineNum">     772 </span><span class="lineCov">      20736 :         }</span>
+<span class="lineNum">     773 </span>            :       }
+<span class="lineNum">     774 </span><span class="lineCov">        576 :     }</span>
+<span class="lineNum">     775 </span><span class="lineCov">       7680 :   }</span>
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span><span class="lineCov">         96 :   SetLaddersOnLayer2(origLaddersOnLayer2);</span>
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span><span class="lineCov">        176 :   if(nolines == 0)return -2;</span>
+<span class="lineNum">     780 </span><span class="lineCov">         16 :   return nolines;</span>
+<span class="lineNum">     781 </span><span class="lineCov">        192 : }</span>
+<a name="782"><span class="lineNum">     782 </span>            : </a>
+<span class="lineNum">     783 </span>            : //______________________________________________________________________
+<span class="lineNum">     784 </span>            : Int_t  AliITSVertexer3D::Prepare3DVertex(Int_t optCuts){
+<span class="lineNum">     785 </span>            :   // Finds the 3D vertex information using tracklets
+<span class="lineNum">     786 </span>            :   Int_t retcode = -1;
+<span class="lineNum">     787 </span><span class="lineCov">         32 :   Double_t xbeam=GetNominalPos()[0];</span>
+<span class="lineNum">     788 </span><span class="lineCov">         16 :   Double_t ybeam=GetNominalPos()[1];</span>
+<span class="lineNum">     789 </span>            :   Double_t zvert=0.;
+<span class="lineNum">     790 </span><span class="lineCov">         16 :   Double_t deltaR=fCoarseMaxRCut;</span>
+<span class="lineNum">     791 </span><span class="lineCov">         16 :   Double_t dZmax=fZCutDiamond;</span>
+<span class="lineNum">     792 </span><span class="lineCov">         16 :   if(optCuts==1){</span>
+<span class="lineNum">     793 </span><span class="lineCov">          8 :     xbeam=fVert3D.GetX();</span>
+<span class="lineNum">     794 </span><span class="lineCov">          8 :     ybeam=fVert3D.GetY();</span>
+<span class="lineNum">     795 </span><span class="lineCov">          8 :     zvert=fVert3D.GetZ();</span>
+<span class="lineNum">     796 </span><span class="lineCov">          8 :     deltaR=fMaxRCut;</span>
+<span class="lineNum">     797 </span><span class="lineCov">          8 :     dZmax=fMaxZCut;</span>
+<span class="lineNum">     798 </span><span class="lineCov">          8 :     if(fPileupAlgo == 2){ </span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :       dZmax=fZCutDiamond;</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :       deltaR=fMaxRCut2;</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     802 </span><span class="lineCov">          8 :   }else if(optCuts==2){</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :     xbeam=fVert3D.GetX();</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :     ybeam=fVert3D.GetY();</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :     deltaR=fMaxRCut;</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span><span class="lineCov">         16 :   Double_t origBinSizeR=fBinSizeR;</span>
+<span class="lineNum">     809 </span><span class="lineCov">         16 :   Double_t origBinSizeZ=fBinSizeZ;</span>
+<span class="lineNum">     810 </span>            :   Bool_t rebinned=kFALSE;
+<span class="lineNum">     811 </span><span class="lineCov">         16 :   if(fDoDownScale){</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     SetBinSizeR(0.05);</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     SetBinSizeZ(0.05);</span>
+<span class="lineNum">     814 </span>            :     rebinned=kTRUE;
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">     816 </span><span class="lineCov">         32 :     if(optCuts==0 &amp;&amp; (fNRecPLay1&gt;fMaxNumOfClForRebin || fNRecPLay2&gt;fMaxNumOfClForRebin)){</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :       SetBinSizeR(0.1);</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :       SetBinSizeZ(0.2);</span>
+<span class="lineNum">     819 </span>            :       rebinned=kTRUE;
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     821 </span>            :   }
+<span class="lineNum">     822 </span><span class="lineCov">         16 :   Double_t rl=-fCoarseMaxRCut;</span>
+<span class="lineNum">     823 </span>            :   Double_t rh=fCoarseMaxRCut;
+<span class="lineNum">     824 </span><span class="lineCov">         16 :   Double_t zl=-fZCutDiamond;</span>
+<span class="lineNum">     825 </span>            :   Double_t zh=fZCutDiamond;
+<span class="lineNum">     826 </span><span class="lineCov">         16 :   Int_t nbr=(Int_t)((rh-rl)/fBinSizeR+0.0001);</span>
+<span class="lineNum">     827 </span><span class="lineCov">         16 :   Int_t nbz=(Int_t)((zh-zl)/fBinSizeZ+0.0001);</span>
+<span class="lineNum">     828 </span><span class="lineCov">         16 :   Int_t nbrcs=(Int_t)((rh-rl)/(fBinSizeR*2.)+0.0001);</span>
+<span class="lineNum">     829 </span><span class="lineCov">         16 :   Int_t nbzcs=(Int_t)((zh-zl)/(fBinSizeZ*2.)+0.0001);</span>
+<span class="lineNum">     830 </span><span class="lineCov">         16 :   if(!fH3d){</span>
+<span class="lineNum">     831 </span><span class="lineCov">         16 :     fH3d = new TH3F(&quot;fH3d&quot;,&quot;xyz distribution&quot;,nbr,rl,rh,nbr,rl,rh,nbz,zl,zh);</span>
+<span class="lineNum">     832 </span><span class="lineCov">          8 :     fH3d-&gt;SetDirectory(0);</span>
+<span class="lineNum">     833 </span><span class="lineCov">          8 :   }else{</span>
+<span class="lineNum">     834 </span><span class="lineCov">          8 :     fH3d-&gt;SetBins(nbr,rl,rh,nbr,rl,rh,nbz,zl,zh);</span>
+<span class="lineNum">     835 </span>            :   }
+<span class="lineNum">     836 </span><span class="lineCov">         16 :   if(!fH3dcs){</span>
+<span class="lineNum">     837 </span><span class="lineCov">         16 :     fH3dcs = new TH3F(&quot;fH3dcs&quot;,&quot;xyz distribution&quot;,nbrcs,rl,rh,nbrcs,rl,rh,nbzcs,zl,zh);</span>
+<span class="lineNum">     838 </span><span class="lineCov">          8 :     fH3dcs-&gt;SetDirectory(0);</span>
+<span class="lineNum">     839 </span><span class="lineCov">          8 :   }else{ </span>
+<span class="lineNum">     840 </span><span class="lineCov">          8 :     fH3dcs-&gt;SetBins(nbr,rl,rh,nbr,rl,rh,nbz,zl,zh);</span>
+<span class="lineNum">     841 </span>            :   }
+<span class="lineNum">     842 </span>            : 
+<span class="lineNum">     843 </span>            :   // cleanup of the TCLonesArray of tracklets (i.e. fakes are removed)
+<span class="lineNum">     844 </span><span class="lineCov">         16 :   Int_t vsiz = fLines.GetEntriesFast();</span>
+<span class="lineNum">     845 </span><span class="lineCov">         16 :   Int_t *validate = new Int_t [vsiz];</span>
+<span class="lineNum">     846 </span><span class="lineCov">        496 :   for(Int_t i=0; i&lt;vsiz;i++)validate[i]=0;</span>
+<span class="lineNum">     847 </span><span class="lineCov">        464 :   for(Int_t i=0; i&lt;vsiz-1;i++){</span>
+<span class="lineNum">     848 </span><span class="lineCov">        216 :     AliStrLine *l1 = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">     849 </span><span class="lineCov">       4720 :     for(Int_t j=i+1;j&lt;fLines.GetEntriesFast();j++){</span>
+<span class="lineNum">     850 </span><span class="lineCov">       2144 :       AliStrLine *l2 = (AliStrLine*)fLines.At(j);</span>
+<span class="lineNum">     851 </span><span class="lineCov">       2144 :       Double_t dca=l1-&gt;GetDCA(l2);</span>
+<span class="lineNum">     852 </span><span class="lineCov">       3934 :       if(dca &gt; fDCAcut || dca&lt;0.00001) continue;</span>
+<span class="lineNum">     853 </span><span class="lineCov">        354 :       Double_t point[3];</span>
+<span class="lineNum">     854 </span><span class="lineCov">        354 :       Int_t retc = l1-&gt;Cross(l2,point);</span>
+<span class="lineNum">     855 </span><span class="lineCov">        354 :       if(retc&lt;0)continue;</span>
+<span class="lineNum">     856 </span><span class="lineCov">        354 :       Double_t deltaZ=point[2]-zvert;</span>
+<span class="lineNum">     857 </span><span class="lineCov">        354 :       if(TMath::Abs(deltaZ)&gt;dZmax)continue;</span>
+<span class="lineNum">     858 </span><span class="lineCov">        354 :       Double_t rad=TMath::Sqrt(point[0]*point[0]+point[1]*point[1]);</span>
+<span class="lineNum">     859 </span><span class="lineCov">        452 :       if(rad&gt;fCoarseMaxRCut)continue;</span>
+<span class="lineNum">     860 </span><span class="lineCov">        256 :       Double_t deltaX=point[0]-xbeam;</span>
+<span class="lineNum">     861 </span><span class="lineCov">        256 :       Double_t deltaY=point[1]-ybeam;</span>
+<span class="lineNum">     862 </span><span class="lineCov">        256 :       Double_t raddist=TMath::Sqrt(deltaX*deltaX+deltaY*deltaY);</span>
+<span class="lineNum">     863 </span><span class="lineCov">        256 :       if(raddist&gt;deltaR)continue;</span>
+<span class="lineNum">     864 </span><span class="lineCov">        256 :       validate[i]=1;</span>
+<span class="lineNum">     865 </span><span class="lineCov">        256 :       validate[j]=1;</span>
+<span class="lineNum">     866 </span><span class="lineCov">        256 :       fH3d-&gt;Fill(point[0],point[1],point[2]);</span>
+<span class="lineNum">     867 </span><span class="lineCov">        256 :       fH3dcs-&gt;Fill(point[0],point[1],point[2]);</span>
+<span class="lineNum">     868 </span><span class="lineCov">        610 :     }</span>
+<span class="lineNum">     869 </span>            :   }
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span>            :   Int_t numbtracklets=0;
+<span class="lineNum">     872 </span><span class="lineCov">        840 :   for(Int_t i=0; i&lt;vsiz;i++)if(validate[i]&gt;=1)numbtracklets++;</span>
+<span class="lineNum">     873 </span><span class="lineCov">         16 :   if(numbtracklets&lt;2){</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     delete [] validate; </span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :     fH3d-&gt;Reset(); </span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     fH3dcs-&gt;Reset(); </span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :     SetBinSizeR(origBinSizeR);</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :     SetBinSizeZ(origBinSizeZ);</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     return retcode; </span>
+<span class="lineNum">     880 </span>            :   }
+<span class="lineNum">     881 </span>            : 
+<span class="lineNum">     882 </span><span class="lineCov">        496 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">     883 </span><span class="lineCov">        352 :     if(validate[i]&lt;1)fLines.RemoveAt(i);</span>
+<span class="lineNum">     884 </span>            :   }
+<span class="lineNum">     885 </span><span class="lineCov">         16 :   fLines.Compress();</span>
+<span class="lineNum">     886 </span><span class="lineCov">         48 :   AliDebug(1,Form(&quot;Number of tracklets (after compress)%d &quot;,fLines.GetEntriesFast()));</span>
+<span class="lineNum">     887 </span><span class="lineCov">         32 :   delete [] validate;</span>
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span>            :   // Exit here if Pileup Algorithm 2 has been chosen during second loop
+<span class="lineNum">     890 </span><span class="lineCov">         16 :   if(fPileupAlgo == 2 &amp;&amp; optCuts==1){</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     fH3d-&gt;Reset();</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :     fH3dcs-&gt;Reset();     </span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     SetBinSizeR(origBinSizeR);</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :     SetBinSizeZ(origBinSizeZ);</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     896 </span>            :   }
+<span class="lineNum">     897 </span>            : 
+<span class="lineNum">     898 </span>            :   //        Find peaks in histos
+<span class="lineNum">     899 </span>            : 
+<span class="lineNum">     900 </span><span class="lineCov">         16 :   Double_t peak[3]={0.,0.,0.};</span>
+<span class="lineNum">     901 </span><span class="lineCov">         16 :   Int_t ntrkl,ntimes;</span>
+<span class="lineNum">     902 </span><span class="lineCov">         16 :   FindPeaks(fH3d,peak,ntrkl,ntimes);  </span>
+<span class="lineNum">     903 </span><span class="lineCov">         16 :   fH3d-&gt;Reset();</span>
+<span class="lineNum">     904 </span><span class="lineCov">         16 :   Double_t binsizer=(rh-rl)/nbr;</span>
+<span class="lineNum">     905 </span><span class="lineCov">         16 :   Double_t binsizez=(zh-zl)/nbz;</span>
+<span class="lineNum">     906 </span><span class="lineCov">         24 :   if(optCuts==0 &amp;&amp; (ntrkl&lt;=2 || ntimes&gt;1)){</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :     ntrkl=0;</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :     ntimes=0;</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :     FindPeaks(fH3dcs,peak,ntrkl,ntimes);  </span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :     binsizer=(rh-rl)/nbrcs;</span>
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :     binsizez=(zh-zl)/nbzcs;</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :     if(ntrkl==1 || ntimes&gt;1){</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :       fH3dcs-&gt;Reset(); </span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :       SetBinSizeR(origBinSizeR);</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :       SetBinSizeZ(origBinSizeZ);</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :       return retcode;</span>
+<span class="lineNum">     917 </span>            :     }
+<span class="lineNum">     918 </span>            :   }
+<span class="lineNum">     919 </span><span class="lineCov">         16 :   fH3dcs-&gt;Reset();</span>
+<span class="lineNum">     920 </span>            : 
+<span class="lineNum">     921 </span><span class="lineCov">         16 :   Double_t bs=(binsizer+binsizez)/2.;</span>
+<span class="lineNum">     922 </span><span class="lineCov">        256 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">     923 </span><span class="lineCov">        112 :     AliStrLine *l1 = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">     924 </span><span class="lineCov">        128 :     if(l1-&gt;GetDistFromPoint(peak)&gt;2.5*bs)fLines.RemoveAt(i);</span>
+<span class="lineNum">     925 </span>            :   }
+<span class="lineNum">     926 </span><span class="lineCov">         16 :   fLines.Compress();</span>
+<span class="lineNum">     927 </span><span class="lineCov">         48 :   AliDebug(1,Form(&quot;Number of tracklets (after 2nd compression) %d&quot;,fLines.GetEntriesFast()));</span>
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span>            :   // Finer Histo in limited range in case of high mult.
+<span class="lineNum">     930 </span><span class="lineCov">         16 :   if(rebinned){</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :     SetBinSizeR(0.01);</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :     SetBinSizeZ(0.01);</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :     Double_t xl=peak[0]-0.3;</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :     Double_t xh=peak[0]+0.3;</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :     Double_t yl=peak[1]-0.3;</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :     Double_t yh=peak[1]+0.3;</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     zl=peak[2]-0.5;</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :     zh=peak[2]+0.5;</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :     Int_t nbxfs=(Int_t)((xh-xl)/fBinSizeR+0.0001);</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :     Int_t nbyfs=(Int_t)((yh-yl)/fBinSizeR+0.0001);</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     Int_t nbzfs=(Int_t)((zh-zl)/fBinSizeZ+0.0001);</span>
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :     if(!fH3dfs){</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :       fH3dfs = new TH3F(&quot;fH3dfs&quot;,&quot;xyz distribution&quot;,nbxfs,xl,xh,nbyfs,yl,yh,nbzfs,zl,zh);</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :       fH3dfs-&gt;SetDirectory(0);</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :     }else{ </span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :       fH3dfs-&gt;SetBins(nbxfs,xl,xh,nbyfs,yl,yh,nbzfs,zl,zh);</span>
+<span class="lineNum">     948 </span>            :     }
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :     for(Int_t i=0; i&lt;fLines.GetEntriesFast()-1;i++){</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :       AliStrLine *l1 = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :       for(Int_t j=i+1;j&lt;fLines.GetEntriesFast();j++){</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :         AliStrLine *l2 = (AliStrLine*)fLines.At(j);</span>
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :         Double_t dca=l1-&gt;GetDCA(l2);</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :         if(dca &gt; fDCAcut || dca&lt;0.00001) continue;</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :         Double_t point[3];</span>
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :         Int_t retc = l1-&gt;Cross(l2,point);</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :         if(retc&lt;0)continue;</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :         Double_t deltaZ=point[2]-zvert;</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :         if(TMath::Abs(deltaZ)&gt;dZmax)continue;</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :         Double_t rad=TMath::Sqrt(point[0]*point[0]+point[1]*point[1]);</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :         if(rad&gt;fCoarseMaxRCut)continue;</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :         Double_t deltaX=point[0]-xbeam;</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :         Double_t deltaY=point[1]-ybeam;</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :         Double_t raddist=TMath::Sqrt(deltaX*deltaX+deltaY*deltaY);</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :         if(raddist&gt;deltaR)continue;</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         fH3dfs-&gt;Fill(point[0],point[1],point[2]);</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     968 </span>            :     }
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :     ntrkl=0;</span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :     ntimes=0;</span>
+<span class="lineNum">     971 </span>            : 
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :     Double_t newpeak[3]={0.,0.,0.};</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :     FindPeaks(fH3dfs,newpeak,ntrkl,ntimes);  </span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     if(ntimes==1){</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :       for(Int_t iCoo=0; iCoo&lt;3; iCoo++) peak[iCoo]=newpeak[iCoo];</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :       binsizer=fBinSizeR;</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :       binsizez=fBinSizeZ;</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     fH3dfs-&gt;Reset();</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :     bs=(binsizer+binsizez)/2.;</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :     for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :       AliStrLine *l1 = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :       if(l1-&gt;GetDistFromPoint(peak)&gt;2.5*bs)fLines.RemoveAt(i);</span>
+<span class="lineNum">     984 </span>            :     }
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :     fLines.Compress();</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :     AliDebug(1,Form(&quot;Number of tracklets (after 3rd compression) %d&quot;,fLines.GetEntriesFast()));</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     988 </span><span class="lineCov">         16 :   SetBinSizeR(origBinSizeR);</span>
+<span class="lineNum">     989 </span><span class="lineCov">         16 :   SetBinSizeZ(origBinSizeZ);</span>
+<span class="lineNum">     990 </span>            : 
+<span class="lineNum">     991 </span>            : 
+<span class="lineNum">     992 </span>            :   //         Second selection loop
+<span class="lineNum">     993 </span>            : 
+<span class="lineNum">     994 </span>            : 
+<span class="lineNum">     995 </span><span class="lineCov">         16 :   if(fLines.GetEntriesFast()&gt;1){</span>
+<span class="lineNum">     996 </span>            :     retcode=0;
+<span class="lineNum">     997 </span>            :     //  find a first candidate for the primary vertex
+<span class="lineNum">     998 </span>            : 
+<span class="lineNum">     999 </span><span class="lineCov">         32 :     fVert3D=AliVertexerTracks::TrackletVertexFinder(&amp;fLines,0); </span>
+<span class="lineNum">    1000 </span>            :     // make a further selection on tracklets based on this first candidate
+<span class="lineNum">    1001 </span><span class="lineCov">         16 :     fVert3D.GetXYZ(peak);</span>
+<span class="lineNum">    1002 </span><span class="lineCov">         48 :     AliDebug(1,Form(&quot;FIRST V candidate: %f ; %f ; %f&quot;,peak[0],peak[1],peak[2]));</span>
+<span class="lineNum">    1003 </span><span class="lineCov">         16 :     Int_t *validate2 = new Int_t [fLines.GetEntriesFast()];</span>
+<span class="lineNum">    1004 </span><span class="lineCov">        224 :     for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++) validate2[i]=1; </span>
+<span class="lineNum">    1005 </span><span class="lineCov">        224 :     for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">    1006 </span><span class="lineCov">         96 :       if(validate2[i]==0) continue; </span>
+<span class="lineNum">    1007 </span><span class="lineCov">         96 :       AliStrLine *l1 = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">    1008 </span><span class="lineCov">         96 :       if(l1-&gt;GetDistFromPoint(peak)&gt; fDCAcut)fLines.RemoveAt(i);</span>
+<span class="lineNum">    1009 </span><span class="lineCov">         96 :       if(optCuts==2){ // temporarily only for pileup</span>
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :         for(Int_t j=i+1; j&lt;fLines.GetEntriesFast();j++){</span>
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :           AliStrLine *l2 = (AliStrLine*)fLines.At(j);</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :           if(l1-&gt;GetDCA(l2)&lt;0.00001){ </span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :             Int_t delta1=(Int_t)l1-&gt;GetIdPoint(0)-(Int_t)l2-&gt;GetIdPoint(0);</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :             Int_t delta2=(Int_t)l1-&gt;GetIdPoint(1)-(Int_t)l2-&gt;GetIdPoint(1);</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :             Int_t deltamod1=(Int_t)l1-&gt;GetIdPoint(0)/kMaxCluPerMod</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :               -(Int_t)l2-&gt;GetIdPoint(0)/kMaxCluPerMod;</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :             Int_t deltamod2=(Int_t)l1-&gt;GetIdPoint(1)/kMaxCluPerMod</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :               -(Int_t)l2-&gt;GetIdPoint(1)/kMaxCluPerMod;</span>
+<span class="lineNum">    1019 </span>            :             // remove tracklets sharing a point
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :             if( (delta1==0 &amp;&amp; deltamod2==0)  || </span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :                 (delta2==0 &amp;&amp; deltamod1==0)  ) validate2[j]=0; </span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :           }</span>
+<span class="lineNum">    1023 </span>            :         }
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1025 </span><span class="lineCov">         96 :     }</span>
+<span class="lineNum">    1026 </span><span class="lineCov">        224 :     for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">    1027 </span><span class="lineCov">         96 :       if(validate2[i]==0)  fLines.RemoveAt(i);</span>
+<span class="lineNum">    1028 </span>            :     }
+<span class="lineNum">    1029 </span><span class="lineCov">         32 :     delete [] validate2;</span>
+<span class="lineNum">    1030 </span><span class="lineCov">         16 :     fLines.Compress();</span>
+<span class="lineNum">    1031 </span><span class="lineCov">         48 :     AliDebug(1,Form(&quot;Number of tracklets (after 3rd compression) %d&quot;,fLines.GetEntriesFast()));</span>
+<span class="lineNum">    1032 </span><span class="lineCov">         16 :     if(fLines.GetEntriesFast()&gt;1){// this new tracklet selection is used</span>
+<span class="lineNum">    1033 </span><span class="lineCov">         32 :       fVert3D=AliVertexerTracks::TrackletVertexFinder(&amp;fLines,0);</span>
+<span class="lineNum">    1034 </span><span class="lineCov">         16 :     }</span>
+<span class="lineNum">    1035 </span><span class="lineCov">         16 :   }</span>
+<span class="lineNum">    1036 </span>            :   return retcode;  
+<span class="lineNum">    1037 </span><span class="lineCov">         32 : }</span>
+<a name="1038"><span class="lineNum">    1038 </span>            : </a>
+<span class="lineNum">    1039 </span>            : //________________________________________________________
+<span class="lineNum">    1040 </span>            : Int_t  AliITSVertexer3D::Prepare3DVertexPbPb(){
+<span class="lineNum">    1041 </span>            :   // Finds the 3D vertex information in Pb-Pb events using tracklets
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :   AliDebug(1,&quot;High multiplicity event.\n&quot;);</span>
+<span class="lineNum">    1043 </span>            : 
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :   Int_t nxy=(Int_t)(2.*fCoarseMaxRCut/f3DBinSize);</span>
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :   Double_t xymi= -nxy*f3DBinSize/2.;</span>
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :   Double_t xyma= nxy*f3DBinSize/2.;</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :   Int_t nz=(Int_t)(2.*fZCutDiamond/f3DBinSize);</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :   Double_t zmi=-nz*f3DBinSize/2.;</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :   Double_t zma=nz*f3DBinSize/2.;</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :   Int_t nolines=fLines.GetEntriesFast();</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :   if(!fH3dv) {</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :     fH3dv = new TH3F(&quot;fH3dv&quot;,&quot;3d tracklets&quot;,nxy,xymi,xyma,nxy,xymi,xyma,nz,zmi,zma);</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :     fH3dv-&gt;SetDirectory(0);</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1055 </span>            :   //
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :   for(Int_t itra=0; itra&lt;nolines; itra++){</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :     Double_t wei = GetFraction(itra);</span>
+<span class="lineNum">    1058 </span>            :     //printf(&quot;tracklet %d ) - weight %f \n&quot;,itra,wei);
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :     if(wei&gt;1.e-6){</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :       AliStrLine *str=(AliStrLine*)fLines.At(itra);</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :       Double_t t1,t2;</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :       if(str-&gt;GetParamAtRadius(fCoarseMaxRCut,t1,t2)){</span>
+<span class="lineNum">    1063 </span>            :         do{
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :           Double_t punt[3];</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :           str-&gt;ComputePointAtT(t1,punt);</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :           fH3dv-&gt;Fill(punt[0],punt[1],punt[2],wei);</span>
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :           t1+=f3DBinSize/3.;</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :         } while(t1&lt;t2);</span>
+<span class="lineNum">    1069 </span>            :       }
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1071 </span>            :   }
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :   Int_t noftrk,noftim;</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :   FindPeaks(fH3dv,f3DPeak,noftrk,noftim); // arg: histo3d, peak, # of contrib., # of other peak with same magnitude</span>
+<span class="lineNum">    1074 </span>            :   
+<span class="lineNum">    1075 </span>            :   
+<span class="lineNum">    1076 </span>            :   // Remove all the tracklets which are not passing near peak
+<span class="lineNum">    1077 </span>            :   
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :   while(nolines--){</span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :     AliStrLine *str=(AliStrLine*)fLines.At(nolines);</span>
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     Double_t dist = str-&gt;GetDistFromPoint(f3DPeak);</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :     if(dist&gt;(2.*f3DBinSize)) fLines.RemoveAt(nolines);</span>
+<span class="lineNum">    1082 </span>            :     }
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   fLines.Compress();</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :   nolines=fLines.GetEntriesFast();</span>
+<span class="lineNum">    1085 </span>            : 
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :   fH3dv-&gt;Reset();</span>
+<span class="lineNum">    1087 </span>            : 
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :   Int_t *validate2 = new Int_t [fLines.GetEntriesFast()];</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++) validate2[i]=1; </span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :     if(validate2[i]==0) continue; </span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :     AliStrLine *l1 = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :     if(l1-&gt;GetDistFromPoint(f3DPeak)&gt; fDCAcut)fLines.RemoveAt(i);</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     for(Int_t j=i+1; j&lt;fLines.GetEntriesFast();j++){</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :       AliStrLine *l2 = (AliStrLine*)fLines.At(j);</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :       if(l1-&gt;GetDCA(l2)&lt;0.00001){ </span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :         Int_t delta1=(Int_t)l1-&gt;GetIdPoint(0)-(Int_t)l2-&gt;GetIdPoint(0);</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :         Int_t delta2=(Int_t)l1-&gt;GetIdPoint(1)-(Int_t)l2-&gt;GetIdPoint(1);</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :         Int_t deltamod1=(Int_t)l1-&gt;GetIdPoint(0)/kMaxCluPerMod</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :           -(Int_t)l2-&gt;GetIdPoint(0)/kMaxCluPerMod;</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :         Int_t deltamod2=(Int_t)l1-&gt;GetIdPoint(1)/kMaxCluPerMod</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :           -(Int_t)l2-&gt;GetIdPoint(1)/kMaxCluPerMod;</span>
+<span class="lineNum">    1103 </span>            :         // remove tracklets sharing a point
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :         if( (delta1==0 &amp;&amp; deltamod2==0)  || </span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :             (delta2==0 &amp;&amp; deltamod1==0)  ) validate2[j]=0; </span>
+<span class="lineNum">    1106 </span>            :         
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1108 </span>            :     }
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :     if(validate2[i]==0)  fLines.RemoveAt(i);</span>
+<span class="lineNum">    1112 </span>            :   }
+<span class="lineNum">    1113 </span>            :   
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :   delete [] validate2;</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :   fLines.Compress();</span>
+<span class="lineNum">    1116 </span>            : 
+<span class="lineNum">    1117 </span>            :   
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :   AliDebug(1,Form(&quot;Number of tracklets (after 3rd compression) %d&quot;,fLines.GetEntriesFast()));</span>
+<span class="lineNum">    1119 </span>            : 
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :   if(fLines.GetEntriesFast()&gt;1){</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :     fVert3D=AliVertexerTracks::TrackletVertexFinder(&amp;fLines,0); </span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :     fVert3D.GetXYZ(f3DPeak);</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :   return 0;  </span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 : }</span>
+<a name="1126"><span class="lineNum">    1126 </span>            : </a>
+<span class="lineNum">    1127 </span>            : //________________________________________________________
+<span class="lineNum">    1128 </span>            : void AliITSVertexer3D::SetMeanPPtSelTracks(Double_t fieldTesla){
+<span class="lineNum">    1129 </span>            :   // Sets mean values of Pt based on the field
+<span class="lineNum">    1130 </span>            :   // for P (used in multiple scattering) the most probable value is used
+<span class="lineNum">    1131 </span><span class="lineCov">        192 :   if(TMath::Abs(fieldTesla-0.5)&lt;0.01){</span>
+<span class="lineNum">    1132 </span><span class="lineCov">         96 :     SetMeanPSelTracks(0.375);</span>
+<span class="lineNum">    1133 </span><span class="lineCov">         96 :     SetMeanPtSelTracks(0.630);</span>
+<span class="lineNum">    1134 </span><span class="lineCov">         96 :   }else if(TMath::Abs(fieldTesla-0.4)&lt;0.01){</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     SetMeanPSelTracks(0.375);</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :     SetMeanPtSelTracks(0.580);</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :   }else if(TMath::Abs(fieldTesla-0.2)&lt;0.01){</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     SetMeanPSelTracks(0.375);</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     SetMeanPtSelTracks(0.530);</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :   }else if(fieldTesla&lt;0.00001){</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     SetMeanPSelTracks(0.375);</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :     SetMeanPtSelTracks(0.230);</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :   }else{</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :     SetMeanPSelTracks();</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :     SetMeanPtSelTracks();</span>
+<span class="lineNum">    1146 </span>            :   }
+<span class="lineNum">    1147 </span><span class="lineCov">         96 : }</span>
+<a name="1148"><span class="lineNum">    1148 </span>            : </a>
+<span class="lineNum">    1149 </span>            : //________________________________________________________
+<span class="lineNum">    1150 </span>            : void AliITSVertexer3D::SetZCutDiamond(Double_t zcut){
+<span class="lineNum">    1151 </span>            :   // The fiducial region along Z is set. The TH1 object pointed by 
+<span class="lineNum">    1152 </span>            :   // fZHisto is created 
+<span class="lineNum">    1153 </span><span class="lineCov">         32 :   if(TMath::AreEqualAbs(zcut,fZCutDiamond,1.e-10))return;</span>
+<span class="lineNum">    1154 </span><span class="lineCov">          8 :   fZCutDiamond=zcut;</span>
+<span class="lineNum">    1155 </span><span class="lineCov">          8 :   if(fZHisto) delete fZHisto;</span>
+<span class="lineNum">    1156 </span>            :   Double_t binsize=0.02; // default 200 micron
+<span class="lineNum">    1157 </span><span class="lineCov">          8 :   Int_t nbins=static_cast&lt;Int_t&gt;(1+2*fZCutDiamond/binsize);</span>
+<span class="lineNum">    1158 </span><span class="lineCov">         16 :   fZHisto=new TH1F(&quot;hz&quot;,&quot;&quot;,nbins,-fZCutDiamond,-fZCutDiamond+binsize*nbins);</span>
+<span class="lineNum">    1159 </span><span class="lineCov">          8 :   fZHisto-&gt;SetDirectory(0);</span>
+<span class="lineNum">    1160 </span><span class="lineCov">         24 : }</span>
+<a name="1161"><span class="lineNum">    1161 </span>            : </a>
+<span class="lineNum">    1162 </span>            : //________________________________________________________
+<span class="lineNum">    1163 </span>            : void AliITSVertexer3D::FindPeaks(TH3F* histo, Double_t *peak, Int_t &amp;nOfTracklets, Int_t &amp;nOfTimes){
+<span class="lineNum">    1164 </span>            :   // Finds bin with max contents in 3D histo of tracket intersections
+<span class="lineNum">    1165 </span><span class="lineCov">         32 :   TAxis *xax = histo-&gt;GetXaxis();  </span>
+<span class="lineNum">    1166 </span><span class="lineCov">         16 :   TAxis *yax = histo-&gt;GetYaxis();</span>
+<span class="lineNum">    1167 </span><span class="lineCov">         16 :   TAxis *zax = histo-&gt;GetZaxis();</span>
+<span class="lineNum">    1168 </span><span class="lineCov">         16 :   peak[0]=0.;</span>
+<span class="lineNum">    1169 </span><span class="lineCov">         16 :   peak[1]=0.;</span>
+<span class="lineNum">    1170 </span><span class="lineCov">         16 :   peak[2]=0.;</span>
+<span class="lineNum">    1171 </span><span class="lineCov">         16 :   nOfTracklets = 0;</span>
+<span class="lineNum">    1172 </span><span class="lineCov">         16 :   nOfTimes=0;</span>
+<span class="lineNum">    1173 </span>            :   Int_t peakbin[3]={0,0,0};
+<span class="lineNum">    1174 </span>            :   Int_t peak2bin[3]={-1,-1,-1};
+<span class="lineNum">    1175 </span>            :   Int_t bc2=-1;
+<span class="lineNum">    1176 </span><span class="lineCov">       1632 :   for(Int_t i=xax-&gt;GetFirst();i&lt;=xax-&gt;GetLast();i++){</span>
+<span class="lineNum">    1177 </span><span class="lineCov">        800 :     Double_t xval = xax-&gt;GetBinCenter(i);</span>
+<span class="lineNum">    1178 </span><span class="lineCov">      81600 :     for(Int_t j=yax-&gt;GetFirst();j&lt;=yax-&gt;GetLast();j++){</span>
+<span class="lineNum">    1179 </span><span class="lineCov">      40000 :       Double_t yval = yax-&gt;GetBinCenter(j);</span>
+<span class="lineNum">    1180 </span><span class="lineCov">    8080000 :       for(Int_t k=zax-&gt;GetFirst();k&lt;=zax-&gt;GetLast();k++){</span>
+<span class="lineNum">    1181 </span><span class="lineCov">    4000000 :         Double_t zval = zax-&gt;GetBinCenter(k);</span>
+<span class="lineNum">    1182 </span><span class="lineCov">    4000000 :         Int_t bc =(Int_t)histo-&gt;GetBinContent(i,j,k);</span>
+<span class="lineNum">    1183 </span><span class="lineCov">    7999872 :         if(bc==0) continue;</span>
+<span class="lineNum">    1184 </span><span class="lineCov">        128 :         if(bc&gt;nOfTracklets){</span>
+<span class="lineNum">    1185 </span><span class="lineCov">         28 :           nOfTracklets=bc;</span>
+<span class="lineNum">    1186 </span><span class="lineCov">         28 :           peak[2] = zval;</span>
+<span class="lineNum">    1187 </span><span class="lineCov">         28 :           peak[1] = yval;</span>
+<span class="lineNum">    1188 </span><span class="lineCov">         28 :           peak[0] = xval;</span>
+<span class="lineNum">    1189 </span>            :           peakbin[2] = k;
+<span class="lineNum">    1190 </span>            :           peakbin[1] = j;
+<span class="lineNum">    1191 </span>            :           peakbin[0] = i;
+<span class="lineNum">    1192 </span>            :           peak2bin[2] = -1;
+<span class="lineNum">    1193 </span>            :           peak2bin[1] = -1;
+<span class="lineNum">    1194 </span>            :           peak2bin[0] = -1;
+<span class="lineNum">    1195 </span>            :           bc2=-1;
+<span class="lineNum">    1196 </span><span class="lineCov">         28 :           nOfTimes = 1;</span>
+<span class="lineNum">    1197 </span><span class="lineCov">        128 :         }else if(bc==nOfTracklets){</span>
+<span class="lineNum">    1198 </span><span class="lineCov">         72 :           if(TMath::Abs(i-peakbin[0])&lt;=1 &amp;&amp; TMath::Abs(j-peakbin[1])&lt;=1 &amp;&amp; TMath::Abs(k-peakbin[2])&lt;=1){</span>
+<span class="lineNum">    1199 </span>            :             peak2bin[2] = k;
+<span class="lineNum">    1200 </span>            :             peak2bin[1] = j;
+<span class="lineNum">    1201 </span>            :             peak2bin[0] = i;
+<span class="lineNum">    1202 </span>            :             bc2=bc;
+<span class="lineNum">    1203 </span><span class="lineCov">         24 :             nOfTimes = 1;</span>
+<span class="lineNum">    1204 </span><span class="lineCov">         24 :           }else{</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :             nOfTimes++;</span>
+<span class="lineNum">    1206 </span>            :           }
+<span class="lineNum">    1207 </span>            :         }
+<span class="lineNum">    1208 </span><span class="lineCov">        128 :       }</span>
+<span class="lineNum">    1209 </span>            :     }
+<span class="lineNum">    1210 </span>            :   }
+<span class="lineNum">    1211 </span><span class="lineCov">         16 :   if(peak2bin[0]&gt;=-1 &amp;&amp; bc2!=-1){ // two contiguous peak-cells with same contents</span>
+<span class="lineNum">    1212 </span><span class="lineCov">         16 :     peak[0]=0.5*(xax-&gt;GetBinCenter(peakbin[0])+xax-&gt;GetBinCenter(peak2bin[0]));</span>
+<span class="lineNum">    1213 </span><span class="lineCov">         16 :     peak[1]=0.5*(yax-&gt;GetBinCenter(peakbin[1])+yax-&gt;GetBinCenter(peak2bin[1]));</span>
+<span class="lineNum">    1214 </span><span class="lineCov">         16 :     peak[2]=0.5*(zax-&gt;GetBinCenter(peakbin[2])+zax-&gt;GetBinCenter(peak2bin[2]));</span>
+<span class="lineNum">    1215 </span><span class="lineCov">         16 :     nOfTracklets+=bc2;</span>
+<span class="lineNum">    1216 </span><span class="lineCov">         16 :     nOfTimes=1;</span>
+<span class="lineNum">    1217 </span><span class="lineCov">         16 :   }</span>
+<a name="1218"><span class="lineNum">    1218 </span><span class="lineCov">         16 : }</span></a>
+<span class="lineNum">    1219 </span>            : //________________________________________________________
+<span class="lineNum">    1220 </span>            : void AliITSVertexer3D::MarkUsedClusters(){
+<span class="lineNum">    1221 </span>            :   // Mark clusters of tracklets used in vertex claulation
+<span class="lineNum">    1222 </span><span class="lineCov">        336 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">    1223 </span><span class="lineCov">         48 :     AliStrLine *lin = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">    1224 </span><span class="lineCov">         48 :     Int_t idClu1=lin-&gt;GetIdPoint(0);</span>
+<span class="lineNum">    1225 </span><span class="lineCov">         48 :     Int_t idClu2=lin-&gt;GetIdPoint(1);</span>
+<span class="lineNum">    1226 </span><span class="lineCov">         48 :     fUsedCluster.SetBitNumber(idClu1);</span>
+<span class="lineNum">    1227 </span><span class="lineCov">         48 :     fUsedCluster.SetBitNumber(idClu2);</span>
+<span class="lineNum">    1228 </span>            :   }
+<a name="1229"><span class="lineNum">    1229 </span><span class="lineCov">         80 : }</span></a>
+<span class="lineNum">    1230 </span>            : //________________________________________________________
+<span class="lineNum">    1231 </span>            : Int_t AliITSVertexer3D::RemoveTracklets(){
+<span class="lineNum">    1232 </span>            :   // Remove trackelts close to first found vertex
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :   Double_t vert[3]={fVert3D.GetX(),fVert3D.GetY(),fVert3D.GetZ()};</span>
+<span class="lineNum">    1234 </span>            :   Int_t nRemoved=0;
+<span class="lineNum">    1235 </span><span class="lineNoCov">          0 :   for(Int_t i=0; i&lt;fLines.GetEntriesFast();i++){</span>
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :     AliStrLine *lin = (AliStrLine*)fLines.At(i);</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :     if(lin-&gt;GetDistFromPoint(vert)&lt;fDCAforPileup){</span>
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :       Int_t idClu1=lin-&gt;GetIdPoint(0);</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :       Int_t idClu2=lin-&gt;GetIdPoint(1);</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :       fUsedCluster.SetBitNumber(idClu1);</span>
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :       fUsedCluster.SetBitNumber(idClu2);</span>
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :       fLines.RemoveAt(i);</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :       ++nRemoved;</span>
+<span class="lineNum">    1244 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1245 </span>            :   }
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :   fLines.Compress();</span>
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :   return nRemoved;</span>
+<a name="1248"><span class="lineNum">    1248 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1249 </span>            : //________________________________________________________
+<span class="lineNum">    1250 </span>            : void AliITSVertexer3D::FindOther3DVertices(TTree *itsClusterTree){
+<span class="lineNum">    1251 </span>            :   // pileup identification based on 3D vertexing with not used clusters
+<span class="lineNum">    1252 </span>            : 
+<span class="lineNum">    1253 </span><span class="lineCov">        200 :   fVertArray = new AliESDVertex[kMaxPileupVertices+1];</span>
+<span class="lineNum">    1254 </span><span class="lineCov">          8 :   fVertArray[0]=(*fCurrentVertex);</span>
+<span class="lineNum">    1255 </span>            :   Int_t nFoundVert=1;
+<span class="lineNum">    1256 </span><span class="lineCov">        176 :   for(Int_t iPilV=1; iPilV&lt;=kMaxPileupVertices; iPilV++){</span>
+<span class="lineNum">    1257 </span><span class="lineCov">         80 :     MarkUsedClusters();</span>
+<span class="lineNum">    1258 </span><span class="lineCov">         80 :     fLines.Clear(&quot;C&quot;);</span>
+<span class="lineNum">    1259 </span><span class="lineCov">         80 :     Int_t nolines = FindTracklets(itsClusterTree,2);</span>
+<span class="lineNum">    1260 </span><span class="lineCov">         80 :     if(nolines&gt;=2){</span>
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :       Int_t nr=RemoveTracklets();</span>
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :       nolines-=nr;</span>
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :       if(nolines&gt;=2){</span>
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :         Int_t rc=Prepare3DVertex(2);</span>
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :         if(rc==0 &amp;&amp; fLines.GetEntriesFast()&gt;0){ </span>
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :           fVert3D=AliVertexerTracks::TrackletVertexFinder(&amp;fLines,0);</span>
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :           if(fVert3D.GetNContributors()&gt;=fMinTrackletsForPilup){</span>
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :             fIsPileup=kTRUE;</span>
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :             fVertArray[nFoundVert]=fVert3D;</span>
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :             nFoundVert++;</span>
+<span class="lineNum">    1271 </span><span class="lineNoCov">          0 :             if(nFoundVert==2){</span>
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 :               fZpuv=fVert3D.GetZ();</span>
+<span class="lineNum">    1273 </span><span class="lineNoCov">          0 :               fNTrpuv=fVert3D.GetNContributors();</span>
+<span class="lineNum">    1274 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1275 </span>            :           }
+<span class="lineNum">    1276 </span>            :         }
+<span class="lineNum">    1277 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1278 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1279 </span>            :   }
+<span class="lineNum">    1280 </span><span class="lineCov">          8 :   fNoVertices=nFoundVert;</span>
+<a name="1281"><span class="lineNum">    1281 </span><span class="lineCov">          8 : }</span></a>
+<span class="lineNum">    1282 </span>            : //______________________________________________________________________
+<span class="lineNum">    1283 </span>            : void AliITSVertexer3D::PileupFromZ(){
+<span class="lineNum">    1284 </span>            :   // Calls the pileup algorithm of ALiITSVertexerZ
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :   Int_t binmin, binmax;</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :   Int_t nPeaks=AliITSVertexerZ::GetPeakRegion(fZHisto,binmin,binmax);   </span>
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :   if(nPeaks==2)AliWarning(&quot;2 peaks found&quot;);</span>
+<span class="lineNum">    1288 </span>            :   Int_t firstPeakCont=0;
+<span class="lineNum">    1289 </span>            :   Double_t firstPeakPos=0.;
+<span class="lineNum">    1290 </span><span class="lineNoCov">          0 :   for(Int_t i=binmin-1;i&lt;=binmax+1;i++){</span>
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :     firstPeakCont+=static_cast&lt;Int_t&gt;(fZHisto-&gt;GetBinContent(i));</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :     firstPeakPos+=fZHisto-&gt;GetBinContent(i)*fZHisto-&gt;GetBinCenter(i);</span>
+<span class="lineNum">    1293 </span>            :   }
+<span class="lineNum">    1294 </span><span class="lineNoCov">          0 :   if(firstPeakCont&gt;0){ </span>
+<span class="lineNum">    1295 </span><span class="lineNoCov">          0 :     firstPeakPos/=firstPeakCont;</span>
+<span class="lineNum">    1296 </span>            :     Int_t ncontr2=0;
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :     if(firstPeakCont&gt;fMinTrackletsForPilup){     </span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :       Float_t secPeakPos;</span>
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :       ncontr2=AliITSVertexerZ::FindSecondPeak(fZHisto,binmin,binmax,secPeakPos);</span>
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :       if(ncontr2&gt;=fMinTrackletsForPilup){ </span>
+<span class="lineNum">    1301 </span><span class="lineNoCov">          0 :         fIsPileup=kTRUE;</span>
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :         fNoVertices=2;</span>
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :         AliESDVertex secondVert(secPeakPos,0.1,ncontr2);</span>
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :         fVertArray = new AliESDVertex[2];</span>
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :         fVertArray[0]=(*fCurrentVertex);</span>
+<span class="lineNum">    1306 </span><span class="lineNoCov">          0 :         fVertArray[1]=secondVert;</span>
+<span class="lineNum">    1307 </span><span class="lineNoCov">          0 :         fZpuv=secPeakPos;</span>
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 :         fNTrpuv=ncontr2;</span>
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 : }</span>
+<a name="1313"><span class="lineNum">    1313 </span>            : </a>
+<span class="lineNum">    1314 </span>            : //________________________________________________________
+<span class="lineNum">    1315 </span>            : Double_t AliITSVertexer3D::GetFraction(Int_t itr) const {
+<span class="lineNum">    1316 </span>            :   // this method is used to fill a 3D histogram representing
+<span class="lineNum">    1317 </span>            :   // the trajectories of the candidate tracklets
+<span class="lineNum">    1318 </span>            :   // The computed fraction is used as a weight at filling time
+<span class="lineNum">    1319 </span><span class="lineNoCov">          0 :   AliStrLine *str = (AliStrLine*)fLines.At(itr);</span>
+<span class="lineNum">    1320 </span>            :   Double_t spigolo=10.;
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :   Double_t cd[3];</span>
+<span class="lineNum">    1322 </span><span class="lineNoCov">          0 :   str-&gt;GetCd(cd);</span>
+<span class="lineNum">    1323 </span>            :   Double_t par=0.;
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :   Double_t maxl=TMath::Sqrt(3.)*spigolo;</span>
+<span class="lineNum">    1325 </span>            :  // intersection with a plane normal to the X axis 
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :   if(TMath::AreEqualAbs(cd[0],0.,1.e-9)){</span>
+<span class="lineNum">    1327 </span>            :     par=1000000.;
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1329 </span>            :   else {
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :     par=spigolo/cd[0];</span>
+<span class="lineNum">    1331 </span>            :   }
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :   Double_t zc=cd[2]*par;</span>
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :   Double_t yc=cd[1]*par;</span>
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :   if((-spigolo&lt;=yc &amp;&amp; yc&lt;=spigolo) &amp;&amp; (-spigolo&lt;=zc &amp;&amp; zc&lt;=spigolo))return TMath::Abs(par/maxl);</span>
+<span class="lineNum">    1335 </span>            :  // intersection with a plane normal to the Y axis
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :   if(TMath::AreEqualAbs(cd[1],0.,1.e-9)){</span>
+<span class="lineNum">    1337 </span>            :     par=1000000.;
+<span class="lineNum">    1338 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1339 </span>            :   else {
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :     par=spigolo/cd[1];</span>
+<span class="lineNum">    1341 </span>            :   }
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :   zc=cd[2]*par;</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :   Double_t xc=cd[0]*par;</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :   if((-spigolo&lt;=xc &amp;&amp; xc&lt;=spigolo) &amp;&amp; (-spigolo&lt;=zc &amp;&amp; zc&lt;=spigolo))return TMath::Abs(par/maxl);</span>
+<span class="lineNum">    1345 </span>            :  // intersection with a plane normal to the Z axis
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :   if(TMath::AreEqualAbs(cd[2],0.,1.e-9)){</span>
+<span class="lineNum">    1347 </span>            :     par=1000000.;
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">    1349 </span>            :   else {
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :     par=spigolo/cd[2];</span>
+<span class="lineNum">    1351 </span>            :   }
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :   yc=cd[1]*par;</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :   xc=cd[0]*par;</span>
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :   if((-spigolo&lt;=xc &amp;&amp; xc&lt;=spigolo) &amp;&amp; (-spigolo&lt;=yc &amp;&amp; yc&lt;=spigolo))return TMath::Abs(par/maxl);</span>
+<span class="lineNum">    1355 </span>            :   // control should never reach the following lines
+<span class="lineNum">    1356 </span><span class="lineNoCov">          0 :   AliError(Form(&quot;anomalous tracklet direction for tracklet %d in fLines\n&quot;,itr));</span>
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :   str-&gt;PrintStatus();</span>
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :   return 0.;</span>
+<span class="lineNum">    1359 </span><span class="lineNoCov">          0 : }</span>
+<a name="1360"><span class="lineNum">    1360 </span>            : </a>
+<span class="lineNum">    1361 </span>            : //________________________________________________________
+<span class="lineNum">    1362 </span>            : void AliITSVertexer3D::PrintStatus() const {
+<span class="lineNum">    1363 </span>            :   // Print current status
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :   printf(&quot;========= First step selections =====================\n&quot;);</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :   printf(&quot;Cut on diamond (Z) %f\n&quot;,fZCutDiamond);</span>
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :   printf(&quot;Loose cut on Delta Phi %f\n&quot;,fCoarseDiffPhiCut);</span>
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :   printf(&quot;Loose cut on tracklet DCA to Z axis %f\n&quot;,fCoarseMaxRCut);</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :   printf(&quot;Cut on DCA - tracklet to tracklet and to vertex %f\n&quot;,fDCAcut);</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :   printf(&quot;========= Second step selections ====================\n&quot;);</span>
+<span class="lineNum">    1370 </span><span class="lineNoCov">          0 :   printf(&quot;Cut on tracklet-to-first-vertex Z distance %f\n&quot;,fMaxZCut);</span>
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :   printf(&quot;Max Phi difference: %f\n&quot;,fDiffPhiMax);</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :   printf(&quot;Cut on tracklet DCA to beam axis %f\n&quot;,fMaxRCut);</span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :   printf(&quot;Cut on tracklet DCA to beam axis (algo2) %f\n&quot;,fMaxRCut2);</span>
+<span class="lineNum">    1374 </span><span class="lineNoCov">          0 :   printf(&quot;========= Pileup selections =========================\n&quot;);</span>
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :   printf(&quot;Pileup algo: %d\n&quot;,fPileupAlgo);</span>
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :   printf(&quot;Min DCA to 1st vertex for pileup (algo 0 and 1): %f\n&quot;,fDCAforPileup);</span>
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :   printf(&quot;Cut on distance between pair-vertices  (algo 2): %f\n&quot;,fCutOnPairs);</span>
+<span class="lineNum">    1378 </span><span class="lineNoCov">          0 :   printf(&quot;Maximum number of clusters on L1 or L2 for downscale: %d\n&quot;,fMaxNumOfClForDownScale);</span>
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :   printf(&quot;Maximum number of clusters on L1 or L2 for histo rebin: %d\n&quot;,fMaxNumOfClForRebin);</span>
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :   printf(&quot;=======================================================\n&quot;);</span>
+<span class="lineNum">    1381 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1382 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,810 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - HLT/TPCLib/tracking-ca/AliHLTTPCCATrackParam.cxx</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">HLT/TPCLib/tracking-ca</a> - AliHLTTPCCATrackParam.cxx<span style="font-size: 80%;"> (source / <a href="AliHLTTPCCATrackParam.cxx.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">348</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2016-06-14 17:26:59</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // $Id$</a>
+<span class="lineNum">       2 </span>            : // **************************************************************************
+<span class="lineNum">       3 </span>            : // This file is property of and copyright by the ALICE HLT Project          *
+<span class="lineNum">       4 </span>            : // ALICE Experiment at CERN, All rights reserved.                           *
+<span class="lineNum">       5 </span>            : //                                                                          *
+<span class="lineNum">       6 </span>            : // Primary Authors: Sergey Gorbunov &lt;sergey.gorbunov@kip.uni-heidelberg.de&gt; *
+<span class="lineNum">       7 </span>            : //                  Ivan Kisel &lt;kisel@kip.uni-heidelberg.de&gt;                *
+<span class="lineNum">       8 </span>            : //                  for The ALICE HLT Project.                              *
+<span class="lineNum">       9 </span>            : //                                                                          *
+<span class="lineNum">      10 </span>            : // Permission to use, copy, modify and distribute this software and its     *
+<span class="lineNum">      11 </span>            : // documentation strictly for non-commercial purposes is hereby granted     *
+<span class="lineNum">      12 </span>            : // without fee, provided that the above copyright notice appears in all     *
+<span class="lineNum">      13 </span>            : // copies and that both the copyright notice and this permission notice     *
+<span class="lineNum">      14 </span>            : // appear in the supporting documentation. The authors make no claims       *
+<span class="lineNum">      15 </span>            : // about the suitability of this software for any purpose. It is            *
+<span class="lineNum">      16 </span>            : // provided &quot;as is&quot; without express or implied warranty.                    *
+<span class="lineNum">      17 </span>            : //                                                                          *
+<span class="lineNum">      18 </span>            : //***************************************************************************
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;AliHLTTPCCATrackParam.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;AliHLTTPCCAMath.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;AliHLTTPCCATrackLinearisation.h&quot;
+<span class="lineNum">      24 </span>            : #if !defined(__OPENCL__) | defined(HLTCA_HOSTCODE)
+<span class="lineNum">      25 </span>            : #include &lt;iostream&gt;
+<span class="lineNum">      26 </span>            : #endif
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : //
+<span class="lineNum">      29 </span>            : // Circle in XY:
+<span class="lineNum">      30 </span>            : //
+<span class="lineNum">      31 </span>            : // kCLight = 0.000299792458;
+<span class="lineNum">      32 </span>            : // Kappa = -Bz*kCLight*QPt;
+<span class="lineNum">      33 </span>            : // R  = 1/TMath::Abs(Kappa);
+<span class="lineNum">      34 </span>            : // Xc = X - sin(Phi)/Kappa;
+<span class="lineNum">      35 </span>            : // Yc = Y + cos(Phi)/Kappa;
+<a name="36"><span class="lineNum">      36 </span>            : //</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCATrackParam)::GetDist2( const MEM_LG(AliHLTTPCCATrackParam) &amp;t ) const
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span>            :   // get squared distance between tracks
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :   float dx = GetX() - t.GetX();</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :   float dy = GetY() - t.GetY();</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   float dz = GetZ() - t.GetZ();</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   return dx*dx + dy*dy + dz*dz;</span>
+<a name="46"><span class="lineNum">      46 </span>            : }</a>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCATrackParam)::GetDistXZ2( const MEM_LG(AliHLTTPCCATrackParam) &amp;t ) const
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :   // get squared distance between tracks in X&amp;Z
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   float dx = GetX() - t.GetX();</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   float dz = GetZ() - t.GetZ();</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   return dx*dx + dz*dz;</span>
+<span class="lineNum">      55 </span>            : }
+<a name="56"><span class="lineNum">      56 </span>            : </a>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : MEM_CLASS_PRE() GPUdi() float  MEM_LG(AliHLTTPCCATrackParam)::GetS( float x, float y, float Bz ) const
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            :   //* Get XY path length to the given point
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   float k  = GetKappa( Bz );</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :   float ex = GetCosPhi();</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   float ey = GetSinPhi();</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   x -= GetX();</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   y -= GetY();</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :   float dS = x * ex + y * ey;</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( k ) &gt; 1.e-4 ) dS = CAMath::ATan2( k * dS, 1 + k * ( x * ey - y * ex ) ) / k;</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   return dS;</span>
+<a name="70"><span class="lineNum">      70 </span>            : }</a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : MEM_CLASS_PRE() GPUdi() void  MEM_LG(AliHLTTPCCATrackParam)::GetDCAPoint( float x, float y, float z,
+<span class="lineNum">      73 </span>            :     float &amp;xp, float &amp;yp, float &amp;zp,
+<span class="lineNum">      74 </span>            :     float Bz ) const
+<span class="lineNum">      75 </span>            : {
+<span class="lineNum">      76 </span>            :   //* Get the track point closest to the (x,y,z)
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   float x0 = GetX();</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   float y0 = GetY();</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   float k  = GetKappa( Bz );</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :   float ex = GetCosPhi();</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :   float ey = GetSinPhi();</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   float dx = x - x0;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   float dy = y - y0;</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   float ax = dx * k + ey;</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   float ay = dy * k - ex;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   float a = sqrt( ax * ax + ay * ay );</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :   xp = x0 + ( dx - ey * ( ( dx * dx + dy * dy ) * k - 2 * ( -dx * ey + dy * ex ) ) / ( a + 1 ) ) / a;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   yp = y0 + ( dy + ex * ( ( dx * dx + dy * dy ) * k - 2 * ( -dx * ey + dy * ex ) ) / ( a + 1 ) ) / a;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   float s = GetS( x, y, Bz );</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   zp = GetZ() + GetDzDs() * s;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( k ) &gt; 1.e-2 ) {</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     float dZ = CAMath::Abs( GetDzDs() * CAMath::TwoPi() / k );</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     if ( dZ &gt; .1 ) {</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :       zp += CAMath::Nint( ( z - zp ) / dZ ) * dZ;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : //*
+<span class="lineNum">     102 </span>            : //* Transport routines
+<span class="lineNum">     103 </span>            : //*
+<a name="104"><span class="lineNum">     104 </span>            : </a>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float x, AliHLTTPCCATrackLinearisation &amp;t0, float Bz,  float maxSinPhi, float *DL )
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span>            :   //* Transport the track parameters to X=x, using linearization at t0, and the field value Bz
+<span class="lineNum">     109 </span>            :   //* maxSinPhi is the max. allowed value for |t0.SinPhi()|
+<span class="lineNum">     110 </span>            :   //* linearisation of trajectory t0 is also transported to X=x,
+<span class="lineNum">     111 </span>            :   //* returns 1 if OK
+<span class="lineNum">     112 </span>            :   //*
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   float ex = t0.CosPhi();</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   float ey = t0.SinPhi();</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   float k  =-t0.QPt() * Bz;</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   float dx = x - X();</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   float ey1 = k * dx + ey;</span>
+<span class="lineNum">     120 </span>            :   float ex1;
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :   // check for intersection with X=x
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( ey1 ) &gt; maxSinPhi ) return 0;</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   ex1 = CAMath::Sqrt( 1 - ey1 * ey1 );</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   if ( ex &lt; 0 ) ex1 = -ex1;</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :   float dx2 = dx * dx;</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   float ss = ey + ey1;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   float cc = ex + ex1;</span>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( cc ) &lt; 1.e-4 || CAMath::Abs( ex ) &lt; 1.e-4 || CAMath::Abs( ex1 ) &lt; 1.e-4 ) return 0;</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :   float tg = ss / cc; // tan((phi1+phi)/2)</span>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   float dy = dx * tg;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   float dl = dx * CAMath::Sqrt( 1 + tg * tg );</span>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   if ( cc &lt; 0 ) dl = -dl;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   float dSin = dl * k / 2;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :   if ( dSin &gt; 1 ) dSin = 1;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   if ( dSin &lt; -1 ) dSin = -1;</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :   float dS = ( CAMath::Abs( k ) &gt; 1.e-4 )  ? ( 2 * CAMath::ASin( dSin ) / k ) : dl;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   float dz = dS * t0.DzDs();</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :   if ( DL ) *DL = -dS * CAMath::Sqrt( 1 + t0.DzDs() * t0.DzDs() );</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   float cci = 1. / cc;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   float exi = 1. / ex;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :   float ex1i = 1. / ex1;</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :   float d[5] = { 0,
+<span class="lineNum">     154 </span>            :                  0,
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                  GetPar(2) - t0.SinPhi(),</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                  GetPar(3) - t0.DzDs(),</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                  GetPar(4) - t0.QPt()</span>
+<span class="lineNum">     158 </span>            :                };
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            :   //float H0[5] = { 1,0, h2,  0, h4 };
+<span class="lineNum">     161 </span>            :   //float H1[5] = { 0, 1, 0, dS,  0 };
+<span class="lineNum">     162 </span>            :   //float H2[5] = { 0, 0, 1,  0, dxBz };
+<span class="lineNum">     163 </span>            :   //float H3[5] = { 0, 0, 0,  1,  0 };
+<span class="lineNum">     164 </span>            :   //float H4[5] = { 0, 0, 0,  0,  1 };
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :   float h2 = dx * ( 1 + ey * ey1 + ex * ex1 ) * exi * ex1i * cci;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :   float h4 = dx2 * ( cc + ss * ey1 * ex1i ) * cci * cci * (-Bz);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   float dxBz = dx * (-Bz);</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :   t0.SetCosPhi( ex1 );</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   t0.SetSinPhi( ey1 );</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   SetX(X() + dx);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   SetPar(0, Y() + dy     + h2 * d[2]           +   h4 * d[4]);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   SetPar(1, Z() + dz               + dS * d[3]);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   SetPar(2, t0.SinPhi() +     d[2]           + dxBz * d[4]);</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   float c00 = fC[0];</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   float c10 = fC[1];</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   float c11 = fC[2];</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   float c20 = fC[3];</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :   float c21 = fC[4];</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :   float c22 = fC[5];</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   float c30 = fC[6];</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   float c31 = fC[7];</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   float c32 = fC[8];</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   float c33 = fC[9];</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :   float c40 = fC[10];</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   float c41 = fC[11];</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   float c42 = fC[12];</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   float c43 = fC[13];</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   float c44 = fC[14];</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   fC[0] = ( c00  + h2 * h2 * c22 + h4 * h4 * c44</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 )  );</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   fC[1] = c10 + h2 * c21 + h4 * c41 + dS * ( c30 + h2 * c32 + h4 * c43 );</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   fC[2] = c11 + 2 * dS * c31 + dS * dS * c33;</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   fC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * ( c40 + h2 * c42 + h4 * c44 );</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   fC[4] = c21 + dS * c32 + dxBz * ( c41 + dS * c43 );</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :   fC[5] = c22 + 2 * dxBz * c42 + dxBz * dxBz * c44;</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :   fC[6] = c30 + h2 * c32 + h4 * c43;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :   fC[7] = c31 + dS * c33;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :   fC[8] = c32 + dxBz * c43;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   fC[9] = c33;</span>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   fC[10] = c40 + h2 * c42 + h4 * c44;</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   fC[11] = c41 + dS * c43;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   fC[12] = c42 + dxBz * c44;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :   fC[13] = c43;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   fC[14] = c44;</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :   return 1;
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 : }</span>
+<a name="217"><span class="lineNum">     217 </span>            : </a>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi )
+<span class="lineNum">     220 </span>            : {
+<span class="lineNum">     221 </span>            :   //* Transport the track parameters to X=x, using linearization at phi0 with 0 curvature,
+<span class="lineNum">     222 </span>            :   //* and the field value Bz
+<span class="lineNum">     223 </span>            :   //* maxSinPhi is the max. allowed value for |t0.SinPhi()|
+<span class="lineNum">     224 </span>            :   //* linearisation of trajectory t0 is also transported to X=x,
+<span class="lineNum">     225 </span>            :   //* returns 1 if OK
+<span class="lineNum">     226 </span>            :   //*
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            :   float ex = cosPhi0;
+<span class="lineNum">     229 </span>            :   float ey = sinPhi0;
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   float dx = x - X();</span>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( ex ) &lt; 1.e-4 ) return 0;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   float exi = 1. / ex;</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   float dxBz = dx * (-Bz);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :   float dS = dx * exi;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   float h2 = dS * exi * exi;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :   float h4 = .5 * h2 * dxBz;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :   //float H0[5] = { 1,0, h2,  0, h4 };
+<span class="lineNum">     241 </span>            :   //float H1[5] = { 0, 1, 0, dS,  0 };
+<span class="lineNum">     242 </span>            :   //float H2[5] = { 0, 0, 1,  0, dxBz };
+<span class="lineNum">     243 </span>            :   //float H3[5] = { 0, 0, 0,  1,  0 };
+<span class="lineNum">     244 </span>            :   //float H4[5] = { 0, 0, 0,  0,  1 };
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   float sinPhi = SinPhi() + dxBz * QPt();</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   if ( maxSinPhi &gt; 0 &amp;&amp; CAMath::Abs( sinPhi ) &gt; maxSinPhi ) return 0;</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   SetX(X() + dx);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   SetPar(0, GetPar(0) + dS * ey + h2 * ( SinPhi() - ey )  +   h4 * QPt());</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   SetPar(1, GetPar(1) + dS * DzDs());</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :   SetPar(2, sinPhi);</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :   float c00 = fC[0];</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :   float c10 = fC[1];</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :   float c11 = fC[2];</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :   float c20 = fC[3];</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :   float c21 = fC[4];</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :   float c22 = fC[5];</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   float c30 = fC[6];</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :   float c31 = fC[7];</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :   float c32 = fC[8];</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :   float c33 = fC[9];</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   float c40 = fC[10];</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   float c41 = fC[11];</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   float c42 = fC[12];</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   float c43 = fC[13];</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   float c44 = fC[14];</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   fC[0] = ( c00  + h2 * h2 * c22 + h4 * h4 * c44</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :             + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 )  );</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :   fC[1] = c10 + h2 * c21 + h4 * c41 + dS * ( c30 + h2 * c32 + h4 * c43 );</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   fC[2] = c11 + 2 * dS * c31 + dS * dS * c33;</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   fC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * ( c40 + h2 * c42 + h4 * c44 );</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   fC[4] = c21 + dS * c32 + dxBz * ( c41 + dS * c43 );</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   fC[5] = c22 + 2 * dxBz * c42 + dxBz * dxBz * c44;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :   fC[6] = c30 + h2 * c32 + h4 * c43;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   fC[7] = c31 + dS * c33;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   fC[8] = c32 + dxBz * c43;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :   fC[9] = c33;</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   fC[10] = c40 + h2 * c42 + h4 * c44;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :   fC[11] = c41 + dS * c43;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :   fC[12] = c42 + dxBz * c44;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   fC[13] = c43;</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :   fC[14] = c44;</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :   return 1;
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : 
+<a name="299"><span class="lineNum">     299 </span>            : </a>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float x, float Bz, float maxSinPhi )
+<span class="lineNum">     302 </span>            : {
+<span class="lineNum">     303 </span>            :   //* Transport the track parameters to X=x
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   AliHLTTPCCATrackLinearisation t0( *this );</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   return TransportToX( x, t0, Bz, maxSinPhi );</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     309 </span>            : 
+<a name="310"><span class="lineNum">     310 </span>            : </a>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &amp;t0, AliHLTTPCCATrackFitParam &amp;par, float Bz, float maxSinPhi )
+<span class="lineNum">     313 </span>            : {
+<span class="lineNum">     314 </span>            :   //* Transport the track parameters to X=x  taking into account material budget
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :   const float kRho = 1.025e-3;//0.9e-3;
+<span class="lineNum">     317 </span>            :   const float kRadLen = 29.532;//28.94;
+<span class="lineNum">     318 </span>            :   const float kRhoOverRadLen = kRho / kRadLen;
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   float dl;</span>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   if ( !TransportToX( x, t0, Bz,  maxSinPhi, &amp;dl ) ) return 0;</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :   CorrectForMeanMaterial( dl*kRhoOverRadLen, dl*kRho, par );</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 : }</span>
+<a name="326"><span class="lineNum">     326 </span>            : </a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToXWithMaterial( float x,  AliHLTTPCCATrackFitParam &amp;par, float Bz, float maxSinPhi )
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span>            :   //* Transport the track parameters to X=x  taking into account material budget
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   AliHLTTPCCATrackLinearisation t0( *this );</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :   return TransportToXWithMaterial( x, t0, par, Bz, maxSinPhi );</span>
+<a name="334"><span class="lineNum">     334 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToXWithMaterial( float x, float Bz, float maxSinPhi )
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span>            :   //* Transport the track parameters to X=x taking into account material budget
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :   AliHLTTPCCATrackFitParam par;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :   CalculateFitParameters( par );</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :   return TransportToXWithMaterial( x, par, Bz, maxSinPhi );</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : //*
+<span class="lineNum">     347 </span>            : //*  Multiple scattering and energy losses
+<span class="lineNum">     348 </span>            : //*
+<a name="349"><span class="lineNum">     349 </span>            : </a>
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            : MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCATrackParam)::BetheBlochGeant( float bg2,
+<span class="lineNum">     352 </span>            :     float kp0,
+<span class="lineNum">     353 </span>            :     float kp1,
+<span class="lineNum">     354 </span>            :     float kp2,
+<span class="lineNum">     355 </span>            :     float kp3,
+<span class="lineNum">     356 </span>            :     float kp4 )
+<span class="lineNum">     357 </span>            : {
+<span class="lineNum">     358 </span>            :   //
+<span class="lineNum">     359 </span>            :   // This is the parameterization of the Bethe-Bloch formula inspired by Geant.
+<span class="lineNum">     360 </span>            :   //
+<span class="lineNum">     361 </span>            :   // bg2  - (beta*gamma)^2
+<span class="lineNum">     362 </span>            :   // kp0 - density [g/cm^3]
+<span class="lineNum">     363 </span>            :   // kp1 - density effect first junction point
+<span class="lineNum">     364 </span>            :   // kp2 - density effect second junction point
+<span class="lineNum">     365 </span>            :   // kp3 - mean excitation energy [GeV]
+<span class="lineNum">     366 </span>            :   // kp4 - mean Z/A
+<span class="lineNum">     367 </span>            :   //
+<span class="lineNum">     368 </span>            :   // The default values for the kp* parameters are for silicon.
+<span class="lineNum">     369 </span>            :   // The returned value is in [GeV/(g/cm^2)].
+<span class="lineNum">     370 </span>            :   //
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :   const float mK  = 0.307075e-3; // [GeV*cm^2/g]
+<span class="lineNum">     373 </span>            :   const float me  = 0.511e-3;    // [GeV/c^2]
+<span class="lineNum">     374 </span>            :   const float rho = kp0;
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :   const float x0  = kp1 * 2.303;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   const float x1  = kp2 * 2.303;</span>
+<span class="lineNum">     377 </span>            :   const float mI  = kp3;
+<span class="lineNum">     378 </span>            :   const float mZA = kp4;
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   const float maxT = 2 * me * bg2;    // neglecting the electron mass</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :   //*** Density effect
+<span class="lineNum">     382 </span>            :   float d2 = 0.;
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :   const float x = 0.5 * AliHLTTPCCAMath::Log( bg2 );</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :   const float lhwI = AliHLTTPCCAMath::Log( 28.816 * 1e-9 * AliHLTTPCCAMath::Sqrt( rho * mZA ) / mI );</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :   if ( x &gt; x1 ) {</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     d2 = lhwI + x - 0.5;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   } else if ( x &gt; x0 ) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     const float r = ( x1 - x ) / ( x1 - x0 );</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     d2 = lhwI + x - 0.5 + ( 0.5 - lhwI - x0 ) * r * r * r;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*AliHLTTPCCAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );</span>
+<a name="393"><span class="lineNum">     393 </span>            : }</a>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            : MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCATrackParam)::BetheBlochSolid( float bg )
+<span class="lineNum">     396 </span>            : {
+<span class="lineNum">     397 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     398 </span>            :   // This is an approximation of the Bethe-Bloch formula,
+<span class="lineNum">     399 </span>            :   // reasonable for solid materials.
+<span class="lineNum">     400 </span>            :   // All the parameters are, in fact, for Si.
+<span class="lineNum">     401 </span>            :   // The returned value is in [GeV]
+<span class="lineNum">     402 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :   return BetheBlochGeant( bg );</span>
+<a name="405"><span class="lineNum">     405 </span>            : }</a>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCATrackParam)::BetheBlochGas( float bg )
+<span class="lineNum">     408 </span>            : {
+<span class="lineNum">     409 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     410 </span>            :   // This is an approximation of the Bethe-Bloch formula,
+<span class="lineNum">     411 </span>            :   // reasonable for gas materials.
+<span class="lineNum">     412 </span>            :   // All the parameters are, in fact, for Ne.
+<span class="lineNum">     413 </span>            :   // The returned value is in [GeV]
+<span class="lineNum">     414 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            :   const float rho = 0.9e-3;
+<span class="lineNum">     417 </span>            :   const float x0  = 2.;
+<span class="lineNum">     418 </span>            :   const float x1  = 4.;
+<span class="lineNum">     419 </span>            :   const float mI  = 140.e-9;
+<span class="lineNum">     420 </span>            :   const float mZA = 0.49555;
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :   return BetheBlochGeant( bg, rho, x0, x1, mI, mZA );</span>
+<span class="lineNum">     423 </span>            : }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            : 
+<a name="426"><span class="lineNum">     426 </span>            : </a>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            : MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCATrackParam)::ApproximateBetheBloch( float beta2 )
+<span class="lineNum">     429 </span>            : {
+<span class="lineNum">     430 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     431 </span>            :   // This is an approximation of the Bethe-Bloch formula with
+<span class="lineNum">     432 </span>            :   // the density effect taken into account at beta*gamma &gt; 3.5
+<span class="lineNum">     433 </span>            :   // (the approximation is reasonable only for solid materials)
+<span class="lineNum">     434 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :   if ( beta2 &gt;= 1 ) return 0;</span>
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :   if ( beta2 / ( 1 - beta2 ) &gt; 3.5*3.5 )</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     return 0.153e-3 / beta2*( log( 3.5*5940 ) + 0.5*log( beta2 / ( 1 - beta2 ) ) - beta2 );</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :   return 0.153e-3 / beta2*( log( 5940*beta2 / ( 1 - beta2 ) ) - beta2 );</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 : }</span>
+<a name="441"><span class="lineNum">     441 </span>            : </a>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            : MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCATrackParam)::CalculateFitParameters( AliHLTTPCCATrackFitParam &amp;par, float mass )
+<span class="lineNum">     444 </span>            : {
+<span class="lineNum">     445 </span>            :   //*!
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :   float qpt = GetPar(4);</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   if( fC[14]&gt;=1. ) qpt = 1./0.35;</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :   float p2 = ( 1. + GetPar(3) * GetPar(3) );</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :   float k2 = qpt * qpt;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :   float mass2 = mass * mass;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :   float beta2 = p2 / ( p2 + mass2 * k2 );</span>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :   float pp2 = ( k2 &gt; 1.e-8 ) ? p2 / k2 : 10000; // impuls 2</span>
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span>            :   //par.fBethe = BetheBlochGas( pp2/mass2);
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :   par.fBethe = ApproximateBetheBloch( pp2 / mass2 );</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   par.fE = CAMath::Sqrt( pp2 + mass2 );</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :   par.fTheta2 = 14.1 * 14.1 / ( beta2 * pp2 * 1e6 );</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :   par.fEP2 = par.fE / pp2;</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :   // Approximate energy loss fluctuation (M.Ivanov)
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :   const float knst = 0.07; // To be tuned.
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :   par.fSigmadE2 = knst * par.fEP2 * qpt;</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :   par.fSigmadE2 = par.fSigmadE2 * par.fSigmadE2;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   par.fK22 = ( 1. + GetPar(3) * GetPar(3) );</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   par.fK33 = par.fK22 * par.fK22;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   par.fK43 = 0;</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   par.fK44 = GetPar(3) * GetPar(3) * k2;</span>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 : }</span>
+<a name="475"><span class="lineNum">     475 </span>            : </a>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &amp;par )
+<span class="lineNum">     478 </span>            : {
+<span class="lineNum">     479 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     480 </span>            :   // This function corrects the track parameters for the crossed material.
+<span class="lineNum">     481 </span>            :   // &quot;xOverX0&quot;   - X/X0, the thickness in units of the radiation length.
+<span class="lineNum">     482 </span>            :   // &quot;xTimesRho&quot; - is the product length*density (g/cm^2).
+<span class="lineNum">     483 </span>            :   //------------------------------------------------------------------
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :   float &amp;fC22 = fC[5];</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   float &amp;fC33 = fC[9];</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   float &amp;fC40 = fC[10];</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   float &amp;fC41 = fC[11];</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   float &amp;fC42 = fC[12];</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :   float &amp;fC43 = fC[13];</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   float &amp;fC44 = fC[14];</span>
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span>            :   //Energy losses************************
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :   float dE = par.fBethe * xTimesRho;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( dE ) &gt; 0.3*par.fE ) return 0; //30% energy loss is too much!</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :   float corr = ( 1. - par.fEP2 * dE );</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :   if ( corr &lt; 0.3 || corr &gt; 1.3 ) return 0;</span>
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :   SetPar(4, GetPar(4) * corr);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :   fC40 *= corr;</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :   fC41 *= corr;</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :   fC42 *= corr;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   fC43 *= corr;</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   fC44 *= corr * corr;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :   fC44 += par.fSigmadE2 * CAMath::Abs( dE );</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            :   //Multiple scattering******************
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   float theta2 = par.fTheta2 * CAMath::Abs( xOverX0 );</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   fC22 += theta2 * par.fK22 * (1.-GetPar(2))*(1.+GetPar(2));</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   fC33 += theta2 * par.fK33;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   fC43 += theta2 * par.fK43;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   fC44 += theta2 * par.fK44;</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span>            :   return 1;
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            : //*
+<span class="lineNum">     521 </span>            : //* Rotation
+<span class="lineNum">     522 </span>            : //*
+<a name="523"><span class="lineNum">     523 </span>            : </a>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Rotate( float alpha, float maxSinPhi )
+<span class="lineNum">     526 </span>            : {
+<span class="lineNum">     527 </span>            :   //* Rotate the coordinate system in XY on the angle alpha
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   float cA = CAMath::Cos( alpha );</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   float sA = CAMath::Sin( alpha );</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :   float x = X(), y = Y(), sP = SinPhi(), cP = GetCosPhi();</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :   float cosPhi = cP * cA + sP * sA;</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :   float sinPhi = -cP * sA + sP * cA;</span>
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( sinPhi ) &gt; maxSinPhi || CAMath::Abs( cosPhi ) &lt; 1.e-2 || CAMath::Abs( cP ) &lt; 1.e-2  ) return 0;</span>
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :   float j0 = cP / cosPhi;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :   float j2 = cosPhi / cP;</span>
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :   SetX( x*cA +  y*sA );</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :   SetY( -x*sA +  y*cA );</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :   SetSignCosPhi( cosPhi );</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :   SetSinPhi( sinPhi );</span>
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :   //float J[5][5] = { { j0, 0, 0,  0,  0 }, // Y
+<span class="lineNum">     547 </span>            :   //                      {  0, 1, 0,  0,  0 }, // Z
+<span class="lineNum">     548 </span>            :   //                      {  0, 0, j2, 0,  0 }, // SinPhi
+<span class="lineNum">     549 </span>            :   //                    {  0, 0, 0,  1,  0 }, // DzDs
+<span class="lineNum">     550 </span>            :   //                    {  0, 0, 0,  0,  1 } }; // Kappa
+<span class="lineNum">     551 </span>            :   //cout&lt;&lt;&quot;alpha=&quot;&lt;&lt;alpha&lt;&lt;&quot; &quot;&lt;&lt;x&lt;&lt;&quot; &quot;&lt;&lt;y&lt;&lt;&quot; &quot;&lt;&lt;sP&lt;&lt;&quot; &quot;&lt;&lt;cP&lt;&lt;&quot; &quot;&lt;&lt;j0&lt;&lt;&quot; &quot;&lt;&lt;j2&lt;&lt;endl;
+<span class="lineNum">     552 </span>            :   //cout&lt;&lt;&quot;      &quot;&lt;&lt;fC[0]&lt;&lt;&quot; &quot;&lt;&lt;fC[1]&lt;&lt;&quot; &quot;&lt;&lt;fC[6]&lt;&lt;&quot; &quot;&lt;&lt;fC[10]&lt;&lt;&quot; &quot;&lt;&lt;fC[4]&lt;&lt;&quot; &quot;&lt;&lt;fC[5]&lt;&lt;&quot; &quot;&lt;&lt;fC[8]&lt;&lt;&quot; &quot;&lt;&lt;fC[12]&lt;&lt;endl;
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :   fC[0] *= j0 * j0;</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :   fC[1] *= j0;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   fC[3] *= j0;</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :   fC[6] *= j0;</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :   fC[10] *= j0;</span>
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :   fC[3] *= j2;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :   fC[4] *= j2;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :   fC[5] *= j2 * j2;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :   fC[8] *= j2;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :   fC[12] *= j2;</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         if (cosPhi &lt; 0)</span>
+<span class="lineNum">     566 </span>            :         {
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :                 SetSinPhi(-SinPhi());</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                 SetDzDs(-DzDs());</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                 SetQPt(-QPt());</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                 fC[3] = - fC[3];</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 fC[4] = - fC[4];</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                 fC[6] = - fC[6];</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :                 fC[7] = - fC[7];</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :                 fC[10] = -fC[10];</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :                 fC[11] = -fC[11];</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            :   //cout&lt;&lt;&quot;      &quot;&lt;&lt;fC[0]&lt;&lt;&quot; &quot;&lt;&lt;fC[1]&lt;&lt;&quot; &quot;&lt;&lt;fC[6]&lt;&lt;&quot; &quot;&lt;&lt;fC[10]&lt;&lt;&quot; &quot;&lt;&lt;fC[4]&lt;&lt;&quot; &quot;&lt;&lt;fC[5]&lt;&lt;&quot; &quot;&lt;&lt;fC[8]&lt;&lt;&quot; &quot;&lt;&lt;fC[12]&lt;&lt;endl;
+<span class="lineNum">     579 </span>            :   return 1;
+<a name="580"><span class="lineNum">     580 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Rotate( float alpha, AliHLTTPCCATrackLinearisation &amp;t0, float maxSinPhi )
+<span class="lineNum">     583 </span>            : {
+<span class="lineNum">     584 </span>            :   //* Rotate the coordinate system in XY on the angle alpha
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :   float cA = CAMath::Cos( alpha );</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :   float sA = CAMath::Sin( alpha );</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :   float x0 = X(), y0 = Y(), sP = t0.SinPhi(), cP = t0.CosPhi();</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :   float cosPhi = cP * cA + sP * sA;</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :   float sinPhi = -cP * sA + sP * cA;</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( sinPhi ) &gt; maxSinPhi || CAMath::Abs( cosPhi ) &lt; 1.e-2 || CAMath::Abs( cP ) &lt; 1.e-2  ) return 0;</span>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            :   //float J[5][5] = { { j0, 0, 0,  0,  0 }, // Y
+<span class="lineNum">     595 </span>            :   //                    {  0, 1, 0,  0,  0 }, // Z
+<span class="lineNum">     596 </span>            :   //                    {  0, 0, j2, 0,  0 }, // SinPhi
+<span class="lineNum">     597 </span>            :   //                  {  0, 0, 0,  1,  0 }, // DzDs
+<span class="lineNum">     598 </span>            :   //                  {  0, 0, 0,  0,  1 } }; // Kappa
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :   float j0 = cP / cosPhi;</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :   float j2 = cosPhi / cP;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :   float d[2] = {Y() - y0, SinPhi() - sP};</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   SetX( x0*cA +  y0*sA );</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :   SetY( -x0*sA +  y0*cA + j0*d[0] );</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :   t0.SetCosPhi( cosPhi );</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   t0.SetSinPhi( sinPhi );</span>
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :   SetSinPhi( sinPhi + j2*d[1] );</span>
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :   fC[0] *= j0 * j0;</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :   fC[1] *= j0;</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :   fC[3] *= j0;</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :   fC[6] *= j0;</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :   fC[10] *= j0;</span>
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :   fC[3] *= j2;</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :   fC[4] *= j2;</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :   fC[5] *= j2 * j2;</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :   fC[8] *= j2;</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   fC[12] *= j2;</span>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span>            :   return 1;
+<a name="624"><span class="lineNum">     624 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
+<span class="lineNum">     627 </span>            : {
+<span class="lineNum">     628 </span>            :   //* Add the y,z measurement with the Kalman filter
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span>            :   float
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :   c00 = fC[ 0],</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         c11 = fC[ 2],</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :               c20 = fC[ 3],</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :                     c31 = fC[ 7],</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :                           c40 = fC[10];</span>
+<span class="lineNum">     636 </span>            : 
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :   err2Y += c00;</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :   err2Z += c11;</span>
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span>            :   float
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :   z0 = y - GetPar(0),</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :        z1 = z - GetPar(1);</span>
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :   if ( err2Y &lt; 1.e-8 || err2Z &lt; 1.e-8 ) return 0;</span>
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :   float mS0 = 1. / err2Y;</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :   float mS2 = 1. / err2Z;</span>
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span>            :   // K = CHtS
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span>            :   float k00, k11, k20, k31, k40;
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :   k00 = c00 * mS0;</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   k20 = c20 * mS0;</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :   k40 = c40 * mS0;</span>
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :   k11 = c11 * mS2;</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :   k31 = c31 * mS2;</span>
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :   float sinPhi = GetPar(2) + k20 * z0  ;</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   if ( maxSinPhi &gt; 0 &amp;&amp; CAMath::Abs( sinPhi ) &gt;= maxSinPhi ) return 0;</span>
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   fNDF  += 2;</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :   fChi2 += mS0 * z0 * z0 + mS2 * z1 * z1 ;</span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :   SetPar(0, GetPar(0) + k00 * z0);</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :   SetPar(1, GetPar(1) + k11 * z1);</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :   SetPar(2, sinPhi);</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :   SetPar(3, GetPar(3) + k31 * z1);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :   SetPar(4, GetPar(4) + k40 * z0);</span>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :   fC[ 0] -= k00 * c00 ;</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :   fC[ 3] -= k20 * c00 ;</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :   fC[ 5] -= k20 * c20 ;</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :   fC[10] -= k40 * c00 ;</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :   fC[12] -= k40 * c20 ;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   fC[14] -= k40 * c40 ;</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   fC[ 2] -= k11 * c11 ;</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :   fC[ 7] -= k31 * c11 ;</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :   fC[ 9] -= k31 * c31 ;</span>
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :   return 1;</span>
+<a name="685"><span class="lineNum">     685 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span>            : MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::CheckNumericalQuality() const
+<span class="lineNum">     688 </span>            : {
+<span class="lineNum">     689 </span>            :   //* Check that the track parameters and covariance matrix are reasonable
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   bool ok = AliHLTTPCCAMath::Finite( GetX() ) &amp;&amp; AliHLTTPCCAMath::Finite( fSignCosPhi ) &amp;&amp; AliHLTTPCCAMath::Finite( fChi2 ) &amp;&amp; AliHLTTPCCAMath::Finite( fNDF );</span>
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   const float *c = Cov();</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :   for ( int i = 0; i &lt; 15; i++ ) ok = ok &amp;&amp; AliHLTTPCCAMath::Finite( c[i] );</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :   for ( int i = 0; i &lt; 5; i++ ) ok = ok &amp;&amp; AliHLTTPCCAMath::Finite( Par()[i] );</span>
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   if ( c[0] &lt;= 0 || c[2] &lt;= 0 || c[5] &lt;= 0 || c[9] &lt;= 0 || c[14] &lt;= 0 ) ok = 0;</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :   if ( c[0] &gt; 5. || c[2] &gt; 5. || c[5] &gt; 2. || c[9] &gt; 2 </span>
+<span class="lineNum">     699 </span>            :        //|| ( CAMath::Abs( QPt() ) &gt; 1.e-2 &amp;&amp; c[14] &gt; 2. ) 
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :        ) ok = 0;</span>
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( SinPhi() ) &gt; .99 ) ok = 0;</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :   if ( CAMath::Abs( QPt() ) &gt; 1. / 0.05 ) ok = 0;</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :   if( ok ){</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     ok = ok </span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[1]*c[1]&lt;=c[2]*c[0] )</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[3]*c[3]&lt;=c[5]*c[0] )</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[4]*c[4]&lt;=c[5]*c[2] )</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[6]*c[6]&lt;=c[9]*c[0] )</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[7]*c[7]&lt;=c[9]*c[2] )</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[8]*c[8]&lt;=c[9]*c[5] )</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[10]*c[10]&lt;=c[14]*c[0] )</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[11]*c[11]&lt;=c[14]*c[2] )</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[12]*c[12]&lt;=c[14]*c[5] )</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :       &amp;&amp; ( c[13]*c[13]&lt;=c[14]*c[9] );      </span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :   return ok;</span>
+<span class="lineNum">     718 </span>            : }
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span>            : #if !defined(HLTCA_GPUCODE)
+<span class="lineNum">     722 </span>            : #include &lt;iostream&gt;
+<a name="723"><span class="lineNum">     723 </span>            : #endif</a>
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span>            : MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCATrackParam)::Print() const
+<span class="lineNum">     726 </span>            : {
+<span class="lineNum">     727 </span>            :   //* print parameters
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span>            : #if !defined(HLTCA_GPUCODE)
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;track: x=&quot; &lt;&lt; GetX() &lt;&lt; &quot; c=&quot; &lt;&lt; GetSignCosPhi() &lt;&lt; &quot;, P= &quot; &lt;&lt; GetY() &lt;&lt; &quot; &quot; &lt;&lt; GetZ() &lt;&lt; &quot; &quot; &lt;&lt; GetSinPhi() &lt;&lt; &quot; &quot; &lt;&lt; GetDzDs() &lt;&lt; &quot; &quot; &lt;&lt; GetQPt() &lt;&lt; std::endl;</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;errs2: &quot; &lt;&lt; GetErr2Y() &lt;&lt; &quot; &quot; &lt;&lt; GetErr2Z() &lt;&lt; &quot; &quot; &lt;&lt; GetErr2SinPhi() &lt;&lt; &quot; &quot; &lt;&lt; GetErr2DzDs() &lt;&lt; &quot; &quot; &lt;&lt; GetErr2QPt() &lt;&lt; std::endl;</span>
+<span class="lineNum">     732 </span>            : #endif
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     734 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
